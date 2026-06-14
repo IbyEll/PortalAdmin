@@ -11,6 +11,7 @@
     "admin:dashboard": "node server/dashboard-server.mjs"
   , "db:migrate": "node lib/cruscotto-db/migrate.mjs"
   , "test:paths": "node scripts/smoke-portal-paths.mjs"
+  , "test:run-all": "node scripts/smoke-run-all.mjs"
   , "test:dashboard": "node scripts/smoke-dashboard.mjs"
   }
 , "dependencies": {
