@@ -9,10 +9,13 @@
   }
 , "scripts": {
     "admin:dashboard": "node server/dashboard-server.mjs"
-  , "db:migrate": "node scripts/db-migrate-stub.mjs"
+  , "db:migrate": "node lib/cruscotto-db/migrate.mjs"
   , "test:paths": "node scripts/smoke-portal-paths.mjs"
+  , "test:dashboard": "node scripts/smoke-dashboard.mjs"
   }
 , "dependencies": {
     "dotenv": "^16.4.7"
+  , "@prisma/client": "^6.9.0"
+  , "exceljs": "^4.4.0"
   }
 }

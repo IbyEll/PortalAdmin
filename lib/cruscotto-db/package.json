@@ -1,0 +1,20 @@
+{
+  "name"            : "@justlastone/cruscotto-db",
+  "version"         : "0.1.0",
+  "private"         : true,
+  "type"            : "module",
+  "main"            : "./index.mjs",
+  "exports"         : {
+    "."             : "./index.mjs"
+  },
+  "scripts"         : {
+    "db:generate"   : "prisma generate",
+    "db:migrate"    : "node migrate.mjs"
+  },
+  "dependencies"    : {
+    "@prisma/client": "^6.9.0"
+  },
+  "devDependencies" : {
+    "prisma"        : "^6.9.0"
+  }
+}

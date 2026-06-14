@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("CRUSCOTTO_DATABASE_URL")
+}
+
+/// Snapshot Jira sync job (Admin cruscotto cache).
+model SyncRun {
+  id          String    @id @default(uuid())
+  startedAt   DateTime  @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  source      String    @default("jira-api")
+  issueCount  Int       @default(0) @map("issue_count")
+  status      String
+
+  issues             JiraIssue[]
+  workingPlanSprints WorkingPlanSprintKeys[]
+
+  @@map("sync_run")
+}
+
+/// Issue row aligned with JiraBacklogRow (Admin/lib/jira-backlog.mjs).
+model JiraIssue {
+  id                String    @id @default(uuid())
+  jiraKey           String    @unique @map("jira_key")
+  issueType         String    @map("issue_type")
+  summary           String
+  status            String
+  statusCategory    String?   @map("status_category")
+  parentJiraKey     String?   @map("parent_jira_key")
+  jiraUpdatedAt     DateTime? @map("jira_updated_at")
+  tier              String
+  isStoryLike       Boolean   @default(false) @map("is_story_like")
+  isDone            Boolean   @default(false) @map("is_done")
+  depth             Int       @default(0)
+  hasChildren       Boolean   @default(false) @map("has_children")
+  devOrder          String?   @map("dev_order")
+  devSprint         Int?      @map("dev_sprint")
+  devSprintName     String?   @map("dev_sprint_name")
+  devSort           Int?      @map("dev_sort")
+  isSprint6Obsolete Boolean   @default(false) @map("is_sprint6_obsolete")
+  relatedKeys       String?   @map("related_keys")
+  rawFields         String?   @map("raw_fields")
+  syncRunId         String    @map("sync_run_id")
+  syncedAt          DateTime  @default(now()) @map("synced_at")
+
+  syncRun   SyncRun           @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+  sprints   JiraIssueSprint[]
+  linksFrom JiraIssueLink[]   @relation("LinkFrom")
+  linksTo   JiraIssueLink[]   @relation("LinkTo")
+
+  @@index([syncRunId])
+  @@index([parentJiraKey])
+  @@map("jira_issue")
+}
+
+model JiraSprint {
+  id        Int       @id
+  name      String
+  state     String
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+
+  issues JiraIssueSprint[]
+
+  @@map("jira_sprint")
+}
+
+model JiraIssueSprint {
+  issueId  String @map("issue_id")
+  sprintId Int    @map("sprint_id")
+
+  issue  JiraIssue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  sprint JiraSprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, sprintId])
+  @@map("jira_issue_sprint")
+}
+
+model JiraIssueLink {
+  id          String @id @default(uuid())
+  fromIssueId String @map("from_issue_id")
+  toIssueId   String @map("to_issue_id")
+  linkType    String @map("link_type")
+
+  fromIssue JiraIssue @relation("LinkFrom", fields: [fromIssueId], references: [id], onDelete: Cascade)
+  toIssue   JiraIssue @relation("LinkTo", fields: [toIssueId], references: [id], onDelete: Cascade)
+
+  @@index([fromIssueId])
+  @@index([toIssueId])
+  @@map("jira_issue_link")
+}
+
+model WorkingPlanSprintKeys {
+  planSprintName String @id @map("plan_sprint_name")
+  issueKeys      String @map("issue_keys")
+  syncRunId      String @map("sync_run_id")
+
+  syncRun SyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@map("working_plan_sprint_keys")
+}

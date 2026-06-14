@@ -1,0 +1,66 @@
+.issue-type {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+}
+
+a.jira-link {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+}
+
+.issue-type-epic {
+  color: var(--purple);
+  border-color: rgba(183, 148, 246, 0.45);
+  background: rgba(183, 148, 246, 0.12);
+}
+
+.issue-type-story {
+  color: var(--pass);
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.issue-type-bug {
+  color: var(--fail, #f87171);
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.issue-type-sub {
+  color: var(--turquoise, #2ee8d6);
+  border-color: rgba(46, 232, 214, 0.45);
+  background: rgba(46, 232, 214, 0.08);
+}
+
+.issue-type-todo {
+  color: var(--accent);
+  border-color: rgba(61, 156, 245, 0.45);
+  background: rgba(61, 156, 245, 0.1);
+}
+
+.issue-type-other {
+  color: var(--muted);
+}
+
+.jira-key-wrap .issue-type {
+  flex-shrink: 0;
+}
+
+.col-key .issue-type {
+  margin-right: 0.3rem;
+}

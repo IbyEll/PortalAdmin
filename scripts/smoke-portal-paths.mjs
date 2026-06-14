@@ -7,14 +7,13 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  getPortalDataDir
-, getPortalRoot
+  getPortalRoot
 , getProductRepoPath
 , getTestScriptDir
 , resolveProductRepoPath
 } from "../lib/portal-paths.mjs";
 import { scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
-import { buildDevManifest } from "../lib/dev-manifest.mjs";
+import { loadDevManifest, DEV_MANIFEST_PATH } from "../lib/dev-manifest.mjs";
 import { REPORTS_DIR } from "../lib/reporter.mjs";
 
 const portal = getPortalRoot();
@@ -43,10 +42,15 @@ if (!REPORTS_DIR.includes("PortalAdmin") && !REPORTS_DIR.startsWith(portal)) {
   process.exit(1);
 }
 
-const manifest = buildDevManifest();
+const manifest = await loadDevManifest();
 
-if (manifest.productRoot !== product || manifest.portalRoot !== portal) {
-  console.error("FAIL: dev-manifest root mismatch");
+if (!manifest.requirements || !Array.isArray(manifest.services)) {
+  console.error("FAIL: dev-manifest.json non valido");
+  process.exit(1);
+}
+
+if (!DEV_MANIFEST_PATH.startsWith(portal)) {
+  console.error("FAIL: DEV_MANIFEST_PATH non sotto portal");
   process.exit(1);
 }
 

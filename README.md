@@ -17,11 +17,10 @@ Repository autonomo per l'**Admin Dashboard** estratto da [JustLastOne](https://
 | `server/` | `dashboard-server.mjs` — HTTP static + API (stub bootstrap) |
 | `cruscotto/` | SPA frontend cruscotto |
 | `lib/` | Helper condivisi (env, Jira, catalogo) |
-| `runner/` | Orchestrazione test (`run-all.mjs`) — migrato in ADMIN-92 |
-| `report/` | Report HTML/JSON test — migrato in ADMIN-91 |
-| `export/` | Export Excel report |
-| `scripts/` | Script CLI (Jira, pillar matrix, close-story) |
-| `data/` | Artefatti generati (DB SQLite, report) — **gitignored** |
+| `lib/cruscotto-db/` | SQLite cache Jira (ADMIN-81) |
+| `data/` | Artefatti generati (DB, report) — **gitignored** |
+
+Tree Admin/ migrato in ADMIN-91 — nessun prefisso `Admin/` nel repo PortalAdmin.
 
 ## Quick start
 
