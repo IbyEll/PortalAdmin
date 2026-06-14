@@ -90,6 +90,27 @@ Verifica path:
 npm run test:paths
 ```
 
+## portal.config.mjs (ADMIN-93)
+
+Segnali repo e progetti Jira configurabili **senza** modificare `lib/jira-backlog-insights.mjs`:
+
+| Export | Ruolo |
+| --- | --- |
+| `JIRA_PROJECT_KEYS` | Progetti ammessi nello scan (`JLO`, `ADMIN`) |
+| `REPO_IMPLEMENTATION_SIGNALS` | Path noti per ticket → colonna «Repo ok» nel cruscotto |
+
+Esempio entry:
+
+```javascript
+{
+  key   : "ADMIN-81"
+, label : "Schema SQLite cruscotto"
+, paths : ["lib/cruscotto-db/prisma/schema.prisma"]
+}
+```
+
+`close-story.mjs --key ADMIN-81` e `analyze-repo-keys.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
+
 ## Script npm
 
 | Script | Descrizione |
@@ -98,7 +119,7 @@ npm run test:paths
 | `db:migrate` | Migrazione SQLite cruscotto (`lib/cruscotto-db`) |
 | `test:paths` | Smoke `PRODUCT_REPO_PATH` + scan Jira refs |
 | `test:run-all` | Smoke discovery `run-all.mjs --list` |
-| `test:dashboard` | Smoke HTTP dashboard (:3998) |
+| `test:config` | Smoke `portal.config.mjs` + ADMIN keys + close-story |
 
 ## Migrazione
 

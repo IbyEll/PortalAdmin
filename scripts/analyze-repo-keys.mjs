@@ -15,6 +15,20 @@ import {
 } from "../lib/jira-repo-analysis.mjs";
 
 /**
+ * @param {string} raw
+ * @returns {string}
+ */
+function normalizeIssueKey(raw) {
+  const m = String(raw).trim().toUpperCase().match(/^(JLO|ADMIN)-\d+$/);
+
+  if (!m) {
+    throw new Error(`Key non valida: ${raw} — attese JLO-xxx o ADMIN-xxx`);
+  }
+
+  return m[0];
+}
+
+/**
  * @param {string[]} argv
  */
 function parseArgs(argv) {
@@ -25,17 +39,17 @@ function parseArgs(argv) {
     const arg = argv[i];
 
     if (arg === "--parent" && argv[i + 1]) {
-      out.parent = argv[++i];
+      out.parent = normalizeIssueKey(argv[++i]);
       continue;
     }
 
     if (arg === "--keys" && argv[i + 1]) {
-      out.keys = argv[++i].split(",").map((k) => k.trim()).filter(Boolean);
+      out.keys = argv[++i].split(",").map((k) => normalizeIssueKey(k.trim())).filter(Boolean);
       continue;
     }
 
     if (arg === "--key" && argv[i + 1]) {
-      out.key = argv[++i];
+      out.key = normalizeIssueKey(argv[++i]);
       continue;
     }
 
@@ -96,7 +110,7 @@ async function main() {
 
   if (!args.parent && args.keys.length === 0 && !args.key) {
     console.error(
-      "Uso: analyze-repo-keys.mjs --parent JLO-xxx | --keys K1,K2 | --key K [--format json|md]"
+      "Uso: analyze-repo-keys.mjs --parent JLO-xxx|ADMIN-xxx | --keys K1,K2 | --key K [--format json|md]"
     );
     process.exit(1);
   }
