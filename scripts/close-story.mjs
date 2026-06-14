@@ -33,7 +33,35 @@ import { getPortalRoot } from "../lib/portal-paths.mjs";
 const REPO_ROOT = getPortalRoot();
 
 const PREFIXES = ["STORY---", "BUG---", "TODO---"];
-const LEGACY_KEY_RE = /^JLO-\d+/;
+const LEGACY_KEY_RE = /^(JLO|ADMIN)-\d+/;
+
+/** @param {string} key */
+function parseTicketKey(key) {
+  const m = String(key).trim().toUpperCase().match(/^(JLO|ADMIN)-(\d+)$/);
+
+  if (!m) {
+    return null;
+  }
+
+  return {
+    project : m[1]
+  , num     : m[2]
+  , full    : `${m[1]}-${m[2]}`
+  };
+}
+
+/**
+ * @param {string} key e.g. JLO-930 or ADMIN-81
+ */
+function normalizeKey(key) {
+  const parsed = parseTicketKey(key);
+
+  if (!parsed) {
+    throw new Error(`Key ticket non valida: ${key} (attese JLO-xxx o ADMIN-xxx)`);
+  }
+
+  return parsed.full;
+}
 
 /**
  * @param {string} cmd
@@ -59,27 +87,20 @@ function run(cmd, args, opts = {}) {
 }
 
 /**
- * @param {string} key e.g. JLO-930
- */
-function normalizeKey(key) {
-  const m = String(key).trim().toUpperCase().match(/JLO-\d+/);
-
-  if (!m) {
-    throw new Error(`Key ticket non valida: ${key}`);
-  }
-
-  return m[0];
-}
-
-/**
  * @param {string} key
  */
 function listTicketBranches(key) {
-  const num = key.replace(/^JLO-/i, "");
+  const parsed = parseTicketKey(key);
+
+  if (!parsed) {
+    return [];
+  }
+
+  const { project, num } = parsed;
   const found = new Set();
 
   for (const prefix of PREFIXES) {
-    const pattern = `${prefix}JLO-${num}-*`;
+    const pattern = `${prefix}${project}-${num}-*`;
 
     for (const line of run("git", ["branch", "--list", pattern], { allowFail: true }).split("\n")) {
       const name = line.replace(/^\*?\s+/, "").trim();
@@ -98,11 +119,13 @@ function listTicketBranches(key) {
     }
   }
 
-  for (const line of run("git", ["branch", "--list", `JLO-${num}-*`], { allowFail: true }).split("\n")) {
-    const name = line.replace(/^\*?\s+/, "").trim();
+  if (project === "JLO") {
+    for (const line of run("git", ["branch", "--list", `JLO-${num}-*`], { allowFail: true }).split("\n")) {
+      const name = line.replace(/^\*?\s+/, "").trim();
 
-    if (name) {
-      found.add(name);
+      if (name) {
+        found.add(name);
+      }
     }
   }
 
@@ -121,7 +144,7 @@ function isTicketBranch(branch) {
     return true;
   }
 
-  return LEGACY_KEY_RE.test(branch);
+  return LEGACY_KEY_RE.test(branch) || /^(STORY|BUG|TODO)---(JLO|ADMIN)-\d+/i.test(branch);
 }
 
 /**
@@ -192,7 +215,7 @@ function parseArgs(argv) {
       key = normalizeKey(argv[++i]);
     } else if (argv[i] === "--branch" && argv[i + 1]) {
       branch = argv[++i].trim();
-    } else if (/^JLO-\d+$/i.test(argv[i])) {
+    } else if (/^(JLO|ADMIN)-\d+$/i.test(argv[i])) {
       key = normalizeKey(argv[i]);
     }
   }
@@ -298,7 +321,7 @@ async function main() {
     }
 
     const branch = resolveBranch({ key, branch: branchArg });
-    const ticketKey = key ?? branch.match(/JLO-\d+/i)?.[0]?.toUpperCase() ?? null;
+    const ticketKey = key ?? branch.match(/(JLO|ADMIN)-\d+/i)?.[0]?.toUpperCase() ?? null;
 
     if (dryRun) {
       out.ok = true;
