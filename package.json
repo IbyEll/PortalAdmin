@@ -1,0 +1,17 @@
+{
+  "name": "portal-admin"
+, "version": "0.1.0"
+, "private": true
+, "type": "module"
+, "description": "PortalAdmin — Admin Dashboard estratto da JustLastOne (epic ADMIN-88)"
+, "engines": {
+    "node": ">=20"
+  }
+, "scripts": {
+    "admin:dashboard": "node server/dashboard-server.mjs"
+  , "db:migrate": "node scripts/db-migrate-stub.mjs"
+  }
+, "dependencies": {
+    "dotenv": "^16.4.7"
+  }
+}
