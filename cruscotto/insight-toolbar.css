@@ -1,0 +1,42 @@
+/* Bottoni toolbar insight — Analizza repo / Cancella insight (arancio) */
+
+button.action.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button.action.btn-insight-analyze,
+button.action.btn-insight-clear {
+  color: rgba(240, 188, 104, 0.68);
+  border-color: rgba(240, 188, 104, 0.36);
+  background: transparent;
+}
+
+button.action.btn-insight-analyze .insight-toolbar-icon,
+button.action.btn-insight-clear .insight-toolbar-icon {
+  flex-shrink: 0;
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: rgba(240, 188, 104, 0.68);
+}
+
+button.action.btn-insight-analyze:hover:not(:disabled),
+button.action.btn-insight-clear:hover:not(:disabled) {
+  color: #f0bc68;
+  border-color: rgba(240, 188, 104, 0.55);
+  background: transparent;
+  box-shadow: none;
+}
+
+button.action.btn-insight-analyze:hover:not(:disabled) .insight-toolbar-icon,
+button.action.btn-insight-clear:hover:not(:disabled) .insight-toolbar-icon {
+  color: #f0bc68;
+}
+
+button.action.btn-insight-analyze:disabled,
+button.action.btn-insight-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

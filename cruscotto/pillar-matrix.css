@@ -1,0 +1,618 @@
+@import url("/expand-collapse-toolbar.css");
+
+:root {
+  color-scheme: light dark;
+  --bg       : #0f1419;
+  --surface  : #1a2332;
+  --surface-2: #152030;
+  --border   : #2d3a4f;
+  --text     : #e7ecf3;
+  --muted    : #8b9cb3;
+  --accent   : #3d9cf5;
+  --pass     : #34d399;
+  --warn     : #fbbf24;
+  --danger   : #f87171;
+  --purple   : #b794f6;
+  --pillar-title: #AC4B7B;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin     : 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background : var(--bg);
+  color      : var(--text);
+  line-height: 1.55;
+}
+
+.page {
+  width     : 100%;
+  max-width : none;
+  margin    : 0;
+  padding   : 1.25rem 1rem 2rem;
+  box-sizing: border-box;
+}
+
+header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+h1 {
+  margin   : 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+h2 {
+  margin     : 1.5rem 0 0.65rem;
+  font-size  : 1.1rem;
+  font-weight: 600;
+}
+
+h2.pillar-title {
+  color: var(--pillar-title);
+}
+
+main > h2:first-child {
+  color: var(--pillar-title);
+}
+
+.pillar-index-list a {
+  color           : var(--pillar-title);
+  text-decoration : none;
+  font-weight     : 500;
+}
+
+.meta {
+  color    : var(--muted);
+  font-size: 0.84rem;
+}
+
+.meta a {
+  color: var(--accent);
+}
+
+.pillar-nav {
+  display        : flex;
+  flex-wrap      : wrap;
+  gap            : 0.35rem 0.5rem;
+  margin-top     : 0.85rem;
+  padding        : 0.55rem;
+  border         : 1px solid var(--border);
+  border-radius  : 8px;
+  background     : var(--surface);
+}
+
+.pillar-nav a {
+  display         : inline-block;
+  padding         : 0.28rem 0.55rem;
+  border-radius   : 999px;
+  border          : 1px solid var(--border);
+  color           : var(--text);
+  font-size       : 0.78rem;
+  text-decoration : none;
+}
+
+.pillar-nav a:hover {
+  border-color: var(--accent);
+  color       : var(--accent);
+}
+
+.pillar-nav a.active {
+  border-color: var(--accent);
+  background  : rgba(61, 156, 245, 0.15);
+  color       : var(--accent);
+}
+
+.pillar-index-list {
+  margin         : 0.5rem 0 1.25rem;
+  padding-left   : 1.5rem;
+  line-height    : 1.65;
+}
+
+.pillar-index-list li + li {
+  margin-top: 0.2rem;
+}
+
+.pillar-index-list a:hover {
+  text-decoration: underline;
+}
+
+.matrix-table tbody td:first-child > a {
+  color      : var(--pillar-title);
+  font-weight: 500;
+}
+
+.pillar-toolbar {
+  display    : flex;
+  flex-wrap  : wrap;
+  align-items: center;
+  gap        : 0.65rem;
+  margin-top : 0.75rem;
+}
+
+button.action {
+  padding         : 0.38rem 0.85rem;
+  border          : 1px solid var(--border);
+  border-radius   : 6px;
+  background      : var(--surface);
+  color           : var(--text);
+  font            : inherit;
+  font-size       : 0.84rem;
+  cursor          : pointer;
+}
+
+button.action:hover:not(:disabled) {
+  border-color: var(--accent);
+  color       : var(--accent);
+}
+
+button.action.primary {
+  border-color: var(--accent);
+  background  : rgba(61, 156, 245, 0.15);
+  color       : var(--accent);
+}
+
+button.action.primary:hover:not(:disabled) {
+  background: rgba(61, 156, 245, 0.28);
+}
+
+button.action:disabled,
+button.action.is-loading {
+  opacity: 0.65;
+  cursor : not-allowed;
+}
+
+.pillar-toolbar {
+  display: none;
+}
+
+.pillar-version {
+  font-size: 0.88rem;
+  color    : var(--muted);
+}
+
+.pillar-regen-status {
+  font-size: 0.82rem;
+  color    : var(--muted);
+}
+
+.pillar-regen-status.is-ok {
+  color: var(--pass);
+}
+
+.pillar-regen-status.is-error {
+  color: var(--danger);
+}
+
+.panel {
+  margin       : 1rem 0;
+  padding      : 0.75rem 0.9rem;
+  border-radius: 8px;
+  border       : 1px solid var(--border);
+}
+
+.panel-info {
+  background: rgba(61, 156, 245, 0.08);
+  border-color: rgba(61, 156, 245, 0.35);
+}
+
+main table,
+.matrix-table {
+  width          : 100%;
+  border-collapse: collapse;
+  font-size      : 0.82rem;
+  margin         : 0.75rem 0 1rem;
+}
+
+.matrix-table-wrap {
+  width    : 100%;
+  max-width: none;
+  overflow-x: auto;
+}
+
+.matrix-table-resizable {
+  table-layout: fixed;
+  width       : 100%;
+}
+
+main {
+  width     : 100%;
+  max-width : none;
+  overflow-x: visible;
+}
+
+main table th.col-resize-head,
+.matrix-table th.col-resize-head {
+  position     : relative;
+  padding-right: 0.55rem;
+  overflow     : hidden;
+  text-overflow: ellipsis;
+  white-space  : nowrap;
+}
+
+main table td:not(.matrix-tree-issue-col),
+.matrix-table td:not(.matrix-tree-issue-col) {
+  overflow-wrap: anywhere;
+}
+
+.col-resize-handle {
+  position     : absolute;
+  top          : 0;
+  right        : 0;
+  z-index      : 4;
+  width        : 8px;
+  height       : 100%;
+  cursor       : col-resize;
+  user-select  : none;
+  touch-action : none;
+}
+
+.col-resize-handle::after {
+  content      : "";
+  position     : absolute;
+  top          : 18%;
+  bottom       : 18%;
+  left         : 3px;
+  width        : 2px;
+  border-radius: 1px;
+  background   : transparent;
+  transition   : background 0.15s ease;
+}
+
+.col-resize-handle:hover::after,
+.col-resize-handle.is-dragging::after {
+  background: var(--accent);
+}
+
+body.is-col-resizing {
+  cursor    : col-resize;
+  user-select: none;
+}
+
+body.is-col-resizing .col-resize-handle {
+  cursor: col-resize;
+}
+
+main table th,
+main table td,
+.matrix-table th,
+.matrix-table td {
+  border-bottom: 1px solid var(--border);
+  padding      : 0.42rem 0.5rem;
+  text-align   : left;
+  vertical-align: top;
+}
+
+main table th,
+.matrix-table th {
+  color         : var(--muted);
+  font-weight   : 600;
+  font-size     : 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+main table tbody tr:hover,
+.matrix-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+main table a,
+.matrix-table a {
+  color: var(--accent);
+}
+
+.git-commit-stack {
+  display       : flex;
+  flex-direction: column;
+  gap           : 0.45rem;
+  font-size     : 0.82rem;
+  line-height   : 1.35;
+}
+
+.git-commit-item small {
+  color    : var(--muted);
+  font-size: 0.76rem;
+}
+
+.git-commit-branch,
+.git-commit-via {
+  margin-top: 0.25rem;
+  color     : var(--muted);
+  font-size : 0.76rem;
+}
+
+.status {
+  display      : inline-block;
+  padding      : 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size    : 0.72rem;
+  font-weight  : 600;
+  white-space  : nowrap;
+}
+
+.status-ok {
+  background: rgba(52, 211, 153, 0.15);
+  color     : var(--pass);
+}
+
+.status-warn {
+  background: rgba(251, 191, 36, 0.15);
+  color     : var(--warn);
+}
+
+.status-danger {
+  background: rgba(248, 113, 113, 0.15);
+  color     : var(--danger);
+}
+
+.status-muted {
+  background: rgba(139, 156, 179, 0.12);
+  color     : var(--muted);
+}
+
+.status-purple {
+  background: rgba(183, 148, 246, 0.15);
+  color     : var(--purple);
+}
+
+.page-footer {
+  margin-top : 2rem;
+  padding-top: 0.85rem;
+  border-top : 1px solid var(--border);
+  font-size  : 0.82rem;
+}
+
+.page-footer a {
+  color: var(--accent);
+}
+
+main ul {
+  margin : 0.5rem 0 1rem;
+  padding: 0 0 0 1.2rem;
+}
+
+main code {
+  font-size: 0.82rem;
+  color    : var(--muted);
+}
+
+
+.matrix-grouped {
+  border-collapse: separate;
+  border-spacing : 0 0.45rem;
+}
+
+.matrix-issue-group tr.matrix-group-head td {
+  background   : rgba(61, 156, 245, 0.1);
+  border-top   : 1px solid rgba(61, 156, 245, 0.35);
+  border-bottom: 1px solid rgba(61, 156, 245, 0.2);
+  font-weight  : 500;
+}
+
+.matrix-issue-group tr.matrix-group-head td:first-child {
+  border-left: 3px solid var(--accent);
+}
+
+.matrix-issue-group tr.matrix-group-child td:first-child {
+  border-left: 3px solid transparent;
+}
+
+.matrix-issue-group tr.matrix-group-child[data-depth="1"] td:first-child {
+  padding-left: 1.35rem;
+}
+
+.matrix-issue-group tr.matrix-group-child[data-depth="2"] td:first-child {
+  padding-left: 2.35rem;
+}
+
+.matrix-issue-group tr.matrix-group-child[data-depth="3"] td:first-child {
+  padding-left: 3.35rem;
+}
+
+.matrix-issue-group.is-collapsed tr.matrix-group-child {
+  display: none;
+}
+
+.matrix-group-toolbar {
+  display        : flex;
+  flex-wrap      : wrap;
+  align-items    : center;
+  gap            : 0.5rem 0.75rem;
+  margin         : 0.75rem 0 0.35rem;
+}
+
+.matrix-group-toolbar-label {
+  font-size     : 0.78rem;
+  font-weight   : 600;
+  color         : var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.matrix-group-issue-col {
+  padding-left: 0.35rem;
+}
+
+.matrix-group-cell {
+  display    : flex;
+  align-items: flex-start;
+  gap        : 0.35rem;
+  min-width  : 0;
+}
+
+.matrix-group-toggle {
+  flex-shrink : 0;
+  width       : 1.35rem;
+  height      : 1.35rem;
+  border      : 1px solid var(--border);
+  border-radius: 4px;
+  background  : var(--surface);
+  color       : var(--accent);
+  cursor      : pointer;
+  padding     : 0;
+  font-size   : 0.72rem;
+  line-height : 1.35rem;
+  text-align  : center;
+}
+
+.matrix-group-toggle:hover {
+  border-color: var(--accent);
+  background  : rgba(61, 156, 245, 0.12);
+}
+
+.matrix-grouped td.matrix-group-issue-col {
+  min-width: 6.5rem;
+}
+
+.matrix-grouped td.matrix-group-issue-col .matrix-group-cell {
+  align-items: center;
+}
+
+.matrix-group-content {
+  min-width: 0;
+}
+
+.matrix-issue-group:not(.has-children) tr.matrix-group-head td:first-child {
+  border-left-color: var(--border);
+}
+
+/* Albero issue — Epic → Story → Subtask (come backlog) */
+.matrix-table.matrix-tree tbody.matrix-tree-body tr.matrix-tree-row td:first-child {
+  border-left: 3px solid var(--border);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic td:first-child {
+  border-left-color: var(--purple);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic td {
+  background: rgba(183, 148, 246, 0.1);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic:hover td {
+  background: rgba(183, 148, 246, 0.16);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic .status-purple {
+  background: rgba(183, 148, 246, 0.22);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-task td:first-child {
+  border-left-color: var(--accent);
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-subtask td:first-child {
+  border-left-color: transparent;
+}
+
+.matrix-table.matrix-tree tr.matrix-tree-row.is-tree-hidden {
+  display: none;
+}
+
+.matrix-tree-toolbar {
+  display        : flex;
+  flex-wrap      : wrap;
+  align-items    : center;
+  gap            : 0.5rem 0.75rem;
+  margin         : 0.75rem 0 0.35rem;
+}
+
+.matrix-tree-toolbar-label {
+  font-size     : 0.78rem;
+  font-weight   : 600;
+  color         : var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.matrix-tree-issue-col {
+  padding-left   : 0.35rem;
+  min-width      : 6.5rem;
+  white-space    : nowrap;
+  overflow-wrap  : normal;
+  word-break     : keep-all;
+}
+
+.matrix-tree-cell {
+  display    : flex;
+  align-items: center;
+  flex-wrap  : nowrap;
+  gap        : 0.35rem;
+  min-width  : 0;
+}
+
+.matrix-tree-toggle {
+  flex-shrink  : 0;
+  width        : 1.35rem;
+  height       : 1.35rem;
+  border       : 1px solid var(--border);
+  border-radius: 4px;
+  background   : var(--surface);
+  color        : var(--accent);
+  cursor       : pointer;
+  padding      : 0;
+  font-size    : 0.72rem;
+  line-height  : 1.35rem;
+  text-align   : center;
+}
+
+.matrix-tree-toggle:hover {
+  border-color: var(--accent);
+  background  : rgba(61, 156, 245, 0.12);
+}
+
+.matrix-tree-toggle.matrix-tree-leaf {
+  border-color: transparent;
+  background  : transparent;
+  color       : var(--muted);
+  cursor      : default;
+}
+
+.matrix-tree-content {
+  min-width    : 0;
+  white-space  : nowrap;
+  overflow     : hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-tree-content .status,
+.matrix-tree-content a {
+  white-space  : nowrap;
+  overflow-wrap: normal;
+  word-break   : keep-all;
+}
+
+.matrix-diff-star {
+  color       : #f5a623;
+  font-weight : 700;
+}
+
+.matrix-diff-before {
+  color     : var(--muted);
+  font-size : 0.82rem;
+}
+
+tr[data-matrix-diff="modified"] .matrix-diff-before {
+  color: #b45309;
+}
+
+tr[data-matrix-diff="removed"] .matrix-diff-star {
+  color: var(--danger);
+}
+
+@media (max-width: 720px) {
+  .pillar-nav {
+    max-height: 8rem;
+    overflow-y: auto;
+  }
+
+  .matrix-table-wrap {
+    overflow-x: auto;
+  }
+}

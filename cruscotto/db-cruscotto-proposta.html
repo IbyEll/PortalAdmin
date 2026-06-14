@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+
+<html lang="it">
+
+<head>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cruscotto Admin — note architettura e workflow</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/cruscotto.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+    .doc-page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .doc-page h1 {
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem;
+      line-height: 1.25;
+    }
+
+    .doc-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .doc-question {
+      border-left: 3px solid var(--accent);
+      padding: 0.75rem 1rem;
+      margin: 0 0 2rem;
+      background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+      border-radius: 0 6px 6px 0;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .doc-page h2 {
+      font-size: 1.25rem;
+      margin: 2.25rem 0 0.75rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-page h3 {
+      font-size: 1.05rem;
+      margin: 1.5rem 0 0.5rem;
+      color: var(--accent);
+    }
+
+    .doc-page p,
+    .doc-page li {
+      color: var(--text);
+    }
+
+    .doc-page ul {
+      padding-left: 1.25rem;
+    }
+
+    .doc-page pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .doc-page code {
+      font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+      font-size: 0.88em;
+    }
+
+    .doc-page p code,
+    .doc-page li code,
+    .doc-page td code {
+      background: color-mix(in srgb, var(--surface) 80%, var(--border));
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+    }
+
+    .doc-table-wrap {
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    .doc-page table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .doc-page th,
+    .doc-page td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .doc-page th {
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .doc-page tr:nth-child(even) td {
+      background: color-mix(in srgb, var(--surface) 50%, transparent);
+    }
+
+    .mermaid-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+
+    .verdict {
+      border: 1px solid color-mix(in srgb, var(--pass) 40%, var(--border));
+      background: color-mix(in srgb, var(--pass) 8%, var(--surface));
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-top: 2rem;
+    }
+
+    .verdict strong {
+      color: var(--pass);
+    }
+
+    .doc-back {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .doc-back:hover {
+      text-decoration: underline;
+    }
+
+    hr.doc-sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 3rem 0;
+    }
+
+    .doc-toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .doc-toc ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.25rem;
+    }
+
+    .doc-toc a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .doc-toc a:hover {
+      text-decoration: underline;
+    }
+
+    .doc-page ol {
+      padding-left: 1.25rem;
+    }
+
+    .doc-section-title {
+      font-size: 1.5rem;
+      margin: 0 0 1rem;
+      scroll-margin-top: 1rem;
+    }
+  </style>
+
+</head>
+
+<body class="cruscotto-app">
+
+  <main class="doc-page">
+
+    <a class="doc-back" href="/cruscotto/index.html">← Cruscotto Dev</a>
+
+    <h1>Cruscotto Admin — note</h1>
+    <p class="doc-meta">Proposta architetturale + workflow JLO · 14 giugno 2026 · JustLastOne</p>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#db-cruscotto">Database dedicato al cruscotto</a></li>
+        <li><a href="#comando-veve">Comando <code>veve</code> (4 step modulari)</a></li>
+        <li><a href="#analizza-repo">Analizza repo — centralizzato</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="db-cruscotto" class="doc-section-title">Database dedicato al cruscotto</h2>
+
+    <blockquote class="doc-question">
+      Possiamo creare un database dedicato al cruscotto? Immagino una tabella Jira con lo scarico delle issue
+      + info required dal cruscotto in cui diamo una nostra chiave…
+    </blockquote>
+
+    <p>
+      Sì, ha senso — e oggi <strong>non c’è un DB cruscotto</strong>: ogni vista richiama Jira live
+      (<code>fetchJiraBacklog()</code> → JQL paginato + sprint board Agile) e ricalcola tutto in memoria.
+      Un database dedicato risolverebbe latenza, rate limit e la duplicazione degli scan.
+    </p>
+
+    <h2>Stato attuale</h2>
+
+    <pre><code>Jira Cloud API  ──►  fetchJiraBacklog()  ──►  JSON in memoria  ──►  backlog / insights / matrice / my-project
+                              │
+                              └── nessuna persistenza (solo localStorage insight lato browser)</code></pre>
+
+    <p>
+      Ogni chiamata scarica ~400+ issue + sprint + board keys. La matrice aggiunge scan repo + <code>git log</code>
+      — il collo di bottiglia resterebbe repo/git, ma <strong>Jira non andrebbe più ripetuto 4–5 volte</strong>.
+    </p>
+
+    <h2>Proposta: DB Admin separato dal prodotto</h2>
+
+    <p>
+      <strong>Non</strong> metterlo in <code>packages/database/prisma</code> (SQLite dell’app <code>:4000</code>).
+      Meglio un DB locale Admin:
+    </p>
+
+    <pre><code>data/cruscotto.db          ← SQLite dedicato
+lib/cruscotto-db/          ← schema + client (Prisma o better-sqlite3)</code></pre>
+
+    <p>
+      Motivi: zero impatto su deploy prodotto, schema libero, backup/reset indipendente,
+      ok per dati “tooling”.
+    </p>
+
+    <h2>Modello dati suggerito</h2>
+
+    <p>
+      Chiave <strong>JLO-xxx</strong> resta unique business key; la <strong>vostra chiave</strong> è surrogate
+      interna (UUID o integer autoincrement).
+    </p>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+erDiagram
+  sync_run ||--o{ jira_issue : "snapshot"
+  jira_issue ||--o{ jira_issue_sprint : ""
+  jira_sprint ||--o{ jira_issue_sprint : ""
+  jira_issue ||--o{ jira_issue_link : "related"
+  jira_issue ||--o{ repo_issue_ref : "crossref"
+  jira_issue ||--o| repo_issue_assessment : "cached eval"
+
+  sync_run {
+    uuid id PK
+    datetime started_at
+    datetime finished_at
+    string source "jira-api"
+    int issue_count
+    string status "ok|partial|failed"
+  }
+
+  jira_issue {
+    uuid id PK
+    string jira_key UK "JLO-533"
+    string issue_type
+    string summary
+    string status
+    string status_category
+    string parent_jira_key FK
+    int jira_updated_at
+    string tier "epic|task|subtask"
+    bool is_story_like
+    bool is_done
+    int depth
+    bool has_children
+    string dev_order
+    int dev_sprint
+    string dev_sprint_name
+    int dev_sort
+    bool is_sprint6_obsolete
+    json raw_fields "payload Jira grezzo opzionale"
+    uuid sync_run_id FK
+    datetime synced_at
+  }
+
+  jira_sprint {
+    int id PK "id Jira"
+    string name
+    string state
+    datetime start_date
+    datetime end_date
+  }
+
+  jira_issue_sprint {
+    uuid issue_id FK
+    int sprint_id FK
+  }
+
+  jira_issue_link {
+    uuid id PK
+    uuid from_issue_id FK
+    uuid to_issue_id FK
+    string link_type "related|blocks|..."
+  }
+
+  working_plan_sprint_keys {
+    string plan_sprint_name PK
+    json issue_keys
+    uuid sync_run_id FK
+  }
+      </pre>
+    </div>
+
+    <h3>Cosa mettere in <code>jira_issue</code></h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Origine</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jira_key</code></td>
+            <td>Jira</td>
+            <td>unique, quello che usa tutto il cruscotto oggi</td>
+          </tr>
+          <tr>
+            <td><code>id</code> (UUID)</td>
+            <td>vostro</td>
+            <td>FK stabili per link/pilastri anche se key cambiasse (raro)</td>
+          </tr>
+          <tr>
+            <td>summary, type, status, parent</td>
+            <td>Jira API</td>
+            <td>come <code>JiraBacklogRow</code></td>
+          </tr>
+          <tr>
+            <td>tier, devOrder, devSprint…</td>
+            <td><strong>derivati</strong></td>
+            <td>oggi calcolati in <code>applyDevOrder</code> / working-order — conviene <strong>persistere</strong> dopo sync così tutte le viste leggono lo stesso</td>
+          </tr>
+          <tr>
+            <td><code>related_keys</code></td>
+            <td>tabella link o JSON</td>
+            <td>oggi da description + issuelinks</td>
+          </tr>
+          <tr>
+            <td><code>raw_fields</code></td>
+            <td>JSON opzionale</td>
+            <td>per debug / campi futuri senza migrazione</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Flusso con DB</h2>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart LR
+  subgraph sync["Sync job (CLI o cron)"]
+    J["Jira API"] --> W["upsert jira_issue + sprint"]
+    R["scan repo + git"] --> C["upsert repo_issue_*"]
+  end
+
+  subgraph read["Cruscotto :3999"]
+    W --> DB[(cruscotto.db)]
+    C --> DB
+    DB --> API["GET /api/jira/backlog"]
+    DB --> MAT["generate-pillar-matrix"]
+  end
+      </pre>
+    </div>
+
+    <ul>
+      <li><code>POST /api/cruscotto/sync/jira</code> o script <code>node scripts/sync-jira-backlog.mjs</code></li>
+      <li>Le API leggono dal DB; sync esplicito o TTL (es. max age 15 min)</li>
+      <li>Matrice pilastri: legge issue + assessment repo <strong>già in cache</strong> → niente Jira, scan repo una volta per sync</li>
+    </ul>
+
+    <h2>Tabella repo (fase 2 — stesso DB)</h2>
+
+    <p>Per eliminare la ridondanza tra le viste cruscotto:</p>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tabella</th>
+            <th>Contenuto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>repo_issue_ref</code></td>
+            <td>key → path citati (da scan)</td>
+          </tr>
+          <tr>
+            <td><code>repo_signal_path</code></td>
+            <td>catalogo <code>REPO_IMPLEMENTATION_SIGNALS</code> normalizzato</td>
+          </tr>
+          <tr>
+            <td><code>repo_git_evidence</code></td>
+            <td>commit hash, branch, message (cache git log)</td>
+          </tr>
+          <tr>
+            <td><code>repo_issue_assessment</code></td>
+            <td>aligned/gap, metaOnly, complete — <strong>una sola valutazione</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Chiave propria vs JLO-xxx</h2>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Approccio</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>UUID interno + <code>jira_key</code> unique</strong></td>
+            <td>FK pulite, storico sync, issue link, pilastri con id stabile</td>
+          </tr>
+          <tr>
+            <td>Solo <code>jira_key</code> come PK</td>
+            <td>più semplice, sufficiente se non serve storico</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Consiglio: <strong>UUID + <code>jira_key</code> unique</strong> + tabella <code>sync_run</code>
+      per sapere “questo backlog è di quando”.
+    </p>
+
+    <h2>Cosa <em>non</em> duplicare nel DB</h2>
+
+    <ul>
+      <li>HTML matrice pilastri → resta file generato (o blob opzionale)</li>
+      <li>Insight testuali → possono restare derivati on-read o tabella <code>insight_log</code> se servono storico</li>
+      <li>Piano Working (<code>JLO_WORKING_PLAN</code>) → resta codice/config; in DB solo <strong>mapping sprint board</strong> (<code>working_plan_sprint_keys</code>)</li>
+    </ul>
+
+    <h2>Migrazione graduale (basso rischio)</h2>
+
+    <ol>
+      <li><strong>Fase A</strong> — <code>sync-jira-backlog.mjs</code> + <code>loadJiraBacklog()</code> che legge DB, fallback API se vuoto/stale</li>
+      <li><strong>Fase B</strong> — dashboard-server usa loader unico; <code>fetchJiraBacklog</code> diventa thin wrapper</li>
+      <li><strong>Fase C</strong> — cache repo/git nello stesso DB; matrice legge tutto da lì</li>
+      <li><strong>Fase D</strong> (opz.) — webhook Jira → sync incrementale per key</li>
+    </ol>
+
+    <h2>Trade-off</h2>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Pro</th>
+            <th>Contro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cruscotto veloce e offline-tolerant</td>
+            <td>Serve job sync + gestione stale</td>
+          </tr>
+          <tr>
+            <td>Una fonte per backlog/insights/matrice</td>
+            <td>Schema da mantenere allineato a <code>JiraBacklogRow</code></td>
+          </tr>
+          <tr>
+            <td>Base per storico (“com’era il backlog il 14/06”)</td>
+            <td>Duplicazione controllata rispetto a Jira (accettabile per tooling)</td>
+          </tr>
+          <tr>
+            <td>Repo/git cacheable → matrice da minuti a secondi</td>
+            <td>Non sostituisce Jira come source of truth operativa</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="verdict">
+      <p>
+        <strong>Verdetto:</strong> sì, è la direzione giusta. Partirei da <strong>SQLite in <code>data/</code></strong>,
+        tabella <code>jira_issue</code> con UUID + <code>jira_key</code>, sync batch che replica oggi
+        <code>fetchJiraBacklog()</code> inclusi i campi derivati (<code>devOrder</code>, <code>tier</code>, …).
+        Il prodotto Prisma resta intoccato.
+      </p>
+      <p style="margin-bottom: 0;">
+        Passo concreto successivo: schema Prisma minimale + <code>sync-jira-backlog.mjs</code> +
+        refactor di <code>fetchJiraBacklog</code> con flag <code>CRUSCOTTO_DB=1</code>.
+      </p>
+    </div>
+
+    <hr class="doc-sep" />
+
+    <h2 id="comando-veve" class="doc-section-title">Comando <code>veve</code> — 4 regole modulari</h2>
+
+    <blockquote class="doc-question">
+      Cosa fa il comando veve? Come sono strutturati i 4 step?
+    </blockquote>
+
+    <p>
+      <code>veve JLO-xxx</code> è l’<strong>orchestratore</strong> del backlog grooming: allinea Jira al repo
+      in <strong>4 step</strong>, ciascuno con regola e comando standalone. Nessun codice, commit o PR.
+    </p>
+
+    <h3>Sintassi — grooming completo</h3>
+
+    <ul>
+      <li><code>veve JLO-507</code></li>
+      <li><code>veve Story JLO-507</code> · <code>veve Bug JLO-894</code> · <code>veve Todo JLO-930</code></li>
+    </ul>
+
+    <p>Case-insensitive sulla key. Funziona su Story, Bug o Todo.</p>
+
+    <h3>Regole Cursor (`.cursor/rules/`)</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>File regola</th>
+            <th>Comando standalone</th>
+            <th>Cosa fa</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>JLO-Veve-LeggiJira.mdc</code></td>
+            <td><code>leggi jira JLO-xxx</code></td>
+            <td>Lettura parent, subtask, orphan, key invalide (solo read Jira)</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>JLO-AnalizzaRepo.mdc</code><br/><small>adattatore veve: <code>JLO-Veve-AnalizzaRepo.mdc</code></small></td>
+            <td><code>analizza repo JLO-xxx</code></td>
+            <td>Gap analysis repo vs ticket (regola canonica riusabile fuori da veve)</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>JLO-Veve-AggiornaStory.mdc</code></td>
+            <td><code>aggiorna story JLO-xxx</code></td>
+            <td><code>editJiraIssue</code> description parent (AC, DoD, Stato repo, ordine)</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>JLO-Veve-AggiornaSubtask.mdc</code></td>
+            <td><code>aggiorna subtask JLO-xxx</code></td>
+            <td>Edit / riparent / create subtask (file, dipendenze, ordine N/M)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Orchestratore: <code>JLO-Veve.mdc</code> — <code>veve JLO-xxx</code> esegue 1→2→3→4 in sequenza.
+      Ogni step è invocabile da solo; rispetta i prerequisiti (es. <code>aggiorna story</code> richiede
+      contesto da Leggi Jira + Analizza repo nella stessa sessione).
+    </p>
+
+    <h3>Comandi utili</h3>
+
+    <pre><code>veve JLO-507              → grooming completo (1→2→3→4)
+leggi jira JLO-507        → solo step 1
+analizza repo JLO-507     → solo step 2
+aggiorna story JLO-507    → solo step 3
+aggiorna subtask JLO-507  → step 4 (tutte le subtask del parent)
+aggiorna subtask JLO-524  → step 4 (singola subtask)</code></pre>
+
+    <h3>Sequenza dettagliata</h3>
+
+    <ol>
+      <li>
+        <strong>Leggi Jira</strong> — <code>getJiraIssue</code> + JQL figli/orphan; conserva description,
+        stati e gerarchia in sessione. Vietato edit.
+      </li>
+      <li>
+        <strong>Analizza il repo</strong> — regola canonica <code>JLO-AnalizzaRepo.mdc</code> + skill
+        <code>jlo-analizza-repo</code> + CLI <code>analyze-repo-keys.mjs</code>; tabella Stato repo (✅/⚠️/❌);
+        ordine subtask consigliato. Vedi sezione <a href="#analizza-repo">Analizza repo centralizzato</a>.
+      </li>
+      <li>
+        <strong>Aggiorna Story</strong> — description parent: Obiettivo, Stato repo, AC, DoD, ordine subtask,
+        fuori scope. Vietato transizione Fatto.
+      </li>
+      <li>
+        <strong>Aggiorna Subtask</strong> — per ogni figlia: Obiettivo, Stato repo, AC, DoD, file coinvolti,
+        dipendenze, ordine N/M; riparent se parent sbagliato; crea subtask solo se gap chiaro.
+        Riepilogo finale repo vs Jira.
+      </li>
+    </ol>
+
+    <h3>Cosa <em>non</em> fa (veve e step modulari)</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Non fa</th>
+            <th>A differenza di…</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Branch, commit, PR</td>
+            <td><code>procedi</code> / <code>gogo</code></td>
+          </tr>
+          <tr>
+            <td>Implementazione codice</td>
+            <td><code>procedi</code></td>
+          </tr>
+          <tr>
+            <td>Chiudere ticket a Fatto</td>
+            <td><code>chiudi Story</code> / <code>chiudi Bug</code></td>
+          </tr>
+          <tr>
+            <td>Silenzio chat (blocchi START/END)</td>
+            <td><code>procedi</code> / <code>gogo</code></td>
+          </tr>
+          <tr>
+            <td>Task «Jira Auto» MCP</td>
+            <td><code>procedi</code> / <code>gogo</code> / <code>chiudi</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Tutti gli step veve usano MCP Jira diretto (<code>user-atlassian</code>, <code>CallMcpTool</code>).
+    </p>
+
+    <h3>Quando usarlo</h3>
+
+    <p>
+      Prima di implementare, quando un ticket è <strong>vecchio o disallineato</strong> rispetto al repo.
+      Dopo <code>veve</code> (o dopo step 1–4), per il codice: <code>procedi Story JLO-xxx</code>.
+    </p>
+
+    <h3>Esempio</h3>
+
+    <p>
+      <code>veve JLO-507</code> → (1) legge parent + subtask → (2) gap repo →
+      (3) edit JLO-507 → (4) JLO-524…616 aggiornate, JLO-525/616 riparentate,
+      ordine <strong>524 → 525 → 616 → 526</strong>.
+    </p>
+
+    <hr class="doc-sep" />
+
+    <h2 id="analizza-repo" class="doc-section-title">Analizza repo — centralizzato</h2>
+
+    <blockquote class="doc-question">
+      Come riusare l’analisi repo (veve, procedi, chiudi, review) senza duplicare logica?
+    </blockquote>
+
+    <p>
+      Lo step «Analizza repo» è estratto in un <strong>modulo condiviso</strong>, una <strong>CLI</strong>,
+      una <strong>regola canonica</strong> e una <strong>skill</strong> agente. Veve step 2 usa solo un
+      adattatore sottile (<code>JLO-Veve-AnalizzaRepo.mdc</code>).
+    </p>
+
+    <h3>Artefatti nel repo</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Ruolo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>lib/jira-repo-analysis.mjs</code></td>
+            <td>Modulo — aree, <code>analyzeIssueKeys()</code>, esiti, ordine subtask, markdown</td>
+          </tr>
+          <tr>
+            <td><code>scripts/analyze-repo-keys.mjs</code></td>
+            <td>CLI JSON / markdown per parent o elenco key</td>
+          </tr>
+          <tr>
+            <td><code>.cursor/rules/JLO-AnalizzaRepo.mdc</code></td>
+            <td>Regola canonica (trigger, aree, output, sessione)</td>
+          </tr>
+          <tr>
+            <td><code>.cursor/skills/jlo-analizza-repo/SKILL.md</code></td>
+            <td>Skill agente — flusso CLI + deep dive grep/read</td>
+          </tr>
+          <tr>
+            <td><code>.cursor/rules/JLO-Veve-AnalizzaRepo.mdc</code></td>
+            <td>Adattatore veve (prerequisito Leggi Jira, no edit Jira)</td>
+          </tr>
+          <tr>
+            <td><code>lib/jira-backlog-insights.mjs</code></td>
+            <td>Scan citazioni + catalogo <code>REPO_IMPLEMENTATION_SIGNALS</code> (sottostante)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>CLI</h3>
+
+    <pre><code>node scripts/analyze-repo-keys.mjs --parent JLO-507
+node scripts/analyze-repo-keys.mjs --parent JLO-507 --format md
+node scripts/analyze-repo-keys.mjs --keys JLO-524,JLO-525</code></pre>
+
+    <p>
+      Output JSON: <code>issues[]</code> con <code>key</code>, <code>esito</code> (<code>ok</code> |
+      <code>partial</code> | <code>absent</code>), <code>symbol</code> (✅⚠️❌), <code>paths</code>,
+      <code>gap</code>, <code>subtaskOrder</code> (con <code>--parent</code>).
+    </p>
+
+    <h3>Contesti di riuso</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Contesto</th>
+            <th>Trigger / fase</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Veve step 2</td>
+            <td><code>analizza repo JLO-xxx</code>, <code>veve JLO-xxx</code></td>
+          </tr>
+          <tr>
+            <td>Procedi / gogo</td>
+            <td>Step 0 — gap analysis in background (<code>JLO-Workflow.mdc</code> §6)</td>
+          </tr>
+          <tr>
+            <td>Chiudi story</td>
+            <td>§9.2 gap test</td>
+          </tr>
+          <tr>
+            <td>Review ticket</td>
+            <td>Confronto scope vs file reali</td>
+          </tr>
+          <tr>
+            <td>Cruscotto (futuro)</td>
+            <td>Cache in <code>cruscotto.db</code> — stesso modulo, scan persistito</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Esito analisi</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Simbolo</th>
+            <th><code>esito</code></th>
+            <th>Significato</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>✅</td>
+            <td><code>ok</code></td>
+            <td>Path prodotto o segnali catalogo presenti e coerenti</td>
+          </tr>
+          <tr>
+            <td>⚠️</td>
+            <td><code>partial</code></td>
+            <td>Solo meta Admin, stub, o disallineato rispetto al ticket</td>
+          </tr>
+          <tr>
+            <td>❌</td>
+            <td><code>absent</code></td>
+            <td>Nessuna evidenza nel repo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Aree ispezionate (<code>REPO_ANALYSIS_AREAS</code>)</h3>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Schema</td><td><code>packages/database/prisma/schema.prisma</code></td></tr>
+          <tr><td>API</td><td><code>apps/api/src/</code></td></tr>
+          <tr><td>Web</td><td><code>apps/web/src/</code></td></tr>
+          <tr><td>Shared / i18n</td><td><code>packages/shared/</code>, <code>packages/i18n/</code></td></tr>
+          <tr><td>Admin / cruscotto</td><td><code>lib/</code>, <code>cruscotto/</code>, <code>scripts/</code></td></tr>
+          <tr><td>Test</td><td><code>testScript/</code></td></tr>
+          <tr><td>Catalogo segnali</td><td><code>jira-backlog-insights.mjs</code>, <code>repo-implementation-signals-catalog.mjs</code></td></tr>
+          <tr><td>Backlog ordine</td><td><code>docs/backlog-ordine-sviluppo.html</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Flusso agente</h3>
+
+    <ol>
+      <li><strong>Baseline automatica</strong> — CLI <code>--parent</code> o <code>--keys</code></li>
+      <li><strong>Deep dive</strong> — grep/read sulle aree + description Jira</li>
+      <li><strong>Merge</strong> — arricchisci tabella CLI (overlap story sorella, stub, subtask Fatto)</li>
+      <li><strong>Output</strong> — Stato repo + Issue vs repo + ordine subtask; conserva in sessione</li>
+    </ol>
+
+    <p>
+      Ordine subtask consigliato: schema → shared → API → web → i18n → test → verifica manuale
+      (<code>suggestSubtaskOrder()</code> nel modulo).
+    </p>
+
+  </main>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad : true
+    , theme       : 'dark'
+    , er          : { useMaxWidth: true }
+    , flowchart   : { useMaxWidth: true }
+    });
+  </script>
+
+</body>
+
+</html>

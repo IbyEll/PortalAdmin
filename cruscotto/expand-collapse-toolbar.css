@@ -1,0 +1,36 @@
+/* Bottoni icona Espandi/Collassa tutto — condivisi tra cruscotto, backlog, tree, my-project */
+
+.tree-bulk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+button.action.btn-tree-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--accent, #3d9cf5);
+  border-color: rgba(61, 156, 245, 0.35);
+  background: rgba(61, 156, 245, 0.08);
+}
+
+button.action.btn-tree-icon:hover:not(:disabled) {
+  color: #6bb5ff;
+  border-color: var(--accent, #3d9cf5);
+  background: rgba(61, 156, 245, 0.16);
+}
+
+button.action.btn-tree-icon:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.action.btn-tree-icon .tree-toolbar-icon {
+  display: block;
+  flex-shrink: 0;
+}
