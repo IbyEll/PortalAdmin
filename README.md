@@ -14,9 +14,10 @@ Repository autonomo per l'**Admin Dashboard** estratto da [JustLastOne](https://
 
 | Cartella | Ruolo |
 | --- | --- |
-| `server/` | `dashboard-server.mjs` — HTTP static + API (stub bootstrap) |
+| `server/` | `dashboard-server.mjs` — HTTP static + API run/status/report |
 | `cruscotto/` | SPA frontend cruscotto |
-| `lib/` | Helper condivisi (env, Jira, catalogo) |
+| `runner/` | `run-all.mjs` — orchestrazione testScript nel **product repo** |
+| `lib/` | Helper condivisi (env, Jira, catalogo, `portal-paths`) |
 | `lib/cruscotto-db/` | SQLite cache Jira (ADMIN-81) |
 | `data/` | Artefatti generati (DB, report) — **gitignored** |
 
@@ -30,7 +31,40 @@ cp .env.example .env   # opzionale
 npm run admin:dashboard
 ```
 
-Apri http://localhost:3999/ — pagina bootstrap finché il cruscotto non è migrato (ADMIN-91).
+Apri http://localhost:3999/
+
+## Runner e testScript (ADMIN-92)
+
+I test vivono nel **product repo** (`JustLastOne/testScript/`). PortalAdmin li orchestra e scrive i report in locale.
+
+| Path | Repo | Contenuto |
+| --- | --- | --- |
+| `{PRODUCT_REPO}/testScript/` | JustLastOne | Script `test-*.mjs` eseguiti |
+| `runner/run-all.mjs` | PortalAdmin | Discovery + run sequenziale |
+| `data/reports/latest.json` | PortalAdmin | Ultimo report JSON |
+| `data/reports/latest.html` | PortalAdmin | Report HTML offline |
+
+Layout sibling (consigliato):
+
+```
+C:/dev/
+  JustLastOne/          ← PRODUCT_REPO_PATH (default ../JustLastOne)
+    testScript/
+    apps/
+  PortalAdmin/          ← questo repo
+    runner/run-all.mjs
+    data/reports/       ← gitignored
+```
+
+Comandi:
+
+```bash
+node runner/run-all.mjs --list          # discovery testScript
+node runner/run-all.mjs --suite auth    # run suite (richiede stack :4000/:4001)
+npm run test:run-all                      # smoke discovery
+```
+
+`POST /api/run` sul dashboard avvia `runner/run-all.mjs` in PortalAdmin con script da product repo.
 
 ## Dual-repo (ADMIN-90)
 
@@ -61,8 +95,10 @@ npm run test:paths
 | Script | Descrizione |
 | --- | --- |
 | `admin:dashboard` | Avvia `server/dashboard-server.mjs` (:3999) |
-| `db:migrate` | Stub fino a migrazione `lib/cruscotto-db` (ADMIN-91+) |
-| `test:paths` | Smoke test `PRODUCT_REPO_PATH` + scan Jira refs |
+| `db:migrate` | Migrazione SQLite cruscotto (`lib/cruscotto-db`) |
+| `test:paths` | Smoke `PRODUCT_REPO_PATH` + scan Jira refs |
+| `test:run-all` | Smoke discovery `run-all.mjs --list` |
+| `test:dashboard` | Smoke HTTP dashboard (:3998) |
 
 ## Migrazione
 

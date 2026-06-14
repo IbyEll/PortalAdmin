@@ -6,6 +6,12 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 } from "../lib/catalog.mjs";
+import {
+  getPortalRoot
+, getProductRepoPath
+, getTestScriptDir
+, requireTestScriptDir
+} from "../lib/portal-paths.mjs";
 
 /**
  * @typedef {{
@@ -29,7 +35,7 @@ const state = {
 , progress      : { current: 0, total: 0 }
 , exitCode      : null
 , error         : null
-,   mode          : null
+, mode          : null
 , targetScript  : null
 , targetTestCase: null
 };
@@ -89,23 +95,31 @@ export function getRunStatus() {
 }
 
 /**
- * @param {string} repoRoot
- * @returns {Promise<{ started: boolean, error?: string }>}
- */
-/**
- * @param {string} repoRoot
+ * @param {string} [productRepoRoot] — legacy; default da PRODUCT_REPO_PATH
  * @param {{ scriptRel?: string, suite?: string, testCase?: string }} [options]
  */
-export async function startRun(repoRoot, options = {}) {
+export async function startRun(productRepoRoot, options = {}) {
   if (state.running) {
     return { started: false, error: "run already in progress" };
   }
+
+  try {
+    requireTestScriptDir();
+  } catch (err) {
+    return {
+      started : false
+    , error   : err instanceof Error ? err.message : String(err)
+    };
+  }
+
+  const productRoot = productRepoRoot ?? getProductRepoPath();
+  const portalRoot  = getPortalRoot();
+  const runAll      = join(portalRoot, "runner", "run-all.mjs");
 
   const scriptRel = options.scriptRel?.replace(/\\/g, "/") ?? null;
   const suite     = options.suite?.replace(/\\/g, "/") ?? null;
   const testCase  = options.testCase?.trim() ?? null;
   const scripts   = await discoverTestScripts();
-  const runAll    = join(repoRoot, "Admin", "runner", "run-all.mjs");
 
   if (testCase && !scriptRel) {
     return { started: false, error: "testCase requires scriptRel" };
@@ -153,12 +167,12 @@ export async function startRun(repoRoot, options = {}) {
     scriptOrder = scripts.map((s) => s.rel);
   }
 
-  state.running       = true;
-  state.startedAt     = new Date().toISOString();
-  state.currentScript = scriptRel ?? suite;
-  state.progress      = { current: 0, total: scriptOrder.length };
-  state.exitCode      = null;
-  state.error         = null;
+  state.running        = true;
+  state.startedAt      = new Date().toISOString();
+  state.currentScript  = scriptRel ?? suite;
+  state.progress       = { current: 0, total: scriptOrder.length };
+  state.exitCode       = null;
+  state.error          = null;
   state.mode           = testCase ? "case" : scriptRel ? "single" : suite ? "suite" : "all";
   state.targetScript   = scriptRel ?? suite;
   state.targetTestCase = testCase;
@@ -177,8 +191,11 @@ export async function startRun(repoRoot, options = {}) {
   }
 
   child = spawn(process.execPath, args, {
-    cwd   : repoRoot
-  , env   : process.env
+    cwd   : portalRoot
+  , env   : {
+      ...process.env
+    , PRODUCT_REPO_PATH: productRoot
+    }
   , stdio : ["ignore", "pipe", "pipe"]
   });
 
@@ -194,14 +211,14 @@ export async function startRun(repoRoot, options = {}) {
   });
 
   child.on("close", (code) => {
-    state.running       = false;
-    state.exitCode      = code ?? 1;
-    state.currentScript = null;
+    state.running          = false;
+    state.exitCode         = code ?? 1;
+    state.currentScript    = null;
     state.progress.current = state.progress.total;
-    state.mode           = null;
-    state.targetScript   = null;
-    state.targetTestCase = null;
-    child = null;
+    state.mode             = null;
+    state.targetScript     = null;
+    state.targetTestCase   = null;
+    child                  = null;
   });
 
   child.on("error", (err) => {
@@ -210,7 +227,7 @@ export async function startRun(repoRoot, options = {}) {
     state.mode           = null;
     state.targetScript   = null;
     state.targetTestCase = null;
-    child = null;
+    child                = null;
   });
 
   return {
@@ -222,33 +239,43 @@ export async function startRun(repoRoot, options = {}) {
 }
 
 /**
- * @param {string} repoRoot
+ * @param {string} productRepoRoot
  * @param {string} scriptRel
  */
-export function startRunOne(repoRoot, scriptRel) {
-  return startRun(repoRoot, { scriptRel });
+export function startRunOne(productRepoRoot, scriptRel) {
+  return startRun(productRepoRoot, { scriptRel });
 }
 
 /**
- * @param {string} repoRoot
+ * @param {string} productRepoRoot
  * @param {string} suite
  */
-export function startRunSuite(repoRoot, suite) {
-  return startRun(repoRoot, { suite });
+export function startRunSuite(productRepoRoot, suite) {
+  return startRun(productRepoRoot, { suite });
 }
 
 /**
- * Avvia l'orchestratore testScript/funzionali/run-funzionali.mjs (ordine seed→amici→match→flusso).
+ * Avvia testScript/funzionali/run-funzionali.mjs nel product repo.
  *
- * @param {string} repoRoot
+ * @param {string} [productRepoRoot]
  */
-export async function startRunFunzionali(repoRoot) {
+export async function startRunFunzionali(productRepoRoot) {
   if (state.running) {
     return { started: false, error: "run already in progress" };
   }
 
+  try {
+    requireTestScriptDir();
+  } catch (err) {
+    return {
+      started : false
+    , error   : err instanceof Error ? err.message : String(err)
+    };
+  }
+
+  const productRoot  = productRepoRoot ?? getProductRepoPath();
   const scriptRel    = "funzionali/run-funzionali.mjs";
-  const scriptPath   = join(repoRoot, "testScript", scriptRel);
+  const scriptPath   = join(getTestScriptDir(), scriptRel);
   const scriptOrder  = [
     "funzionali/test-seed-utenti.mjs"
   , "funzionali/test-friend-bot.mjs"
@@ -268,7 +295,7 @@ export async function startRunFunzionali(repoRoot) {
   state.targetTestCase = null;
 
   child = spawn(process.execPath, [scriptPath], {
-    cwd   : repoRoot
+    cwd   : productRoot
   , env   : process.env
   , stdio : ["ignore", "pipe", "pipe"]
   });
