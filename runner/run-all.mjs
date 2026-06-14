@@ -23,6 +23,7 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 , REPO_ROOT
+, requireTestScriptDir
 } from "../lib/catalog.mjs";
 import {
   discoverTestNamesInScript
@@ -158,6 +159,14 @@ function runScript(absPath) {
 }
 
 async function main() {
+  try {
+    requireTestScriptDir();
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+    return;
+  }
+
   let scripts = await discoverTestScripts();
 
   if (SINGLE_SCRIPT && SUITE_FILTER) {
