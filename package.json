@@ -10,6 +10,7 @@
 , "scripts": {
     "admin:dashboard": "node server/dashboard-server.mjs"
   , "db:migrate": "node scripts/db-migrate-stub.mjs"
+  , "test:paths": "node scripts/smoke-portal-paths.mjs"
   }
 , "dependencies": {
     "dotenv": "^16.4.7"
