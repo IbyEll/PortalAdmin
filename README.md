@@ -33,12 +33,37 @@ npm run admin:dashboard
 
 Apri http://localhost:3999/ — pagina bootstrap finché il cruscotto non è migrato (ADMIN-91).
 
+## Dual-repo (ADMIN-90)
+
+PortalAdmin e **JustLastOne** (product repo) sono repository separati. Il cruscotto legge codice e `testScript/` dal product repo via `PRODUCT_REPO_PATH`.
+
+| Variabile | Default | Ruolo |
+| --- | --- | --- |
+| `PRODUCT_REPO_PATH` | `../JustLastOne` (sibling) | Root monorepo prodotto |
+
+Layout consigliato:
+
+```
+C:/dev/
+  JustLastOne/     ← product repo
+  PortalAdmin/   ← questo repo
+```
+
+Se il product repo non esiste, gli script che scansionano il monorepo falliscono con messaggio esplicito.
+
+Verifica path:
+
+```bash
+npm run test:paths
+```
+
 ## Script npm
 
 | Script | Descrizione |
 | --- | --- |
 | `admin:dashboard` | Avvia `server/dashboard-server.mjs` (:3999) |
 | `db:migrate` | Stub fino a migrazione `lib/cruscotto-db` (ADMIN-91+) |
+| `test:paths` | Smoke test `PRODUCT_REPO_PATH` + scan Jira refs |
 
 ## Migrazione
 
