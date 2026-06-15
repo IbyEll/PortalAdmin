@@ -496,6 +496,16 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-96"
+  , label : "smoke test:workflow + README workflow Cursor"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+    ]
+  }
+
 ];
 
 /**
