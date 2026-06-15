@@ -3,6 +3,7 @@
  * Smoke ADMIN-93 — portal.config, ADMIN keys, close-story normalizeKey.
  */
 
+import { existsSync } from "node:fs";
 import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../portal.config.mjs";
 import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
 import { execFileSync } from "node:child_process";
@@ -30,11 +31,19 @@ if (!hasAdminPath) {
   process.exit(1);
 }
 
-const refs = scanRepoJiraReferences();
-const adminRef = refs.get("ADMIN-81");
+for (const rel of adminSignal.paths) {
+  if (!existsSync(join(ROOT, rel))) {
+    console.error(`FAIL: ADMIN-81 path missing in portal: ${rel}`);
+    process.exit(1);
+  }
+}
 
-if (!adminRef?.length) {
-  console.error("FAIL: scan did not find ADMIN-81 in product repo");
+const refs = scanRepoJiraReferences();
+const productRefKey = "ADMIN-88";
+const productRef = refs.get(productRefKey);
+
+if (!productRef?.length) {
+  console.error(`FAIL: scan did not find ${productRefKey} in product repo`);
   process.exit(1);
 }
 
@@ -58,5 +67,5 @@ if (!parsed.ok || !parsed.branch) {
 
 console.log("OK smoke portal.config");
 console.log(`  signals: ${REPO_IMPLEMENTATION_SIGNALS.length} (ADMIN-81 paths: ${adminSignal.paths.join(", ")})`);
-console.log(`  ADMIN-81 refs: ${adminRef.slice(0, 2).join(", ")}`);
+console.log(`  ${productRefKey} refs: ${productRef.slice(0, 2).join(", ")}`);
 console.log(`  close-story dry-run branch: ${parsed.branch}`);
