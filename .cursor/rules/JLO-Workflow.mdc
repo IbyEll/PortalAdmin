@@ -1,0 +1,19 @@
+---
+description: Alias workflow — regola canonica ADMIN-Workflow.mdc (branch STORY---ADMIN-* e JLO-*)
+alwaysApply: true
+---
+
+# JLO-Workflow (PortalAdmin)
+
+In questo repo la regola operativa è **`.cursor/rules/ADMIN-Workflow.mdc`**.
+
+Branch ticket:
+
+| Progetto | Pattern |
+| --- | --- |
+| ADMIN | `STORY---ADMIN-{num}-{slug}` · `BUG---ADMIN-*` · `TODO---ADMIN-*` |
+| JLO (product) | `STORY---JLO-{num}-{slug}` |
+
+Comandi: `gogo admin-96`, `procedi Story ADMIN-96`, `chiudi fast Story ADMIN-96`.
+
+Script: `node scripts/close-story.mjs --key ADMIN-xxx` · `node scripts/analyze-repo-keys.mjs --parent ADMIN-88`.

@@ -1,0 +1,16 @@
+---
+description: Veve step 4 — aggiorna subtask ADMIN-xxx
+alwaysApply: true
+---
+
+# ADMIN Veve — Aggiorna Subtask
+
+## Trigger
+
+`aggiorna subtask ADMIN-xxx` · `veve ADMIN-xxx` step 4
+
+## Per ogni subtask
+
+`editJiraIssue`: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M.
+
+**Vietato:** branch, commit, Fatto (salvo richiesta).

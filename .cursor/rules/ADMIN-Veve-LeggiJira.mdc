@@ -1,0 +1,20 @@
+---
+description: Veve step 1 — leggi parent ADMIN-xxx e subtask (read-only Jira)
+alwaysApply: true
+---
+
+# ADMIN Veve — Leggi Jira
+
+## Trigger
+
+`leggi jira ADMIN-xxx` · `veve ADMIN-xxx`
+
+## MCP
+
+`CallMcpTool` `user-atlassian`, cloudId `3caddd74-469e-4ca3-adf8-926f79c98e7c`.
+
+## Output
+
+Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide.
+
+**Vietato:** edit, branch, commit.

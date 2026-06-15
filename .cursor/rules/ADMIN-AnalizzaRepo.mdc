@@ -1,0 +1,49 @@
+---
+description: Analisi repo — gap Jira vs codice (ADMIN + JLO). Skill jlo-analizza-repo + lib/jira-repo-analysis.mjs
+alwaysApply: true
+---
+
+# ADMIN — Analizza repo
+
+## Trigger
+
+| Comando | Contesto |
+| --- | --- |
+| `analizza repo ADMIN-xxx` | Standalone o veve step 2 |
+| `veve ADMIN-xxx` | Step 2 |
+| Step 0 `procedi` / `gogo` | Gap analysis background |
+| `chiudi Story ADMIN-xxx` | Gap test |
+
+**Skill:** `.cursor/skills/jlo-analizza-repo/SKILL.md`
+
+## CLI
+
+```bash
+node scripts/analyze-repo-keys.mjs --parent ADMIN-88 --format md
+node scripts/analyze-repo-keys.mjs --keys ADMIN-121,ADMIN-122
+node scripts/analyze-repo-keys.mjs --parent JLO-507 --format md
+```
+
+Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
+
+## Aree
+
+| Area | Path (PortalAdmin) | Path (product JLO) |
+| --- | --- | --- |
+| Portal / cruscotto | `lib/`, `server/`, `cruscotto/`, `scripts/` | — |
+| Schema / API / Web | — | `packages/`, `apps/` |
+| Test | — | `testScript/` |
+| Catalogo | `portal.config.mjs`, `lib/repo-implementation-signals-catalog.mjs` | — |
+
+## Esito
+
+| Simbolo | Significato |
+| --- | --- |
+| ✅ | Implementato e coerente |
+| ⚠️ | Parziale / stub |
+| ❌ | Assente |
+
+## Modulo
+
+- `lib/jira-repo-analysis.mjs` — `analyzeIssueKeys`, `formatRepoAnalysisMarkdown`
+- `scripts/analyze-repo-keys.mjs` — CLI

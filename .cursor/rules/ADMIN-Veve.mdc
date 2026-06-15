@@ -1,0 +1,19 @@
+---
+description: Veve grooming ADMIN-xxx — leggi Jira, analizza repo, aggiorna story/subtask (read-only Jira via MCP diretto)
+alwaysApply: true
+---
+
+# ADMIN — `veve ADMIN-xxx`
+
+Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggiorna Subtask**.
+
+| Step | Regola |
+| --- | --- |
+| 1 | `ADMIN-Veve-LeggiJira.mdc` |
+| 2 | `ADMIN-AnalizzaRepo.mdc` |
+| 3 | `ADMIN-Veve-AggiornaStory.mdc` |
+| 4 | `ADMIN-Veve-AggiornaSubtask.mdc` |
+
+**MCP veve:** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
+
+**Vietato:** branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).
