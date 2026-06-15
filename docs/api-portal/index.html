@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API Portal JLO — JustLastOne</title>
+  <style>
+    :root {
+      --jlo-bg       : #0f1419;
+      --jlo-surface  : #1a2332;
+      --jlo-border   : #2d3a4f;
+      --jlo-text     : #e7ecf3;
+      --jlo-muted    : #8b9cb3;
+      --jlo-accent   : #3d9cf5;
+      --jlo-auth     : #a78bfa;
+      --jlo-api      : #34d399;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin     : 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background : var(--jlo-bg);
+      color      : var(--jlo-text);
+    }
+
+    .portal-header {
+      padding      : 1.25rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--jlo-border);
+      background   : linear-gradient(180deg, #152030 0%, var(--jlo-bg) 100%);
+    }
+
+    .portal-header h1 {
+      margin     : 0 0 0.35rem;
+      font-size  : 1.5rem;
+      font-weight: 700;
+    }
+
+    .portal-header p {
+      margin   : 0;
+      color    : var(--jlo-muted);
+      font-size: 0.95rem;
+    }
+
+    .service-cards {
+      display              : grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap                  : 0.75rem;
+      padding              : 1rem 1.5rem;
+    }
+
+    .service-card {
+      padding      : 0.85rem 1rem;
+      border       : 1px solid var(--jlo-border);
+      border-radius: 8px;
+      background   : var(--jlo-surface);
+    }
+
+    .service-card h2 {
+      margin     : 0 0 0.35rem;
+      font-size  : 1rem;
+      font-weight: 600;
+    }
+
+    .service-card.auth h2 { color: var(--jlo-auth); }
+    .service-card.api h2  { color: var(--jlo-api); }
+
+    .service-card code {
+      font-size: 0.82rem;
+      color    : var(--jlo-muted);
+    }
+
+    .service-card a {
+      color          : var(--jlo-accent);
+      font-size      : 0.85rem;
+      text-decoration: none;
+    }
+
+    .service-card a:hover {
+      text-decoration: underline;
+    }
+
+    .paths-section {
+      padding: 0 1.5rem 1rem;
+    }
+
+    .paths-section h2 {
+      margin     : 0 0 0.75rem;
+      font-size  : 1.1rem;
+      font-weight: 600;
+    }
+
+    .paths-status {
+      margin-bottom: 0.75rem;
+      font-size    : 0.9rem;
+      color        : var(--jlo-muted);
+    }
+
+    .paths-status.error {
+      color: #f87171;
+    }
+
+    .paths-table-wrap {
+      overflow-x   : auto;
+      border       : 1px solid var(--jlo-border);
+      border-radius: 8px;
+      background   : var(--jlo-surface);
+      max-height   : 420px;
+      overflow-y   : auto;
+    }
+
+    table.paths-table {
+      width          : 100%;
+      border-collapse: collapse;
+      font-size      : 0.85rem;
+    }
+
+    table.paths-table th,
+    table.paths-table td {
+      padding      : 0.55rem 0.75rem;
+      text-align   : left;
+      border-bottom: 1px solid var(--jlo-border);
+    }
+
+    table.paths-table th {
+      position  : sticky;
+      top       : 0;
+      background: #1e2a3d;
+      z-index   : 1;
+    }
+
+    table.paths-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .method {
+      display      : inline-block;
+      min-width    : 3.2rem;
+      padding      : 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size    : 0.72rem;
+      font-weight  : 700;
+      text-align   : center;
+    }
+
+    .method-get    { background: #064e3b; color: #6ee7b7; }
+    .method-post   { background: #1e3a8a; color: #93c5fd; }
+    .method-put    { background: #713f12; color: #fcd34d; }
+    .method-patch  { background: #581c87; color: #d8b4fe; }
+    .method-delete { background: #7f1d1d; color: #fca5a5; }
+
+    .badge {
+      display      : inline-block;
+      padding      : 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size    : 0.72rem;
+      font-weight  : 600;
+    }
+
+    .badge-auth { background: #4c1d95; color: #ddd6fe; }
+    .badge-api  { background: #064e3b; color: #a7f3d0; }
+  </style>
+</head>
+<body>
+  <header class="portal-header">
+    <h1>API Portal JLO</h1>
+    <p>JustLastOne — documentazione unificata Auth (:4001) e API (:4000)</p>
+  </header>
+
+  <section class="service-cards">
+    <article class="service-card auth">
+      <h2>JustLastOne Auth</h2>
+      <code id="auth-base">http://localhost:4001/api/v1</code>
+      <div style="margin-top: 0.5rem;">
+        <a id="auth-docs-link" href="http://localhost:4001/docs" target="_blank" rel="noopener">
+          Swagger nativo → /docs
+        </a>
+      </div>
+    </article>
+    <article class="service-card api">
+      <h2>JustLastOne API</h2>
+      <code id="api-base">http://localhost:4000/api/v1</code>
+      <div style="margin-top: 0.5rem;">
+        <a id="api-docs-link" href="http://localhost:4000/docs" target="_blank" rel="noopener">
+          Swagger nativo → /docs
+        </a>
+      </div>
+    </article>
+  </section>
+
+  <section class="paths-section">
+    <h2>Tutte le API — indice path</h2>
+    <p id="paths-status" class="paths-status">Caricamento OpenAPI da entrambi i servizi…</p>
+    <div class="paths-table-wrap">
+      <table class="paths-table">
+        <thead>
+          <tr>
+            <th>Servizio</th>
+            <th>Metodo</th>
+            <th>Path</th>
+            <th>Tag</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody id="paths-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="./portal.js"></script>
+</body>
+</html>

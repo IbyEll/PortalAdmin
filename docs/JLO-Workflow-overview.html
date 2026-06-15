@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JLO-Workflow — Panoramica regola Cursor</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #152030;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --pass: #34d399;
+      --skip: #fbbf24;
+      --fail: #f87171;
+      --purple: #b794f6;
+      --turquoise: #2ee8d6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.35em;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 0.75rem 0 1rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface-2);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+
+    .diagram .mermaid { text-align: center; }
+
+    .summary-box {
+      background: var(--surface);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    ul { margin: 0.5rem 0; padding-left: 1.35rem; }
+
+    li { margin: 0.25rem 0; }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>JLO-Workflow — Panoramica</h1>
+      <p class="meta">
+        Regola Cursor: <code>.cursor/rules/JLO-Workflow.mdc</code> ·
+        Generato 2026-06-15 · <code>alwaysApply: true</code>
+      </p>
+      <p class="lead">
+        Orchestra <strong>git + Jira + codice + commit + PR</strong> sui ticket
+        <strong>JLO-xxx</strong> (Story, Bug, Todo) con un protocollo chat rigido:
+        START → PROGRESS → END, senza dump Jira grezzo in chat.
+      </p>
+    </header>
+
+    <section>
+      <h2>Scopo generale</h2>
+      <table>
+        <thead>
+          <tr><th>Aspetto</th><th>Cosa regola</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Scope</td><td>Ticket parent JLO (Story / Bug / Todo) e subtask</td></tr>
+          <tr><td>Git</td><td>Branch dedicate, mai commit su <code>main</code>, PR aperta dall'agente, merge dall'utente</td></tr>
+          <tr><td>Jira</td><td>Piano, implementazione, chiusura subtask e parent</td></tr>
+          <tr><td>Chat</td><td>Solo START, PROGRESS, END (+ blocker)</td></tr>
+          <tr><td>Tooling</td><td>Jira via subagent Task «Jira Auto»; chiusura via <code>close-story.mjs</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Comandi utente</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  subgraph avvio["Avvio implementazione"]
+    P["procedi JLO-xxx"]
+    G["gogo JLO-xxx"]
+    F["procedi … FULL"]
+  end
+  subgraph chiusura["Chiusura parent"]
+    C["chiudi Story/Bug/Todo JLO-xxx"]
+    CF["chiudi fast … JLO-xxx"]
+  end
+  P --> WF["Workflow §3–§7"]
+  G -->|"= FULL silent"| WF
+  F -->|"confirm o silent"| WF
+  C -->|"END-B completo"| CL["§9 + gap test"]
+  CF -->|"END-B-FAST"| CL2["§9bis, no gap test"]
+        </pre>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Comando</th><th>Comportamento chiave</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>procedi JLO-xxx</code></td><td>Una subtask (o piano se FULL); commit/Jira dopo conferma utente</td></tr>
+          <tr><td><code>gogo JLO-xxx</code></td><td>= <code>procedi FULL silent</code>: tutte le subtask in sequenza, ok chiudi automatico</td></tr>
+          <tr><td><code>procedi … FULL confirm</code></td><td>Tutte le subtask; attende «ok chiudi» per ogni commit</td></tr>
+          <tr><td><code>procedi … FULL silent</code></td><td>Tutte le subtask; commit+Jira automatici</td></tr>
+          <tr><td><code>chiudi Story/Bug/Todo JLO-xxx</code></td><td>Push, PR, catalogo repo, gap test, parent → Fatto</td></tr>
+          <tr><td><code>chiudi fast …</code></td><td>Stesso git/PR/Jira parent, senza gap test né prossima story</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Pipeline operativa (§3)</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  A["§4 Verifica branch ticket"] --> B{"Branch ok?"}
+  B -->|stop: branch esiste, sei altrove| S1["Messaggio stop + checkout manuale"]
+  B -->|ripresa o nuova| C["§5 Pre-flight git"]
+  C --> D{"Tree pulito + allineato?"}
+  D -->|no| S2["Stop"]
+  D -->|sì| E["§6 Step 0 — piano Jira + gap repo"]
+  E --> F["Chat: §10.1 START"]
+  F --> G["§7 Implementazione subtask"]
+  G --> H["§8 ok chiudi per ogni subtask"]
+  H --> I{"Altre subtask?"}
+  I -->|sì| G
+  I -->|no| J["§10.3 END-A"]
+  J --> K["Utente: chiudi …"]
+  K --> L["§9 close-story.mjs + Jira parent"]
+  L --> M["§10.3 END-B"]
+        </pre>
+      </div>
+      <p><strong>Ordine fisso all'avvio:</strong> branch → pre-flight git → Step 0 → implementazione. <code>FULL</code> cambia solo come si fa §7 (confirm vs silent), non salta §4.</p>
+    </section>
+
+    <section>
+      <h2>Git — regole principali (§1, §4, §5)</h2>
+      <h3>Naming branch</h3>
+      <ul>
+        <li>Story → <code>STORY---JLO-{key}-{slug}</code></li>
+        <li>Bug → <code>BUG---JLO-{key}-{slug}</code></li>
+        <li>Todo → <code>TODO---JLO-{key}-{slug}</code></li>
+        <li>Legacy (solo ripresa): <code>JLO-{key}-*</code></li>
+      </ul>
+      <h3>Vincoli</h3>
+      <ul>
+        <li>Mai lavorare/commitare su <code>main</code></li>
+        <li>Working tree pulito prima di aprire un ticket (no stash automatico)</li>
+        <li>Branch non deve essere ahead rispetto a origin senza gestione</li>
+        <li>Una sola branch per key+tipo</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Step 0 — Piano (§6)</h2>
+      <p>Prima del codice, in background:</p>
+      <ol>
+        <li><strong>Task Jira Auto</strong> — legge parent + subtask</li>
+        <li><strong>Gap analysis repo</strong> — <code>JLO-AnalizaRepo.mdc</code> + CLI <code>analyze-repo-keys.mjs</code></li>
+        <li>Filtra subtask <strong>Da fare</strong>, ordina (schema → API → web → test → manuale)</li>
+        <li>Estrae AC/DoD nel template START (mai copiare description Jira)</li>
+      </ol>
+      <p><strong>Output chat unico:</strong> blocco START (§10.1). Contesti Jira conservati in sessione per ok chiudi / chiudi.</p>
+    </section>
+
+    <section>
+      <h2>Implementazione (§7) e gate ok chiudi (§8)</h2>
+      <p><strong>Una subtask alla volta.</strong> Sequenza obbligatoria a fine subtask:</p>
+      <pre>git add + commit  →  editJiraIssue (Stato repo + DoD)  →  transition Fatto  →  commento Jira</pre>
+      <table>
+        <thead>
+          <tr><th>Modalità</th><th>Dopo implementazione</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Confirm</strong> (default)</td><td>Silenzio fino a «ok chiudi», poi §8</td></tr>
+          <tr><td><strong>Silent</strong> (<code>gogo</code>, FULL silent)</td><td>§8 subito, senza attendere</td></tr>
+        </tbody>
+      </table>
+      <p>Se commit o Jira falliscono → stop flusso, END parziale con <code>Errori:</code>. Push non automatico dopo ogni subtask (solo in <code>chiudi</code> o opzionalmente dopo <code>gogo</code>).</p>
+    </section>
+
+    <section>
+      <h2>Jira — invocazione (§5bis)</h2>
+      <p>Tutte le operazioni Jira passano da <strong>Task subagent</strong> (skill <code>jlo-jira-auto</code>), mai MCP diretto dall'agente principale.</p>
+      <table>
+        <thead>
+          <tr><th>Fase</th><th>Task description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Step 0</td><td><code>Step 0 JLO-{key} plan Jira</code></td></tr>
+          <tr><td>Fine subtask</td><td><code>Ok chiudi JLO-{subkey} subtask Jira</code></td></tr>
+          <tr><td>Chiusura parent</td><td><code>Close JLO-{key} parent Jira</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Chiusura parent (§9 / §9bis)</h2>
+      <p>Script unico:</p>
+      <pre>node Admin/scripts/close-story.mjs --key JLO-{key}</pre>
+      <p>Verifica tree pulito → aggiorna catalogo segnali repo → push branch → apre PR su <code>main</code>. Poi Task Jira chiude il <strong>parent</strong> (subtask devono essere già Fatto).</p>
+      <table>
+        <thead>
+          <tr><th>Variante</th><th>Extra</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>chiudi</code> completo</td><td>Gap test + subtask successiva → <strong>END-B</strong></td></tr>
+          <tr><td><code>chiudi fast</code></td><td>Solo git/PR/Jira parent → <strong>END-B-FAST</strong></td></tr>
+        </tbody>
+      </table>
+      <p>L'agente <strong>non</strong> fa merge PR: lo fa l'utente su GitHub.</p>
+    </section>
+
+    <section>
+      <h2>Protocollo chat (§0, §10)</h2>
+      <p>Tra START e END l'agente non può narrare («Ora leggo…», diff, path, JSON Jira, ecc.).</p>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+  participant U as Utente
+  participant A as Agente
+  participant T as Tool background
+  U->>A: procedi / gogo JLO-xxx
+  Note over A,T: Turno solo tool — Step 0, git, Jira Auto
+  A->>U: START (AC, DoD, branch, subtask, macrostep)
+  loop Ogni macrostep
+    A->>U: PROGRESS (tabella macrostep)
+    A->>T: git, codice, test, commit, Jira
+  end
+  A->>U: END-A completato (parent ancora Da fare)
+  U->>A: chiudi Story JLO-xxx
+  A->>T: close-story.mjs + Close parent Jira
+  A->>U: END-B chiusura (+ PR, gap test)
+        </pre>
+      </div>
+      <h3>Messaggi ammessi</h3>
+      <table>
+        <thead>
+          <tr><th>Messaggio</th><th>Quando</th><th>Contenuto</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>START</strong></td><td>Dopo Step 0</td><td>AC, DoD, STATO, BRANCH, subtask da fare, macrostep ⬜</td></tr>
+          <tr><td><strong>PROGRESS</strong></td><td>Inizio/fine ogni macrostep</td><td>Solo tabella macrostep (⬜ 🔄 ✅ ❌)</td></tr>
+          <tr><td><strong>END-A</strong></td><td>Fine implementazione</td><td>AC/DoD valutati, stati key, PR: —</td></tr>
+          <tr><td><strong>END-B</strong></td><td>Dopo <code>chiudi</code></td><td>+ PR URL, gap test, story successiva</td></tr>
+          <tr><td><strong>END-B-FAST</strong></td><td>Dopo <code>chiudi fast</code></td><td>Come END-B ma gap/successore = —</td></tr>
+          <tr><td><strong>END parziale</strong></td><td>Blocker</td><td>Stato parziale + Errori</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>JLO-Workflow vs veve</h2>
+      <table>
+        <thead>
+          <tr><th></th><th>JLO-Workflow</th><th>veve (regola separata)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Trigger</td><td><code>procedi</code>, <code>gogo</code>, <code>chiudi</code></td><td><code>veve JLO-xxx</code></td></tr>
+          <tr><td>Scopo</td><td>Implementare + chiudere ticket</td><td>Grooming backlog (allineare Jira al repo)</td></tr>
+          <tr><td>Git/commit</td><td>Sì</td><td>No</td></tr>
+          <tr><td>Jira MCP</td><td>Solo via Task «Jira Auto»</td><td>MCP diretto</td></tr>
+          <tr><td>Chat</td><td>START/PROGRESS/END rigidi</td><td>Riepilogo grooming libero</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="summary-box">
+      <strong>In una frase:</strong>
+      <code>JLO-Workflow.mdc</code> trasforma l'agente in un operatore ticket JLO con flusso deterministico:
+      verifica branch → piano silenzioso → implementazione a subtask → commit+Jira gate → chiusura opzionale con PR,
+      limitando la chat a tre template per evitare rumore e leak di dati Jira grezzi.
+    </div>
+
+    <footer>
+      Fonte: <code>.cursor/rules/JLO-Workflow.mdc</code> ·
+      <a href="backlog-ordine-sviluppo.html">Ordine backlog MVP</a>
+    </footer>
+  </div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "dark",
+      securityLevel: "loose"
+    });
+  </script>
+</body>
+</html>
