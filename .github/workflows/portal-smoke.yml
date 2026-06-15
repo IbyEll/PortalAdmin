@@ -1,0 +1,124 @@
+name: Portal smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: portal-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Dual-repo smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PortalAdmin
+        uses: actions/checkout@v4
+        with:
+          path: portal-admin
+
+      - name: Checkout JustLastOne (product repo)
+        uses: actions/checkout@v4
+        with:
+          repository: IbyEll/JustLastOne
+          path: just-last-one
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: portal-admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: portal-admin
+        run: npm ci
+
+      - name: Verify PRODUCT_REPO_PATH (valid sibling)
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:paths
+
+      - name: Fail explicitly on invalid PRODUCT_REPO_PATH
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: /tmp/portal-admin-missing-product-repo
+        run: |
+          node --input-type=module -e "
+          import { resolveProductRepoPath } from './lib/portal-paths.mjs';
+          try {
+            resolveProductRepoPath({ required: true });
+            console.error('FAIL: expected throw for invalid PRODUCT_REPO_PATH');
+            process.exit(1);
+          } catch (err) {
+            console.log('OK invalid PRODUCT_REPO_PATH rejected:', err.message.split('\\n')[0]);
+          }
+          "
+
+      - name: Portal config smoke
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:config
+
+      - name: Workflow rules smoke
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:workflow
+
+      - name: run-all discovery smoke
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:run-all
+
+      - name: Dashboard server smoke
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:dashboard
+
+  jira-sync:
+    name: Jira backlog sync (optional)
+    needs: smoke
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && secrets.JIRA_EMAIL != ''
+      && secrets.JIRA_API_TOKEN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PortalAdmin
+        uses: actions/checkout@v4
+
+      - name: Checkout JustLastOne
+        uses: actions/checkout@v4
+        with:
+          repository: IbyEll/JustLastOne
+          path: just-last-one
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analyze repo keys (Jira sync smoke)
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_CLOUD_ID: ${{ secrets.JIRA_CLOUD_ID }}
+          JIRA_BOARD_ID: ${{ secrets.JIRA_BOARD_ID }}
+        run: node scripts/analyze-repo-keys.mjs --parent ADMIN-88 --format md
