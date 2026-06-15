@@ -9,6 +9,15 @@
   }
 , "scripts": {
     "admin:dashboard": "node server/dashboard-server.mjs"
+  , "start:dev": "node ellaStartScript/start-dev.mjs"
+  , "dev:prepare": "node ellaStartScript/start-dev.mjs --prepare-only"
+  , "dev:db": "node ellaStartScript/init_Database_DEV.mjs --push"
+  , "dev:seed-data": "node ellaStartScript/run-data-seeds.mjs"
+  , "dev:api-auth": "node runner/start_API_Auth.mjs"
+  , "dev:api-project": "node runner/start_API_Project.mjs"
+  , "dev:api-portal": "node runner/start_API_Portal.mjs"
+  , "dev:web": "node runner/start_WEB.mjs"
+  , "dev:all": "node runner/start_ALL_Services.mjs"
   , "db:migrate": "node lib/cruscotto-db/migrate.mjs"
   , "db:sync": "node scripts/sync-jira-backlog.mjs"
   , "test:paths": "node scripts/smoke-portal-paths.mjs"
@@ -19,6 +28,8 @@
   , "test:cruscotto-db": "node scripts/smoke-cruscotto-db.mjs"
   , "test:portal-e2e": "node scripts/smoke-portal-e2e.mjs"
   , "test:ci": "node scripts/smoke-ci.mjs"
+  , "start:all": "node runner/start_ALL_Services.mjs"
+  , "stop:all": "node runner/stop_ALL_services.mjs"
   }
 , "dependencies": {
     "dotenv": "^16.4.7"

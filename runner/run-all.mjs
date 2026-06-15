@@ -16,7 +16,6 @@
 import "../lib/load-env.mjs";
 
 import { spawn } from "node:child_process";
-import { PrismaClient } from "@prisma/client";
 
 import {
   BLOCKED_REASONS
@@ -37,6 +36,7 @@ import {
 } from "../lib/reporter.mjs";
 import { WINDOWS_UV_CRASH_EXIT } from "../lib/http-utils.mjs";
 import { resetHostTestState, setupDefaultDatabaseUrl } from "../lib/match-fixtures.mjs";
+import { PrismaClient } from "../lib/product-prisma.mjs";
 
 const LIST_ONLY = process.argv.includes("--list");
 const NO_HTML   = process.argv.includes("--no-html");

@@ -45,6 +45,21 @@ import { regenerateProjectTreeHtml } from "../lib/jira-project-tree-plan.mjs";
 import { analyzeMyProject } from "../lib/my-project-analysis.mjs";
 import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./run-manager.mjs";
 import {
+  clearRepoServicesLogs
+, getProductDatabaseStatus
+, getRepoServicesDiscover
+, getRepoServicesLogs
+, getRepoServicesStatus
+, listDevStackProcesses
+, pushProductDatabase
+, resetProductDatabase
+, seedProductDatabase
+, startRepoServices
+, startSingleRepoService
+, stopRepoServices
+, stopSingleRepoService
+} from "./repo-services-manager.mjs";
+import {
   buildExportBasename
 , loadReportFromLatest
 , writeJsonExport
@@ -63,6 +78,7 @@ import {
 } from "../lib/test-tecnici-analysis.mjs";
 import { getFunzionaliMetaPayload } from "../lib/test-funzionali-meta.mjs";
 import { getTecniciMetaPayload } from "../lib/test-tecnici-meta.mjs";
+import { REPO_EXTRAS_ALL } from "../lib/repo-service-discovery.mjs";
 
 const SERVER_DIR   = dirname(fileURLToPath(import.meta.url));
 const CRUSCOTTO_DIR = join(SERVER_DIR, "..", "cruscotto");
@@ -705,6 +721,196 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/repo/services/discover" && req.method === "GET") {
+    try {
+      const query      = req.url?.includes("?") ? req.url.split("?")[1] : "";
+      const params     = new URLSearchParams(query);
+      const withPortal = params.get("withPortal") === "1" || params.get("withPortal") === "true";
+      const allExtras  = params.get("allExtras") === "1" || params.get("allExtras") === "true";
+      const extrasRaw  = params.get("extras") ?? "";
+      const extras     = allExtras
+        ? [...REPO_EXTRAS_ALL]
+        : extrasRaw.split(",").map((part) => part.trim()).filter(Boolean);
+
+      const data = await getRepoServicesDiscover({
+        extras
+      , withPortal : allExtras || withPortal
+      });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/status" && req.method === "GET") {
+    sendJson(res, 200, getRepoServicesStatus(), req);
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/processes" && req.method === "GET") {
+    try {
+      const data = await listDevStackProcesses();
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/logs" && req.method === "GET") {
+    const query  = req.url?.includes("?") ? req.url.split("?")[1] : "";
+    const params = new URLSearchParams(query);
+    const cursor = Number(params.get("cursor") ?? "0");
+    sendJson(res, 200, getRepoServicesLogs(cursor), req);
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/logs" && req.method === "DELETE") {
+    clearRepoServicesLogs();
+    sendJson(res, 200, { ok: true, cursor: getRepoServicesLogs().cursor }, req);
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/start" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const extras = Array.isArray(body.extras)
+        ? body.extras.filter((part) => typeof part === "string")
+        : typeof body.extras === "string"
+          ? body.extras.split(",").map((part) => part.trim()).filter(Boolean)
+          : [];
+
+      const result = await startRepoServices({
+        extras
+      , withPortal : body.withPortal === true
+      , noDb       : body.noDb !== false
+      , allExtras  : body.allExtras === true
+      , productOnly          : body.productOnly === true
+      , productStackComplete : body.productStackComplete === true
+      });
+
+      const status = result.started ? 202 : 409;
+      sendJson(res, status, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 400, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/start-one" && req.method === "POST") {
+    try {
+      const body       = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const serviceId  = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+
+      if (!serviceId) {
+        sendJson(res, 400, { error: "serviceId obbligatorio" }, req);
+        return;
+      }
+
+      const result = await startSingleRepoService(serviceId);
+      const status = result.started ? 202 : 409;
+      sendJson(res, status, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 400, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/stop-one" && req.method === "POST") {
+    try {
+      const body      = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const serviceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+
+      if (!serviceId) {
+        sendJson(res, 400, { error: "serviceId obbligatorio" }, req);
+        return;
+      }
+
+      const result = await stopSingleRepoService(serviceId);
+      const status = result.ok === false && result.error ? 409 : 200;
+      sendJson(res, status, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/database/status" && req.method === "GET") {
+    try {
+      sendJson(res, 200, getProductDatabaseStatus(), req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/database/reset" && req.method === "POST") {
+    try {
+      const result = await resetProductDatabase();
+      sendJson(res, result.ok ? 200 : 500, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/database/push" && req.method === "POST") {
+    try {
+      const result = await pushProductDatabase();
+      sendJson(res, result.ok ? 200 : 500, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/database/seed" && req.method === "POST") {
+    try {
+      const result = await seedProductDatabase();
+      sendJson(res, result.ok ? 200 : 500, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/repo/services/stop" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const result = await stopRepoServices({
+        includeDashboard : body.includeDashboard === true
+      , productOnly          : body.productOnly === true
+      , productStackComplete : body.productStackComplete === true
+      });
+      sendJson(res, 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/jira/backlog" && req.method === "GET") {
     try {
       const data = await loadJiraBacklog();
@@ -872,9 +1078,12 @@ async function handleRequest(req, res) {
     , "testtecnici"
     , "testfunzionali"
     , "jiraworking"
+    , "jiraworkingold"
     , "jiraproject"
     , "backlog"
     , "myproject"
+    , "pillarmatrix"
+    , "utility"
     ]);
 
     if (knownTabs.has(tabPath)) {

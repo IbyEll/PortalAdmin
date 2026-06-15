@@ -1,4 +1,6 @@
 import { loadDevManifest } from "../lib/dev-manifest.mjs";
+import { findPidsByCommandFragment } from "../lib/kill-dev-ports.mjs";
+import { FRIEND_BOT_PROCESS_FRAGMENT } from "../lib/repo-service-discovery.mjs";
 
 const PROBE_TIMEOUT_MS = 2000;
 
@@ -50,6 +52,23 @@ export async function getDevServicesWithHealth() {
         , status    : "up"
         , latencyMs : 0
         , error     : null
+        };
+      }
+
+      const processScript = typeof svc.processScript === "string"
+        ? svc.processScript
+        : svc.id === "friendbot"
+          ? FRIEND_BOT_PROCESS_FRAGMENT
+          : null;
+
+      if (processScript) {
+        const running = findPidsByCommandFragment(processScript).length > 0;
+
+        return {
+          ...svc
+        , status    : running ? "up" : "down"
+        , latencyMs : null
+        , error     : running ? null : "processo non attivo"
         };
       }
 

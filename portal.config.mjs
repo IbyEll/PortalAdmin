@@ -445,6 +445,8 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
       , "server/run-manager.mjs"
       , "ellaStartScript/lib.mjs"
       , "ellaStartScript/start-dev.mjs"
+      , "ellaStartScript/run-data-seeds.mjs"
+      , "ellaStartScript/serve-api-portal.mjs"
     ]
   , tests : ["funzionali/test-friend-bot.mjs"]
   }

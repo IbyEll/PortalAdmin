@@ -1,0 +1,46 @@
+---
+description: Script CLI/runner — commenti step-by-step obbligatori in ogni fase logica
+globs: runner/**/*.mjs,ellaStartScript/**/*.mjs,scripts/**/*.mjs
+alwaysApply: false
+---
+
+# Script — commenti step by step
+
+Quando **crei o modifichi** script eseguibili (`.mjs` in `runner/`, `ellaStartScript/`, `scripts/`):
+
+## Obbligatorio
+
+1. **Header** in cima al file: scopo, uso CLI (`--help`), variabili d'ambiente rilevanti.
+2. **Commenti per fase** — ogni blocco logico preceduto da un commento che spiega *cosa* fa e *perché* (non ripetere il nome della funzione).
+3. **Ordine numerato** nei main/entrypoint lunghi: `// 1. …`, `// 2. …` oppure `// Step 1 — …`.
+4. **Branch e exit** — commentare `process.exit`, early return e flag CLI non ovvi.
+5. Lingua commenti: **italiano** (allineato al resto degli script PortalAdmin).
+
+## Esempio
+
+```javascript
+// 1. Argomenti CLI e help
+const args = process.argv.slice(2);
+if (args.includes("--help")) { … }
+
+// 2. Validazione input obbligatorio
+const seedIds = parseSeedIds(args);
+if (seedIds.length === 0) { … }
+
+// 3. Attesa stack (opzionale) prima dei seed
+if (waitAuthMs > 0) {
+  await waitForDevStack({ timeoutMs: waitAuthMs });
+}
+
+// 4. Esecuzione seed richiesti
+await runDataSeeds(seedIds);
+```
+
+## Non applicare
+
+- File di libreria pura senza entrypoint (`lib/*.mjs` con sole export) — solo JSDoc sulle export pubbliche.
+- Codice app (`server/`, `cruscotto/`) salvo nuovi runner one-off.
+
+## Priorità
+
+Questa regola **prevale** sulla regola generale «pochi commenti» per gli script in scope.

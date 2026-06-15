@@ -13,24 +13,40 @@ import { setTimeout as delay } from "node:timers/promises";
 import { getProductRepoPath } from "../lib/portal-paths.mjs";
 
 const ROOT     = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PORT     = Number(process.env.SMOKE_PORT ?? process.env.DASHBOARD_PORT ?? 3996);
+const PORT     = Number(process.env.DASHBOARD_PORT ?? 3999);
 const BASE     = `http://127.0.0.1:${PORT}`;
 const TEST_REL = join("testScript", "admin", "test-portal-smoke.mjs");
 
 /** @type {import("node:child_process").ChildProcess | null} */
 let server = null;
 
+/**
+ * @returns {Promise<boolean>}
+ */
+async function isDashboardUp() {
+  try {
+    const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const product = getProductRepoPath();
   const testAbs = join(product, "testScript", "admin", "test-portal-smoke.mjs");
 
-  server = spawn(process.execPath, ["server/dashboard-server.mjs"], {
-    cwd   : ROOT
-  , env   : { ...process.env, DASHBOARD_PORT: String(PORT), PRODUCT_REPO_PATH: product }
-  , stdio : ["ignore", "pipe", "pipe"]
-  });
+  const spawned = !(await isDashboardUp());
 
-  await delay(2800);
+  if (spawned) {
+    server = spawn(process.execPath, ["server/dashboard-server.mjs"], {
+      cwd   : ROOT
+    , env   : { ...process.env, DASHBOARD_PORT: String(PORT), PRODUCT_REPO_PATH: product }
+    , stdio : ["ignore", "pipe", "pipe"]
+    });
+
+    await delay(2800);
+  }
 
   if (existsSync(testAbs)) {
     const child = spawn(process.execPath, [testAbs], {

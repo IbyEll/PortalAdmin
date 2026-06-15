@@ -3,8 +3,429 @@
  * Sezioni: JLO-916 shell · JLO-917 Requisiti · JLO-918 Servizi · JLO-919 Test · JLO-920 Overview
  */
 
-const TABS = ["overview", "requisiti", "servizi", "test", "summary", "testtecnici", "testfunzionali", "jiraworking", "jiraworkingold", "jiraproject", "backlog", "myproject", "pillarmatrix"];
+const TABS = ["overview", "requisiti", "servizi", "test", "summary", "testtecnici", "testfunzionali", "jiraworking", "jiraworkingold", "jiraproject", "backlog", "myproject", "pillarmatrix", "utility"];
 const DEFAULT_TAB = "overview";
+
+/** Polling console Utility — log stack dev. */
+/** @type {number | null} */
+let utilityConsolePollTimer = null;
+
+/** @type {number} */
+let utilityLogCursor = 0;
+
+/** Tab console utility attiva. */
+let utilityConsoleActiveTab = "all";
+
+/** @type {Array<{ id: string, label: string }>} */
+const UTILITY_CONSOLE_TABS = [
+  { id: "all",        label: "Tutti" }
+, { id: "database",   label: "Database" }
+, { id: "web",        label: "Web" }
+, { id: "api",        label: "API" }
+, { id: "auth",       label: "Auth" }
+, { id: "api-portal", label: "API Portal" }
+, { id: "friendbot",  label: "friendBOT" }
+, { id: "dashboard",  label: "Cruscotto" }
+];
+
+/**
+ * @param {string} tabId
+ */
+function getUtilityConsolePane(tabId) {
+  return document.getElementById(`utility-console-pane-${tabId}`);
+}
+
+function clearUtilityConsolePanes() {
+  for (const tab of UTILITY_CONSOLE_TABS) {
+    const pane = getUtilityConsolePane(tab.id);
+
+    if (pane) {
+      pane.replaceChildren();
+    }
+  }
+}
+
+/** Svuota solo il pannello del tab console attualmente visibile (i log server restano). */
+function clearActiveUtilityConsolePane() {
+  const pane = getUtilityConsolePane(utilityConsoleActiveTab);
+
+  if (pane instanceof HTMLElement) {
+    pane.replaceChildren();
+  }
+}
+
+/**
+ * @param {string} pkg
+ * @param {Set<string>} tabs
+ */
+function mapJloPackageToConsoleTabs(pkg, tabs) {
+  if (pkg === "web") {
+    tabs.add("web");
+  } else if (pkg === "api") {
+    tabs.add("api");
+  } else if (pkg === "auth" || pkg === "authentication") {
+    tabs.add("auth");
+  } else if (pkg === "database") {
+    tabs.add("database");
+  }
+}
+
+/**
+ * @param {string} text
+ * @returns {string[]}
+ */
+function classifyUtilityLogLine(text) {
+  const tabs = new Set(["all"]);
+  const trimmed = text.trimStart();
+
+  const prefixMatch = trimmed.match(/^\[(web|api-portal|api|auth|friendbot|dashboard|turbo-dev)\]/);
+
+  if (prefixMatch) {
+    const id = prefixMatch[1];
+
+    if (id === "turbo-dev") {
+      tabs.add("web");
+      tabs.add("api");
+      tabs.add("auth");
+    } else {
+      tabs.add(id);
+    }
+
+    return [...tabs];
+  }
+
+  for (const match of text.matchAll(/@justlastone\/([a-z0-9-]+)/gi)) {
+    mapJloPackageToConsoleTabs(match[1].toLowerCase(), tabs);
+  }
+
+  if (/\bPorta 3000\b|:3000\b/.test(text)) {
+    tabs.add("web");
+  }
+
+  if (/\bPorta 4000\b|:4000\b/.test(text)) {
+    tabs.add("api");
+  }
+
+  if (/\bPorta 4001\b|:4001\b/.test(text)) {
+    tabs.add("auth");
+  }
+
+  if (/\bPorta 4080\b|:4080\b/.test(text)) {
+    tabs.add("api-portal");
+  }
+
+  if (/\bPorta 3999\b|:3999\b/.test(text)) {
+    tabs.add("dashboard");
+  }
+
+  if (/database|db:push|db:seed|db:generate|dev\.db|prisma|delete & create|inizializza|refresh|init_Database_DEV/i.test(text)) {
+    tabs.add("database");
+  }
+
+  if (/friendBOT|friend-bot|friendbot/i.test(text)) {
+    tabs.add("friendbot");
+  }
+
+  if (/api-portal|serve-api-portal/i.test(text)) {
+    tabs.add("api-portal");
+  }
+
+  if (/\bcruscotto\b|admin:dashboard/i.test(text)) {
+    tabs.add("dashboard");
+  }
+
+  const killMatch = text.match(/Kill (web|api-portal|api|auth|friendbot|dashboard)/i);
+
+  if (killMatch) {
+    tabs.add(killMatch[1].toLowerCase());
+  }
+
+  const svcKillMatch = text.match(/Kill servizio (web|api-portal|api|auth|friendbot|dashboard)/i);
+
+  if (svcKillMatch) {
+    tabs.add(svcKillMatch[1].toLowerCase());
+  }
+
+  if (/Kill stack|Kill nest|Kill product|Porte da liberare|turbo run dev/i.test(text)) {
+    tabs.add("web");
+    tabs.add("api");
+    tabs.add("auth");
+  }
+
+  if (/Kill All|friendBOT JLO/i.test(text)) {
+    tabs.add("web");
+    tabs.add("api");
+    tabs.add("auth");
+    tabs.add("api-portal");
+    tabs.add("friendbot");
+  }
+
+  if (/Processi \(.*authentication|@justlastone\/auth|start_API_Auth/i.test(text)) {
+    tabs.add("auth");
+  }
+
+  if (/Processi \(.*apps\\api|@justlastone\/api[^a-z-]|start_API_Project/i.test(text)) {
+    tabs.add("api");
+  }
+
+  if (/Processi \(.*apps\\web|@justlastone\/web|start_WEB/i.test(text)) {
+    tabs.add("web");
+  }
+
+  const startMatch = text.match(/Avvio (web|api-portal|api|auth|friendbot|dashboard)/i);
+
+  if (startMatch) {
+    tabs.add(startMatch[1].toLowerCase());
+  }
+
+  return [...tabs];
+}
+
+/**
+ * @param {string} tabId
+ */
+function setUtilityConsoleTab(tabId) {
+  utilityConsoleActiveTab = tabId;
+
+  for (const tab of UTILITY_CONSOLE_TABS) {
+    const pane = getUtilityConsolePane(tab.id);
+    const btn  = document.querySelector(`[data-console-tab="${tab.id}"]`);
+    const active = tab.id === tabId;
+
+    if (pane instanceof HTMLElement) {
+      pane.classList.toggle("is-active", active);
+      pane.hidden = !active;
+    }
+
+    if (btn instanceof HTMLButtonElement) {
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    }
+  }
+}
+
+/**
+ * @param {HTMLElement} root
+ */
+function bindUtilityConsoleTabs(root) {
+  const tablist = root.querySelector("#utility-console-tabs");
+
+  if (!(tablist instanceof HTMLElement) || tablist.dataset.bound === "1") {
+    return;
+  }
+
+  tablist.dataset.bound = "1";
+
+  tablist.addEventListener("click", (ev) => {
+    const target = ev.target;
+
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const btn = target.closest("[data-console-tab]");
+
+    if (!(btn instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const tabId = btn.getAttribute("data-console-tab");
+
+    if (tabId) {
+      setUtilityConsoleTab(tabId);
+    }
+  });
+}
+
+/**
+ * @returns {string}
+ */
+function renderUtilityConsoleTabsMarkup() {
+  const tabButtons = UTILITY_CONSOLE_TABS.map((tab, index) => {
+    const active = index === 0;
+
+    return `<button type="button" role="tab" class="utility-console-tab${active ? " is-active" : ""}" data-console-tab="${tab.id}" aria-selected="${active ? "true" : "false"}">${tab.label}</button>`;
+  }).join("");
+
+  const panes = UTILITY_CONSOLE_TABS.map((tab, index) => {
+    const active = index === 0;
+
+    return `<div id="utility-console-pane-${tab.id}" class="utility-console-output utility-console-pane${active ? " is-active" : ""}" role="tabpanel" data-console-pane="${tab.id}" aria-live="polite" aria-relevant="additions"${active ? "" : " hidden"}></div>`;
+  }).join("");
+
+  return `<div class="utility-console-tabs" id="utility-console-tabs" role="tablist">${tabButtons}</div><div class="utility-console-panes">${panes}</div>`;
+}
+
+/**
+ * @param {HTMLElement} pane
+ * @param {string} stream
+ * @param {string} text
+ */
+function appendUtilityConsoleLineToPane(pane, stream, text) {
+  const lineEl = document.createElement("div");
+  lineEl.className = `utility-console-line utility-console-${stream}`;
+  lineEl.innerHTML = formatUtilityConsoleLineHtml(text);
+  pane.appendChild(lineEl);
+}
+
+/**
+ * @param {HTMLElement} [scrollPane]
+ */
+function scrollUtilityConsoleIfFollow(scrollPane) {
+  const followEl = document.getElementById("utility-console-follow");
+  const follow   = followEl instanceof HTMLInputElement ? followEl.checked : true;
+  const pane     = scrollPane ?? getUtilityConsolePane(utilityConsoleActiveTab);
+
+  if (follow && pane instanceof HTMLElement) {
+    pane.scrollTop = pane.scrollHeight;
+  }
+}
+
+/**
+ * @param {Record<string, unknown>} listener
+ */
+function formatProcessStarterShort(listener) {
+  const starter = String(listener.starter ?? listener.label ?? "");
+  const user    = typeof listener.user === "string" && listener.user ? listener.user : "";
+
+  if (starter === "cursor") {
+    return user ? `Cursor (${user})` : "Cursor";
+  }
+
+  if (starter === "dashboard") {
+    return user ? `Cruscotto (${user})` : "Cruscotto";
+  }
+
+  if (starter === "user") {
+    return user ? `Utente (${user})` : "Utente";
+  }
+
+  return user || "—";
+}
+
+/**
+ * @param {Record<string, unknown>} processesPayload
+ * @returns {Array<{ stream: string, text: string }>}
+ */
+function buildActiveInstancesConsoleLines(processesPayload) {
+  const rows      = Array.isArray(processesPayload.rows) ? processesPayload.rows : [];
+  const checkedAt = typeof processesPayload.checkedAt === "string"
+    ? formatRunAt(processesPayload.checkedAt)
+    : "—";
+  /** @type {Array<{ stream: string, text: string }>} */
+  const lines = [{
+    stream : "system"
+  , text   : `=== Istanze servizi attive — ${checkedAt} ===`
+  }];
+
+  let activeServices = 0;
+  let listenerCount  = 0;
+
+  for (const row of rows) {
+    const id        = String(row.label ?? row.id ?? "—");
+    const port      = row.port != null ? `:${row.port}` : "daemon";
+    const listeners = Array.isArray(row.listeners) ? row.listeners : [];
+    const listening = row.listening === true;
+
+    if (listening) {
+      activeServices += 1;
+    }
+
+    if (!listeners.length) {
+      lines.push({
+        stream : "system"
+      , text   : `  ${id.padEnd(16)} ${String(port).padEnd(10)} — libera`
+      });
+      continue;
+    }
+
+    listeners.forEach((listener, index) => {
+      listenerCount += 1;
+      const procRow  = /** @type {Record<string, unknown>} */ (listener);
+      const pid      = procRow.pid != null ? String(procRow.pid) : "?";
+      const dash     = procRow.isDashboard ? " (dashboard)" : "";
+      const starter  = formatProcessStarterShort(procRow);
+      const nameCol  = index === 0 ? id.padEnd(16) : "".padEnd(16);
+      const portCol  = index === 0 ? String(port).padEnd(10) : "".padEnd(10);
+      const stateCol = index === 0 ? (listening ? "in ascolto" : "—").padEnd(12) : "".padEnd(12);
+
+      lines.push({
+        stream : "system"
+      , text   : `  ${nameCol} ${portCol} ${stateCol} pid ${pid}${dash}  user ${starter}`
+      });
+    });
+  }
+
+  const nodeRows = Array.isArray(processesPayload.nodeRows) ? processesPayload.nodeRows : [];
+
+  if (nodeRows.length > 0) {
+    lines.push({
+      stream : "system"
+    , text   : "—— Processi Node progetto (non mappati a porta) ——"
+    });
+
+    for (const row of nodeRows) {
+      const listeners = Array.isArray(row.listeners) ? row.listeners : [];
+      const desc      = String(row.description ?? row.command ?? "—").slice(0, 48);
+
+      for (const [index, listener] of listeners.entries()) {
+        listenerCount += 1;
+        const procRow = /** @type {Record<string, unknown>} */ (listener);
+        const pid     = procRow.pid != null ? String(procRow.pid) : "?";
+        const starter = formatProcessStarterShort(procRow);
+        const nameCol = index === 0 ? "Node".padEnd(16) : "".padEnd(16);
+
+        lines.push({
+          stream : "system"
+        , text   : `  ${nameCol} ${desc.padEnd(42)} pid ${pid}  user ${starter}`
+        });
+      }
+    }
+  }
+
+  lines.push({
+    stream : "system"
+  , text   : `=== ${activeServices} servizi attivi · ${listenerCount} processi · ${rows.length} righe discovery · ${nodeRows.length} node extra ===`
+  });
+
+  return lines;
+}
+
+/**
+ * @param {HTMLButtonElement} [button]
+ */
+async function dumpActiveInstancesToConsole(button = null) {
+  const label = button?.textContent ?? null;
+
+  if (button) {
+    button.setAttribute("disabled", "true");
+    button.textContent = "…";
+  }
+
+  try {
+    const data  = await apiGet("/api/repo/services/processes");
+    const lines = buildActiveInstancesConsoleLines(data);
+
+    setUtilityConsoleTab("all");
+    appendUtilityConsoleLines(lines);
+    scrollUtilityConsoleIfFollow(getUtilityConsolePane("all") ?? undefined);
+    startUtilityConsolePolling();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Lettura istanze fallita";
+
+    setUtilityConsoleTab("all");
+    appendUtilityConsoleLines([{
+      stream : "stderr"
+    , text   : message
+    }]);
+    scrollUtilityConsoleIfFollow(getUtilityConsolePane("all") ?? undefined);
+  } finally {
+    if (button) {
+      button.removeAttribute("disabled");
+      button.textContent = label ?? "Istanze attive";
+    }
+  }
+}
 
 /** @type {Record<string, { title: string, subtitle: string }>} */
 const PAGE_META = {
@@ -59,6 +480,10 @@ const PAGE_META = {
 , pillarmatrix: {
     title    : "Matrice pilastri"
   , subtitle : "Concetti doc 9076737 × backlog JLO × segnali repo"
+  }
+, utility: {
+    title    : "Utility"
+  , subtitle : "Strumenti di supporto e manutenzione Admin"
   }
 };
 
@@ -575,6 +1000,172 @@ async function copyCmd(cmd) {
 }
 
 /**
+ * Classi colore per workspace @justlastone/* nella console utility.
+ * @type {Record<string, string>}
+ */
+const UTILITY_JLO_PKG_CLASS = {
+  web           : "utility-console-pkg-web"
+, api           : "utility-console-pkg-api"
+, "api-portal"  : "utility-console-pkg-api-portal"
+, auth          : "utility-console-pkg-auth"
+, authentication: "utility-console-pkg-auth"
+, friendbot     : "utility-console-pkg-friendbot"
+, database      : "utility-console-pkg-database"
+, shared        : "utility-console-pkg-shared"
+, i18n          : "utility-console-pkg-i18n"
+, "auth-kit"    : "utility-console-pkg-auth-kit"
+};
+
+/**
+ * @param {string} slug
+ */
+function utilityConsolePkgClass(slug) {
+  const key = slug.toLowerCase();
+  return UTILITY_JLO_PKG_CLASS[key] ?? "utility-console-pkg-default";
+}
+
+/**
+ * Evidenzia @justlastone/xxx e prefissi [web] [api] … con span colorati.
+ * @param {string} text
+ */
+function formatUtilityConsoleLineHtml(text) {
+  let html = escapeHtml(text);
+
+  html = html.replace(
+    /^(\[(web|api|auth|api-portal|friendbot|dashboard|turbo-dev)\])/
+  , (_match, bracket, serviceId) => {
+      const cls = utilityConsolePkgClass(serviceId);
+      return `<span class="utility-console-pkg ${cls}">${bracket}</span>`;
+    }
+  );
+
+  html = html.replace(
+    /@justlastone\/([a-z0-9-]+)/gi
+  , (match, pkg) => {
+      const cls = utilityConsolePkgClass(pkg);
+      return `<span class="utility-console-pkg ${cls}">${match}</span>`;
+    }
+  );
+
+  return html;
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} lines
+ */
+function appendUtilityConsoleLines(lines) {
+  for (const row of lines) {
+    const stream = String(row.stream ?? "stdout");
+    const text   = String(row.text ?? "");
+    const tabIds = classifyUtilityLogLine(text);
+
+    for (const tabId of tabIds) {
+      const pane = getUtilityConsolePane(tabId);
+
+      if (pane instanceof HTMLElement) {
+        appendUtilityConsoleLineToPane(pane, stream, text);
+      }
+    }
+  }
+
+  scrollUtilityConsoleIfFollow();
+}
+
+function scrollUtilityConsoleIntoView() {
+  document.querySelector(".utility-console-panel")?.scrollIntoView({
+    behavior : "smooth"
+  , block    : "nearest"
+  });
+}
+
+/**
+ * @param {string} tabId
+ * @param {string} hint
+ */
+function beginUtilityKillConsole(tabId, hint) {
+  utilityLogCursor = 0;
+  clearUtilityConsolePanes();
+  setUtilityConsoleTab(tabId);
+  appendUtilityConsoleLines([{
+    stream : "system"
+  , text   : hint
+  }]);
+  scrollUtilityConsoleIntoView();
+  startUtilityConsolePolling();
+}
+
+/**
+ * @param {Record<string, unknown>} body
+ */
+async function applyUtilityKillLogResponse(body) {
+  clearUtilityConsolePanes();
+
+  if (Array.isArray(body.lines) && body.lines.length > 0) {
+    appendUtilityConsoleLines(body.lines);
+    utilityLogCursor = typeof body.logCursor === "number" ? body.logCursor : utilityLogCursor;
+  } else {
+    await reloadUtilityConsole(true);
+  }
+
+  await pollUtilityConsoleLogs();
+  startUtilityConsolePolling();
+}
+
+function stopUtilityConsolePolling() {
+  if (utilityConsolePollTimer != null) {
+    window.clearInterval(utilityConsolePollTimer);
+    utilityConsolePollTimer = null;
+  }
+}
+
+function startUtilityConsolePolling() {
+  if (!getUtilityConsolePane("all")) {
+    return;
+  }
+
+  stopUtilityConsolePolling();
+  void pollUtilityConsoleLogs();
+
+  utilityConsolePollTimer = window.setInterval(() => {
+    void pollUtilityConsoleLogs();
+  }, 700);
+}
+
+async function pollUtilityConsoleLogs() {
+  try {
+    const data = await apiGet(`/api/repo/services/logs?cursor=${utilityLogCursor}`);
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+
+    if (lines.length > 0) {
+      appendUtilityConsoleLines(lines);
+      utilityLogCursor = typeof data.cursor === "number" ? data.cursor : utilityLogCursor;
+    }
+
+    const badge = document.getElementById("utility-console-running");
+
+    if (badge) {
+      badge.textContent = data.running ? "in esecuzione" : "fermo";
+      badge.classList.toggle("is-running", Boolean(data.running));
+    }
+
+    const statusEl = document.getElementById("utility-start-status");
+
+    if (statusEl && data.status && typeof data.status === "object") {
+      const launchStatus = /** @type {Record<string, unknown>} */ (data.status);
+
+      if (launchStatus.running) {
+        const pid = launchStatus.pid != null ? String(launchStatus.pid) : "—";
+        statusEl.textContent = `Avvio in corso (pid ${pid}). Output in tempo reale sotto.`;
+      } else if (typeof launchStatus.error === "string" && launchStatus.error) {
+        statusEl.textContent = `Ultimo avvio: ${launchStatus.error}`;
+      }
+    }
+  } catch {
+    // poll silenzioso — la console resta visibile
+  }
+}
+
+/**
  * @param {string} tab
  */
 function setActiveTab(tab) {
@@ -601,6 +1192,12 @@ function setActiveTab(tab) {
   }
 
   location.hash = tab;
+
+  if (tab === "utility") {
+    startUtilityConsolePolling();
+  } else {
+    stopUtilityConsolePolling();
+  }
 }
 
 /**
@@ -1725,15 +2322,32 @@ function renderServizi(payload) {
   const cards = services.map((svc) => {
     const up = svc.status === "up";
     const latency = svc.latencyMs != null ? `${svc.latencyMs} ms` : "—";
-    const hint = up ? "" : `<p class="muted">Avvia <code>npm run dev</code> o lo script dedicato.</p>`;
-    const docs = svc.docs ? `<a href="${escapeHtml(String(svc.openUrl ?? ""))}" target="_blank" rel="noopener">Docs</a>` : `<a href="${escapeHtml(String(svc.openUrl ?? ""))}" target="_blank" rel="noopener">Apri</a>`;
+    const isDaemon = svc.port == null && (svc.processScript || svc.id === "friendbot");
+    const portLabel = svc.port != null
+      ? `:${escapeHtml(String(svc.port))}`
+      : isDaemon
+        ? "daemon"
+        : "—";
+    const hint = up
+      ? ""
+      : `<p class="muted">Avvia <code>npm run dev</code> o lo script dedicato.</p>`;
+    const healthLine = isDaemon
+      ? `<p class="muted"><code>${escapeHtml(String(svc.processScript ?? "friend-bot.mjs"))}</code></p>`
+      : `<p class="muted"><code>${escapeHtml(String(svc.healthUrl ?? ""))}</code></p>`;
+    const docs = svc.docs
+      ? `<a href="${escapeHtml(String(svc.openUrl ?? ""))}" target="_blank" rel="noopener">Docs</a>`
+      : svc.openUrl
+        ? `<a href="${escapeHtml(String(svc.openUrl))}" target="_blank" rel="noopener">Apri</a>`
+        : isDaemon
+          ? `<span class="muted">Processo background</span>`
+          : "";
 
     return `
       <article class="service-card">
         <h3>${escapeHtml(String(svc.label ?? svc.id ?? ""))}</h3>
         <span class="badge ${up ? "up" : "down"}">${up ? "UP" : "DOWN"}</span>
-        <span class="muted"> · :${escapeHtml(String(svc.port ?? ""))} · ${latency}</span>
-        <p class="muted"><code>${escapeHtml(String(svc.healthUrl ?? ""))}</code></p>
+        <span class="muted"> · ${portLabel} · ${latency}</span>
+        ${healthLine}
         ${hint}
         <div class="btn-row">${docs}</div>
       </article>`;
@@ -4246,9 +4860,1575 @@ function pollRunStatus() {
 }
 
 /**
- * @param {{ services: Array<Record<string, unknown>> }} servicesPayload
  * @param {Record<string, unknown> | null} report
  */
+async function renderUtility(report) {
+  const root = document.getElementById("section-utility");
+  if (!root) {
+    return;
+  }
+
+  const hasReport = Boolean(report);
+
+  root.innerHTML = `
+    <section class="panel utility-intro-panel test-suite-group" id="utility-intro-panel">
+      <div class="test-suite-header-row utility-intro-header">
+        <button
+          type="button"
+          class="test-suite-toggle"
+          id="btn-utility-intro-toggle"
+          aria-expanded="true"
+        >
+          <span class="suite-chevron" aria-hidden="true"></span>
+          <span class="suite-title">
+            <span class="suite-name">Guida — cos'è Utility e cosa fare</span>
+            <span class="suite-path muted">tabella servizi · bottoni → script · console</span>
+          </span>
+        </button>
+      </div>
+      <div class="test-suite-body utility-intro-body">
+        <h3>Cos'è questa pagina</h3>
+        <p>
+          Utility è il pannello operativo per lo sviluppo locale: tabella dei servizi del product repo
+          (JustLastOne) e del cruscotto, avvio e kill per riga, console dell'output in tempo reale,
+          export dell'ultimo report test.
+        </p>
+        <h3>Tabella «Avvio stack dev»</h3>
+        <p>
+          Ogni riga mostra <strong>Path</strong> (cartella o script nel repo), <strong>PID</strong>,
+          <strong>User</strong> (Cursor / Utente / Cruscotto), <strong>Stato</strong>
+          (data/ora sulla prima riga, stato sulla seconda) e i bottoni in <strong>Avvio / Kill</strong>.
+          Le righe <em>web</em>, <em>api</em> e <em>auth</em> condividono una
+          sola cella Avvia/Kill con le checkbox database opzionali.
+          <em>API Portal</em> e <em>Admin Dashboard</em> sono servizi <strong>PortalAdmin</strong>
+          (righe separate, config progetto da <code>PRODUCT_REPO_PATH</code>).
+        </p>
+        <h3>Bottoni nella tabella — script agganciati</h3>
+        <table class="data utility-intro-table">
+          <thead>
+            <tr><th>Bottone</th><th>Riga / ambito</th><th>Script o API</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Avvia</strong> (stack)</td>
+              <td>web + api + auth</td>
+              <td>
+                <code>node runner/start_ALL_Services.mjs</code>
+                (Auth + API + Web — include db:push prima dell'avvio).
+                Con checkbox attive, prima <code>ellaStartScript/init_Database_DEV.mjs --reset</code> e/o
+                <code>--seed</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Kill</strong> (stack)</td>
+              <td>web, api, auth</td>
+              <td>API <code>POST /api/repo/services/stop</code> — libera porte 3000, 4000, 4001</td>
+            </tr>
+            <tr>
+              <td><strong>Avvia</strong> / <strong>Kill</strong></td>
+              <td>API Portal (PortalAdmin)</td>
+              <td>
+                API <code>start-one</code> / <code>stop-one</code> —
+                <code>node runner/start_API_Portal.mjs</code>
+                (UI in <code>PortalAdmin/api-portal/</code>, config da manifest product)
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Delete &amp; create</strong></td>
+              <td>Database — Prisma</td>
+              <td><code>node ellaStartScript/init_Database_DEV.mjs --reset</code> (elimina <code>dev.db</code>, ricrea schema)</td>
+            </tr>
+            <tr>
+              <td><strong>Refresh</strong></td>
+              <td>Database — Prisma</td>
+              <td><code>node ellaStartScript/init_Database_DEV.mjs --push</code> (<code>npm run db:push</code> — allinea schema)</td>
+            </tr>
+            <tr>
+              <td><strong>Inizializza</strong></td>
+              <td>Database — Script inizializzazione</td>
+              <td><code>node ellaStartScript/init_Database_DEV.mjs --seed</code> (<code>npm run db:seed</code> host@ / player@)</td>
+            </tr>
+            <tr>
+              <td><strong>Avvia</strong> / <strong>Kill</strong></td>
+              <td>singola riga (es. friendBOT)</td>
+              <td>
+                API <code>start-one</code> / <code>stop-one</code> — comando dalla colonna Path:
+                <code>npm run dev -w …</code> per le app Turbo, oppure
+                <code>node testScript/funzionali/friend-bot.mjs</code> per friendBOT
+              </td>
+            </tr>
+            <tr>
+              <td class="muted">—</td>
+              <td>Admin Dashboard (:3999)</td>
+              <td class="muted">Cruscotto già attivo — nessun Avvia/Kill</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Bottoni sotto la tabella</h3>
+        <table class="data utility-intro-table">
+          <thead>
+            <tr><th>Bottone</th><th>Script equivalente</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Avvia product</strong> (web, api, auth)</td>
+              <td><code>node runner/start_ALL_Services.mjs</code></td>
+            </tr>
+            <tr>
+              <td><strong>Avvia stack completo</strong></td>
+              <td><code>node runner/start_ALL_Services.mjs</code> + friendBOT + API Portal</td>
+            </tr>
+            <tr>
+              <td><strong>Kill All</strong></td>
+              <td><code>node runner/stop_ALL_services.mjs</code> o <code>npm run stop:all</code>
+                — non termina il cruscotto :3999</td>
+            </tr>
+            <tr>
+              <td><strong>Aggiorna processi</strong></td>
+              <td><code>GET /api/repo/services/processes</code> (solo PID, User, Stato)</td>
+            </tr>
+            <tr>
+              <td><strong>Riprova discovery</strong></td>
+              <td>Ricarica piano avvio da manifest + stato health</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Cosa fare (prima volta)</h3>
+        <ol class="utility-intro-steps">
+          <li>
+            In <code>PortalAdmin/.env</code> imposta
+            <code>PRODUCT_REPO_PATH</code> sul checkout JustLastOne (default
+            <code>../JustLastOne</code> se affiancato).
+          </li>
+          <li>
+            <strong>Riavvia il dashboard</strong> dopo aggiornamenti Admin:
+            <code>Ctrl+C</code>, poi <code>npm run admin:dashboard</code>.
+          </li>
+          <li>
+            Verifica la tabella: servizi con colonne <strong>Stato</strong> (data/ora + in ascolto/libera)
+            e <strong>User</strong>.
+          </li>
+          <li>
+            Database: <strong>Delete &amp; create</strong> se serve schema pulito, poi
+            <strong>Inizializza</strong> per host@ e player@ (o checkbox nello stack Avvia).
+          </li>
+          <li>
+            Avvia lo stack dalla cella unificata <strong>Avvia</strong> (product) o dai bottoni
+            <strong>Avvia product</strong> / <strong>Avvia stack completo</strong> sotto la tabella.
+          </li>
+          <li>
+            Segui l'output in <strong>Console avvio stack</strong>; per liberare le porte usa
+            <strong>Kill</strong> sulla riga stack, <strong>Kill All</strong> o
+            <code>npm run stop:repo</code>.
+          </li>
+        </ol>
+        <p class="muted utility-intro-note">
+          Setup alternativo da terminale (product repo):
+          <code>node ellaStartScript/start-dev.mjs</code> — cleanup, build, db opzionale e avvio stack.
+          Se vedi <em>Discovery non disponibile</em> o <code>Not found</code>, riavvia
+          <code>npm run admin:dashboard</code> e ricarica con Ctrl+F5.
+        </p>
+      </div>
+    </section>
+    <div class="panel">
+      <h2>Avvio stack dev</h2>
+      <table class="data">
+        <thead>
+          <tr><th>Product</th><th>Servizio</th><th>Descrizione</th><th>Path</th><th>Porta</th><th>PID</th><th>User</th><th>Stato</th><th>Link</th><th>Avvio / Kill</th></tr>
+        </thead>
+        <tbody id="utility-services-body">
+          <tr><td colspan="10" class="muted">Caricamento piano avvio…</td></tr>
+        </tbody>
+      </table>
+      <p id="utility-processes-checked" class="muted" style="margin-top:0.35rem;font-size:0.8rem">—</p>
+      <div class="btn-row" style="margin-top:0.75rem">
+        <button class="action primary" type="button" id="btn-utility-start-core">Avvia product (web, api, auth)</button>
+        <button class="action" type="button" id="btn-utility-start-full">Avvia stack completo (+ api-portal PortalAdmin, cruscotto)</button>
+        <button class="action" type="button" id="btn-utility-stop-stack" title="Termina web, api, auth, api-portal, friendBOT — non il cruscotto :3999">Kill All</button>
+        <button class="action" type="button" id="btn-utility-refresh-processes">Aggiorna processi</button>
+        <button class="action" type="button" id="btn-utility-retry-discovery">Riprova discovery</button>
+      </div>
+      <p class="muted utility-stop-hint">Kill All: libera 3000, 4000, 4001, 4080 e termina friendBOT JLO — output nella console. Il cruscotto :3999 resta attivo.</p>
+      <p id="utility-start-status" class="muted" style="margin-top:0.75rem">—</p>
+      <div class="cmd-block" style="margin-top:0.75rem">
+        <span class="muted">CLI</span>
+        <code id="utility-cli-cmd">node runner/start_ALL_Services.mjs</code>
+        <button class="action" type="button" id="btn-utility-copy-cmd">Copia</button>
+      </div>
+    </div>
+    <div class="panel utility-console-panel">
+      <div class="utility-console-head">
+        <div>
+          <h2>Console avvio stack</h2>
+          <p class="muted">Output in tempo reale — tab <strong>Tutti</strong> o per singolo servizio.</p>
+        </div>
+        <div class="utility-console-tools">
+          <span id="utility-console-running" class="utility-console-badge">—</span>
+          <label class="utility-console-follow-label">
+            <input type="checkbox" id="utility-console-follow" checked />
+            Auto-scroll
+          </label>
+          <button class="action" type="button" id="btn-utility-console-instances" title="Elenco PID e user dei servizi in ascolto">Istanze attive</button>
+          <button class="action" type="button" id="btn-utility-clear-console" title="Svuota solo il tab console attivo — i log sul server restano, arrivano solo righe nuove">Clear console</button>
+          <button class="action" type="button" id="btn-utility-console-clear" title="Cancella i log sul server e ricarica tutte le tab">Pulisci</button>
+        </div>
+      </div>
+      ${renderUtilityConsoleTabsMarkup()}
+    </div>
+    <div class="panel">
+      <h2>Export report</h2>
+      <p class="muted">Scarica l'ultimo report test (<code>latest.json</code>) in Excel o JSON.</p>
+      <div class="btn-row">
+        <button class="action" type="button" id="btn-utility-export-xlsx" ${hasReport ? "" : "disabled"}>Export Excel</button>
+        <button class="action" type="button" id="btn-utility-export-json" ${hasReport ? "" : "disabled"}>Export JSON</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Report HTML</h2>
+      <p class="muted">Apri l'ultimo report HTML generato da <code>run-all</code>.</p>
+      <div class="btn-row">
+        <a
+          href="/api/report/html"
+          target="_blank"
+          rel="noopener"
+          class="action${hasReport ? "" : " is-disabled"}"
+          ${hasReport ? "" : 'aria-disabled="true" tabindex="-1"'}
+        >Apri report HTML</a>
+      </div>
+    </div>`;
+
+  bindExportActions(root, {
+    xlsxId : "btn-utility-export-xlsx"
+  , jsonId : "btn-utility-export-json"
+  });
+
+  bindUtilityIntroPanel(root);
+  bindUtilityConsoleTabs(root);
+  await hydrateUtilityStack(root);
+
+  if (location.hash.replace("#", "") === "utility") {
+    startUtilityConsolePolling();
+  }
+}
+
+/**
+ * @param {HTMLElement} root
+ */
+function bindUtilityIntroPanel(root) {
+  const panel  = root.querySelector("#utility-intro-panel");
+  const toggle = root.querySelector("#btn-utility-intro-toggle");
+
+  if (!(panel instanceof HTMLElement) || !(toggle instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  if (localStorage.getItem("utility-intro-collapsed") === "1") {
+    panel.classList.add("is-collapsed");
+    toggle.setAttribute("aria-expanded", "false");
+  }
+
+  toggle.addEventListener("click", () => {
+    const collapsed = panel.classList.toggle("is-collapsed");
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    localStorage.setItem("utility-intro-collapsed", collapsed ? "1" : "0");
+  });
+}
+
+/**
+ * @param {unknown} err
+ */
+function formatUtilityDiscoveryError(err) {
+  const msg = err instanceof Error ? err.message : "Errore discovery";
+
+  if (msg === "Not found" || msg.includes("HTTP 404")) {
+    return [
+      "API /api/repo/services non trovata sul server in ascolto su :3999."
+    , "1) Riavvia: npm run admin:dashboard"
+    , "2) Ricarica la pagina con Ctrl+F5"
+    , "3) Clicca Riprova discovery"
+    ].join(" ");
+  }
+
+  if (msg.includes("Product repo non trovato")) {
+    return [
+      msg
+    , "— imposta PRODUCT_REPO_PATH in PortalAdmin/.env"
+    ].join(" ");
+  }
+
+  return msg;
+}
+
+/**
+ * @param {HTMLElement} root
+ */
+async function hydrateUtilityStack(root) {
+  const tableEl  = root.querySelector("#utility-services-body");
+  const statusEl = root.querySelector("#utility-start-status");
+  const cliEl    = root.querySelector("#utility-cli-cmd");
+  const coreBtn  = root.querySelector("#btn-utility-start-core");
+  const fullBtn  = root.querySelector("#btn-utility-start-full");
+  const copyBtn  = root.querySelector("#btn-utility-copy-cmd");
+  const clearBtn  = root.querySelector("#btn-utility-console-clear");
+  const clearViewBtn = root.querySelector("#btn-utility-clear-console");
+  const instancesBtn = root.querySelector("#btn-utility-console-instances");
+  const retryBtn  = root.querySelector("#btn-utility-retry-discovery");
+  const stopBtn   = root.querySelector("#btn-utility-stop-stack");
+  const refreshProcBtn = root.querySelector("#btn-utility-refresh-processes");
+  const processesCheckedEl = root.querySelector("#utility-processes-checked");
+
+  if (!tableEl || !statusEl || !cliEl || !coreBtn || !fullBtn) {
+    return;
+  }
+
+  const UTILITY_TABLE_COLS = 10;
+  const PRODUCT_REPO_NAME  = "JustLastOne";
+  /** @type {boolean} */
+  let utilityStackDbResetOnStart = false;
+  /** @type {boolean} */
+  let utilityStackDbSeedOnStart  = false;
+
+  /**
+   * @param {Record<string, unknown>} svc
+   */
+  function isStackCompleteService(svc) {
+    const id = String(svc.id ?? "");
+
+    return String(svc.product ?? "") === PRODUCT_REPO_NAME
+      && id !== "friendbot"
+      && id !== "database";
+  }
+
+  /**
+   * @param {Map<string, Record<string, unknown>>} processById
+   * @param {string} serviceId
+   */
+  function isUtilityServiceListening(processById, serviceId) {
+    return processById.get(serviceId)?.listening === true;
+  }
+
+  /**
+   * @param {Map<string, Record<string, unknown>>} processById
+   */
+  function isProductStackListening(processById) {
+    return ["web", "api", "auth"].every((id) => isUtilityServiceListening(processById, id));
+  }
+
+  /**
+   * @param {Map<string, Record<string, unknown>>} processById
+   */
+  function isAnyProductStackListening(processById) {
+    return ["web", "api", "auth"].some((id) => isUtilityServiceListening(processById, id));
+  }
+
+  /**
+   * Cella unificata stack product (web, api, auth).
+   * @param {number} rowSpan
+   * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} [options]
+   */
+  function renderStackActionsCell(rowSpan, options = {}) {
+    const { stackAllUp = false, stackAnyUp = false } = options;
+    const resetChecked = utilityStackDbResetOnStart ? " checked" : "";
+    const seedChecked  = utilityStackDbSeedOnStart ? " checked" : "";
+    const startDisabled = stackAllUp ? " disabled" : "";
+    const killDisabled  = stackAnyUp ? "" : " disabled";
+
+    return `<td rowspan="${rowSpan}" class="utility-actions-cell utility-stack-complete-cell" valign="middle">
+      <div class="utility-actions-stack">
+        <button type="button" class="action primary utility-action-btn" data-utility-action="stack-start" title="start_ALL_Services — web + api + auth"${startDisabled}>Avvia</button>
+        <button type="button" class="action utility-action-btn" data-utility-action="stack-kill" title="Termina web, api, auth"${killDisabled}>Kill</button>
+        <div class="utility-stack-db-options">
+          <label class="utility-stack-db-option" title="Prima dell'avvio: elimina dev.db e ricrea schema Prisma">
+            <input type="checkbox" class="utility-stack-db-reset-cb"${resetChecked}>
+            <span>Delete &amp; create DB</span>
+          </label>
+          <label class="utility-stack-db-option" title="Prima dell'avvio: npm run db:seed (host@ / player@)">
+            <input type="checkbox" class="utility-stack-db-seed-cb"${seedChecked}>
+            <span>Inizializza</span>
+          </label>
+        </div>
+      </div>
+    </td>`;
+  }
+
+  /**
+   * @param {number} bytes
+   */
+  function formatDbSize(bytes) {
+    if (!bytes || bytes <= 0) {
+      return "—";
+    }
+
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+
+  /**
+   * Bottoni Avvia/Kill per singolo servizio (es. friendBOT, API Portal).
+   * @param {string} serviceId
+   * @param {boolean} [listening]
+   */
+  function renderServiceActionsCell(serviceId, listening = false) {
+    const safeId        = escapeHtml(serviceId);
+    const startDisabled = listening ? " disabled" : "";
+    const killDisabled  = listening ? "" : " disabled";
+
+    return `<td class="utility-actions-cell">
+      <div class="utility-actions-stack">
+        <button type="button" class="action primary utility-action-btn" data-utility-action="service-start" data-service-id="${safeId}"${startDisabled}>Avvia</button>
+        <button type="button" class="action utility-action-btn" data-utility-action="service-kill" data-service-id="${safeId}"${killDisabled}>Kill</button>
+      </div>
+    </td>`;
+  }
+
+  /**
+   * @param {Record<string, unknown>} svc
+   * @param {number} index
+   * @param {number} firstStackIndex
+   * @param {number} stackRowCount
+   * @param {Map<string, Record<string, unknown>>} processById
+   * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} stackState
+   */
+  function renderRowActionsCell(svc, index, firstStackIndex, stackRowCount, processById, stackState = {}) {
+    const id = String(svc.id ?? "");
+
+    if (id === "dashboard") {
+      return `<td class="utility-actions-cell muted" title="Cruscotto corrente">—</td>`;
+    }
+
+    if (id === "friendbot" || id === "api-portal") {
+      return renderServiceActionsCell(id, isUtilityServiceListening(processById, id));
+    }
+
+    if (isStackCompleteService(svc)) {
+      if (index === firstStackIndex && stackRowCount > 0) {
+        return renderStackActionsCell(stackRowCount, stackState);
+      }
+
+      return "";
+    }
+
+    return `<td class="utility-actions-cell muted">—</td>`;
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} listeners
+   */
+  function formatProcessUserCell(listeners) {
+    if (!listeners.length) {
+      return `<td class="utility-proc-user-cell muted">—</td>`;
+    }
+
+    const lines = listeners.map((row) => {
+      const starter = String(row.starter ?? row.label ?? "unknown");
+      const user    = typeof row.user === "string" && row.user ? row.user : "";
+      const userHtml = user ? ` <span class="muted utility-proc-user-name">${escapeHtml(user)}</span>` : "";
+
+      if (starter === "cursor") {
+        return `<span class="utility-proc-user utility-proc-user-cursor">Cursor</span>${userHtml}`;
+      }
+
+      if (starter === "dashboard") {
+        return `<span class="utility-proc-user utility-proc-user-dashboard">Cruscotto</span>${userHtml}`;
+      }
+
+      if (starter === "user") {
+        return `<span class="utility-proc-user utility-proc-user-terminal">Utente</span>${userHtml}`;
+      }
+
+      const fallbackLabel = typeof row.label === "string" && row.label && row.label !== "—"
+        ? row.label
+        : (user ? escapeHtml(user) : "—");
+
+      return escapeHtml(fallbackLabel);
+    });
+
+    return `<td class="utility-proc-user-cell">${lines.join("<br>")}</td>`;
+  }
+
+  /**
+   * @param {{
+   *   atIso?: string | null
+   *   up?: boolean
+   *   label: string
+   *   suffix?: string
+   *   absent?: boolean
+   * }} opts
+   */
+  function renderUtilityStatoCell(opts) {
+    const { atIso, up, label, suffix, absent } = opts;
+    const atHtml = escapeHtml(formatRunAt(atIso ?? null));
+
+    if (absent) {
+      return `<div class="utility-db-stato">
+        <div class="utility-db-created">${atHtml}</div>
+        <div><span class="utility-db-absent">! DB Assente !</span></div>
+      </div>`;
+    }
+
+    const klass      = up ? "utility-proc-up" : "utility-proc-down";
+    const suffixHtml = suffix ? ` <span class="muted">(${escapeHtml(suffix)})</span>` : "";
+
+    return `<div class="utility-db-stato">
+      <div class="utility-db-created">${atHtml}</div>
+      <div><span class="${klass}">${escapeHtml(label)}</span>${suffixHtml}</div>
+    </div>`;
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} listeners
+   * @returns {string | null}
+   */
+  function earliestListenerStartedAt(listeners) {
+    /** @type {string | null} */
+    let best = null;
+
+    for (const row of listeners) {
+      const startedAt = typeof row.startedAt === "string" ? row.startedAt : null;
+
+      if (!startedAt) {
+        continue;
+      }
+
+      if (!best || startedAt < best) {
+        best = startedAt;
+      }
+    }
+
+    return best;
+  }
+
+  /**
+   * @param {Record<string, unknown>} dbStatus
+   */
+  function renderDatabaseRows(dbStatus) {
+    const exists     = dbStatus.exists === true;
+    const dbPath     = escapeHtml(String(dbStatus.path ?? "packages/database/prisma/dev.db"));
+    const sizeLabel  = formatDbSize(Number(dbStatus.sizeBytes ?? 0));
+    const createdIso = typeof dbStatus.createdAt === "string" ? dbStatus.createdAt : null;
+    const checkedAt  = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
+    const dbStato    = exists
+      ? renderUtilityStatoCell({
+          atIso  : createdIso ?? checkedAt
+        , up     : true
+        , label  : "presente"
+        , suffix : sizeLabel
+        })
+      : renderUtilityStatoCell({
+          atIso  : checkedAt
+        , absent : true
+        , label  : ""
+        });
+    const scriptPath     = "ellaStartScript/init_Database_DEV.mjs --seed";
+    const seedAt         = typeof dbStatus.seedCompletedAt === "string" ? dbStatus.seedCompletedAt : null;
+    const seedCompleted  = dbStatus.seedCompleted === true || seedAt != null;
+    const seedStato      = seedCompleted
+      ? renderUtilityStatoCell({
+          atIso : seedAt ?? checkedAt
+        , up    : true
+        , label : "completed"
+        })
+      : renderUtilityStatoCell({
+          atIso : checkedAt
+        , up    : false
+        , label : "da inizializzare"
+        });
+    const seedBtnDisabled = seedCompleted ? " disabled" : "";
+    const seedBtnClass    = seedCompleted
+      ? "action utility-action-btn"
+      : "action primary utility-action-btn";
+
+    return `
+      <tr class="utility-db-row utility-db-file-row">
+        <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
+        <td>Database - Prisma</td>
+        <td class="utility-service-desc muted">File SQLite Prisma — schema persistente</td>
+        <td><code class="utility-service-path">${dbPath}</code></td>
+        <td>—</td>
+        <td><code>—</code></td>
+        <td class="muted">—</td>
+        <td>${dbStato}</td>
+        <td>—</td>
+        <td class="utility-actions-cell">
+          <div class="utility-actions-stack">
+            <button type="button" class="action utility-action-btn" data-utility-action="db-reset" title="Elimina dev.db e ricrea schema">Delete &amp; create</button>
+            <button type="button" class="action utility-action-btn" data-utility-action="db-push" title="Allinea schema Prisma (db:push)">Refresh</button>
+          </div>
+        </td>
+      </tr>
+      <tr class="utility-db-row utility-db-script-row">
+        <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
+        <td>Database - Script inizializzazione</td>
+        <td class="utility-service-desc muted">npm run db:seed — righe host@ e player@</td>
+        <td><code class="utility-service-path">${escapeHtml(scriptPath)}</code></td>
+        <td>—</td>
+        <td><code>—</code></td>
+        <td class="muted">—</td>
+        <td>${seedStato}</td>
+        <td>—</td>
+        <td class="utility-actions-cell">
+          <div class="utility-actions-stack">
+            <button type="button" class="${seedBtnClass}" data-utility-action="db-seed"${seedBtnDisabled} title="npm run db:seed — host/player">Inizializza</button>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} nodeRows
+   * @param {string | null} checkedAt
+   */
+  function renderUtilityNodeProcessRows(nodeRows, checkedAt) {
+    if (!nodeRows.length) {
+      return "";
+    }
+
+    return nodeRows.map((row) => {
+      const listeners   = Array.isArray(row.listeners) ? row.listeners : [];
+      const pidText     = listeners.length > 0
+        ? listeners.map((listener) => {
+            const pid = listener.pid != null ? String(listener.pid) : "?";
+            return listener.isDashboard ? `${pid} (dashboard)` : pid;
+          }).join(", ")
+        : "—";
+      const userCell    = formatProcessUserCell(listeners);
+      const atIso       = earliestListenerStartedAt(listeners) ?? checkedAt;
+      const description = escapeHtml(String(row.description ?? row.command ?? "—"));
+      const path        = escapeHtml(String(row.path ?? description));
+      const product     = escapeHtml(String(row.product ?? "—"));
+      const stato       = renderUtilityStatoCell({
+        atIso : atIso
+      , up    : true
+      , label : "attivo"
+      });
+
+      return `
+        <tr class="utility-node-proc-row">
+          <td>${product}</td>
+          <td>Node <span class="muted">#${escapeHtml(pidText)}</span></td>
+          <td class="utility-service-desc muted" title="${path}">${description}</td>
+          <td><code class="utility-service-path utility-node-cmd" title="${path}">${path}</code></td>
+          <td>—</td>
+          <td><code>${escapeHtml(pidText)}</code></td>
+          ${userCell}
+          <td>${stato}</td>
+          <td>—</td>
+          <td class="utility-actions-cell muted" title="Processo rilevato — usa Kill sul servizio correlato">—</td>
+        </tr>`;
+    }).join("");
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} services
+   * @param {Array<Record<string, unknown>>} [processRows]
+   * @param {Record<string, unknown>} [dbStatus]
+   * @param {Array<Record<string, unknown>>} [nodeRows]
+   */
+  function renderServiceRows(services, processRows = [], dbStatus = {}, nodeRows = []) {
+    const checkedAt = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
+    const dbRow     = renderDatabaseRows(dbStatus);
+    const nodeHtml  = renderUtilityNodeProcessRows(nodeRows, checkedAt);
+
+    if (!services.length) {
+      return `${dbRow}${nodeHtml || `<tr><td colspan="${UTILITY_TABLE_COLS}" class="muted">Nessun servizio rilevato</td></tr>`}`;
+    }
+
+    const processById = new Map(
+      processRows.map((row) => [String(row.id ?? ""), row])
+    );
+
+    const stackIndices = services
+      .map((svc, index) => (isStackCompleteService(svc) ? index : -1))
+      .filter((index) => index >= 0);
+    const firstStackIndex = stackIndices[0] ?? -1;
+    const stackRowCount     = stackIndices.length;
+
+    const stackAllUp = isProductStackListening(processById);
+    const stackAnyUp = isAnyProductStackListening(processById);
+    const stackState = { stackAllUp, stackAnyUp };
+
+    const serviceRows = services.map((svc, index) => {
+      const id          = String(svc.id ?? "");
+      const label       = escapeHtml(String(svc.label ?? svc.id ?? "—"));
+      const description = escapeHtml(String(svc.description ?? "—"));
+      const product     = escapeHtml(String(svc.product ?? "—"));
+      const path        = escapeHtml(String(svc.path ?? "—"));
+      const port        = svc.port != null ? escapeHtml(String(svc.port)) : "—";
+      const openUrl     = typeof svc.openUrl === "string" ? svc.openUrl : null;
+      const proc        = processById.get(id);
+      const listeners   = Array.isArray(proc?.listeners) ? proc.listeners : [];
+      const pidText     = listeners.length > 0
+        ? listeners.map((row) => {
+            const pid = row.pid != null ? String(row.pid) : "?";
+            return row.isDashboard ? `${pid} (dashboard)` : pid;
+          }).join(", ")
+        : "—";
+      const userCell    = formatProcessUserCell(listeners);
+      const listening = proc?.listening === true;
+      const isDaemon  = svc.port == null && (svc.processScript || id === "friendbot");
+      const atIso     = listening
+        ? earliestListenerStartedAt(listeners) ?? checkedAt
+        : checkedAt;
+      const statoLabel = listening
+        ? (isDaemon ? "attivo" : "in ascolto")
+        : (isDaemon ? "fermo" : "libera");
+      const stato     = renderUtilityStatoCell({
+        atIso : atIso
+      , up    : listening
+      , label : statoLabel
+      });
+      const actionsCell = index === firstStackIndex && stackRowCount > 0
+        ? renderStackActionsCell(stackRowCount, stackState)
+        : renderRowActionsCell(svc, index, firstStackIndex, stackRowCount, processById, stackState);
+
+      return `
+        <tr>
+          <td>${product}</td>
+          <td>${label}</td>
+          <td class="utility-service-desc muted">${description}</td>
+          <td><code class="utility-service-path">${path}</code></td>
+          <td>${port}</td>
+          <td><code>${escapeHtml(pidText)}</code></td>
+          ${userCell}
+          <td>${stato}</td>
+          <td>${openUrl ? `<a href="${escapeHtml(openUrl)}" target="_blank" rel="noopener">Apri</a>` : "—"}</td>
+          ${actionsCell}
+        </tr>`;
+    }).join("");
+
+    return `${dbRow}${serviceRows}${nodeHtml}`;
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} processRows
+   */
+  function syncUtilityFooterStartButtons(processRows) {
+    const processById = new Map(
+      processRows.map((row) => [String(row.id ?? ""), row])
+    );
+    const stackAllUp = isProductStackListening(processById);
+    const fullIds    = ["web", "api", "auth", "api-portal", "friendbot"];
+    const fullAllUp  = fullIds.every((id) => isUtilityServiceListening(processById, id));
+
+    if (stackAllUp) {
+      coreBtn.setAttribute("disabled", "true");
+    } else {
+      coreBtn.removeAttribute("disabled");
+    }
+
+    if (fullAllUp) {
+      fullBtn.setAttribute("disabled", "true");
+    } else {
+      fullBtn.removeAttribute("disabled");
+    }
+  }
+
+  /**
+   * @param {HTMLButtonElement | null} [triggerBtn]
+   * @param {{ processesOnly?: boolean }} [options]
+   */
+  async function loadUtilityDiscovery(triggerBtn = null, options = {}) {
+    const { processesOnly = false } = options;
+    const label = triggerBtn?.textContent ?? null;
+
+    if (triggerBtn) {
+      triggerBtn.setAttribute("disabled", "true");
+      triggerBtn.textContent = "Caricamento…";
+    }
+
+    if (!processesOnly) {
+      tableEl.innerHTML = `<tr><td colspan="${UTILITY_TABLE_COLS}" class="muted">Caricamento piano avvio…</td></tr>`;
+    }
+
+    try {
+      if (processesOnly) {
+        const [core, processes, dbStatus] = await Promise.all([
+          apiGet("/api/repo/services/discover?allExtras=1")
+        , apiGet("/api/repo/services/processes")
+        , apiGet("/api/repo/database/status").catch(() => ({}))
+        ]);
+
+        const services    = Array.isArray(core.services) ? core.services : [];
+        const processRows = Array.isArray(processes.rows) ? processes.rows : [];
+        const nodeRows    = Array.isArray(processes.nodeRows) ? processes.nodeRows : [];
+        const mergedDb    = {
+          ...dbStatus
+        , checkedAt : typeof processes.checkedAt === "string"
+            ? processes.checkedAt
+            : dbStatus.checkedAt
+        };
+
+        tableEl.innerHTML = renderServiceRows(services, processRows, mergedDb, nodeRows);
+        syncUtilityFooterStartButtons(processRows);
+
+        if (processesCheckedEl) {
+          const at = typeof processes.checkedAt === "string" ? processes.checkedAt : "—";
+          processesCheckedEl.textContent = `Processi aggiornati: ${at} — API GET /api/repo/services/processes`;
+        }
+
+        return;
+      }
+
+      const [core, launchStatus, processes, dbStatus] = await Promise.all([
+        apiGet("/api/repo/services/discover?allExtras=1")
+      , apiGet("/api/repo/services/status")
+      , apiGet("/api/repo/services/processes")
+      , apiGet("/api/repo/database/status").catch(() => ({}))
+      ]);
+
+      const services   = Array.isArray(core.services) ? core.services : [];
+      const processRows = Array.isArray(processes.rows) ? processes.rows : [];
+      const nodeRows    = Array.isArray(processes.nodeRows) ? processes.nodeRows : [];
+
+      if (!processesOnly) {
+        cliEl.textContent  = `node runner/start_ALL_Services.mjs`;
+
+        if (launchStatus) {
+          statusEl.textContent = renderLaunchStatus(launchStatus);
+        }
+
+        coreBtn.removeAttribute("disabled");
+        fullBtn.removeAttribute("disabled");
+      }
+
+      tableEl.innerHTML = renderServiceRows(services, processRows, {
+        ...dbStatus
+      , checkedAt : typeof processes.checkedAt === "string"
+          ? processes.checkedAt
+          : dbStatus.checkedAt
+      }, nodeRows);
+      syncUtilityFooterStartButtons(processRows);
+
+      if (processesCheckedEl) {
+        const at = typeof processes.checkedAt === "string" ? processes.checkedAt : "—";
+        processesCheckedEl.textContent = `Processi aggiornati: ${at} — API GET /api/repo/services/processes`;
+      }
+    } catch (err) {
+      const hint = formatUtilityDiscoveryError(err);
+      tableEl.innerHTML = `<tr><td colspan="${UTILITY_TABLE_COLS}" class="muted">${escapeHtml(hint)}</td></tr>`;
+
+      if (!processesOnly) {
+        statusEl.textContent = "Discovery non disponibile — riavvia il dashboard e usa Riprova discovery.";
+      }
+    } finally {
+      if (triggerBtn) {
+        triggerBtn.removeAttribute("disabled");
+        triggerBtn.textContent = label ?? (processesOnly ? "Aggiorna processi" : "Riprova discovery");
+      }
+    }
+  }
+
+  let utilityProcPollTimer = null;
+  let utilityProcPollTicks = 0;
+  /** @type {"up" | "down"} */
+  let utilityProcPollMode  = "up";
+  /** @type {string[] | null} */
+  let utilityProcPollIds   = null;
+
+  const UTILITY_PROC_POLL_MS  = 2500;
+  const UTILITY_PROC_POLL_MAX = 48;
+
+  function stopUtilityProcessesPolling() {
+    if (utilityProcPollTimer != null) {
+      window.clearInterval(utilityProcPollTimer);
+      utilityProcPollTimer = null;
+    }
+
+    utilityProcPollTicks = 0;
+    utilityProcPollIds   = null;
+  }
+
+  /**
+   * @param {Record<string, unknown>} options
+   * @returns {string[] | null}
+   */
+  function serviceIdsForStartOptions(options) {
+    if (options.productStackComplete === true) {
+      return ["web", "api", "auth"];
+    }
+
+    if (options.allExtras === true) {
+      return null;
+    }
+
+    if (options.productOnly === true) {
+      return ["web", "api", "auth", "friendbot"];
+    }
+
+    return ["web", "api", "auth"];
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} rows
+   * @param {string[] | null} serviceIds
+   */
+  function utilityPollTargetRows(rows, serviceIds) {
+    return rows.filter((row) => {
+      const id = String(row.id ?? "");
+
+      if (id === "dashboard") {
+        return false;
+      }
+
+      if (serviceIds?.length) {
+        return serviceIds.includes(id);
+      }
+
+      return row.port != null || id === "friendbot";
+    });
+  }
+
+  /**
+   * @param {{ mode?: "up" | "down", serviceIds?: string[] | null }} [options]
+   */
+  function startUtilityProcessesPolling(options = {}) {
+    const { mode = "up", serviceIds = null } = options;
+
+    stopUtilityProcessesPolling();
+    utilityProcPollMode = mode;
+    utilityProcPollIds  = serviceIds;
+
+    const tick = async () => {
+      utilityProcPollTicks += 1;
+
+      try {
+        const processes = await apiGet("/api/repo/services/processes");
+        await loadUtilityDiscovery(null, { processesOnly: true });
+
+        const rows    = Array.isArray(processes.rows) ? processes.rows : [];
+        const targets = utilityPollTargetRows(rows, utilityProcPollIds);
+        let done      = false;
+
+        if (utilityProcPollMode === "up") {
+          done = targets.length > 0 && targets.every((row) => row.listening === true);
+        } else {
+          done = targets.length === 0 || targets.every((row) => row.listening !== true);
+        }
+
+        if (done || utilityProcPollTicks >= UTILITY_PROC_POLL_MAX) {
+          stopUtilityProcessesPolling();
+        }
+      } catch {
+        if (utilityProcPollTicks >= UTILITY_PROC_POLL_MAX) {
+          stopUtilityProcessesPolling();
+        }
+      }
+    };
+
+    void tick();
+    utilityProcPollTimer = window.setInterval(() => {
+      void tick();
+    }, UTILITY_PROC_POLL_MS);
+  }
+
+  /**
+   * @param {boolean} [fromBeginning]
+   */
+  async function reloadUtilityConsole(fromBeginning = false) {
+    if (!getUtilityConsolePane("all")) {
+      return;
+    }
+
+    const cursor = fromBeginning ? 0 : utilityLogCursor;
+
+    if (fromBeginning) {
+      utilityLogCursor = 0;
+      clearUtilityConsolePanes();
+    }
+
+    try {
+      const data  = await apiGet(`/api/repo/services/logs?cursor=${cursor}`);
+      const lines = Array.isArray(data.lines) ? data.lines : [];
+
+      appendUtilityConsoleLines(lines);
+      utilityLogCursor = typeof data.cursor === "number" ? data.cursor : utilityLogCursor;
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * @param {Record<string, unknown>} launchStatus
+   */
+  function renderLaunchStatus(launchStatus) {
+    if (launchStatus.running) {
+      const startedAt = typeof launchStatus.startedAt === "string" ? launchStatus.startedAt : "—";
+      const pid       = launchStatus.pid != null ? String(launchStatus.pid) : "—";
+      return `Avvio in corso dal cruscotto (pid ${pid}, ${startedAt}). Controlla la tab Servizi.`;
+    }
+
+    if (typeof launchStatus.error === "string" && launchStatus.error) {
+      return `Ultimo avvio: ${launchStatus.error}`;
+    }
+
+    return "Pronto — usa i pulsanti sopra o la CLI.";
+  }
+
+  /**
+   * @param {Record<string, unknown>} options
+   * @param {HTMLButtonElement} button
+   */
+  async function triggerUtilityStart(options, button) {
+    const label = button.textContent ?? "Avvia";
+    button.setAttribute("disabled", "true");
+    button.textContent = "Avvio…";
+    statusEl.textContent = "Richiesta avvio stack…";
+
+    try {
+      const res = await fetch("/api/repo/services/start", {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify(options)
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      const pid = body.pid != null ? String(body.pid) : "—";
+      statusEl.textContent = `Stack avviato (pid ${pid}). Output in tempo reale nella console sotto.`;
+      utilityLogCursor = typeof body.logCursor === "number" ? body.logCursor : utilityLogCursor;
+      startUtilityConsolePolling();
+      startUtilityProcessesPolling({
+        mode       : "up"
+      , serviceIds : serviceIdsForStartOptions(options)
+      });
+      await loadUtilityDiscovery(null, { processesOnly: true });
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Avvio fallito";
+    } finally {
+      button.removeAttribute("disabled");
+      button.textContent = label;
+    }
+  }
+
+  /**
+   * @param {HTMLButtonElement} button
+   * @param {string} serviceId
+   */
+  async function triggerServiceStart(button, serviceId) {
+    const label = button.textContent ?? "Avvia";
+    button.setAttribute("disabled", "true");
+    button.textContent = "Avvio…";
+    statusEl.textContent = `Avvio ${serviceId}…`;
+
+    if (UTILITY_CONSOLE_TABS.some((tab) => tab.id === serviceId)) {
+      setUtilityConsoleTab(serviceId);
+    }
+
+    try {
+      const res = await fetch("/api/repo/services/start-one", {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify({ serviceId })
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      const pid = body.pid != null ? String(body.pid) : "—";
+      statusEl.textContent = `${serviceId} avviato (pid ${pid}). Output nella console.`;
+      startUtilityConsolePolling();
+      startUtilityProcessesPolling({
+        mode       : "up"
+      , serviceIds : [serviceId]
+      });
+      await loadUtilityDiscovery(null, { processesOnly: true });
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Avvio fallito";
+    } finally {
+      button.removeAttribute("disabled");
+      button.textContent = label;
+    }
+  }
+
+  /**
+   * @param {HTMLButtonElement} button
+   * @param {string} serviceId
+   */
+  async function triggerServiceKill(button, serviceId) {
+    const confirmed = window.confirm(
+      `Kill ${serviceId} — terminare solo questo servizio?\n\nOutput nella console.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const label = button.textContent ?? "Kill";
+    button.setAttribute("disabled", "true");
+    button.textContent = "Kill…";
+    statusEl.textContent = `Kill ${serviceId} in corso…`;
+
+    const consoleTab = UTILITY_CONSOLE_TABS.some((tab) => tab.id === serviceId)
+      ? serviceId
+      : "all";
+    beginUtilityKillConsole(consoleTab, `Kill ${serviceId} — richiesta al server…`);
+
+    try {
+      const res = await fetch("/api/repo/services/stop-one", {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify({ serviceId })
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      statusEl.textContent = typeof body.summary === "string"
+        ? body.summary
+        : `Kill ${serviceId} completato.`;
+
+      await applyUtilityKillLogResponse(body);
+
+      await loadUtilityDiscovery(null, { processesOnly: true });
+      startUtilityProcessesPolling({
+        mode       : "down"
+      , serviceIds : [serviceId]
+      });
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Kill fallito";
+      appendUtilityConsoleLines([{
+        stream : "stderr"
+      , text   : err instanceof Error ? err.message : "Kill fallito"
+      }]);
+    } finally {
+      button.removeAttribute("disabled");
+      button.textContent = label;
+    }
+  }
+
+  /**
+   * @param {HTMLButtonElement} button
+   * @param {"reset" | "seed" | "push"} mode
+   */
+  async function triggerDatabaseJob(button, mode) {
+    const isReset  = mode === "reset";
+    const isSeed   = mode === "seed";
+    const isPush   = mode === "push";
+    const endpoint = isReset
+      ? "/api/repo/database/reset"
+      : isSeed
+        ? "/api/repo/database/seed"
+        : "/api/repo/database/push";
+
+    if (isReset || isSeed) {
+      const confirmMsg = isReset
+        ? "Delete & create — eliminare fisicamente dev.db (e journal/wal) e ricreare lo schema Prisma?\n\nConsigliato: fermare api/auth prima."
+        : "Inizializza — eseguire npm run db:seed (host@ / player@)?";
+
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
+
+    const label = button.textContent ?? (isReset ? "Delete & create" : isSeed ? "Inizializza" : "Refresh");
+    button.setAttribute("disabled", "true");
+    button.textContent = isReset ? "Reset…" : isSeed ? "Seed…" : "Push…";
+    statusEl.textContent = isReset
+      ? "Reset database in corso…"
+      : isSeed
+        ? "Seed database in corso…"
+        : "db:push in corso…";
+    utilityLogCursor = 0;
+    startUtilityConsolePolling();
+    clearUtilityConsolePanes();
+    appendUtilityConsoleLines([{
+      stream : "system"
+    , text   : isReset
+        ? "Database delete & create — richiesta inviata…"
+        : isSeed
+          ? "Database inizializza — richiesta inviata…"
+          : "Database refresh (db:push) — richiesta inviata…"
+    }]);
+    setUtilityConsoleTab("database");
+
+    try {
+      const res = await fetch(endpoint, {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify({})
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok || body.ok === false) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      statusEl.textContent = isReset
+        ? "Database ricreato (delete & create completato)."
+        : isSeed
+          ? "Database inizializzato (seed completato)."
+          : "Schema allineato (db:push completato).";
+
+      if (Array.isArray(body.lines) && body.lines.length > 0) {
+        clearUtilityConsolePanes();
+        appendUtilityConsoleLines(body.lines);
+        utilityLogCursor = typeof body.logCursor === "number" ? body.logCursor : utilityLogCursor;
+      }
+
+      await loadUtilityDiscovery(null, { processesOnly: true });
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Operazione database fallita";
+
+      if (!isReset) {
+        button.removeAttribute("disabled");
+        button.textContent = label;
+      }
+    } finally {
+      if (isReset || isPush) {
+        button.removeAttribute("disabled");
+        button.textContent = label;
+      }
+    }
+  }
+
+  /**
+   * @param {"reset" | "seed"} mode
+   * @param {{ initConsole?: boolean }} [options]
+   */
+  async function runDatabaseJobForStack(mode, options = {}) {
+    const { initConsole = false } = options;
+    const isReset    = mode === "reset";
+    const endpoint   = isReset ? "/api/repo/database/reset" : "/api/repo/database/seed";
+
+    if (initConsole) {
+      utilityLogCursor = 0;
+      startUtilityConsolePolling();
+      clearUtilityConsolePanes();
+    }
+
+    setUtilityConsoleTab("database");
+    appendUtilityConsoleLines([{
+      stream : "system"
+    , text   : isReset
+        ? "Stack completo — delete & create database prima dell'avvio…"
+        : "Stack completo — inizializza database (seed) prima dell'avvio…"
+    }]);
+
+    const res = await fetch(endpoint, {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({})
+    });
+
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok || body.ok === false) {
+      throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+    }
+
+    if (Array.isArray(body.lines) && body.lines.length > 0) {
+      appendUtilityConsoleLines(body.lines);
+      utilityLogCursor = typeof body.logCursor === "number" ? body.logCursor : utilityLogCursor;
+    }
+  }
+
+  function clearUtilityStackDbOptions() {
+    utilityStackDbResetOnStart = false;
+    utilityStackDbSeedOnStart  = false;
+
+    const resetCb = servicesTable?.querySelector(".utility-stack-db-reset-cb");
+    const seedCb  = servicesTable?.querySelector(".utility-stack-db-seed-cb");
+
+    if (resetCb instanceof HTMLInputElement) {
+      resetCb.checked = false;
+    }
+
+    if (seedCb instanceof HTMLInputElement) {
+      seedCb.checked = false;
+    }
+  }
+
+  async function triggerStackCompleteStart(button) {
+    const withDbReset = utilityStackDbResetOnStart;
+    const withDbSeed  = utilityStackDbSeedOnStart;
+
+    if (withDbReset || withDbSeed) {
+      /** @type {string[]} */
+      const steps = [];
+
+      if (withDbReset) {
+        steps.push("Delete & create (elimina dev.db e ricrea schema)");
+      }
+
+      if (withDbSeed) {
+        steps.push("Inizializza (db:seed host@ / player@)");
+      }
+
+      const confirmed = window.confirm(
+        `Avvio stack con:\n• ${steps.join("\n• ")}\n\nprima di avviare web, api, auth?\n\nConsigliato: Kill stack se i servizi sono ancora attivi.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const label = button.textContent ?? "Avvia";
+    button.setAttribute("disabled", "true");
+    button.textContent = withDbReset || withDbSeed ? "DB…" : "Avvio…";
+
+    try {
+      if (withDbReset || withDbSeed) {
+        statusEl.textContent = withDbReset
+          ? "Reset database (delete & create)…"
+          : "Inizializzazione database (seed)…";
+
+        if (withDbReset) {
+          await runDatabaseJobForStack("reset", { initConsole: true });
+          await loadUtilityDiscovery(null, { processesOnly: true });
+          statusEl.textContent = withDbSeed
+            ? "Database ricreato — seed in corso…"
+            : "Database ricreato — avvio stack…";
+          button.textContent = withDbSeed ? "Seed…" : "Avvio…";
+        }
+
+        if (withDbSeed) {
+          await runDatabaseJobForStack("seed", { initConsole: !withDbReset });
+          await loadUtilityDiscovery(null, { processesOnly: true });
+          statusEl.textContent = "Database inizializzato — avvio stack…";
+          button.textContent = "Avvio…";
+        }
+      }
+
+      await triggerUtilityStart({
+        productStackComplete : true
+      , noDb                 : true
+      }, button);
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Avvio stack fallito";
+      button.removeAttribute("disabled");
+      button.textContent = label;
+    } finally {
+      clearUtilityStackDbOptions();
+    }
+  }
+
+  async function triggerStackCompleteKill(button) {
+    const confirmed = window.confirm(
+      "Kill stack — terminare web :3000, api :4000, auth :4001?\n\nAPI Portal, friendBOT e cruscotto restano attivi."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const label = button.textContent ?? "Kill";
+    button.setAttribute("disabled", "true");
+    button.textContent = "Kill…";
+    statusEl.textContent = "Kill stack in corso…";
+    beginUtilityKillConsole("all", "Kill stack (web, api, auth) — richiesta al server…");
+
+    try {
+      const res = await fetch("/api/repo/services/stop", {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify({
+          includeDashboard     : false
+        , productStackComplete : true
+        })
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      statusEl.textContent = typeof body.summary === "string"
+        ? body.summary
+        : "Kill stack completato.";
+
+      await applyUtilityKillLogResponse(body);
+
+      await loadUtilityDiscovery(null, { processesOnly: true });
+      startUtilityProcessesPolling({
+        mode       : "down"
+      , serviceIds : ["web", "api", "auth"]
+      });
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Kill stack fallito";
+      appendUtilityConsoleLines([{
+        stream : "stderr"
+      , text   : err instanceof Error ? err.message : "Kill stack fallito"
+      }]);
+    } finally {
+      button.removeAttribute("disabled");
+      button.textContent = label;
+    }
+  }
+
+  const servicesTable = tableEl.closest("table");
+
+  if (servicesTable instanceof HTMLTableElement && !servicesTable.dataset.utilityActionsBound) {
+    servicesTable.dataset.utilityActionsBound = "1";
+
+    servicesTable.addEventListener("change", (ev) => {
+      const target = ev.target;
+
+      if (target instanceof HTMLInputElement && target.classList.contains("utility-stack-db-reset-cb")) {
+        utilityStackDbResetOnStart = target.checked;
+      } else if (target instanceof HTMLInputElement && target.classList.contains("utility-stack-db-seed-cb")) {
+        utilityStackDbSeedOnStart = target.checked;
+      }
+    });
+
+    servicesTable.addEventListener("click", (ev) => {
+      const target = ev.target;
+
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const btn = target.closest("[data-utility-action]");
+
+      if (!(btn instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const action    = btn.getAttribute("data-utility-action");
+      const serviceId = btn.getAttribute("data-service-id") ?? "";
+
+      if (action === "service-start" && serviceId) {
+        triggerServiceStart(btn, serviceId);
+      } else if (action === "service-kill" && serviceId) {
+        triggerServiceKill(btn, serviceId);
+      } else if (action === "stack-start") {
+        triggerStackCompleteStart(btn).then(() => loadUtilityDiscovery(null, { processesOnly: true }));
+      } else if (action === "stack-kill") {
+        triggerStackCompleteKill(btn);
+      } else if (action === "db-reset") {
+        triggerDatabaseJob(btn, "reset");
+      } else if (action === "db-push") {
+        triggerDatabaseJob(btn, "push");
+      } else if (action === "db-seed") {
+        triggerDatabaseJob(btn, "seed");
+      }
+    });
+  }
+
+  try {
+    await loadUtilityDiscovery();
+  } catch {
+    // gestito in loadUtilityDiscovery
+  }
+
+  retryBtn?.addEventListener("click", () => {
+    loadUtilityDiscovery(/** @type {HTMLButtonElement} */ (retryBtn));
+  });
+
+  refreshProcBtn?.addEventListener("click", () => {
+    loadUtilityDiscovery(/** @type {HTMLButtonElement} */ (refreshProcBtn), { processesOnly: true });
+  });
+
+  stopBtn?.addEventListener("click", async () => {
+    if (!(stopBtn instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Kill All — terminare i servizi dev (web :3000, api :4000, auth :4001, api-portal :4080 PortalAdmin, friendBOT JLO)?\n\nIl cruscotto su :3999 resta attivo. L'output sarà mostrato nella console."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const label = stopBtn.textContent ?? "Kill All";
+    stopBtn.setAttribute("disabled", "true");
+    stopBtn.textContent = "Kill…";
+    statusEl.textContent = "Kill All in corso…";
+    beginUtilityKillConsole("all", "Kill All — richiesta inviata al server…");
+
+    try {
+      const res = await fetch("/api/repo/services/stop", {
+        method  : "POST"
+      , headers : { "Content-Type": "application/json" }
+      , body    : JSON.stringify({ includeDashboard: false })
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
+
+      statusEl.textContent = typeof body.summary === "string"
+        ? body.summary
+        : "Kill All completato.";
+
+      await applyUtilityKillLogResponse(body);
+
+      await loadUtilityDiscovery();
+      startUtilityProcessesPolling({ mode: "down", serviceIds: null });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Kill All fallito";
+      statusEl.textContent = message;
+
+      appendUtilityConsoleLines([{
+        stream : "stderr"
+      , text   : message
+      }]);
+    } finally {
+      stopBtn.removeAttribute("disabled");
+      stopBtn.textContent = label;
+    }
+  });
+
+  coreBtn.addEventListener("click", () => {
+    triggerUtilityStart({
+      withPortal : false
+    , extras     : []
+    , noDb       : true
+    }, /** @type {HTMLButtonElement} */ (coreBtn));
+  });
+
+  fullBtn.addEventListener("click", () => {
+    triggerUtilityStart({
+      allExtras : true
+    , noDb      : true
+    }, /** @type {HTMLButtonElement} */ (fullBtn));
+  });
+
+  copyBtn?.addEventListener("click", () => {
+    copyCmd(cliEl.textContent ?? "");
+  });
+
+  clearViewBtn?.addEventListener("click", () => {
+    clearActiveUtilityConsolePane();
+  });
+
+  clearBtn?.addEventListener("click", async () => {
+    try {
+      await fetch("/api/repo/services/logs", { method: "DELETE" });
+      await reloadUtilityConsole(true);
+    } catch (err) {
+      statusEl.textContent = err instanceof Error ? err.message : "Pulizia console fallita";
+    }
+  });
+
+  instancesBtn?.addEventListener("click", () => {
+    if (instancesBtn instanceof HTMLButtonElement) {
+      void dumpActiveInstancesToConsole(instancesBtn);
+    }
+  });
+
+  await reloadUtilityConsole(true);
+}
+
 function renderOverview(servicesPayload, report) {
   const root = document.getElementById("section-overview");
   if (!root) {
@@ -4333,6 +6513,7 @@ async function loadAll() {
   renderSummary(report, scriptCatalog);
   renderTestTecnici(report, status, scriptCatalog, tecniciMeta);
   renderTestFunzionali(report, status, scriptCatalog, funzionaliMeta);
+  await renderUtility(report);
   renderOverview(services, report);
 }
 

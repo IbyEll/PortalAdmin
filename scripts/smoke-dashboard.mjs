@@ -9,11 +9,23 @@ import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PORT        = Number(process.env.DASHBOARD_PORT ?? process.env.SMOKE_PORT ?? 3998);
+const PORT        = Number(process.env.DASHBOARD_PORT ?? 3999);
 const BASE        = `http://127.0.0.1:${PORT}`;
 
 /** @type {import("node:child_process").ChildProcess | null} */
 let child = null;
+
+/**
+ * @returns {Promise<boolean>}
+ */
+async function isDashboardUp() {
+  try {
+    const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * @param {string} path
@@ -35,13 +47,17 @@ async function fetchOk(path) {
 }
 
 async function main() {
-  child = spawn(process.execPath, ["server/dashboard-server.mjs"], {
-    cwd       : PORTAL_ROOT
-  , env       : { ...process.env, DASHBOARD_PORT: String(PORT) }
-  , stdio     : ["ignore", "pipe", "pipe"]
-  });
+  const spawned = !(await isDashboardUp());
 
-  await delay(2500);
+  if (spawned) {
+    child = spawn(process.execPath, ["server/dashboard-server.mjs"], {
+      cwd       : PORTAL_ROOT
+    , env       : { ...process.env, DASHBOARD_PORT: String(PORT) }
+    , stdio     : ["ignore", "pipe", "pipe"]
+    });
+
+    await delay(2500);
+  }
 
   await fetchOk("/");
   await fetchOk("/index.html");
