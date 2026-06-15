@@ -29,7 +29,7 @@ import {
 , discoverScriptDocHeader
 , discoverTestCasesForScript
 } from "../lib/test-deps.mjs";
-import { fetchJiraBacklog, fetchJiraIssueStatus } from "../lib/jira-backlog.mjs";
+import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "../lib/jira-backlog.mjs";
 import { buildBacklogPillarTree } from "../lib/jira-backlog-pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "../lib/jira-backlog-insights.mjs";
 import { scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
@@ -707,7 +707,7 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/jira/backlog" && req.method === "GET") {
     try {
-      const data = await fetchJiraBacklog();
+      const data = await loadJiraBacklog();
       const repoRefs = scanRepoJiraReferences();
       data.repoAlign = buildRepoAlignMap(data.issues, repoRefs);
       data.pillarTree = buildBacklogPillarTree(data.issues);
