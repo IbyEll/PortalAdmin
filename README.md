@@ -195,6 +195,16 @@ ${GITHUB_WORKSPACE}/
 
 Senza `JIRA_EMAIL` / `JIRA_API_TOKEN` la pipeline `smoke` resta verde; il job `jira-sync` viene saltato.
 
+## Verifica E2E full (ADMIN-100)
+
+| Comando | Ruolo |
+| --- | --- |
+| `npm run test:portal-e2e` | Spawn dashboard + smoke HTTP backlog/insights/export |
+| `node ../JustLastOne/testScript/admin/test-portal-smoke.mjs` | Stesso smoke dal product repo (spawn server se `DASHBOARD_URL` assente) |
+
+Checklist manuale UI IT: [`docs/cruscotto-manual-checklist-it.md`](docs/cruscotto-manual-checklist-it.md)  
+Go-live epic ADMIN-88: [`docs/go-live-admin-88.md`](docs/go-live-admin-88.md)
+
 Verifica locale (richiede sibling `../JustLastOne`):
 
 ```bash

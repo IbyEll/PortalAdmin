@@ -84,6 +84,12 @@ jobs:
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:dashboard
 
+      - name: Portal E2E smoke (ADMIN-100)
+        working-directory: portal-admin
+        env:
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
+        run: npm run test:portal-e2e
+
   jira-sync:
     name: Jira backlog sync (optional)
     needs: smoke
