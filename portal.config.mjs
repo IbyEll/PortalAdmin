@@ -506,6 +506,16 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-95"
+  , label : "Badge README build status"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+    ]
+  }
+
 ];
 
 /**
