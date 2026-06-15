@@ -136,6 +136,44 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 | `test:run-all` | Smoke discovery `run-all.mjs --list` |
 | `test:config` | Smoke `portal.config.mjs` + ADMIN keys + close-story |
 | `test:workflow` | Smoke regole Cursor + catalog ADMIN branch |
+| `test:ci` | Sequenza smoke per CI locale (equivale ai job `smoke`) |
+| `test:dashboard` | Smoke HTTP `dashboard-server.mjs` |
+
+## CI/CD (ADMIN-95)
+
+Workflow GitHub Actions: [`.github/workflows/portal-smoke.yml`](.github/workflows/portal-smoke.yml)
+
+| Trigger | Job | Cosa verifica |
+| --- | --- | --- |
+| PR / push `main` | `smoke` | Checkout dual-repo, `PRODUCT_REPO_PATH`, smoke paths/config/workflow/run-all/dashboard |
+| push `main` (opz.) | `jira-sync` | `analyze-repo-keys` se secrets Jira configurati |
+
+Layout CI (sibling virtuale):
+
+```
+${GITHUB_WORKSPACE}/
+  portal-admin/     ← questo repo
+  just-last-one/    ← checkout JustLastOne
+```
+
+`PRODUCT_REPO_PATH` in CI = `${GITHUB_WORKSPACE}/just-last-one`. Se il path non esiste o manca `testScript/`, gli smoke falliscono con messaggio esplicito.
+
+### Secrets GitHub (repository Settings → Secrets and variables → Actions)
+
+| Secret | Obbligatorio | Descrizione |
+| --- | --- | --- |
+| `JIRA_EMAIL` | no | Email account Atlassian per job `jira-sync` |
+| `JIRA_API_TOKEN` | no | [API token](https://id.atlassian.com/manage-profile/security/api-tokens) — **non** committare |
+| `JIRA_CLOUD_ID` | no | Cloud id Jira (default in `.env.example`) |
+| `JIRA_BOARD_ID` | no | Board agile (default `68`) |
+
+Senza `JIRA_EMAIL` / `JIRA_API_TOKEN` la pipeline `smoke` resta verde; il job `jira-sync` viene saltato.
+
+Verifica locale (richiede sibling `../JustLastOne`):
+
+```bash
+npm run test:ci
+```
 
 ## Migrazione
 
