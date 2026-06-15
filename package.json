@@ -15,6 +15,7 @@
   , "test:config": "node scripts/smoke-portal-config.mjs"
   , "test:workflow": "node scripts/smoke-workflow.mjs"
   , "test:dashboard": "node scripts/smoke-dashboard.mjs"
+  , "test:ci": "node scripts/smoke-ci.mjs"
   }
 , "dependencies": {
     "dotenv": "^16.4.7"
