@@ -516,6 +516,16 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-97"
+  , label : "cursor rule"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+    ]
+  }
+
 ];
 
 /**

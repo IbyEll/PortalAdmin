@@ -11,6 +11,10 @@ alwaysApply: true
 
 ## Per ogni subtask
 
-`editJiraIssue`: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M.
+Template: `.cursor/templates/veve/veve-subtask.md`
+
+`editJiraIssue`: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — compila placeholder da gap analysis.
+
+Sezioni e **checkbox AC/DoD (B poi A)**: vedi `JLO-Veve-AggiornaSubtask.mdc` (canonico).
 
 **Vietato:** branch, commit, Fatto (salvo richiesta).

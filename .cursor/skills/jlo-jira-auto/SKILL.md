@@ -27,6 +27,15 @@ Passa `branch`, `prUrl`, `commits`, `catalog` da `node scripts/close-story.mjs -
 
 Repo PR: `https://github.com/IbyEll/PortalAdmin`
 
+## Template description Jira
+
+| Fase | File |
+| --- | --- |
+| ok chiudi subtask | `.cursor/templates/workflow/ok-chiudi-subtask.md` |
+| chiudi parent | `.cursor/templates/workflow/chiudi-parent.md` |
+
+Leggi e compila **prima** di `editJiraIssue`. Veve: `.cursor/templates/veve/`.
+
 ## Vietato
 
 - ❌ `CallMcpTool` Jira dal agente principale in procedi/gogo/chiudi

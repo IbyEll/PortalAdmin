@@ -1,4 +1,4 @@
-import { stripTrailingSlash } from "../lib/test-script-http.mjs";
+import { stripTrailingSlash } from "../lib/http-utils.mjs";
 
 /**
  * @param {string} url

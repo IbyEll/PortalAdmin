@@ -11,8 +11,8 @@ Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggi
 | --- | --- |
 | 1 | `ADMIN-Veve-LeggiJira.mdc` |
 | 2 | `ADMIN-AnalizzaRepo.mdc` |
-| 3 | `ADMIN-Veve-AggiornaStory.mdc` |
-| 4 | `ADMIN-Veve-AggiornaSubtask.mdc` |
+| 3 | `ADMIN-Veve-AggiornaStory.mdc` · `.cursor/templates/veve/veve-story-parent.md` |
+| 4 | `ADMIN-Veve-AggiornaSubtask.mdc` · `.cursor/templates/veve/veve-subtask.md` |
 
 **MCP veve:** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
 
