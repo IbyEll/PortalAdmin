@@ -1,0 +1,16 @@
+---
+description: Veve step 3 — aggiorna description parent ADMIN-xxx
+alwaysApply: true
+---
+
+# ADMIN Veve — Aggiorna Story
+
+## Trigger
+
+`aggiorna story ADMIN-xxx` · dopo Leggi Jira + Analizza repo
+
+## Obiettivo
+
+`editJiraIssue` description parent: Obiettivo, Stato repo, AC/DoD, ordine subtask.
+
+**Vietato:** edit subtask, branch, commit, Fatto parent.

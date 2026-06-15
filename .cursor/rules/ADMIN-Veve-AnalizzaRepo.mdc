@@ -1,0 +1,12 @@
+---
+description: Veve step 2 — analizza repo per ADMIN-xxx (adattatore ADMIN-AnalizzaRepo)
+alwaysApply: true
+---
+
+# ADMIN Veve — Analizza repo
+
+Esegui regola canonica `.cursor/rules/ADMIN-AnalizzaRepo.mdc` + skill `jlo-analizza-repo`.
+
+Prerequisito: **Leggi Jira** nella stessa sessione.
+
+Output: tabella Stato repo + **Subtask vs repo** (Key | Esito | File | Gap).
