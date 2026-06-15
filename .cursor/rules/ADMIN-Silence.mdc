@@ -1,0 +1,29 @@
+---
+description: ADMIN procedi — START + silenzio + END; tra START e END zero narrativa tecnica
+alwaysApply: true
+---
+
+# ADMIN — Silenzio su «procedi» / «gogo» / «chiudi»
+
+## Trigger
+
+`procedi`, **`gogo admin-xxx`** / **`gogo ADMIN-xxx`**, `chiudi Story/Bug/Todo`, **`chiudi fast`**, `ok chiudi`, `fai commit` durante ticket ADMIN già avviato.
+
+## Testo chat ammesso
+
+| # | Quando |
+| --- | --- |
+| **START** | Una volta dopo Step 0 |
+| **END** / **END-B-FAST** | Fine lavoro o chiudi |
+| **Blocker** | Solo errori commit/Jira/git |
+
+**Vietato** tra START e END: narrativa, path file, diff, dump Jira, domande.
+
+## Jira nel workflow
+
+- **procedi/gogo/chiudi:** solo Task «Jira Auto» — mai `CallMcpTool` Jira dal agente principale
+- **veve / leggi jira:** `CallMcpTool` `user-atlassian` ammesso
+
+## Blocker
+
+Working tree sporco, push/PR/Jira falliti → END parziale con `Errori:` — stop fino a fix utente.

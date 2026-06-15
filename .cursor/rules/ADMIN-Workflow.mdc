@@ -1,0 +1,127 @@
+---
+description: Workflow ADMIN — procedi/gogo/chiudi su ticket ADMIN-xxx in repo PortalAdmin (epic ADMIN-88)
+alwaysApply: true
+---
+
+# Workflow ADMIN (PortalAdmin)
+
+**Ticket parent** = Story, Bug o Todo **ADMIN-xxx** (o **JLO-xxx** quando lo scope è nel product repo). **Repo workflow:** [PortalAdmin](https://github.com/IbyEll/PortalAdmin) · **Product repo:** `PRODUCT_REPO_PATH` (default `../JustLastOne`).
+
+**Branch:** `{TIPO}---{PROJ}-{num}-{slug}` — `TIPO` = `STORY` | `BUG` | `TODO` · `PROJ` = `ADMIN` | `JLO` · tre trattini `---`.
+
+| Tipo Jira | Prefisso | Esempio |
+| --- | --- | --- |
+| Story | `STORY---` | `STORY---ADMIN-96-jira-tooling-workflow-cursor` |
+| Bug | `BUG---` | `BUG---ADMIN-100-example-bug` |
+| Todo | `TODO---` | `TODO---JLO-930-admin-cruscotto` |
+
+**Legacy (solo ripresa):** `ADMIN-{num}-*` o `JLO-{num}-*` senza prefisso tipo — non crearne di nuove.
+
+---
+
+## Comandi
+
+| Comando | Effetto |
+| --- | --- |
+| **`gogo admin-xxx`** / **`gogo ADMIN-xxx`** | FULL silent — START → subtask in background → ok chiudi automatico → END-A |
+| `procedi Story ADMIN-xxx` | Piano → implementazione → confirm (default) |
+| `chiudi Story ADMIN-xxx` | Push + PR + catalogo + gap test + parent Jira → Fatto |
+| **`chiudi fast Story ADMIN-xxx`** | Push + PR + catalogo + parent Jira (no gap test) |
+
+Varianti: `procedi`, `chiudi Bug`, `chiudi Todo`, case-insensitive sulla key.
+
+---
+
+## Verifica branch (primo passo)
+
+```bash
+git branch --show-current
+git branch --list 'STORY---ADMIN-{num}-*'
+git branch -r --list 'origin/STORY---ADMIN-{num}-*'
+# Idem BUG--- / TODO--- e JLO-{num} se ticket JLO
+```
+
+| Situazione | Azione |
+| --- | --- |
+| Sei sulla branch del ticket | **Ripresa** |
+| Branch esiste, sei altrove | **Stop** — `git checkout {branch}` e ripeti `procedi` |
+| Nessuna branch | Pre-flight → nuova branch da `main` |
+
+---
+
+## Pre-flight git
+
+1. `git status --porcelain` — deve essere vuoto (no stash automatico)
+2. `git fetch origin` · su `main` allineato a `origin/main`
+3. Nuova branch: `git checkout main && git pull && git checkout -b STORY---ADMIN-{num}-{slug}`
+
+---
+
+## Script chiudi
+
+```bash
+node scripts/close-story.mjs --key ADMIN-93
+node scripts/close-story.mjs --key ADMIN-93 --dry-run
+```
+
+- Catalogo segnali → `portal.config.mjs` (`REPO_IMPLEMENTATION_SIGNALS`)
+- Key ammesse: `ADMIN-xxx` e `JLO-xxx`
+- Git ticket **ADMIN**: repo PortalAdmin · git ticket **JLO**: product repo (`PRODUCT_REPO_PATH`)
+- Pillar matrix: solo con `--pillar` (opt-in)
+
+---
+
+## Analizza repo
+
+```bash
+node scripts/analyze-repo-keys.mjs --parent ADMIN-88 --format md
+node scripts/analyze-repo-keys.mjs --keys ADMIN-121,ADMIN-122
+```
+
+Regola: `.cursor/rules/ADMIN-AnalizzaRepo.mdc` · skill `.cursor/skills/jlo-analizza-repo/SKILL.md`
+
+**Aree PortalAdmin:** `lib/`, `server/`, `cruscotto/`, `scripts/`, `portal.config.mjs`  
+**Aree product (JLO):** `apps/`, `packages/`, `testScript/`
+
+---
+
+## Jira — pannelli «Jira Auto»
+
+Tutte le operazioni Jira nel workflow passano da **`Task`** (subagent), **mai** `CallMcpTool` diretto.
+
+| Fase | `description` Task |
+| --- | --- |
+| Step 0 | `Step 0 ADMIN-{key} plan Jira` |
+| Ok chiudi | `Ok chiudi ADMIN-{subkey} subtask Jira` |
+| Chiudi parent | `Close ADMIN-{key} parent Jira` |
+
+Server MCP: `plugin-atlassian-atlassian` · cloudId `3caddd74-469e-4ca3-adf8-926f79c98e7c` · transizione Fatto `"41"`.
+
+Veve (grooming read-only): `CallMcpTool` `user-atlassian` ammesso — regole `ADMIN-Veve*.mdc`.
+
+---
+
+## Output chat (procedi / gogo)
+
+| Fase | Contenuto |
+| --- | --- |
+| **START** | AC, DoD, STATO, BRANCH, subtask Da fare |
+| **Background** | Silenzio — solo tool |
+| **END-A** | Completato — parent ancora Da fare, `PR: —`, suggerire `chiudi fast` |
+| **END-B / END-B-FAST** | Dopo `chiudi` — PR, Jira, Repo |
+
+Formato link repo (END):
+
+```text
+PR: {url}
+Jira: {url}
+Repo: [PortalAdmin](https://github.com/IbyEll/PortalAdmin) · branch `{branch}` · commit `{hash}`
+```
+
+---
+
+## Commit
+
+Messaggio: `ADMIN-{subkey} …` o `ADMIN-xxx [Priorità] titolo breve`.
+
+Un commit per subtask; push solo in `chiudi` / `chiudi fast` (salvo push opzionale post FULL silent).
