@@ -495,6 +495,15 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
     , "lib/cruscotto-db/index.mjs"
     ]
   }
+, {
+    key   : "ADMIN-99"
+  , label : "Cruscotto DB sync + loadJiraBacklog"
+  , paths : [
+      "lib/cruscotto-db/sync-backlog.mjs"
+    , "lib/cruscotto-db/load-backlog.mjs"
+    , "scripts/sync-jira-backlog.mjs"
+    ]
+  }
 
 , {
     key   : "ADMIN-96"

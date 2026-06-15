@@ -140,6 +140,30 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 | `test:workflow` | Smoke regole Cursor + catalog ADMIN branch |
 | `test:ci` | Sequenza smoke per CI locale (equivale ai job `smoke`) |
 | `test:dashboard` | Smoke HTTP `dashboard-server.mjs` |
+| `test:cruscotto-db` | Smoke path DB + migrate + load fallback |
+| `db:sync` | `node scripts/sync-jira-backlog.mjs` — Jira → `data/cruscotto.db` |
+
+## Cruscotto DB (ADMIN-81 / ADMIN-99)
+
+Cache SQLite Jira sotto PortalAdmin root — non più `Admin/data/`.
+
+| Path / env | Ruolo |
+| --- | --- |
+| `data/cruscotto.db` | DB SQLite (gitignored) |
+| `CRUSCOTTO_DB_PATH` | Override path assoluto (opzionale) |
+| `lib/cruscotto-db/` | Schema Prisma, client, sync/load |
+
+Comandi:
+
+```bash
+npm run db:migrate              # prisma migrate deploy
+npm run db:sync                 # scarica backlog Jira → cruscotto.db (richiede JIRA_*)
+npm run test:cruscotto-db       # smoke path + migrate + load fallback
+```
+
+`GET /api/jira/backlog` usa `loadJiraBacklog()`: legge **cruscotto.db** se popolato (ultimo sync `success`), altrimenti **API Jira** live.
+
+Dopo clone fresh: `db:migrate` poi `db:sync` (o apri backlog — fallback API automatico).
 
 ## CI/CD (ADMIN-95)
 
