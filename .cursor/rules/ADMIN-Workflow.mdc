@@ -64,6 +64,8 @@ node scripts/close-story.mjs --key ADMIN-93
 node scripts/close-story.mjs --key ADMIN-93 --dry-run
 ```
 
+**Template Jira:** `.cursor/templates/workflow/chiudi-parent.md` (parent) · `ok-chiudi-subtask.md` (subtask ok chiudi). Veve: `.cursor/templates/veve/`.
+
 - Catalogo segnali → `portal.config.mjs` (`REPO_IMPLEMENTATION_SIGNALS`)
 - Key ammesse: `ADMIN-xxx` e `JLO-xxx`
 - Git ticket **ADMIN**: repo PortalAdmin · git ticket **JLO**: product repo (`PRODUCT_REPO_PATH`)
