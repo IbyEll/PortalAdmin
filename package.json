@@ -13,6 +13,7 @@
   , "test:paths": "node scripts/smoke-portal-paths.mjs"
   , "test:run-all": "node scripts/smoke-run-all.mjs"
   , "test:config": "node scripts/smoke-portal-config.mjs"
+  , "test:workflow": "node scripts/smoke-workflow.mjs"
   , "test:dashboard": "node scripts/smoke-dashboard.mjs"
   }
 , "dependencies": {

@@ -111,7 +111,22 @@ Esempio entry:
 
 `close-story.mjs --key ADMIN-81` e `analyze-repo-keys.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
 
-## Script npm
+## Workflow Cursor (ADMIN-96)
+
+Regole agent in `.cursor/rules/`:
+
+| File | Ruolo |
+| --- | --- |
+| `ADMIN-Workflow.mdc` | gogo / procedi / chiudi su ticket ADMIN-xxx |
+| `ADMIN-AnalizzaRepo.mdc` | gap analysis + CLI `analyze-repo-keys` |
+| `ADMIN-Veve*.mdc` | grooming Jira read-only |
+| `JLO-Workflow.mdc` | alias → ADMIN-Workflow |
+
+Skills: `.cursor/skills/jlo-jira-auto/`, `jlo-analizza-repo/`
+
+```bash
+npm run test:workflow   # smoke rules + close-story ADMIN dry-run
+```
 
 | Script | Descrizione |
 | --- | --- |
@@ -120,6 +135,7 @@ Esempio entry:
 | `test:paths` | Smoke `PRODUCT_REPO_PATH` + scan Jira refs |
 | `test:run-all` | Smoke discovery `run-all.mjs --list` |
 | `test:config` | Smoke `portal.config.mjs` + ADMIN keys + close-story |
+| `test:workflow` | Smoke regole Cursor + catalog ADMIN branch |
 
 ## Migrazione
 
