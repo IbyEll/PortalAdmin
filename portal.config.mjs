@@ -504,6 +504,16 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
     , "scripts/sync-jira-backlog.mjs"
     ]
   }
+, {
+    key   : "ADMIN-100"
+  , label : "E2E portal smoke + go-live checklist"
+  , paths : [
+      "scripts/smoke-portal-e2e.mjs"
+    , "docs/go-live-admin-88.md"
+    , "docs/cruscotto-manual-checklist-it.md"
+    ]
+  , tests : ["admin/test-portal-smoke.mjs"]
+  }
 
 , {
     key   : "ADMIN-96"

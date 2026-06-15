@@ -16,6 +16,7 @@ const STEPS = [
 , "scripts/smoke-portal-config.mjs"
 , "scripts/smoke-workflow.mjs"
 , "scripts/smoke-cruscotto-db.mjs"
+, "scripts/smoke-portal-e2e.mjs"
 , "scripts/smoke-run-all.mjs"
 , "scripts/smoke-dashboard.mjs"
 ];
