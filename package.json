@@ -17,6 +17,7 @@
   , "test:workflow": "node scripts/smoke-workflow.mjs"
   , "test:dashboard": "node scripts/smoke-dashboard.mjs"
   , "test:cruscotto-db": "node scripts/smoke-cruscotto-db.mjs"
+  , "test:portal-e2e": "node scripts/smoke-portal-e2e.mjs"
   , "test:ci": "node scripts/smoke-ci.mjs"
   }
 , "dependencies": {
