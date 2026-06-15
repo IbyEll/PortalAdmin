@@ -35,7 +35,8 @@ import {
 , parseScriptJsonReport
 , writeRunReports
 } from "../lib/reporter.mjs";
-import { importTestScriptModule, WINDOWS_UV_CRASH_EXIT } from "../lib/test-script-http.mjs";
+import { WINDOWS_UV_CRASH_EXIT } from "../lib/http-utils.mjs";
+import { resetHostTestState, setupDefaultDatabaseUrl } from "../lib/match-fixtures.mjs";
 
 const LIST_ONLY = process.argv.includes("--list");
 const NO_HTML   = process.argv.includes("--no-html");
@@ -211,9 +212,6 @@ async function main() {
     }
     return;
   }
-
-  const fixtures = await importTestScriptModule("lib/match-fixtures.mjs");
-  const { resetHostTestState, setupDefaultDatabaseUrl } = fixtures;
 
   const services = await checkServices();
 
