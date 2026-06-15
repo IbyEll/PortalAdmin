@@ -1,5 +1,7 @@
 # PortalAdmin
 
+![Portal smoke](https://github.com/IbyEll/PortalAdmin/actions/workflows/portal-smoke.yml/badge.svg)
+
 Repository autonomo per l'**Admin Dashboard** estratto da [JustLastOne](https://github.com/IbyEll/JustLastOne) (`Admin/`).
 
 **Epic Jira:** [ADMIN-88](https://myfuturejobsearch.atlassian.net/browse/ADMIN-88) — `[migrationADMIN] PortalAdmin — repository autonomo`
