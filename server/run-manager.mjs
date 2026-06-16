@@ -5,7 +5,7 @@ import {
   BLOCKED_REASONS
 , BLOCKED_SCRIPTS
 , discoverTestScripts
-} from "../lib/catalog.mjs";
+} from "../PROJECT_JustLastOne/test.catalog.JustLastOne.mjs";
 import {
   getPortalRoot
 , getProductRepoPath
@@ -114,7 +114,7 @@ export async function startRun(productRepoRoot, options = {}) {
 
   const productRoot = productRepoRoot ?? getProductRepoPath();
   const portalRoot  = getPortalRoot();
-  const runAll      = join(portalRoot, "runner", "run-all.mjs");
+  const runAll      = join(portalRoot, "runner", "JustLastOne___run-all.mjs");
 
   const scriptRel = options.scriptRel?.replace(/\\/g, "/") ?? null;
   const suite     = options.suite?.replace(/\\/g, "/") ?? null;

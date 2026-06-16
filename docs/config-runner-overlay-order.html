@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Ordine config.* e runner.*</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --turquoise: #2ee8d6;
+      --purple: #b794f6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    ol { padding-left: 1.25rem; }
+
+    li { margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Ordine <code>config.*</code> e <code>runner.*</code></h1>
+      <p class="meta">PortalAdmin — overlay product, stack dev, discovery cruscotto · aggiornato giugno 2026</p>
+    </header>
+
+    <h2>Ordine di caricamento (runtime)</h2>
+    <p>Tutto parte da <code>PRJ_NAME</code> in <code>.env</code> (default <code>JustLastOne</code>) tramite <code>load-env.mjs</code>:</p>
+    <ol>
+      <li><code>lib/load-env.mjs</code></li>
+      <li><code>lib/config.project.mjs</code> → import dinamico <code>config.project.{PRJ_NAME}.mjs</code></li>
+      <li><code>lib/config.discovery.mjs</code> → import dinamico <code>config.discovery.{PRJ_NAME}.mjs</code></li>
+      <li><code>runner/runner.config.stack.mjs</code> → import dinamico <code>runner.config.{PRJ_NAME}.mjs</code></li>
+      <li><code>runner/runner.stack.base.mjs</code> (nessun overlay — solo path/npm)</li>
+      <li><code>runner/runner.stack.mjs</code> (usa punti 2, 4 e 5)</li>
+      <li>Entrypoint (<code>start_DEV_Service</code>, <code>start_ALL_Services</code>, …)</li>
+    </ol>
+    <p><code>config.discovery</code> e <code>runner.config.stack</code> sono <strong>paralleli</strong> (entrambi dipendono solo da <code>config.project</code>); <code>runner.stack</code> li unisce con <code>runner.stack.base</code>.</p>
+
+    <h2><code>lib/config.*</code> — dal generico al product</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>File</th>
+          <th>Ruolo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><code>config.project.mjs</code></td>
+          <td><strong>Radice</strong> — <code>resolveProjectOverlayName()</code>, <code>getProjectConfig()</code>, costanti <code>PRJ_*</code></td>
+        </tr>
+        <tr>
+          <td><strong>1b</strong></td>
+          <td><code>config.project.JustLastOne.mjs</code></td>
+          <td>Dati JLO: repo, Jira, URL health, path DB, manifest</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><code>config.discovery.mjs</code></td>
+          <td>Discovery cruscotto — merge overlay + <code>PRJ_NAME</code></td>
+        </tr>
+        <tr>
+          <td><strong>2b</strong></td>
+          <td><code>config.discovery.JustLastOne.mjs</code></td>
+          <td>Dati JLO: servizi core, friendbot, path runner, descrizioni tab</td>
+        </tr>
+        <tr>
+          <td><strong>—</strong></td>
+          <td><code>config_api-portal.mjs</code></td>
+          <td><strong>A parte</strong> — payload OpenAPI portal (<code>serve-api-portal</code>, <code>start_API_Portal</code>); usa <code>portal-paths</code> + manifest, non la catena overlay sopra</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2><code>runner/*</code> — dal generico all'orchestrazione</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>File</th>
+          <th>Ruolo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><code>runner.stack.base.mjs</code></td>
+          <td><strong>Base</strong> — <code>run</code>/<code>runTurbo</code>, <code>root</code>, <code>.env</code>, cleanup (senza product)</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><code>runner.config.stack.mjs</code></td>
+          <td><strong>Config stack dev</strong> — <code>getRunnerConfig()</code>, <code>resolveDevServices()</code>, clean/build order</td>
+        </tr>
+        <tr>
+          <td><strong>2b</strong></td>
+          <td><code>runner.config.JustLastOne.mjs</code></td>
+          <td>Dati JLO: <code>devStack</code> auth/api/web, daemon, clean paths</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td><code>runner.stack.mjs</code></td>
+          <td><strong>Orchestrazione</strong> — prepare repo, build, Prisma, <code>startDevStack</code>, daemon</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>Entrypoint CLI</td>
+          <td>
+            <code>start_DEV_Service.mjs</code> — un servizio (auth | api | web)<br />
+            <code>start_ALL_Services.mjs</code> — stack completo<br />
+            <code>start_API_Portal.mjs</code> / <code>serve-api-portal.mjs</code> — API Portal<br />
+            <code>stop_ALL_services.mjs</code>, <code>kill-dev-ports.mjs</code>, … — utility
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Grafo dipendenze</h2>
+    <pre class="mermaid">
+flowchart TB
+  ENV[".env PRJ_NAME"]
+  CP["config.project.{PRJ_NAME}.mjs"]
+  CD["config.discovery.*"]
+  RC["runner.config.*"]
+  RB["runner.stack.base.mjs"]
+  RS["runner.stack.mjs"]
+  DS["discovery-services-repo"]
+  EP["start_DEV_Service / start_ALL_Services"]
+
+  ENV --> CP
+  CP --> CD
+  CP --> RC
+  CD --> DS
+  RC --> RB
+  RB --> RS
+  RC --> RS
+  CP --> RS
+  RS --> EP
+    </pre>
+
+    <pre><code>.env PRJ_NAME
+    │
+    ▼
+config.project.{PRJ_NAME}.mjs
+    │
+    ├──────────────────┬─────────────────────┐
+    ▼                  ▼                     ▼
+config.discovery.*   runner.config.*     portal-paths / dev-manifest
+    │                  │
+    ▼                  ├──── runner.stack.base.mjs
+discovery-services     │
+                       ▼
+              runner.stack.mjs
+                       │
+                       ▼
+              start_DEV_Service / start_ALL_Services / script_seed</code></pre>
+
+    <h2>Regola pratica</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Significato</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>*.mjs</code> senza suffisso</td>
+          <td>Modulo <strong>generico</strong> + funzioni <code>resolve*</code> / <code>get*</code></td>
+        </tr>
+        <tr>
+          <td><code>*.{PRJ_NAME}.mjs</code></td>
+          <td><strong>Solo dati</strong> del product (<code>PROJECT_CONFIG_VALUES</code>, <code>RUNNER_CONFIG_VALUES</code>, …)</td>
+        </tr>
+        <tr>
+          <td><code>runner.stack.*</code> / <code>runner.config.*</code></td>
+          <td>Stack dev: base (shell), config (resolve), orchestrazione</td>
+        </tr>
+        <tr>
+          <td><code>config.*</code></td>
+          <td>Identità product + discovery cruscotto</td>
+        </tr>
+        <tr>
+          <td><code>config_api-portal</code></td>
+          <td>Specializzato API docs, fuori catena overlay</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Nuovo product</h2>
+    <p>Crea tre overlay con lo stesso <code>{PRJ_NAME}</code> e imposta <code>PRJ_NAME</code> in <code>.env</code>:</p>
+    <ul>
+      <li><code>lib/config.project.{Nome}.mjs</code></li>
+      <li><code>lib/config.discovery.{Nome}.mjs</code></li>
+      <li><code>runner/runner.config.{Nome}.mjs</code></li>
+    </ul>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true
+    , theme: "dark"
+    , flowchart: { curve: "basis" }
+    });
+  </script>
+</body>
+</html>

@@ -2,14 +2,14 @@
 /**
  * start_API_Portal — avvio API Portal (PortalAdmin)
  *
- * Server:   ellaStartScript/serve-api-portal.mjs
+ * Server:   runner/serve-api-portal.mjs
  * Statiche: PortalAdmin/api-portal/
  * Config:   GET /config.json da PRODUCT_REPO_PATH (dev-manifest → api + auth)
  * Porta:    http://localhost:4080
  *
  * Uso:
- *   node ellaStartScript/start_API_Portal.mjs
- *   node ellaStartScript/start_API_Portal.mjs --help
+ *   node runner/start_API_Portal.mjs
+ *   node runner/start_API_Portal.mjs --help
  *
  * Env:
  *   PRODUCT_REPO_PATH  — monorepo JustLastOne (servizi OpenAPI in config)
@@ -22,47 +22,44 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
-import { buildApiPortalConfig } from "../lib/api-portal-config.mjs";
-import { portalRoot, root } from "../ellaStartScript/lib.mjs";
+import { buildApiPortalConfig } from "../lib/config_api-portal.mjs";
+import { portalRoot, root } from "../lib/cruscotto-db/script_seed/script_seed-lib.mjs";
 
 const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`Uso: node ellaStartScript/start_API_Portal.mjs
+  console.log(`Uso: node runner/start_API_Portal.mjs
 
 Avvia il portale statico OpenAPI su :4080 (PortalAdmin).
 
 Il portale legge i servizi dal dev-manifest del product repo; non avvia api/auth.
 
 Equivalente:
-  node ellaStartScript/serve-api-portal.mjs
+  node runner/serve-api-portal.mjs
   npm run dev:api-portal
 `);
   process.exit(0);
 }
 
 const port       = Number(process.env.API_PORTAL_PORT ?? process.env.PORTAL_PORT ?? 4080);
-const scriptPath = join(portalRoot, "ellaStartScript", "serve-api-portal.mjs");
+const scriptPath = join(portalRoot, "runner", "serve-api-portal.mjs");
 
 console.log("start_API_Portal — navigazione OpenAPI centralizzata");
 console.log(`Portal:  ${portalRoot}`);
 console.log(`Product: ${root}`);
 console.log(`Porta:   ${port}`);
 
-// Step 1 — anteprima config che verrà servita da /config.json
 console.log("\n[1/3] Config OpenAPI (da PRODUCT_REPO_PATH)…");
 const config = buildApiPortalConfig(root);
 const ids    = config.services.map((svc) => svc.id).join(", ") || "—";
 console.log(`       Progetto: ${config.projectName}`);
 console.log(`       Servizi:  ${ids}`);
 
-// Step 2 — path script server HTTP e cartella statica
 console.log("\n[2/3] Server e statiche:");
 console.log(`       Script:   ${scriptPath}`);
 console.log(`       Statiche: ${join(portalRoot, "api-portal")}`);
 console.log(`       URL:      http://localhost:${port}/`);
 
-// Step 3 — delega a serve-api-portal.mjs (processo in primo piano)
 console.log("\n[3/3] Avvio server API Portal (Ctrl+C per terminare)…\n");
 
 const child = spawn(process.execPath, [scriptPath], {

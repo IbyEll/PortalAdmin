@@ -21,14 +21,14 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 , REPO_ROOT
-} from "../lib/catalog.mjs";
+} from "../PROJECT_JustLastOne/test.catalog.JustLastOne.mjs";
 import { getHealthStatus } from "./health.mjs";
 import { getDevRequirements, getDevServicesWithHealth } from "./dev-api.mjs";
 import {
   discoverScriptDescription
 , discoverScriptDocHeader
 , discoverTestCasesForScript
-} from "../lib/test-deps.mjs";
+} from "../runner/test.dipendenze.mjs";
 import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "../lib/jira-backlog.mjs";
 import { buildBacklogPillarTree } from "../lib/jira-backlog-pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "../lib/jira-backlog-insights.mjs";
@@ -42,7 +42,7 @@ import {
 , workingArchivePath
 } from "../lib/jira-working-plan.mjs";
 import { regenerateProjectTreeHtml } from "../lib/jira-project-tree-plan.mjs";
-import { analyzeMyProject } from "../lib/my-project-analysis.mjs";
+import { analyzeMyProject } from "../PROJECT_JustLastOne/JustLastOne___my-project-analysis.mjs";
 import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./run-manager.mjs";
 import {
   clearRepoServicesLogs
@@ -75,9 +75,9 @@ import {
   TECNICI_ANALYSIS_HTML
 , TECNICI_ANALYSIS_JSON
 , loadAndAnalyzeTestTecnici
-} from "../lib/test-tecnici-analysis.mjs";
-import { getFunzionaliMetaPayload } from "../lib/test-funzionali-meta.mjs";
-import { getTecniciMetaPayload } from "../lib/test-tecnici-meta.mjs";
+} from "../PROJECT_JustLastOne/JustLastOne___test-tecnici-analysis.mjs";
+import { getFunzionaliMetaPayload } from "../PROJECT_JustLastOne/JustLastOne___test-funzionali-meta.mjs";
+import { getTecniciMetaPayload } from "../PROJECT_JustLastOne/JustLastOne___test-tecnici-meta.mjs";
 import { REPO_EXTRAS_ALL } from "../lib/repo-service-discovery.mjs";
 
 const SERVER_DIR   = dirname(fileURLToPath(import.meta.url));

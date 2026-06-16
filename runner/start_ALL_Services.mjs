@@ -1,39 +1,26 @@
 #!/usr/bin/env node
 /**
  * start_ALL_Services — avvio stack product (Auth + API + Web)
- *
- * Servizi:
- *   start_API_Auth.ps1     → @justlastone/auth  :4001
- *   start_API_Project.ps1  → @justlastone/api   :4000
- *   start_WEB.ps1          → @justlastone/web   :3000
- *
- * Uso:
- *   node runner/start_ALL_Services.mjs
- *   node runner/start_ALL_Services.mjs --cleanup
- *   node runner/start_ALL_Services.mjs --no-build
- *   node runner/start_ALL_Services.mjs --no-db
- *   node runner/start_ALL_Services.mjs --prepare-only
- *   node runner/start_ALL_Services.mjs --help
- *
- * Env:
- *   PRODUCT_REPO_PATH — root monorepo JustLastOne (default da PortalAdmin)
  */
 
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 import {
-  NEST_API_DEV
-, WEB_DEV
-, ensureEnvFiles
-, ensureNodeModules
-, maybeCleanBuildArtifacts
+  START_DEV_SERVICE_PS1
+} from "./runner.config.stack.mjs";
+import { syncDatabase } from "../lib/cruscotto-db/script_seed/script_seed-lib.mjs";
+import {
+  ensureNodeModules
+, ensureProductEnvFiles
+, getDevServices
+, getStackRunnerEntries
+, maybeCleanProductArtifacts
 , parseApiStartArgs
 , portalRoot
 , prepareProductRepoForNestApi
 , root
-, syncDatabase
-} from "../ellaStartScript/lib.mjs";
+} from "./runner.stack.mjs";
 
 const opts        = parseApiStartArgs(process.argv.slice(2));
 const prepareOnly = process.argv.includes("--prepare-only");
@@ -55,31 +42,10 @@ function buildStepCount() {
   return count;
 }
 
-const totalSteps = buildStepCount();
-let step         = 0;
-
-const ELLA_DIR = join(portalRoot, "runner");
-
-const SERVICE_ENTRIES = [
-  {
-    ps1   : "start_API_Auth.ps1"
-  , mjs   : "start_API_Auth.mjs"
-  , label : NEST_API_DEV.auth.label
-  , port  : NEST_API_DEV.auth.port
-  }
-, {
-    ps1   : "start_API_Project.ps1"
-  , mjs   : "start_API_Project.mjs"
-  , label : NEST_API_DEV.project.label
-  , port  : NEST_API_DEV.project.port
-  }
-, {
-    ps1   : "start_WEB.ps1"
-  , mjs   : "start_WEB.mjs"
-  , label : WEB_DEV.label
-  , port  : WEB_DEV.port
-  }
-];
+const totalSteps      = buildStepCount();
+let step              = 0;
+const ELLA_DIR        = join(portalRoot, "runner");
+const SERVICE_ENTRIES = getStackRunnerEntries();
 
 if (opts.help) {
   console.log(`Uso: node runner/start_ALL_Services.mjs [opzioni]
@@ -97,9 +63,9 @@ Database (default):
   init_Database_DEV — db:push (allinea schema Prisma) prima del prepare
 
 Singoli servizi:
-  node runner/start_API_Auth.mjs
-  node runner/start_API_Project.mjs
-  node runner/start_WEB.mjs
+  node runner/start_DEV_Service.mjs auth
+  node runner/start_DEV_Service.mjs api
+  node runner/start_DEV_Service.mjs web
 `);
   process.exit(0);
 }
@@ -119,6 +85,7 @@ function spawnServiceEntry(entry) {
       , "Bypass"
       , "-File"
       , ps1Path
+      , entry.serviceId
       , "-NoBuild"
       ]
     , {
@@ -137,7 +104,7 @@ function spawnServiceEntry(entry) {
 
   return spawn(
     process.execPath
-  , [mjsPath, "--no-build"]
+  , [mjsPath, entry.serviceId, "--no-build"]
   , {
       cwd      : portalRoot
     , detached : true
@@ -157,14 +124,14 @@ console.log(`Portal:  ${portalRoot}`);
 if (opts.cleanup) {
   step += 1;
   console.log(`\n[${step}/${totalSteps}] Cleanup artefatti compilati…`);
-  maybeCleanBuildArtifacts(true);
+  maybeCleanProductArtifacts(true);
 }
 
 if (!skipDb) {
   step += 1;
   console.log(`\n[${step}/${totalSteps}] Refresh database (db:push)…`);
   ensureNodeModules();
-  ensureEnvFiles();
+  ensureProductEnvFiles();
   syncDatabase();
 } else {
   step += 1;
@@ -200,9 +167,12 @@ for (const entry of SERVICE_ENTRIES) {
 
 step += 1;
 console.log(`\n[${step}/${totalSteps}] Endpoint attesi:`);
-console.log(`       Auth    ${NEST_API_DEV.auth.healthUrl}`);
-console.log(`       API     ${NEST_API_DEV.project.healthUrl}`);
-console.log(`       Web     ${WEB_DEV.openUrl}`);
+
+for (const svc of getDevServices()) {
+  const url = svc.openUrl ?? svc.healthUrl ?? "";
+
+  console.log(`       ${svc.label.padEnd(8)} ${url}`);
+}
 
 if (process.platform === "win32") {
   console.log("\nOgni servizio è in una finestra PowerShell separata (Ctrl+C per terminarlo).");

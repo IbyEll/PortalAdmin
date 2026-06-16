@@ -12,7 +12,7 @@ _Epic:_ [ADMIN-88](https://myfuturejobsearch.atlassian.net/browse/ADMIN-88)
 | --- | --- | --- |
 | 1 | Checkout sibling `JustLastOne/` + `PortalAdmin/` | `npm run test:paths` verde |
 | 2 | `PRODUCT_REPO_PATH` punta al monorepo prodotto | `.env` o default `../JustLastOne` |
-| 3 | `testScript/` scoperto da `runner/run-all.mjs --list` | `npm run test:run-all` verde |
+| 3 | `testScript/` scoperto da `runner/JustLastOne___run-all.mjs --list` | `npm run test:run-all` verde |
 | 4 | Report in `PortalAdmin/data/reports/` (gitignored) | run-all o dashboard run |
 
 ## Cruscotto e DB

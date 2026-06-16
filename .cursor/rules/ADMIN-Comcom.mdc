@@ -1,0 +1,91 @@
+---
+description: comcom nomefile — commenta file con testata + step (template .cursor/templates/comments/)
+alwaysApply: true
+---
+
+# `comcom nomefile` — commenti uniformi
+
+## Trigger
+
+| Comando chat | Effetto |
+| --- | --- |
+| `comcom nomefile` | Commenta il file indicato (path relativo o assoluto) |
+| `comcom path/to/file.mjs` | Idem |
+
+**Non** attiva workflow JLO/ADMIN (`procedi`, `gogo`, `chiudi`, `veve`).
+
+## Sequenza agente (ordine obbligatorio)
+
+1. **Leggi** il file target e **1–2 consumer** (`grep` import) — per compilare *Perché esiste* / *A cosa serve*.
+2. **Scegli il template** — tabella in `.cursor/templates/comments/README.md`.
+3. **Leggi il template scelto** con il tool Read — **obbligatorio**, prima di modificare il target:
+
+| Tipo file | Path template (relativo repo PortalAdmin) |
+| --- | --- |
+| Entrypoint CLI (`#!/usr/bin/env node`, `main` implicito) | `.cursor/templates/comments/script-entrypoint.mjs` |
+| Libreria (`lib/`, `runner/*-lib.mjs`, export senza argv) | `.cursor/templates/comments/lib-module.mjs` |
+| Server / UI (`server/`, `cruscotto/`, `api-portal/`) | `.cursor/templates/comments/app-module.mjs` |
+
+4. **Applica sul file target** la struttura del template letto:
+   - sostituisci i placeholder `{…}` con contenuto reale (consumer, path, flag, export);
+   - mantieni **sezioni e ordine** del template (testata, step `// N.`, JSDoc);
+   - **non** inventare un formato alternativo se il template già lo definisce.
+5. **Solo commenti** — nessun refactor, rinomina o cambio logica; IndentElla invariato.
+6. **Formattazione file** — vedi sotto (non raddoppiare le righe).
+7. **Output chat** — una riga: template usato + path file target (no dump).
+
+### Formattazione (anti-righe-vuote)
+
+- **Vietato** inserire una riga vuota dopo **ogni** riga di commento o di codice.
+- JSDoc/testata: righe ` * …` consecutive; al massimo **una** riga ` *` vuota tra sezioni (titolo / descrizione / export), come nei template.
+- Step `// N.` — subito sopra il blocco che descrivono; **senza** riga vuota tra commento e codice salvo separare due fasi distinte.
+- Preferire **patch mirate** (`StrReplace`) sulla testata e sui blocchi senza commenti; riscrittura intera solo se necessario.
+- Su Write intero file: fine riga **`\n` (LF)** — non `\r\n` ripetuto riga per riga (su Windows può raddoppiare le righe in editor).
+
+## Cosa deriva dal template (non riscrivere in chat)
+
+Tutto ciò che è nel file template letto al passo 3:
+
+- blocchi testata `/** … */` (titolo, descrizione funzionale, uso/route, flag, env, consumatori, export);
+- formato step `// N. {cosa} — {perché}`;
+- JSDoc su export e funzioni pubbliche non banali;
+- checklist implicita del template (es. help → exit 0 nello script-entrypoint).
+
+La regola **non** duplica il template: se c'è conflitto, **vince il template** aggiornato in `.cursor/templates/comments/`.
+
+## Regole aggiuntive (oltre al template)
+
+### Descrizione funzionale
+
+Sempre in testata, compilata da codice + consumer:
+
+```text
+Descrizione funzionale:
+  Perché esiste: …
+  A cosa serve: …
+```
+
+### Commenti `*!` (intoccabili)
+
+Righe che iniziano con `*!` in `/** … */` o `//`:
+
+- **non** modificare, rimuovere, compattare né tradurre;
+- `comcom` può aggiungere testata/step **solo** fuori da blocchi `*!` o sopra/sotto senza alterarli.
+
+### Vietato
+
+- ❌ Applicare `comcom` **senza** aver letto il template (passo 3)
+- ❌ Modificare comportamento del file target
+- ❌ Inglese nei commenti (salvo termini tecnici: CLI, env, path)
+- ❌ Incollare il template intero in chat
+- ❌ Riga vuota dopo ogni riga del file (sintomo: file ~2× righe attese)
+
+## Priorità
+
+Su `comcom`, questa regola **prevale** su «pochi commenti» e su `ADMIN-ScriptComments.mdc`.
+
+## Riferimenti
+
+- Scelta tipo file: `.cursor/templates/comments/README.md`
+- Template: `script-entrypoint.mjs` · `lib-module.mjs` · `app-module.mjs`
+- Esempio reale commentato: `runner/runner.stack.base.mjs`, `lib/cruscotto-db/script_seed/script_seed-lib.mjs`

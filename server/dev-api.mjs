@@ -1,5 +1,5 @@
 import { loadDevManifest } from "../lib/dev-manifest.mjs";
-import { findPidsByCommandFragment } from "../lib/kill-dev-ports.mjs";
+import { findPidsByCommandFragment } from "../runner/kill-dev-ports.mjs";
 import { FRIEND_BOT_PROCESS_FRAGMENT } from "../lib/repo-service-discovery.mjs";
 
 const PROBE_TIMEOUT_MS = 2000;

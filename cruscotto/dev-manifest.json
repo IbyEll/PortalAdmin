@@ -52,11 +52,11 @@
 
       { "id": "start-dev", "label": "Avvia product (PortalAdmin)", "cmd": "npm run start:dev" },
 
-      { "id": "start-dev-clean", "label": "Solo cleanup artefatti", "cmd": "node ellaStartScript/start-dev.mjs --clean-only" },
+      { "id": "start-dev-clean", "label": "Solo cleanup artefatti", "cmd": "node runner/start-dev.mjs --clean-only" },
 
-      { "id": "start-dev-db-reset", "label": "Reset DB SQLite + seed", "cmd": "node ellaStartScript/init_Database_DEV.mjs --reset --seed" },
+      { "id": "start-dev-db-reset", "label": "Reset DB SQLite + seed", "cmd": "node lib/cruscotto-db/script_seed/init_Database_DEV.mjs --reset --seed" },
 
-      { "id": "seed-data", "label": "Alimentazione dati test", "cmd": "node ellaStartScript/run-data-seeds.mjs --seed func --wait-auth" },
+      { "id": "seed-data", "label": "Alimentazione dati test", "cmd": "node lib/cruscotto-db/script_seed/run-data-seeds.mjs --seed func --wait-auth" },
 
       { "id": "dashboard", "label": "Avvia cruscotto PortalAdmin", "cmd": "npm run admin:dashboard" }
 
@@ -142,24 +142,6 @@
 
     {
 
-      "id": "api-portal",
-
-      "label": "API Portal",
-
-      "description": "Navigazione OpenAPI centralizzata — PortalAdmin, config da PRODUCT_REPO_PATH",
-
-      "port": 4080,
-
-      "healthUrl": "http://localhost:4080/",
-
-      "openUrl": "http://localhost:4080/",
-
-      "docs": null
-
-    },
-
-    {
-
       "id": "friendbot",
 
       "label": "friendBOT JLO",
@@ -175,6 +157,24 @@
         "script": "testScript/funzionali/friend-bot.mjs"
 
       }
+
+    },
+
+    {
+
+      "id": "api-portal",
+
+      "label": "API Portal",
+
+      "description": "Navigazione OpenAPI centralizzata — PortalAdmin, config da PRODUCT_REPO_PATH",
+
+      "port": 4080,
+
+      "healthUrl": "http://localhost:4080/",
+
+      "openUrl": "http://localhost:4080/",
+
+      "docs": null
 
     }
 

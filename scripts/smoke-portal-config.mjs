@@ -5,12 +5,31 @@
 
 import { existsSync } from "node:fs";
 import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../portal.config.mjs";
+import { getProjectConfig, portalDevManifestExists, resolveProductSeedPath, resolveProjectOverlayName } from "../lib/config.project.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
 import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+const project = getProjectConfig();
+
+if (resolveProjectOverlayName() !== "JustLastOne" || project.PRJ_REPO !== "JustLastOne" || project.PRJ_JIRA_PREFIX !== "JLO") {
+  console.error("FAIL: overlay JustLastOne — atteso JustLastOne/JLO", resolveProjectOverlayName(), project);
+  process.exit(1);
+}
+
+if (!portalDevManifestExists(getPortalRoot())) {
+  console.error(`FAIL: dev-manifest assente: ${project.PRJ_DEV_MANIFEST}`);
+  process.exit(1);
+}
+
+if (!existsSync(resolveProductSeedPath(getProductRepoPath()))) {
+  console.error(`FAIL: PRJ_SEED assente: ${project.PRJ_SEED}`);
+  process.exit(1);
+}
 
 if (!JIRA_PROJECT_KEYS.includes("JLO") || !JIRA_PROJECT_KEYS.includes("ADMIN")) {
   console.error("FAIL: JIRA_PROJECT_KEYS", JIRA_PROJECT_KEYS);

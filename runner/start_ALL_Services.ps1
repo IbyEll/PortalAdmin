@@ -6,8 +6,8 @@
 #   .\runner\start_ALL_Services.ps1 -PrepareOnly
 #   .\runner\start_ALL_Services.ps1 -Help
 #
-# Avvia in finestre separate:
-#   start_API_Auth.ps1 · start_API_Project.ps1 · start_WEB.ps1
+# Avvia in finestre separate (start_DEV_Service.ps1):
+#   auth · api · web
 
 param(
   [switch]$CleanUp

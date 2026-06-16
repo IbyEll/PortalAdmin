@@ -1,16 +1,18 @@
 ---
-description: Script CLI/runner — commenti step-by-step obbligatori in ogni fase logica
-globs: runner/**/*.mjs,ellaStartScript/**/*.mjs,scripts/**/*.mjs
+description: Script CLI/runner — commenti step-by-step (vedi anche comcom + .cursor/templates/comments/)
+globs: runner/**/*.mjs,lib/cruscotto-db/script_seed/**/*.mjs,scripts/**/*.mjs
 alwaysApply: false
 ---
 
 # Script — commenti step by step
 
-Quando **crei o modifichi** script eseguibili (`.mjs` in `runner/`, `ellaStartScript/`, `scripts/`):
+**Comando chat:** `comcom nomefile` → `ADMIN-Comcom.mdc`: leggere template da `.cursor/templates/comments/` e applicarlo sul file.
+
+Quando **crei o modifichi** script eseguibili (`.mjs` in `runner/`, `scripts/`):
 
 ## Obbligatorio
 
-1. **Header** in cima al file: scopo, uso CLI (`--help`), variabili d'ambiente rilevanti.
+1. **Header** in cima al file: titolo, **descrizione funzionale** (Perché esiste + A cosa serve), uso CLI (`--help`), variabili d'ambiente rilevanti.
 2. **Commenti per fase** — ogni blocco logico preceduto da un commento che spiega *cosa* fa e *perché* (non ripetere il nome della funzione).
 3. **Ordine numerato** nei main/entrypoint lunghi: `// 1. …`, `// 2. …` oppure `// Step 1 — …`.
 4. **Branch e exit** — commentare `process.exit`, early return e flag CLI non ovvi.

@@ -42,7 +42,7 @@ I test vivono nel **product repo** (`JustLastOne/testScript/`). PortalAdmin li o
 | Path | Repo | Contenuto |
 | --- | --- | --- |
 | `{PRODUCT_REPO}/testScript/` | JustLastOne | Script `test-*.mjs` eseguiti |
-| `runner/run-all.mjs` | PortalAdmin | Discovery + run sequenziale |
+| `runner/JustLastOne___run-all.mjs` | PortalAdmin | Discovery + run sequenziale |
 | `data/reports/latest.json` | PortalAdmin | Ultimo report JSON |
 | `data/reports/latest.html` | PortalAdmin | Report HTML offline |
 
@@ -54,19 +54,19 @@ C:/dev/
     testScript/
     apps/
   PortalAdmin/          ← questo repo
-    runner/run-all.mjs
+    runner/JustLastOne___run-all.mjs
     data/reports/       ← gitignored
 ```
 
 Comandi:
 
 ```bash
-node runner/run-all.mjs --list          # discovery testScript
-node runner/run-all.mjs --suite auth    # run suite (richiede stack :4000/:4001)
+node runner/JustLastOne___run-all.mjs --list          # discovery testScript
+node runner/JustLastOne___run-all.mjs --suite auth    # run suite (richiede stack :4000/:4001)
 npm run test:run-all                      # smoke discovery
 ```
 
-`POST /api/run` sul dashboard avvia `runner/run-all.mjs` in PortalAdmin con script da product repo.
+`POST /api/run` sul dashboard avvia `runner/JustLastOne___run-all.mjs` in PortalAdmin con script da product repo.
 
 ## Dual-repo (ADMIN-90)
 

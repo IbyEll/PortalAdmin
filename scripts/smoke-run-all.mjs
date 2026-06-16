@@ -14,7 +14,7 @@ const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 requireTestScriptDir();
 
-const child = spawn(process.execPath, ["runner/run-all.mjs", "--list"], {
+const child = spawn(process.execPath, ["runner/JustLastOne___run-all.mjs", "--list"], {
   cwd       : PORTAL_ROOT
 , stdio     : ["ignore", "pipe", "pipe"]
 , env       : process.env

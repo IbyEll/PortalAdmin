@@ -1,6 +1,6 @@
 # start_API_Portal — wrapper PowerShell
-#   .\ellaStartScript\start_API_Portal.ps1
-#   .\ellaStartScript\start_API_Portal.ps1 -Help
+#   .\runner\start_API_Portal.ps1
+#   .\runner\start_API_Portal.ps1 -Help
 
 param(
   [switch]$Help

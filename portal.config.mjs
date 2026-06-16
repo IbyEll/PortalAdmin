@@ -16,7 +16,7 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
   {
     key   : "JLO-850"
   , label : "Runner run-all"
-  , paths : ["runner/run-all.mjs"]
+  , paths : ["runner/JustLastOne___run-all.mjs"]
   , tests : ["dashboard/test-dev-cruscotto.mjs"]
   }
 , {
@@ -441,12 +441,18 @@ export const REPO_IMPLEMENTATION_SIGNALS = [
       , "testScript/funzionali/friend-bot.mjs"
       , "testScript/funzionali/test-friend-bot.mjs"
       , "testScript/funzionali/run-funzionali.mjs"
-      , "lib/test-funzionali-meta.mjs"
+      , "lib/JustLastOne___test-funzionali-meta.mjs"
       , "server/run-manager.mjs"
-      , "ellaStartScript/lib.mjs"
-      , "ellaStartScript/start-dev.mjs"
-      , "ellaStartScript/run-data-seeds.mjs"
-      , "ellaStartScript/serve-api-portal.mjs"
+      , "runner/runner.stack.base.mjs"
+      , "runner/runner.stack.mjs"
+      , "runner/start_DEV_Service.mjs"
+      , "runner/start_DEV_Service.ps1"
+      , "runner/runner.config.stack.mjs"
+      , "lib/seed-cli-args.mjs"
+      , "lib/cruscotto-db/script_seed/script_seed-lib.mjs"
+      , "lib/cruscotto-db/script_seed/init_Database_DEV.mjs"
+      , "lib/cruscotto-db/script_seed/run-data-seeds.mjs"
+      , "runner/serve-api-portal.mjs"
     ]
   , tests : ["funzionali/test-friend-bot.mjs"]
   }
@@ -847,7 +853,7 @@ export function buildBacklogInsights(issues, at = new Date().toISOString(), opti
     insights.push({
       at,
       kind : "comment",
-      text : "Nessun report test in data/reports/latest.json — esegui «node runner/run-all.mjs» per insight sui test",
+      text : "Nessun report test in data/reports/latest.json — esegui «node runner/JustLastOne___run-all.mjs» per insight sui test",
     });
   }
 

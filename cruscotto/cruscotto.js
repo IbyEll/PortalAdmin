@@ -1078,6 +1078,117 @@ function scrollUtilityConsoleIntoView() {
   });
 }
 
+/** @type {((value: boolean) => void) | null} */
+let utilityConfirmResolve = null;
+
+let utilityConfirmModalBound = false;
+
+function closeUtilityConfirm(result) {
+  const modal = document.getElementById("utility-confirm-modal");
+
+  if (!modal || !utilityConfirmResolve) {
+    return;
+  }
+
+  const resolve           = utilityConfirmResolve;
+  utilityConfirmResolve   = null;
+
+  modal.classList.add("hidden");
+  modal.setAttribute("hidden", "");
+  document.body.classList.remove("utility-confirm-open");
+  resolve(result);
+}
+
+function bindUtilityConfirmModal() {
+  if (utilityConfirmModalBound) {
+    return;
+  }
+
+  utilityConfirmModalBound = true;
+
+  const modal = document.getElementById("utility-confirm-modal");
+
+  if (!modal) {
+    return;
+  }
+
+  modal.querySelector("#utility-confirm-ok")?.addEventListener("click", () => {
+    closeUtilityConfirm(true);
+  });
+
+  modal.querySelector("#utility-confirm-cancel")?.addEventListener("click", () => {
+    closeUtilityConfirm(false);
+  });
+
+  modal.addEventListener("click", (ev) => {
+    if (ev.target === modal) {
+      closeUtilityConfirm(false);
+    }
+  });
+
+  document.addEventListener("keydown", (ev) => {
+    if (!utilityConfirmResolve) {
+      return;
+    }
+
+    if (ev.key === "Escape") {
+      closeUtilityConfirm(false);
+    }
+  });
+}
+
+/**
+ * Dialogo conferma Utility (non usa window.confirm).
+ *
+ * @param {{
+ *   title?: string
+ *   message: string
+ *   confirmLabel?: string
+ *   cancelLabel?: string
+ *   danger?: boolean
+ * }} options
+ * @returns {Promise<boolean>}
+ */
+function utilityConfirm(options) {
+  return new Promise((resolve) => {
+    const modal     = document.getElementById("utility-confirm-modal");
+    const titleEl   = modal?.querySelector("#utility-confirm-title");
+    const bodyEl    = modal?.querySelector("#utility-confirm-body");
+    const okBtn     = modal?.querySelector("#utility-confirm-ok");
+    const cancelBtn = modal?.querySelector("#utility-confirm-cancel");
+
+    if (!(modal instanceof HTMLElement)
+        || !(titleEl instanceof HTMLElement)
+        || !(bodyEl instanceof HTMLElement)
+        || !(okBtn instanceof HTMLButtonElement)
+        || !(cancelBtn instanceof HTMLButtonElement)) {
+      resolve(false);
+      return;
+    }
+
+    if (utilityConfirmResolve) {
+      resolve(false);
+      return;
+    }
+
+    utilityConfirmResolve = resolve;
+    titleEl.textContent   = options.title ?? "Conferma";
+    bodyEl.innerHTML      = escapeHtml(options.message)
+      .replace(/\n\n/g, "<br><br>")
+      .replace(/\n/g, "<br>");
+    okBtn.textContent     = options.confirmLabel ?? "Conferma";
+    cancelBtn.textContent = options.cancelLabel ?? "Annulla";
+    okBtn.className       = options.danger
+      ? "action utility-confirm-danger"
+      : "action primary";
+
+    modal.classList.remove("hidden");
+    modal.removeAttribute("hidden");
+    document.body.classList.add("utility-confirm-open");
+    cancelBtn.focus();
+  });
+}
+
 /**
  * @param {string} tabId
  * @param {string} hint
@@ -4898,8 +5009,8 @@ async function renderUtility(report) {
           Ogni riga mostra <strong>Path</strong> (cartella o script nel repo), <strong>PID</strong>,
           <strong>User</strong> (Cursor / Utente / Cruscotto), <strong>Stato</strong>
           (data/ora sulla prima riga, stato sulla seconda) e i bottoni in <strong>Avvio / Kill</strong>.
-          Le righe <em>web</em>, <em>api</em> e <em>auth</em> condividono una
-          sola cella Avvia/Kill con le checkbox database opzionali.
+          Le righe <em>Database - Prisma — REFRESH</em>, <em>web</em>, <em>api</em> e <em>auth</em> condividono una
+          sola cella unificata.
           <em>API Portal</em> e <em>Admin Dashboard</em> sono servizi <strong>PortalAdmin</strong>
           (righe separate, config progetto da <code>PRODUCT_REPO_PATH</code>).
         </p>
@@ -4911,12 +5022,10 @@ async function renderUtility(report) {
           <tbody>
             <tr>
               <td><strong>Avvia</strong> (stack)</td>
-              <td>web + api + auth</td>
+              <td>schema + web + api + auth</td>
               <td>
                 <code>node runner/start_ALL_Services.mjs</code>
                 (Auth + API + Web — include db:push prima dell'avvio).
-                Con checkbox attive, prima <code>ellaStartScript/init_Database_DEV.mjs --reset</code> e/o
-                <code>--seed</code>.
               </td>
             </tr>
             <tr>
@@ -4935,18 +5044,13 @@ async function renderUtility(report) {
             </tr>
             <tr>
               <td><strong>Delete &amp; create</strong></td>
-              <td>Database — Prisma</td>
-              <td><code>node ellaStartScript/init_Database_DEV.mjs --reset</code> (elimina <code>dev.db</code>, ricrea schema)</td>
-            </tr>
-            <tr>
-              <td><strong>Refresh</strong></td>
-              <td>Database — Prisma</td>
-              <td><code>node ellaStartScript/init_Database_DEV.mjs --push</code> (<code>npm run db:push</code> — allinea schema)</td>
+              <td>Database — Prisma (file)</td>
+              <td><code>node lib/cruscotto-db/script_seed.mjs --reset</code> (elimina <code>JLO_DEV.db</code>, ricrea schema)</td>
             </tr>
             <tr>
               <td><strong>Inizializza</strong></td>
               <td>Database — Script inizializzazione</td>
-              <td><code>node ellaStartScript/init_Database_DEV.mjs --seed</code> (<code>npm run db:seed</code> host@ / player@)</td>
+              <td><code>node lib/cruscotto-db/script_seed.mjs --seed</code> (<code>npm run db:seed</code> host@ / player@)</td>
             </tr>
             <tr>
               <td><strong>Avvia</strong> / <strong>Kill</strong></td>
@@ -5009,8 +5113,8 @@ async function renderUtility(report) {
             e <strong>User</strong>.
           </li>
           <li>
-            Database: <strong>Delete &amp; create</strong> se serve schema pulito, poi
-            <strong>Inizializza</strong> per host@ e player@ (o checkbox nello stack Avvia).
+            Database file: <strong>Delete &amp; create</strong>; seed: <strong>Inizializza</strong>.
+            Stack product: <strong>Avvia</strong> / <strong>Kill</strong> (include db:push all'avvio).
           </li>
           <li>
             Avvia lo stack dalla cella unificata <strong>Avvia</strong> (product) o dai bottoni
@@ -5024,7 +5128,7 @@ async function renderUtility(report) {
         </ol>
         <p class="muted utility-intro-note">
           Setup alternativo da terminale (product repo):
-          <code>node ellaStartScript/start-dev.mjs</code> — cleanup, build, db opzionale e avvio stack.
+          <code>node runner/start-dev.mjs</code> — cleanup, build, db opzionale e avvio stack.
           Se vedi <em>Discovery non disponibile</em> o <code>Not found</code>, riavvia
           <code>npm run admin:dashboard</code> e ricarica con Ctrl+F5.
         </p>
@@ -5034,10 +5138,10 @@ async function renderUtility(report) {
       <h2>Avvio stack dev</h2>
       <table class="data">
         <thead>
-          <tr><th>Product</th><th>Servizio</th><th>Descrizione</th><th>Path</th><th>Porta</th><th>PID</th><th>User</th><th>Stato</th><th>Link</th><th>Avvio / Kill</th></tr>
+          <tr><th class="utility-block-col">#</th><th>Product</th><th>Servizio</th><th>Descrizione</th><th>Path</th><th>Porta</th><th>PID</th><th>User</th><th>Stato</th><th>Link</th><th>Avvio / Kill</th></tr>
         </thead>
         <tbody id="utility-services-body">
-          <tr><td colspan="10" class="muted">Caricamento piano avvio…</td></tr>
+          <tr><td colspan="11" class="muted">Caricamento piano avvio…</td></tr>
         </tbody>
       </table>
       <p id="utility-processes-checked" class="muted" style="margin-top:0.35rem;font-size:0.8rem">—</p>
@@ -5095,6 +5199,23 @@ async function renderUtility(report) {
           ${hasReport ? "" : 'aria-disabled="true" tabindex="-1"'}
         >Apri report HTML</a>
       </div>
+    </div>
+    <div
+      id="utility-confirm-modal"
+      class="utility-confirm-overlay hidden"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="utility-confirm-title"
+    >
+      <div class="utility-confirm-panel">
+        <h3 id="utility-confirm-title" class="utility-confirm-title">Conferma</h3>
+        <div id="utility-confirm-body" class="utility-confirm-body"></div>
+        <div class="utility-confirm-actions">
+          <button type="button" class="action" id="utility-confirm-cancel">Annulla</button>
+          <button type="button" class="action primary" id="utility-confirm-ok">Conferma</button>
+        </div>
+      </div>
     </div>`;
 
   bindExportActions(root, {
@@ -5104,6 +5225,7 @@ async function renderUtility(report) {
 
   bindUtilityIntroPanel(root);
   bindUtilityConsoleTabs(root);
+  bindUtilityConfirmModal();
   await hydrateUtilityStack(root);
 
   if (location.hash.replace("#", "") === "utility") {
@@ -5181,12 +5303,39 @@ async function hydrateUtilityStack(root) {
     return;
   }
 
-  const UTILITY_TABLE_COLS = 10;
+  const UTILITY_TABLE_COLS = 11;
   const PRODUCT_REPO_NAME  = "JustLastOne";
-  /** @type {boolean} */
-  let utilityStackDbResetOnStart = false;
-  /** @type {boolean} */
-  let utilityStackDbSeedOnStart  = false;
+  const UTILITY_BLOCK_DB_FILE = 1;
+  const UTILITY_BLOCK_DB_SEED = 2;
+  const UTILITY_BLOCK_STACK   = 3;
+
+  /**
+   * @param {number} blockNum
+   * @param {number} [rowSpan]
+   */
+  function renderUtilityBlockCell(blockNum, rowSpan = 1) {
+    return `<td rowspan="${rowSpan}" class="utility-block-cell" valign="middle">${blockNum}</td>`;
+  }
+
+  /**
+   * @param {number} blockNum
+   */
+  function utilityBlockParityClass(blockNum) {
+    return blockNum % 2 === 1 ? "utility-block-odd" : "utility-block-even";
+  }
+
+  /**
+   * @param {number} blockNum
+   * @param {...string} extraClasses
+   */
+  function utilityTrClassAttr(blockNum, ...extraClasses) {
+    const classes = [
+      utilityBlockParityClass(blockNum)
+    , ...extraClasses.filter(Boolean)
+    ].join(" ");
+
+    return classes ? ` class="${classes}"` : "";
+  }
 
   /**
    * @param {Record<string, unknown>} svc
@@ -5197,6 +5346,23 @@ async function hydrateUtilityStack(root) {
     return String(svc.product ?? "") === PRODUCT_REPO_NAME
       && id !== "friendbot"
       && id !== "database";
+  }
+
+  /**
+   * @param {Record<string, unknown>} svc
+   * @param {Record<string, unknown> | null | undefined} prevSvc
+   */
+  function utilityProductBoundaryClass(svc, prevSvc) {
+    const product     = String(svc.product ?? "");
+    const prevProduct = prevSvc
+      ? String(prevSvc.product ?? "")
+      : PRODUCT_REPO_NAME;
+
+    if (product === "PortalAdmin" && prevProduct === PRODUCT_REPO_NAME) {
+      return "utility-product-boundary-row";
+    }
+
+    return "";
   }
 
   /**
@@ -5222,14 +5388,12 @@ async function hydrateUtilityStack(root) {
   }
 
   /**
-   * Cella unificata stack product (web, api, auth).
+   * Cella unificata stack product (schema db + web, api, auth).
    * @param {number} rowSpan
    * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} [options]
    */
   function renderStackActionsCell(rowSpan, options = {}) {
     const { stackAllUp = false, stackAnyUp = false } = options;
-    const resetChecked = utilityStackDbResetOnStart ? " checked" : "";
-    const seedChecked  = utilityStackDbSeedOnStart ? " checked" : "";
     const startDisabled = stackAllUp ? " disabled" : "";
     const killDisabled  = stackAnyUp ? "" : " disabled";
 
@@ -5237,16 +5401,6 @@ async function hydrateUtilityStack(root) {
       <div class="utility-actions-stack">
         <button type="button" class="action primary utility-action-btn" data-utility-action="stack-start" title="start_ALL_Services — web + api + auth"${startDisabled}>Avvia</button>
         <button type="button" class="action utility-action-btn" data-utility-action="stack-kill" title="Termina web, api, auth"${killDisabled}>Kill</button>
-        <div class="utility-stack-db-options">
-          <label class="utility-stack-db-option" title="Prima dell'avvio: elimina dev.db e ricrea schema Prisma">
-            <input type="checkbox" class="utility-stack-db-reset-cb"${resetChecked}>
-            <span>Delete &amp; create DB</span>
-          </label>
-          <label class="utility-stack-db-option" title="Prima dell'avvio: npm run db:seed (host@ / player@)">
-            <input type="checkbox" class="utility-stack-db-seed-cb"${seedChecked}>
-            <span>Inizializza</span>
-          </label>
-        </div>
       </div>
     </td>`;
   }
@@ -5299,19 +5453,56 @@ async function hydrateUtilityStack(root) {
       return `<td class="utility-actions-cell muted" title="Cruscotto corrente">—</td>`;
     }
 
+    if (isStackCompleteService(svc)) {
+      return "";
+    }
+
     if (id === "friendbot" || id === "api-portal") {
       return renderServiceActionsCell(id, isUtilityServiceListening(processById, id));
     }
 
-    if (isStackCompleteService(svc)) {
-      if (index === firstStackIndex && stackRowCount > 0) {
-        return renderStackActionsCell(stackRowCount, stackState);
-      }
-
-      return "";
-    }
-
     return `<td class="utility-actions-cell muted">—</td>`;
+  }
+
+  /**
+   * Prima riga del gruppo stack (schema + web, api, auth) — cella Avvia/Kill unificata.
+   * @param {Record<string, unknown>} dbStatus
+   * @param {number} rowSpan
+   * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} stackState
+   */
+  function renderDatabaseSchemaStackRow(dbStatus, rowSpan, stackState) {
+    const exists     = dbStatus.exists === true;
+    const scriptPath = "lib/cruscotto-db/script_seed.mjs --push";
+    const sizeLabel  = formatDbSize(Number(dbStatus.sizeBytes ?? 0));
+    const createdIso = typeof dbStatus.createdAt === "string" ? dbStatus.createdAt : null;
+    const checkedAt  = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
+    const dbStato    = exists
+      ? renderUtilityStatoCell({
+          atIso  : createdIso ?? checkedAt
+        , up     : true
+        , label  : "presente"
+        , suffix : sizeLabel
+        })
+      : renderUtilityStatoCell({
+          atIso  : checkedAt
+        , absent : true
+        , label  : ""
+        });
+
+    return `
+      <tr${utilityTrClassAttr(UTILITY_BLOCK_STACK, "utility-db-row", "utility-db-schema-stack-row")}>
+        ${renderUtilityBlockCell(UTILITY_BLOCK_STACK, rowSpan)}
+        <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
+        <td>Database - Prisma<span class="utility-svc-suffix"> — REFRESH —</span></td>
+        <td class="utility-service-desc muted">Allinea schema Prisma (db:push) — stack web, api, auth</td>
+        <td><code class="utility-service-path">${escapeHtml(scriptPath)}</code></td>
+        <td>—</td>
+        <td><code>—</code></td>
+        <td class="muted">—</td>
+        <td>${dbStato}</td>
+        <td>—</td>
+        ${renderStackActionsCell(rowSpan, stackState)}
+      </tr>`;
   }
 
   /**
@@ -5406,7 +5597,7 @@ async function hydrateUtilityStack(root) {
    */
   function renderDatabaseRows(dbStatus) {
     const exists     = dbStatus.exists === true;
-    const dbPath     = escapeHtml(String(dbStatus.path ?? "packages/database/prisma/dev.db"));
+    const dbPath     = escapeHtml(String(dbStatus.path ?? "packages/database/prisma/JLO_DEV.db"));
     const sizeLabel  = formatDbSize(Number(dbStatus.sizeBytes ?? 0));
     const createdIso = typeof dbStatus.createdAt === "string" ? dbStatus.createdAt : null;
     const checkedAt  = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
@@ -5422,7 +5613,7 @@ async function hydrateUtilityStack(root) {
         , absent : true
         , label  : ""
         });
-    const scriptPath     = "ellaStartScript/init_Database_DEV.mjs --seed";
+    const scriptPath     = "lib/cruscotto-db/script_seed.mjs --seed";
     const seedAt         = typeof dbStatus.seedCompletedAt === "string" ? dbStatus.seedCompletedAt : null;
     const seedCompleted  = dbStatus.seedCompleted === true || seedAt != null;
     const seedStato      = seedCompleted
@@ -5442,7 +5633,8 @@ async function hydrateUtilityStack(root) {
       : "action primary utility-action-btn";
 
     return `
-      <tr class="utility-db-row utility-db-file-row">
+      <tr${utilityTrClassAttr(UTILITY_BLOCK_DB_FILE, "utility-db-row", "utility-db-file-row")}>
+        ${renderUtilityBlockCell(UTILITY_BLOCK_DB_FILE)}
         <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
         <td>Database - Prisma</td>
         <td class="utility-service-desc muted">File SQLite Prisma — schema persistente</td>
@@ -5454,12 +5646,12 @@ async function hydrateUtilityStack(root) {
         <td>—</td>
         <td class="utility-actions-cell">
           <div class="utility-actions-stack">
-            <button type="button" class="action utility-action-btn" data-utility-action="db-reset" title="Elimina dev.db e ricrea schema">Delete &amp; create</button>
-            <button type="button" class="action utility-action-btn" data-utility-action="db-push" title="Allinea schema Prisma (db:push)">Refresh</button>
+            <button type="button" class="action utility-action-btn" data-utility-action="db-reset" title="Elimina JLO_DEV.db e ricrea schema">Delete &amp; create</button>
           </div>
         </td>
       </tr>
-      <tr class="utility-db-row utility-db-script-row">
+      <tr${utilityTrClassAttr(UTILITY_BLOCK_DB_SEED, "utility-db-row", "utility-db-script-row")}>
+        ${renderUtilityBlockCell(UTILITY_BLOCK_DB_SEED)}
         <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
         <td>Database - Script inizializzazione</td>
         <td class="utility-service-desc muted">npm run db:seed — righe host@ e player@</td>
@@ -5480,13 +5672,14 @@ async function hydrateUtilityStack(root) {
   /**
    * @param {Array<Record<string, unknown>>} nodeRows
    * @param {string | null} checkedAt
+   * @param {number} blockNum
    */
-  function renderUtilityNodeProcessRows(nodeRows, checkedAt) {
+  function renderUtilityNodeProcessRows(nodeRows, checkedAt, blockNum) {
     if (!nodeRows.length) {
       return "";
     }
 
-    return nodeRows.map((row) => {
+    return nodeRows.map((row, index) => {
       const listeners   = Array.isArray(row.listeners) ? row.listeners : [];
       const pidText     = listeners.length > 0
         ? listeners.map((listener) => {
@@ -5504,9 +5697,13 @@ async function hydrateUtilityStack(root) {
       , up    : true
       , label : "attivo"
       });
+      const blockCell   = index === 0
+        ? renderUtilityBlockCell(blockNum, nodeRows.length)
+        : "";
 
       return `
-        <tr class="utility-node-proc-row">
+        <tr${utilityTrClassAttr(blockNum, "utility-node-proc-row")}>
+          ${blockCell}
           <td>${product}</td>
           <td>Node <span class="muted">#${escapeHtml(pidText)}</span></td>
           <td class="utility-service-desc muted" title="${path}">${description}</td>
@@ -5530,9 +5727,10 @@ async function hydrateUtilityStack(root) {
   function renderServiceRows(services, processRows = [], dbStatus = {}, nodeRows = []) {
     const checkedAt = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
     const dbRow     = renderDatabaseRows(dbStatus);
-    const nodeHtml  = renderUtilityNodeProcessRows(nodeRows, checkedAt);
 
     if (!services.length) {
+      const nodeHtml = renderUtilityNodeProcessRows(nodeRows, checkedAt, UTILITY_BLOCK_STACK);
+
       return `${dbRow}${nodeHtml || `<tr><td colspan="${UTILITY_TABLE_COLS}" class="muted">Nessun servizio rilevato</td></tr>`}`;
     }
 
@@ -5549,6 +5747,10 @@ async function hydrateUtilityStack(root) {
     const stackAllUp = isProductStackListening(processById);
     const stackAnyUp = isAnyProductStackListening(processById);
     const stackState = { stackAllUp, stackAnyUp };
+    const stackGroupRowSpan = stackRowCount > 0 ? stackRowCount + 1 : stackRowCount;
+    let nextBlockNum        = stackGroupRowSpan > 0
+      ? UTILITY_BLOCK_STACK + 1
+      : UTILITY_BLOCK_STACK;
 
     const serviceRows = services.map((svc, index) => {
       const id          = String(svc.id ?? "");
@@ -5580,12 +5782,31 @@ async function hydrateUtilityStack(root) {
       , up    : listening
       , label : statoLabel
       });
-      const actionsCell = index === firstStackIndex && stackRowCount > 0
-        ? renderStackActionsCell(stackRowCount, stackState)
-        : renderRowActionsCell(svc, index, firstStackIndex, stackRowCount, processById, stackState);
+      const actionsCell = renderRowActionsCell(
+        svc
+      , index
+      , firstStackIndex
+      , stackRowCount
+      , processById
+      , stackState
+      );
+      const schemaPrefix = index === firstStackIndex && stackGroupRowSpan > 0
+        ? renderDatabaseSchemaStackRow(dbStatus, stackGroupRowSpan, stackState)
+        : "";
+      const isStackSvc  = isStackCompleteService(svc);
+      const rowBlockNum = isStackSvc ? UTILITY_BLOCK_STACK : nextBlockNum;
+      const blockCell   = isStackSvc
+        ? ""
+        : renderUtilityBlockCell(nextBlockNum++);
+      const boundaryClass = utilityProductBoundaryClass(
+        svc
+      , index > 0 ? services[index - 1] : null
+      );
+      const rowClassAttr  = utilityTrClassAttr(rowBlockNum, boundaryClass);
 
-      return `
-        <tr>
+      return `${schemaPrefix}
+        <tr${rowClassAttr}>
+          ${blockCell}
           <td>${product}</td>
           <td>${label}</td>
           <td class="utility-service-desc muted">${description}</td>
@@ -5599,6 +5820,8 @@ async function hydrateUtilityStack(root) {
         </tr>`;
     }).join("");
 
+    const nodeHtml = renderUtilityNodeProcessRows(nodeRows, checkedAt, nextBlockNum);
+
     return `${dbRow}${serviceRows}${nodeHtml}`;
   }
 
@@ -5610,7 +5833,7 @@ async function hydrateUtilityStack(root) {
       processRows.map((row) => [String(row.id ?? ""), row])
     );
     const stackAllUp = isProductStackListening(processById);
-    const fullIds    = ["web", "api", "auth", "api-portal", "friendbot"];
+    const fullIds    = ["web", "api", "auth", "friendbot", "api-portal"];
     const fullAllUp  = fullIds.every((id) => isUtilityServiceListening(processById, id));
 
     if (stackAllUp) {
@@ -5955,9 +6178,12 @@ async function hydrateUtilityStack(root) {
    * @param {string} serviceId
    */
   async function triggerServiceKill(button, serviceId) {
-    const confirmed = window.confirm(
-      `Kill ${serviceId} — terminare solo questo servizio?\n\nOutput nella console.`
-    );
+    const confirmed = await utilityConfirm({
+      title        : `Kill ${serviceId}`
+    , message      : "Terminare solo questo servizio?\n\nOutput nella console."
+    , confirmLabel : "Kill"
+    , danger       : true
+    });
 
     if (!confirmed) {
       return;
@@ -6024,11 +6250,16 @@ async function hydrateUtilityStack(root) {
         : "/api/repo/database/push";
 
     if (isReset || isSeed) {
-      const confirmMsg = isReset
-        ? "Delete & create — eliminare fisicamente dev.db (e journal/wal) e ricreare lo schema Prisma?\n\nConsigliato: fermare api/auth prima."
-        : "Inizializza — eseguire npm run db:seed (host@ / player@)?";
+      const confirmed = await utilityConfirm({
+        title        : isReset ? "Delete & create" : "Inizializza"
+      , message      : isReset
+          ? "Eliminare fisicamente JLO_DEV.db (e journal/wal) e ricreare lo schema Prisma?\n\nConsigliato: fermare api/auth prima."
+          : "Eseguire npm run db:seed (host@ / player@)?"
+      , confirmLabel : isReset ? "Delete & create" : "Inizializza"
+      , danger       : isReset
+      });
 
-      if (!window.confirm(confirmMsg)) {
+      if (!confirmed) {
         return;
       }
     }
@@ -6095,132 +6326,20 @@ async function hydrateUtilityStack(root) {
     }
   }
 
-  /**
-   * @param {"reset" | "seed"} mode
-   * @param {{ initConsole?: boolean }} [options]
-   */
-  async function runDatabaseJobForStack(mode, options = {}) {
-    const { initConsole = false } = options;
-    const isReset    = mode === "reset";
-    const endpoint   = isReset ? "/api/repo/database/reset" : "/api/repo/database/seed";
-
-    if (initConsole) {
-      utilityLogCursor = 0;
-      startUtilityConsolePolling();
-      clearUtilityConsolePanes();
-    }
-
-    setUtilityConsoleTab("database");
-    appendUtilityConsoleLines([{
-      stream : "system"
-    , text   : isReset
-        ? "Stack completo — delete & create database prima dell'avvio…"
-        : "Stack completo — inizializza database (seed) prima dell'avvio…"
-    }]);
-
-    const res = await fetch(endpoint, {
-      method  : "POST"
-    , headers : { "Content-Type": "application/json" }
-    , body    : JSON.stringify({})
-    });
-
-    const body = await res.json().catch(() => ({}));
-
-    if (!res.ok || body.ok === false) {
-      throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
-    }
-
-    if (Array.isArray(body.lines) && body.lines.length > 0) {
-      appendUtilityConsoleLines(body.lines);
-      utilityLogCursor = typeof body.logCursor === "number" ? body.logCursor : utilityLogCursor;
-    }
-  }
-
-  function clearUtilityStackDbOptions() {
-    utilityStackDbResetOnStart = false;
-    utilityStackDbSeedOnStart  = false;
-
-    const resetCb = servicesTable?.querySelector(".utility-stack-db-reset-cb");
-    const seedCb  = servicesTable?.querySelector(".utility-stack-db-seed-cb");
-
-    if (resetCb instanceof HTMLInputElement) {
-      resetCb.checked = false;
-    }
-
-    if (seedCb instanceof HTMLInputElement) {
-      seedCb.checked = false;
-    }
-  }
-
   async function triggerStackCompleteStart(button) {
-    const withDbReset = utilityStackDbResetOnStart;
-    const withDbSeed  = utilityStackDbSeedOnStart;
-
-    if (withDbReset || withDbSeed) {
-      /** @type {string[]} */
-      const steps = [];
-
-      if (withDbReset) {
-        steps.push("Delete & create (elimina dev.db e ricrea schema)");
-      }
-
-      if (withDbSeed) {
-        steps.push("Inizializza (db:seed host@ / player@)");
-      }
-
-      const confirmed = window.confirm(
-        `Avvio stack con:\n• ${steps.join("\n• ")}\n\nprima di avviare web, api, auth?\n\nConsigliato: Kill stack se i servizi sono ancora attivi.`
-      );
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    const label = button.textContent ?? "Avvia";
-    button.setAttribute("disabled", "true");
-    button.textContent = withDbReset || withDbSeed ? "DB…" : "Avvio…";
-
-    try {
-      if (withDbReset || withDbSeed) {
-        statusEl.textContent = withDbReset
-          ? "Reset database (delete & create)…"
-          : "Inizializzazione database (seed)…";
-
-        if (withDbReset) {
-          await runDatabaseJobForStack("reset", { initConsole: true });
-          await loadUtilityDiscovery(null, { processesOnly: true });
-          statusEl.textContent = withDbSeed
-            ? "Database ricreato — seed in corso…"
-            : "Database ricreato — avvio stack…";
-          button.textContent = withDbSeed ? "Seed…" : "Avvio…";
-        }
-
-        if (withDbSeed) {
-          await runDatabaseJobForStack("seed", { initConsole: !withDbReset });
-          await loadUtilityDiscovery(null, { processesOnly: true });
-          statusEl.textContent = "Database inizializzato — avvio stack…";
-          button.textContent = "Avvio…";
-        }
-      }
-
-      await triggerUtilityStart({
-        productStackComplete : true
-      , noDb                 : true
-      }, button);
-    } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Avvio stack fallito";
-      button.removeAttribute("disabled");
-      button.textContent = label;
-    } finally {
-      clearUtilityStackDbOptions();
-    }
+    await triggerUtilityStart({
+      productStackComplete : true
+    , noDb                 : true
+    }, button);
   }
 
   async function triggerStackCompleteKill(button) {
-    const confirmed = window.confirm(
-      "Kill stack — terminare web :3000, api :4000, auth :4001?\n\nAPI Portal, friendBOT e cruscotto restano attivi."
-    );
+    const confirmed = await utilityConfirm({
+      title        : "Kill stack"
+    , message      : "Terminare web :3000, api :4000, auth :4001?\n\nAPI Portal, friendBOT e cruscotto restano attivi."
+    , confirmLabel : "Kill stack"
+    , danger       : true
+    });
 
     if (!confirmed) {
       return;
@@ -6276,16 +6395,6 @@ async function hydrateUtilityStack(root) {
   if (servicesTable instanceof HTMLTableElement && !servicesTable.dataset.utilityActionsBound) {
     servicesTable.dataset.utilityActionsBound = "1";
 
-    servicesTable.addEventListener("change", (ev) => {
-      const target = ev.target;
-
-      if (target instanceof HTMLInputElement && target.classList.contains("utility-stack-db-reset-cb")) {
-        utilityStackDbResetOnStart = target.checked;
-      } else if (target instanceof HTMLInputElement && target.classList.contains("utility-stack-db-seed-cb")) {
-        utilityStackDbSeedOnStart = target.checked;
-      }
-    });
-
     servicesTable.addEventListener("click", (ev) => {
       const target = ev.target;
 
@@ -6339,9 +6448,12 @@ async function hydrateUtilityStack(root) {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Kill All — terminare i servizi dev (web :3000, api :4000, auth :4001, api-portal :4080 PortalAdmin, friendBOT JLO)?\n\nIl cruscotto su :3999 resta attivo. L'output sarà mostrato nella console."
-    );
+    const confirmed = await utilityConfirm({
+      title        : "Kill All"
+    , message      : "Terminare i servizi dev (web :3000, api :4000, auth :4001, api-portal :4080 PortalAdmin, friendBOT JLO)?\n\nIl cruscotto su :3999 resta attivo. L'output sarà mostrato nella console."
+    , confirmLabel : "Kill All"
+    , danger       : true
+    });
 
     if (!confirmed) {
       return;

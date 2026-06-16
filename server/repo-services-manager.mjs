@@ -2,7 +2,8 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
-import { resolveSqliteDbFiles } from "../ellaStartScript/lib.mjs";
+import { getProjectConfig } from "../lib/config.project.mjs";
+import { resolveSqliteDbFiles } from "../lib/cruscotto-db/script_seed/script_seed-lib.mjs";
 
 import {
   findListeningPids
@@ -10,14 +11,14 @@ import {
 , killListenersOnPorts
 , killProcessTree
 , killProcessesByCommandFragment
-} from "../lib/kill-dev-ports.mjs";
+} from "../runner/kill-dev-ports.mjs";
 import {
   findFriendBotPids
 , killFriendBotProcesses
 , killProductNestService
 , killProductNestStack
 , PRODUCT_NEST_PORTS
-} from "../lib/kill-product-stack.mjs";
+} from "../runner/JustLastOne___kill-product-stack.mjs";
 import {
   clearProcessStarterCache
 , resolveProcessStarter
@@ -42,8 +43,10 @@ import {
   listProjectNodeProcesses
 , matchNodeProcessToServiceId
 , shortenNodeCommand
-} from "../lib/list-project-node-processes.mjs";
+} from "../runner/list-project-node-processes.mjs";
 import { spawnShellOption } from "../lib/spawn-shell.mjs";
+
+const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();
 
 const DASHBOARD_PORT = Number(
   process.env.DASHBOARD_PORT
@@ -53,7 +56,7 @@ const DASHBOARD_PORT = Number(
 );
 const MAX_LOG_LINES = 3000;
 
-const INIT_DATABASE_DEV_SCRIPT  = "ellaStartScript/init_Database_DEV.mjs";
+const INIT_DATABASE_DEV_SCRIPT  = "lib/cruscotto-db/script_seed/init_Database_DEV.mjs";
 const START_ALL_SERVICES_SCRIPT = "runner/start_ALL_Services.mjs";
 
 const PRODUCT_CORE_SERVICE_IDS = ["web", "api", "auth"];
@@ -1091,7 +1094,7 @@ export function getProductDatabaseStatus() {
 
   const relPath = mainFile
     ? relative(repoRoot, mainFile).replace(/\\/g, "/")
-    : "packages/database/prisma/dev.db";
+    : `${PRJ_DB_PRISMA_DIR}/${PRJ_DB_FILENAME}`;
   const { seedCompletedAt } = readDbSeedState();
 
   return {
@@ -1125,7 +1128,7 @@ function hintDatabaseJobError(label) {
 }
 
 /**
- * Allinea schema Prisma (db:push) senza eliminare dev.db.
+ * Allinea schema Prisma (db:push) senza eliminare JLO_DEV.db.
  */
 export async function pushProductDatabase() {
   await stopProductStackForDatabaseJob();
@@ -1147,7 +1150,7 @@ export async function pushProductDatabase() {
 }
 
 /**
- * Elimina dev.db (e journal/wal/shm) e ricrea schema (generate + push).
+ * Elimina JLO_DEV.db (e journal/wal/shm) e ricrea schema (generate + push).
  */
 export async function resetProductDatabase() {
   await stopProductStackForDatabaseJob();
