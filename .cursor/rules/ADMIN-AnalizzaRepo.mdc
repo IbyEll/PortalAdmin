@@ -33,7 +33,7 @@ Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
 | Portal / cruscotto | `lib/`, `server/`, `cruscotto/`, `scripts/` | — |
 | Schema / API / Web | — | `packages/`, `apps/` |
 | Test | — | `testScript/` |
-| Catalogo | `portal.config.mjs`, `lib/repo-implementation-signals-catalog.mjs` | — |
+| Catalogo | `portal.config.mjs`, `lib/repo.implementation.signals.catalog.mjs` | — |
 
 ## Esito
 

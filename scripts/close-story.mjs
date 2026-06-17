@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import {
   commitCatalogUpdate
 , ensureRepoImplementationSignal
-} from "../lib/repo-implementation-signals-catalog.mjs";
+} from "../lib/repo.implementation.signals.catalog.mjs";
 import {
   commitPillarPortalUpdate
 , updatePillarPortalForTicket

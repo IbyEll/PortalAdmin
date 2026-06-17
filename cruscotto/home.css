@@ -1,0 +1,320 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0b1018;
+  --surface: #141c28;
+  --surface-2: #1a2433;
+  --border: #2a384f;
+  --text: #e8eef6;
+  --muted: #8fa3be;
+  --accent: #5eb3ff;
+  --accent-2: #d8f29d;
+  --pass: #34d399;
+  --fail: #f87171;
+  --radius: 12px;
+  --shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+}
+
+* { box-sizing: border-box; }
+
+body.portal-home {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(94 179 255 / 0.12), transparent)
+  , var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.muted { color: var(--muted); }
+
+.portal-home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 90%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border);
+  background: rgb(20 28 40 / 0.85);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.portal-home-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.portal-home-logo {
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.portal-home-brand h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.portal-home-brand p {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+}
+
+.portal-home-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.portal-home-link:hover { text-decoration: underline; }
+
+.portal-home-main {
+  width: 90%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 1.5rem 0;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow);
+}
+
+.portal-home-hero h2,
+.portal-home-section h2,
+.portal-home-console h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.portal-home-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.portal-home-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 420px;
+  position: sticky;
+  top: 5.5rem;
+}
+
+.portal-home-console-head h2 {
+  margin: 0 0 0.35rem;
+}
+
+.portal-home-console-head p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.portal-home-cards {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .portal-home-split {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-home-console {
+    position: static;
+    min-height: 240px;
+  }
+}
+
+.portal-home-features {
+  margin: 0.75rem 0;
+  padding-left: 1.2rem;
+}
+
+.portal-home-features li { margin: 0.35rem 0; }
+
+.portal-home-hint { margin: 0.75rem 0 0; font-size: 0.9rem; }
+
+.portal-home-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.portal-home-section-head h2 { margin: 0; }
+
+.portal-home-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.project-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.project-card:nth-child(5n + 1) {
+  background: linear-gradient(135deg, #1a2438 0%, #141c2a 100%);
+  border-left: 4px solid #5eb3ff;
+}
+
+.project-card:nth-child(5n + 2) {
+  background: linear-gradient(135deg, #1a2e28 0%, #142420 100%);
+  border-left: 4px solid #34d399;
+}
+
+.project-card:nth-child(5n + 3) {
+  background: linear-gradient(135deg, #2a1f38 0%, #1e1628 100%);
+  border-left: 4px solid #a78bfa;
+}
+
+.project-card:nth-child(5n + 4) {
+  background: linear-gradient(135deg, #2e2618 0%, #221c12 100%);
+  border-left: 4px solid #fbbf24;
+}
+
+.project-card:nth-child(5n + 5) {
+  background: linear-gradient(135deg, #1f2a35 0%, #151e28 100%);
+  border-left: 4px solid #38bdf8;
+}
+
+.project-card.active {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2) 40%, transparent);
+}
+
+.project-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.project-card .badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgb(94 179 255 / 0.15);
+  color: var(--accent);
+}
+
+.project-card .badge.warn {
+  background: rgb(248 113 113 / 0.15);
+  color: var(--fail);
+}
+
+.project-card .badge.ok {
+  background: rgb(52 211 153 / 0.15);
+  color: var(--pass);
+}
+
+.project-card .badge.port {
+  background: rgb(94 179 255 / 0.12);
+  color: var(--accent);
+}
+
+.project-card.running {
+  box-shadow: 0 0 0 1px rgb(52 211 153 / 0.35);
+}
+
+.project-card-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.85rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--accent), #3d8fd9);
+  border-color: transparent;
+  color: #041018;
+  font-weight: 600;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+.portal-home-log {
+  flex: 1;
+  margin: 0;
+  min-height: 280px;
+  max-height: min(60vh, 520px);
+  overflow: auto;
+  background: #0a0f16;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: #c5d4e8;
+}
+
+.portal-home-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.portal-home-reload-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
+.portal-home-footer {
+  width: 90%;
+  max-width: none;
+  margin: 0 auto;
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.portal-home-footer a { color: var(--muted); }
+
+code {
+  font-size: 0.88em;
+  background: rgb(0 0 0 / 0.25);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}

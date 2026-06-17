@@ -3,7 +3,7 @@
  * Audit copertura pilastri matrice — epic/story/bug/todo non mappati.
  */
 
-import { fetchJiraBacklog, isEpicType, isStoryLikeType } from "../lib/jira-backlog.mjs";
+import { fetchJiraBacklog, isEpicType, isStoryLikeType } from "../lib/jira/jira.backlog.mjs";
 import {
   PRODUCT_PILLARS
 , buildOrphansPillar

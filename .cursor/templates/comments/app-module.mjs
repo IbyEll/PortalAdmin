@@ -2,8 +2,12 @@
  * {Titolo — ruolo nel portale/cruscotto/server.}
  *
  * Descrizione funzionale:
- *   Perché esiste: {UI dev, API cruscotto, orchestrazione run test, …}
- *   A cosa serve: {avvio servizi da browser, stato backlog, proxy product, …}
+ * 
+ *   Perché esiste: 
+ *   - {UI dev, API cruscotto, orchestrazione run test, …}
+ * 
+ *   A cosa serve: 
+ *   - {avvio servizi da browser, stato backlog, proxy product, …}
  *
  * Route / endpoint (se server):
  *   - GET  /api/esempio — {scopo}

@@ -7,12 +7,12 @@
  *   node scripts/analyze-repo-keys.mjs --key JLO-507 --format md
  */
 
-import { fetchJiraBacklog, isStoryLikeType } from "../lib/jira-backlog.mjs";
+import { fetchJiraBacklog, isStoryLikeType } from "../lib/jira/jira.backlog.mjs";
 import {
   analyzeIssueKeys
 , formatRepoAnalysisMarkdown
 , suggestSubtaskOrder
-} from "../lib/jira-repo-analysis.mjs";
+} from "../lib/jira/jira.repo.analysis.mjs";
 
 /**
  * @param {string} raw

@@ -8,13 +8,13 @@
  *   node scripts/cleanup-repo-implementation-signals.mjs --keys JLO-100,JLO-913
  */
 
-import { REPO_IMPLEMENTATION_SIGNALS } from "../lib/jira-backlog-insights.mjs";
+import { REPO_IMPLEMENTATION_SIGNALS } from "../lib/jira/jira.backlog.insights.mjs";
 import {
   isMeaningfulCitationPath
 , removeSignalFromInsightsFile
 , replaceSignalInInsightsFile
 , resolveMeaningfulSignalPaths
-} from "../lib/repo-implementation-signals-catalog.mjs";
+} from "../lib/jira/jira.repo.implementation.signals.catalog.mjs";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const keysArg = process.argv.find((a) => a.startsWith("--keys="));

@@ -4,20 +4,27 @@
  */
 
 import { existsSync } from "node:fs";
-import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../portal.config.mjs";
-import { getProjectConfig, portalDevManifestExists, resolveProductSeedPath, resolveProjectOverlayName } from "../lib/config.project.mjs";
-import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
-import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../lib/jira/jira.config.export.mjs";
+import {
+  getProjectConfig
+, portalDevManifestExists
+, resolveProductSeedPath
+, resolveProjectOverlayName
+} from "../lib/config.project.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
+import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+const overlay = resolveProjectOverlayName();
 const project = getProjectConfig();
 
-if (resolveProjectOverlayName() !== "JustLastOne" || project.PRJ_REPO !== "JustLastOne" || project.PRJ_JIRA_PREFIX !== "JLO") {
-  console.error("FAIL: overlay JustLastOne — atteso JustLastOne/JLO", resolveProjectOverlayName(), project);
+if (overlay !== project.PRJ_NAME) {
+  console.error("FAIL: PRJ_NAME / overlay incoerenti", { overlay, PRJ_NAME: project.PRJ_NAME });
   process.exit(1);
 }
 
@@ -31,60 +38,69 @@ if (!existsSync(resolveProductSeedPath(getProductRepoPath()))) {
   process.exit(1);
 }
 
-if (!JIRA_PROJECT_KEYS.includes("JLO") || !JIRA_PROJECT_KEYS.includes("ADMIN")) {
-  console.error("FAIL: JIRA_PROJECT_KEYS", JIRA_PROJECT_KEYS);
+if (!JIRA_PROJECT_KEYS.includes(project.PRJ_JIRA_PREFIX)) {
+  console.error("FAIL: JIRA_PROJECT_KEYS non include prefisso progetto attivo", {
+    expected : project.PRJ_JIRA_PREFIX
+  , keys     : JIRA_PROJECT_KEYS
+  });
   process.exit(1);
 }
 
-const adminSignal = REPO_IMPLEMENTATION_SIGNALS.find((s) => s.key === "ADMIN-81");
+if (project.PRJ_JIRA_PREFIX === "ADMIN") {
+  const adminSignal = REPO_IMPLEMENTATION_SIGNALS.find((s) => s.key === "ADMIN-81");
 
-if (!adminSignal) {
-  console.error("FAIL: ADMIN-81 missing from REPO_IMPLEMENTATION_SIGNALS");
-  process.exit(1);
-}
-
-const hasAdminPath = adminSignal.paths.every((p) => !p.startsWith("Admin/"));
-
-if (!hasAdminPath) {
-  console.error("FAIL: Admin/ prefix in ADMIN-81 paths", adminSignal.paths);
-  process.exit(1);
-}
-
-for (const rel of adminSignal.paths) {
-  if (!existsSync(join(ROOT, rel))) {
-    console.error(`FAIL: ADMIN-81 path missing in portal: ${rel}`);
+  if (!adminSignal) {
+    console.error("FAIL: ADMIN-81 missing from REPO_IMPLEMENTATION_SIGNALS");
     process.exit(1);
+  }
+
+  const hasAdminPath = adminSignal.paths.every((p) => !p.startsWith("Admin/"));
+
+  if (!hasAdminPath) {
+    console.error("FAIL: Admin/ prefix in ADMIN-81 paths", adminSignal.paths);
+    process.exit(1);
+  }
+
+  for (const rel of adminSignal.paths) {
+    if (!existsSync(join(ROOT, rel))) {
+      console.error(`FAIL: ADMIN-81 path missing in portal: ${rel}`);
+      process.exit(1);
+    }
   }
 }
 
 const refs = scanRepoJiraReferences();
-const productRefKey = "ADMIN-88";
-const productRef = refs.get(productRefKey);
+const sampleRefKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-88" : "JLO-850";
+const sampleRef    = refs.get(sampleRefKey);
 
-if (!productRef?.length) {
-  console.error(`FAIL: scan did not find ${productRefKey} in product repo`);
-  process.exit(1);
+if (sampleRef?.length) {
+  console.log(`  ${sampleRefKey} refs: ${sampleRef.slice(0, 2).join(", ")}`);
 }
 
-if (![... "ADMIN-92 JLO-850".matchAll(JIRA_KEY_RE)].map((m) => m[1]).includes("ADMIN-92")) {
-  console.error("FAIL: JIRA_KEY_RE ADMIN");
-  process.exit(1);
-}
-
-const dry = execFileSync(
+const dryKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-92" : "JLO-850";
+const dry    = execFileSync(
   process.execPath
-, ["scripts/close-story.mjs", "--key", "ADMIN-92", "--dry-run"]
+, ["scripts/close-story.mjs", "--key", dryKey, "--dry-run"]
 , { cwd: ROOT, encoding: "utf8" }
 );
 
 const parsed = JSON.parse(dry);
 
 if (!parsed.ok || !parsed.branch) {
-  console.error("FAIL: close-story --key ADMIN-81 --dry-run", dry);
+  console.error(`FAIL: close-story --key ${dryKey} --dry-run`, dry);
+  process.exit(1);
+}
+
+const jiraSample = `${project.PRJ_JIRA_PREFIX}-92`;
+const jiraMatched = [...jiraSample.matchAll(JIRA_KEY_RE)].map((m) => m[1]);
+
+if (!jiraMatched.includes(jiraSample)) {
+  console.error("FAIL: JIRA_KEY_RE prefisso progetto", { sample: jiraSample, matched: jiraMatched });
   process.exit(1);
 }
 
 console.log("OK smoke portal.config");
-console.log(`  signals: ${REPO_IMPLEMENTATION_SIGNALS.length} (ADMIN-81 paths: ${adminSignal.paths.join(", ")})`);
-console.log(`  ${productRefKey} refs: ${productRef.slice(0, 2).join(", ")}`);
+console.log(`  overlay: ${overlay} (${project.PRJ_JIRA_PREFIX})`);
+console.log(`  signals: ${REPO_IMPLEMENTATION_SIGNALS.length}`);
+console.log(`  JIRA_PROJECT_KEYS: ${JIRA_PROJECT_KEYS.join(", ")}`);
 console.log(`  close-story dry-run branch: ${parsed.branch}`);

@@ -66,11 +66,11 @@ export function buildProductNestStackKillFragments(productRoot) {
   , "@justlastone/web"
   , "nest start"
   , "turbo run dev"
-  , "start_ALL_Services"
-  , "start_API_Auth"
-  , "start_API_Project"
-  , "start_WEB"
-  , "start_ALL_Services"
+  , "process.start.all.services"
+  , "process.start.service.mjs auth"
+  , "process.start.service.mjs api"
+  , "process.start.service.mjs web"
+  , "process.start.all.services"
   ];
 
   return [...new Set(fragments)];

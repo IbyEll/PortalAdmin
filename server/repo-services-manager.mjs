@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
-import { getProjectConfig } from "../lib/config.project.mjs";
+import { getProjectConfig } from "../lib/admin/config.project.mjs";
 import { resolveSqliteDbFiles } from "../lib/cruscotto-db/script_seed/script_seed-lib.mjs";
 
 import {
@@ -23,12 +23,12 @@ import {
   clearProcessStarterCache
 , resolveProcessStarter
 , warmProcessStarterCache
-} from "../lib/process-start-user.mjs";
+} from "../lib/process.started.user.mjs";
 import {
   clearProcessStartedAtCache
 , getProcessStartedAt
 , warmProcessStartedAtCache
-} from "../lib/process-started-at.mjs";
+} from "../lib/process.started.at.mjs";
 import {
   discoverRepoServices
 , formatStartPlan
@@ -37,14 +37,14 @@ import {
 , PRODUCT_STACK_COMPLETE_EXTRAS
 , REPO_EXTRAS_ALL
 , resolveServiceStartUnit
-} from "../lib/repo-service-discovery.mjs";
-import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
+} from "../lib/discovery.services.repo.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
   listProjectNodeProcesses
 , matchNodeProcessToServiceId
 , shortenNodeCommand
 } from "../runner/list-project-node-processes.mjs";
-import { spawnShellOption } from "../lib/spawn-shell.mjs";
+import { spawnShellOption } from "../lib/portal.utils.mjs";
 
 const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();
 
@@ -57,7 +57,7 @@ const DASHBOARD_PORT = Number(
 const MAX_LOG_LINES = 3000;
 
 const INIT_DATABASE_DEV_SCRIPT  = "lib/cruscotto-db/script_seed/init_Database_DEV.mjs";
-const START_ALL_SERVICES_SCRIPT = "runner/start_ALL_Services.mjs";
+const START_ALL_SERVICES_SCRIPT = "runner/process.start.all.services.mjs";
 
 const PRODUCT_CORE_SERVICE_IDS = ["web", "api", "auth"];
 
@@ -154,7 +154,7 @@ let child = null;
 let dbJobRunning = false;
 
 /**
- * @param {import("../lib/repo-service-discovery.mjs").StartUnit} unit
+ * @param {import("../lib/discovery.services.repo.mjs").StartUnit} unit
  * @returns {import("node:child_process").ChildProcess}
  */
 function spawnDetachedStartUnit(unit) {
@@ -480,7 +480,7 @@ export function getRepoServicesStatus() {
 async function runStartAllServicesJob(extraArgv = []) {
   return runPortalScriptJob(
     [START_ALL_SERVICES_SCRIPT, ...extraArgv]
-  , "start_ALL_Services"
+  , "process.start.all.services"
   );
 }
 

@@ -5024,7 +5024,7 @@ async function renderUtility(report) {
               <td><strong>Avvia</strong> (stack)</td>
               <td>schema + web + api + auth</td>
               <td>
-                <code>node runner/start_ALL_Services.mjs</code>
+                <code>node runner/process.start.all.services.mjs</code>
                 (Auth + API + Web — include db:push prima dell'avvio).
               </td>
             </tr>
@@ -5076,15 +5076,15 @@ async function renderUtility(report) {
           <tbody>
             <tr>
               <td><strong>Avvia product</strong> (web, api, auth)</td>
-              <td><code>node runner/start_ALL_Services.mjs</code></td>
+              <td><code>node runner/process.start.all.services.mjs</code></td>
             </tr>
             <tr>
               <td><strong>Avvia stack completo</strong></td>
-              <td><code>node runner/start_ALL_Services.mjs</code> + friendBOT + API Portal</td>
+              <td><code>node runner/process.start.all.services.mjs</code> + friendBOT + API Portal</td>
             </tr>
             <tr>
               <td><strong>Kill All</strong></td>
-              <td><code>node runner/stop_ALL_services.mjs</code> o <code>npm run stop:all</code>
+              <td><code>node runner/process.stop.all.services.mjs</code> o <code>npm run stop:all</code>
                 — non termina il cruscotto :3999</td>
             </tr>
             <tr>
@@ -5156,7 +5156,7 @@ async function renderUtility(report) {
       <p id="utility-start-status" class="muted" style="margin-top:0.75rem">—</p>
       <div class="cmd-block" style="margin-top:0.75rem">
         <span class="muted">CLI</span>
-        <code id="utility-cli-cmd">node runner/start_ALL_Services.mjs</code>
+        <code id="utility-cli-cmd">node runner/process.start.all.services.mjs</code>
         <button class="action" type="button" id="btn-utility-copy-cmd">Copia</button>
       </div>
     </div>
@@ -5399,7 +5399,7 @@ async function hydrateUtilityStack(root) {
 
     return `<td rowspan="${rowSpan}" class="utility-actions-cell utility-stack-complete-cell" valign="middle">
       <div class="utility-actions-stack">
-        <button type="button" class="action primary utility-action-btn" data-utility-action="stack-start" title="start_ALL_Services — web + api + auth"${startDisabled}>Avvia</button>
+        <button type="button" class="action primary utility-action-btn" data-utility-action="stack-start" title="process.start.all.services.mjs — web + api + auth"${startDisabled}>Avvia</button>
         <button type="button" class="action utility-action-btn" data-utility-action="stack-kill" title="Termina web, api, auth"${killDisabled}>Kill</button>
       </div>
     </td>`;
@@ -5907,7 +5907,7 @@ async function hydrateUtilityStack(root) {
       const nodeRows    = Array.isArray(processes.nodeRows) ? processes.nodeRows : [];
 
       if (!processesOnly) {
-        cliEl.textContent  = `node runner/start_ALL_Services.mjs`;
+        cliEl.textContent  = `node runner/process.start.all.services.mjs`;
 
         if (launchStatus) {
           statusEl.textContent = renderLaunchStatus(launchStatus);

@@ -11,7 +11,7 @@ import "../lib/load-env.mjs";
 import {
   sprint6BoardStoryRankKeys
 , sprint6BoardTailKeys
-} from "../lib/jira-working-order.mjs";
+} from "../lib/jira/jira.working.order.mjs";
 
 const BOARD_ID = Number(process.env.JIRA_BOARD_ID ?? 68);
 const CLOUD_ID = process.env.JIRA_CLOUD_ID ?? "3caddd74-469e-4ca3-adf8-926f79c98e7c";

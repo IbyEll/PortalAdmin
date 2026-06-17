@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Crea i 9 sprint JLO — allineato a cruscotto/jira-project-tree.html
+ * Crea i 9 sprint JLO — allineato a cruscotto/jira.project.tree.html
  * e cruscotto/jira-working.html (agg. 10 giu 2026).
  * Issue per sprint: da lib/jira-working-order.mjs (JLO_WORKING_PLAN).
  *
@@ -18,8 +18,8 @@
  */
 
 import "../lib/load-env.mjs";
-import { fetchJiraBacklog } from "../lib/jira-backlog.mjs";
-import { JLO_WORKING_PLAN } from "../lib/jira-working-order.mjs";
+import { fetchJiraBacklog } from "../lib/jira/jira.backlog.mjs";
+import { JLO_WORKING_PLAN } from "../lib/jira/jira.working.order.mjs";
 
 const MOVE_BATCH_SIZE = 50;
 

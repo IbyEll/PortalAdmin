@@ -13,7 +13,7 @@ import {
   ensureRepoImplementationSignalByKey
 , listAllTicketBranchKeys
 , signalKeyExistsInFile
-} from "../lib/repo-implementation-signals-catalog.mjs";
+} from "../lib/repo.implementation.signals.catalog.mjs";
 
 /**
  * @param {string[]} argv

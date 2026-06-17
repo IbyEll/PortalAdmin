@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Home</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/home.css" />
+</head>
+<body class="portal-home">
+  <header class="portal-home-header">
+    <div class="portal-home-brand">
+      <span class="portal-home-logo" aria-hidden="true">◆</span>
+      <div>
+        <h1>PortalAdmin</h1>
+        <p class="muted">Dashboard dev, cruscotto Jira e runner test per monorepo product</p>
+      </div>
+    </div>
+    <a class="portal-home-link" href="/app.html" id="link-cruscotto" hidden>Apri cruscotto attivo →</a>
+  </header>
+
+  <main class="portal-home-main">
+    <section class="portal-home-hero card">
+      <h2>Cos'è PortalAdmin</h2>
+      <p>
+        PortalAdmin è il repository tooling che ospita il <strong>cruscotto dev</strong>:
+        health stack, esecuzione <code>testScript</code>, backlog Jira, working plan e report HTML/JSON.
+      </p>
+      <ul class="portal-home-features">
+        <li>Overlay <code>PROJECT_{PRJ_NAME}</code> — config, discovery e catalogo test per product</li>
+        <li>API dashboard per overlay — porta dedicata (<code>PRJ_DASHBOARD_PORT</code>, es. JustLastOne :3999, Admin :3998)</li>
+        <li>Segnali Jira ADMIN + product (es. JLO) da <code>portal.config</code></li>
+      </ul>
+      <p class="muted portal-home-hint">
+        Scegli un progetto a destra, poi <strong>Istanzia</strong> per scrivere <code>.env</code>,
+        preparare DB cruscotto e (se configurato) il prepare del monorepo product.
+        Ogni progetto ha una <strong>porta dedicata</strong> — puoi tenere più cruscotti aperti insieme.
+        La HOME resta su <code>:3990</code> (<code>npm run admin:home</code>).
+      </p>
+    </section>
+
+    <div class="portal-home-split">
+      <aside class="portal-home-console card" id="console-panel" aria-label="Console output">
+        <div class="portal-home-console-head">
+          <h2>Console</h2>
+          <p class="muted" id="prepare-message">In attesa — istanzia un progetto o apri il cruscotto.</p>
+        </div>
+        <pre class="portal-home-log" id="prepare-log" aria-live="polite"></pre>
+        <div class="portal-home-actions">
+          <button type="button" class="btn-primary" id="btn-open-cruscotto" disabled>Apri ultimo istanziato</button>
+          <button type="button" class="btn-secondary" id="btn-reload-hint" hidden>Riavvia dashboard-server</button>
+        </div>
+        <p class="muted portal-home-reload-note" id="reload-note" hidden>
+          Se l'avvio automatico fallisce, esegui
+          <code>DASHBOARD_PORT=&lt;porta&gt; PRJ_NAME=&lt;overlay&gt; npm run admin:dashboard</code>.
+        </p>
+      </aside>
+
+      <section class="portal-home-cards">
+        <div class="portal-home-section-head">
+          <h2>Progetti disponibili</h2>
+          <p class="muted" id="instance-status">Caricamento…</p>
+        </div>
+        <div class="portal-home-grid" id="project-grid" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="portal-home-footer muted">
+    <span>PortalAdmin</span>
+    <span>·</span>
+    <a href="https://github.com/IbyEll/PortalAdmin">GitHub</a>
+  </footer>
+
+  <script type="module" src="/home.js"></script>
+</body>
+</html>

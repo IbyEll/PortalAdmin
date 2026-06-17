@@ -41,12 +41,14 @@ jobs:
       - name: Verify PRODUCT_REPO_PATH (valid sibling)
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:paths
 
       - name: Fail explicitly on invalid PRODUCT_REPO_PATH
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: /tmp/portal-admin-missing-product-repo
         run: |
           node --input-type=module -e "
@@ -63,30 +65,35 @@ jobs:
       - name: Portal config smoke
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:config
 
       - name: Workflow rules smoke
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:workflow
 
       - name: run-all discovery smoke
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:run-all
 
       - name: Dashboard server smoke
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:dashboard
 
       - name: Portal E2E smoke (ADMIN-100)
         working-directory: portal-admin
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:portal-e2e
 
@@ -122,6 +129,7 @@ jobs:
 
       - name: Analyze repo keys (Jira sync smoke)
         env:
+          PRJ_NAME: JustLastOne
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}

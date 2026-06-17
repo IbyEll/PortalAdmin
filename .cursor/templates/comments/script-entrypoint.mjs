@@ -3,8 +3,12 @@
  * {Titolo breve — cosa fa lo script in una riga.}
  *
  * Descrizione funzionale:
- *   Perché esiste: {gap di processo che questo script colma}
- *   A cosa serve: {risultato per chi lo esegue — avvio stack, seed DB, …}
+ * 
+ *   Perché esiste:
+ *   - {gap di processo che questo script colma}
+ * 
+ *   A cosa serve: 
+ *   - {risultato per chi lo esegue — avvio stack, seed DB, …}
  *
  * Uso:
  *   - node {path/script.mjs}

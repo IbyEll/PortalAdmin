@@ -9,15 +9,16 @@
   }
 , "scripts": {
     "admin:dashboard": "node server/dashboard-server.mjs"
+  , "admin:home": "node server/portal-home-server.mjs"
   , "start:dev": "node runner/start-dev.mjs"
   , "dev:prepare": "node runner/start-dev.mjs --prepare-only"
   , "dev:db": "node lib/cruscotto-db/script_seed/init_Database_DEV.mjs --push"
   , "dev:seed-data": "node lib/cruscotto-db/script_seed/run-data-seeds.mjs"
-  , "dev:api-auth": "node runner/start_DEV_Service.mjs auth"
-  , "dev:api-project": "node runner/start_DEV_Service.mjs api"
-  , "dev:api-portal": "node runner/start_API_Portal.mjs"
-  , "dev:web": "node runner/start_DEV_Service.mjs web"
-  , "dev:all": "node runner/start_ALL_Services.mjs"
+  , "dev:api-auth": "node runner/process.start.service.mjs auth"
+  , "dev:api-project": "node runner/process.start.service.mjs api"
+  , "dev:api-portal": "node runner/process.start.service.mjs portal"
+  , "dev:web": "node runner/process.start.service.mjs web"
+  , "dev:all": "node runner/process.start.all.services.mjs"
   , "db:migrate": "node lib/cruscotto-db/migrate.mjs"
   , "db:sync": "node scripts/sync-jira-backlog.mjs"
   , "test:paths": "node scripts/smoke-portal-paths.mjs"
@@ -28,8 +29,8 @@
   , "test:cruscotto-db": "node scripts/smoke-cruscotto-db.mjs"
   , "test:portal-e2e": "node scripts/smoke-portal-e2e.mjs"
   , "test:ci": "node scripts/smoke-ci.mjs"
-  , "start:all": "node runner/start_ALL_Services.mjs"
-  , "stop:all": "node runner/stop_ALL_services.mjs"
+  , "start:all": "node runner/process.start.all.services.mjs"
+  , "stop:all": "node runner/process.stop.all.services.mjs"
   }
 , "dependencies": {
     "dotenv": "^16.4.7"

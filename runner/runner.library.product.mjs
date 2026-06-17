@@ -8,7 +8,7 @@
  *     startDevStack() e helper DB/daemon per entrypoint runner e script_seed.
  *
  * Consumatori:
- *   runner/start_DEV_Service.mjs, runner/start_ALL_Services.mjs
+ *   runner/process.start.service.mjs, runner/process.start.all.services.mjs
  *   lib/cruscotto-db/script_seed/script_seed-lib.mjs, init_Database_DEV.mjs
  *
  * Export principali:
@@ -185,7 +185,6 @@ export function runDbGenerateWithRetry(label) {
     , {
         cwd   : root
       , stdio : "inherit"
-      , shell : process.platform === "win32"
       }
     );
 
@@ -580,7 +579,6 @@ export function startDevStack(options = {}) {
   ], {
     cwd   : root
   , stdio : "inherit"
-  , shell : process.platform === "win32"
   });
 
   child.on("exit", (code) => {

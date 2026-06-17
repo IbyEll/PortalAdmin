@@ -1,5 +1,5 @@
 /**
- * Validazione appunti insight — mirror di lib/jira-backlog-insights.mjs
+ * Validazione appunti insight — mirror di lib/jira/jira.backlog.insights.mjs
  * (isInsightStillValid / buildInsightSnapshot).
  */
 (function insightValidateModule(global) {

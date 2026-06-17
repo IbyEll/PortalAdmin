@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Product, project e repo</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --turquoise: #2ee8d6;
+      --purple: #b794f6;
+      --amber: #f0b429;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .callout {
+      border-left: 3px solid var(--amber);
+      background: rgba(240, 180, 41, 0.08);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .oneliner {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    ul { padding-left: 1.25rem; }
+
+    li { margin: 0.35rem 0; }
+
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Product, project e repo in PortalAdmin</h1>
+      <p class="meta">Glossario nel codice — aggiornato giugno 2026 · vedi anche <a href="config-runner-overlay-order.html">config/runner overlay</a></p>
+      <p class="lead">
+        Nel setup JustLastOne i tre nomi coincidono spesso (<code>JustLastOne</code>), ma nel codice indicano <strong>layer diversi</strong>.
+        Non sono sinonimi.
+      </p>
+    </header>
+
+    <h2>Panoramica</h2>
+
+    <div class="mermaid">
+flowchart TB
+  subgraph portal["Repo PortalAdmin — getPortalRoot()"]
+    lib["lib/ — moduli generici"]
+    proj["PROJECT_{PRJ_NAME}/ — overlay project"]
+    data["data/reports/ — output admin"]
+  end
+
+  subgraph product["Product repo — getProductRepoPath()"]
+    apps["apps/ api, web"]
+    ts["testScript/"]
+    pkg["packages/database/"]
+  end
+
+  PRJ_NAME["PRJ_NAME / config.project"] --> proj
+  PRODUCT_PATH["PRODUCT_REPO_PATH / PRJ_REPO"] --> product
+  lib -->|"test.catalog.mjs, product.prisma.mjs"| proj
+  lib -->|"spawn, path assoluti"| product
+    </div>
+
+    <div class="oneliner">
+      <strong>In una riga:</strong>
+      <strong>repo (portal)</strong> = dove gira PortalAdmin ·
+      <strong>product repo</strong> = dove sta il codice da buildare/testare ·
+      <strong>project</strong> = quale product è selezionato in config (<code>PRJ_*</code> + <code>PROJECT_*</code>)
+    </div>
+
+    <h2>1. Repo PortalAdmin</h2>
+    <p>Questo repository Git: cruscotto, runner, report, DB SQLite admin.</p>
+
+    <table>
+      <thead>
+        <tr><th>Simbolo nel codice</th><th>File</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>getPortalRoot()</code></td>
+          <td><code>lib/portal-paths.mjs</code></td>
+          <td>Path assoluto della root <code>PortalAdmin/</code></td>
+        </tr>
+        <tr>
+          <td><code>getPortalDataDir()</code>, <code>data/reports/</code></td>
+          <td><code>portal-paths</code>, <code>reporter</code></td>
+          <td>Dati locali admin (report JSON/HTML, cache)</td>
+        </tr>
+        <tr>
+          <td><code>lib/cruscotto-db/</code></td>
+          <td>SQLite cruscotto</td>
+          <td>DB del tooling — non del product</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. Product repo</h2>
+    <p>Checkout del monorepo applicativo <strong>esterno</strong> a PortalAdmin: API, web, <code>testScript/</code>, Prisma.</p>
+
+    <table>
+      <thead>
+        <tr><th>Simbolo nel codice</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>getProductRepoPath()</code></td>
+          <td>Path assoluto del checkout product</td>
+        </tr>
+        <tr>
+          <td><code>PRODUCT_REPO_PATH</code> (.env)</td>
+          <td>Override path; se vuoto → <code>../PRJ_REPO</code></td>
+        </tr>
+        <tr>
+          <td><code>productRoot</code>, <code>REPO_ROOT</code> (in test.catalog)</td>
+          <td>Stessa root product, nomi variabili nei moduli</td>
+        </tr>
+        <tr>
+          <td><code>lib/product.prisma.mjs</code></td>
+          <td><code>@prisma/client</code> caricato dal product, non da PortalAdmin</td>
+        </tr>
+        <tr>
+          <td><code>resolveProductSeedPath(productRoot)</code></td>
+          <td>Path seed Prisma <em>dentro</em> il product</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code>// lib/portal-paths.mjs — risoluzione path product
+const raw  = process.env.PRODUCT_REPO_PATH?.trim();
+const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
+// DEFAULT_SIBLING = ../PRJ_REPO da config.project</code></pre>
+
+    <h2>3. Project (profilo config)</h2>
+    <p>
+      <strong>Non</strong> è un path su disco: è <em>quale product</em> PortalAdmin è configurato per servire,
+      tramite overlay in <code>PROJECT_{name}/</code>.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Simbolo nel codice</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>PRJ_NAME</code> (.env)</td>
+          <td>Nome overlay attivo (default <code>JustLastOne</code>)</td>
+        </tr>
+        <tr>
+          <td><code>resolveProjectOverlayName()</code></td>
+          <td>Legge <code>PRJ_NAME</code></td>
+        </tr>
+        <tr>
+          <td><code>getProjectConfig()</code></td>
+          <td>Oggetto <code>PRJ_*</code> (Jira, DB filename, health URL, …)</td>
+        </tr>
+        <tr>
+          <td><code>PROJECT_JustLastOne/</code></td>
+          <td>Overlay: catalogo test, fixture, discovery, runner config</td>
+        </tr>
+        <tr>
+          <td><code>lib/test.catalog.mjs</code></td>
+          <td>Facade → <code>PROJECT_${name}/test.catalog.${name}.mjs</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code>// lib/config.project.mjs
+({ PROJECT_CONFIG_VALUES } = await import(
+  `../PROJECT_${overlayName}/config.project.${overlayName}.mjs`
+));</code></pre>
+
+    <h2>Confusioni frequenti nel codice</h2>
+
+    <table>
+      <thead>
+        <tr><th>Nome</th><th>Sembra…</th><th>In realtà</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>PRJ_REPO</code></td>
+          <td>«repo del project»</td>
+          <td>Solo <strong>nome cartella</strong> default del product (<code>JustLastOne</code>) → <code>../JustLastOne</code></td>
+        </tr>
+        <tr>
+          <td><code>PRJ_GITHUB_REPO</code></td>
+          <td>repo PortalAdmin</td>
+          <td>Nome repository GitHub <strong>del product</strong></td>
+        </tr>
+        <tr>
+          <td><code>REPO_ROOT</code> in test.catalog</td>
+          <td>root PortalAdmin</td>
+          <td>Root del <strong>product</strong> (<code>getProductRepoPath()</code>)</td>
+        </tr>
+        <tr>
+          <td><code>repo-services-manager</code></td>
+          <td>un solo repo</td>
+          <td>Gestisce servizi su <strong>product</strong> + <strong>portal</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      Con un solo product attivo, <code>PRJ_NAME=JustLastOne</code> e product repo <code>../JustLastOne</code>
+      sembrano la stessa cosa. Restano layer distinti: puoi cambiare <code>PRODUCT_REPO_PATH</code>
+      (clone altrove) mantenendo lo stesso <code>PRJ_NAME</code>, o aggiungere <code>PROJECT_MyApp/</code>
+      prima di avere quel repo clonato.
+    </div>
+
+    <h2>Layout su disco</h2>
+
+    <pre><code>PortalAdmin/                    ← getPortalRoot()      [repo admin]
+  lib/                            ← codice generico
+  runner/run-all.mjs
+  PROJECT_JustLastOne/            ← overlay project       [PRJ_NAME]
+    config.project.JustLastOne.mjs
+    test.catalog.JustLastOne.mjs
+  data/reports/                   ← output admin
+
+../JustLastOne/                   ← getProductRepoPath() [product repo]
+  apps/api/
+  apps/web/
+  testScript/
+  packages/database/</code></pre>
+
+    <h2>Nuovo product</h2>
+    <ol>
+      <li>Checkout del monorepo (product repo) — eventuale <code>PRODUCT_REPO_PATH</code> in <code>.env</code></li>
+      <li>Cartella <code>PROJECT_MyApp/</code> con overlay (<code>config.project.MyApp.mjs</code>, <code>test.catalog.MyApp.mjs</code>, …)</li>
+      <li><code>PRJ_NAME=MyApp</code> in <code>.env</code></li>
+    </ol>
+    <p>Le facade in <code>lib/</code> (<code>test.catalog.mjs</code>, <code>product.prisma.mjs</code>, <code>run-all.mjs</code>) restano invariate.</p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true
+    , theme: "dark"
+    , securityLevel: "loose"
+    });
+  </script>
+</body>
+</html>

@@ -49,7 +49,6 @@ export function findListeningPids(port) {
   if (process.platform === "win32") {
     const result = spawnSync("netstat", ["-ano"], {
       encoding : "utf8"
-    , shell    : true
     });
 
     if (result.status !== 0 || !result.stdout) {
@@ -86,7 +85,6 @@ export function killProcessTree(pid) {
   if (process.platform === "win32") {
     const result = spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
       encoding : "utf8"
-    , shell    : true
     });
 
     if (result.status === 0) {

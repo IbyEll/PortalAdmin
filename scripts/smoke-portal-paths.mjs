@@ -12,7 +12,7 @@ import {
 , getTestScriptDir
 , resolveProductRepoPath
 } from "../lib/portal-paths.mjs";
-import { scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
+import { scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
 import { loadDevManifest, DEV_MANIFEST_PATH } from "../lib/dev-manifest.mjs";
 import { REPORTS_DIR } from "../lib/reporter.mjs";
 

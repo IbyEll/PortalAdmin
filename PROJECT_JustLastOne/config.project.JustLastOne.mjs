@@ -23,6 +23,7 @@ export const PROJECT_CONFIG_VALUES = {
 , PRJ_API_HEALTH_URL   : "http://localhost:4000/api/v1/health"
 , PRJ_TEST_SCRIPT   : "testScript"
 , PRJ_NPM_SCOPE     : "@justlastone"
-, PRJ_WEB_OPEN_URL  : "http://localhost:3000/it"
-, PRJ_DEV_MANIFEST  : "cruscotto/dev-manifest.json"
+, PRJ_WEB_OPEN_URL     : "http://localhost:3000/it"
+, PRJ_DEV_MANIFEST     : "cruscotto/dev-manifest.json"
+, PRJ_DASHBOARD_PORT   : "3999"
 };

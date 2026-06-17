@@ -7,7 +7,7 @@
  *   A cosa serve: imposta `file:` su JLO_DEV.db nel product checkout e ripulisce match
  *     recruiting/in_game e amicizie host↔player prima di ogni run test.
  *
- * Consumatori: runner/JustLastOne___run-all.mjs
+ * Consumatori: runner/run-all.mjs
  *
  * Export principali:
  *   setupDefaultDatabaseUrl — env DATABASE_URL + path repo product

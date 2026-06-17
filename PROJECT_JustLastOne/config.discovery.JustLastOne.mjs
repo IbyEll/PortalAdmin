@@ -30,8 +30,8 @@ export const DISCOVERY_CONFIG_VALUES = {
     friendbot: "friend-bot.mjs"
   }
 , stackStartScript: {
-    rel           : "runner/start_ALL_Services.mjs"
-  , processScript : "start_ALL_Services"
+    rel           : "runner/process.start.all.services.mjs"
+  , processScript : "process.start.all.services"
   }
 , stackStartServiceIds: ["web", "api", "auth"]
 , conventionExtras: [
@@ -43,10 +43,10 @@ export const DISCOVERY_CONFIG_VALUES = {
     }
   ]
 , servicePathById: {
-    web         : "runner/start_ALL_Services.mjs"
-  , api         : "runner/start_ALL_Services.mjs"
-  , auth        : "runner/start_ALL_Services.mjs"
-  , "api-portal": "runner/start_API_Portal.mjs"
+    web         : "runner/process.start.service.mjs web"
+  , api         : "runner/process.start.service.mjs api"
+  , auth        : "runner/process.start.service.mjs auth"
+  , "api-portal": "runner/process.start.service.mjs portal"
   , friendbot   : "testScript/funzionali/friend-bot.mjs"
   , dashboard   : "server/dashboard-server.mjs"
   }

@@ -20,7 +20,7 @@
  * Product-specific: runner/runner.stack.mjs + runner/runner.config.stack.mjs
  */
 
-import "../lib/load-env.mjs";
+import "../lib/portal.load.env.mjs";
 
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, rmSync } from "node:fs";
@@ -32,7 +32,7 @@ import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
 export const root       = getProductRepoPath();
 /** Root PortalAdmin — host degli script runner. */
 export const portalRoot = getPortalRoot();
-/** Binario npm — .cmd su Windows per spawnSync con shell. */
+/** Binario npm — .cmd su Windows per spawn senza shell. */
 export const npm        = process.platform === "win32" ? "npm.cmd" : "npm";
 /** Path turbo locale nel monorepo product. */
 export const turbo      = join(
@@ -55,7 +55,6 @@ export function run(npmArgs, label) {
   const result = spawnSync(npm, npmArgs, {
     cwd   : root
   , stdio : "inherit"
-  , shell : process.platform === "win32"
   });
 
   // exit con codice npm — nessun recovery
@@ -81,7 +80,6 @@ export function runTurbo(turboArgs, label) {
   const result = spawnSync(turbo, turboArgs, {
     cwd   : root
   , stdio : "inherit"
-  , shell : process.platform === "win32"
   });
 
   if (result.status !== 0) {

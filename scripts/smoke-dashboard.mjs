@@ -60,6 +60,8 @@ async function main() {
   }
 
   await fetchOk("/");
+  await fetchOk("/home.html");
+  await fetchOk("/app.html");
   await fetchOk("/index.html");
 
   try {

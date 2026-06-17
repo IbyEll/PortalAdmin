@@ -8,7 +8,7 @@
  *   A cosa serve: espone path product repo, liste skip e discoverTestScripts() per
  *     orchestrare la suite (--list, run sequenziale, UI cruscotto, payload meta API).
  *
- * Consumatori: runner/JustLastOne___run-all.mjs, server/dashboard-server.mjs, server/run-manager.mjs,
+ * Consumatori: runner/run-all.mjs, server/dashboard-server.mjs, server/run-manager.mjs,
  *   lib/JustLastOne___test-tecnici-meta.mjs, lib/JustLastOne___my-project-analysis.mjs
  *
  * Export principali:

@@ -30,7 +30,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { getProjectConfig } from "../lib/config.project.mjs";
+import { getProjectConfig } from "../lib/admin/config.project.mjs";
 import {
   getRunnerConfig
 , npmWorkspace
@@ -185,7 +185,6 @@ export function runDbGenerateWithRetry(label) {
     , {
         cwd   : root
       , stdio : "inherit"
-      , shell : process.platform === "win32"
       }
     );
 
@@ -580,7 +579,6 @@ export function startDevStack(options = {}) {
   ], {
     cwd   : root
   , stdio : "inherit"
-  , shell : process.platform === "win32"
   });
 
   child.on("exit", (code) => {

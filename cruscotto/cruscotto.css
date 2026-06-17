@@ -114,6 +114,17 @@ body {
 
 }
 
+.sidebar-home-link {
+  margin-top: 0.45rem;
+  font-size: 0.8rem;
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.sidebar-home-link:hover {
+  color: var(--accent);
+}
+
 
 
 .sidebar-nav {

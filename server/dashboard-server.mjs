@@ -1,14 +1,45 @@
 #!/usr/bin/env node
 /**
- * Admin Dashboard server — static cruscotto + API run/status/report/health.
+ * Dashboard server PortalAdmin — static cruscotto + API run, report, Jira e servizi dev.
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - il cruscotto (`cruscotto/`) è UI statica; serve un processo HTTP locale che esponga
+ *     file statici e API per run test, backlog Jira, health stack e gestione servizi product
+ *
+ *   A cosa serve:
+ *   - avvio run testScript (tecnici/funzionali/singolo script) e stato run in corso
+ *   - proxy dati Jira (backlog, insights, working plan, pillar matrix, my-project)
+ *   - health API/auth/web, discovery servizi repo, DB product (reset/seed/push)
+ *   - report JSON/HTML, export Excel, analisi test tecnici
  *
  * Uso:
  *   node server/dashboard-server.mjs
+ *   npm run admin:dashboard
  *
- * Env: .env — DASHBOARD_PORT | ADMIN_PORT | PORT (default 3999)
+ * Route / endpoint (principali):
+ *   GET  /api/status, /api/health, /api/scripts — stato run e catalogo test
+ *   POST /api/run, /api/run/one, /api/run/suite, /api/run/funzionali, /api/run/case
+ *   GET  /api/report, /api/report/html, /api/export
+ *   GET  /api/dev/requirements, /api/dev/services
+ *   GET|POST /api/repo/services/*, /api/repo/database/*
+ *   GET  /api/jira/backlog, /api/jira/backlog/insights, /api/jira/working/*
+ *   GET  /api/portal/projects, /api/portal/instance — HOME istanzia overlay
+ *   POST /api/portal/instance — attiva PROJECT_{PRJ_NAME} + prepare
+ *   POST /api/report/tecnici-analysis, /api/pillar-matrix/regenerate
+ *   GET  /* — static: / home, /app.html cruscotto
+ *
+ * Dipendenze:
+ *   - lib/admin/test.catalog.mjs, dashboard.project.mjs, test.dipendenze.mjs
+ *   - server/run-manager.mjs, health.mjs, dev-api.mjs, repo-services-manager.mjs
+ *   - lib/jira-*.mjs, lib/reporter.mjs, lib/discovery.services.repo.mjs
+ *   - env: DASHBOARD_PORT | ADMIN_PORT | PORT (default 3999), PRJ_NAME, PRODUCT_REPO_PATH
+ *
+ * Consumatori: cruscotto/cruscotto.js, scripts/smoke-dashboard.mjs, npm run admin:dashboard
  */
 
-import "../lib/load-env.mjs";
+import "../lib/portal.load.env.mjs";
 
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -21,28 +52,35 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 , REPO_ROOT
-} from "../PROJECT_JustLastOne/test.catalog.JustLastOne.mjs";
+} from "../lib/admin/test.catalog.mjs";
 import { getHealthStatus } from "./health.mjs";
 import { getDevRequirements, getDevServicesWithHealth } from "./dev-api.mjs";
 import {
   discoverScriptDescription
 , discoverScriptDocHeader
 , discoverTestCasesForScript
-} from "../runner/test.dipendenze.mjs";
-import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "../lib/jira-backlog.mjs";
-import { buildBacklogPillarTree } from "../lib/jira-backlog-pillars.mjs";
-import { fetchBacklogInsights, buildRepoAlignMap } from "../lib/jira-backlog-insights.mjs";
-import { scanRepoJiraReferences } from "../lib/repo-jira-refs.mjs";
-import { fetchWorkingInsights } from "../lib/jira-working-insights.mjs";
+} from "../lib/admin/test.dipendenze.mjs";
+import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "../lib/jira/jira.backlog.mjs";
+import { buildBacklogPillarTree } from "../lib/jira/jira.backlog.pillars.mjs";
+import { fetchBacklogInsights, buildRepoAlignMap } from "../lib/jira/jira.backlog.insights.mjs";
+import { scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
+import { fetchWorkingInsights } from "../lib/jira/jira.working.insights.mjs";
 import {
   archiveAndRegenerateWorkingPlan
 , listWorkingPlanArchives
 , regenerateWorkingPlanHtml
 , saveOldAndRebuildWorking
 , workingArchivePath
-} from "../lib/jira-working-plan.mjs";
-import { regenerateProjectTreeHtml } from "../lib/jira-project-tree-plan.mjs";
-import { analyzeMyProject } from "../PROJECT_JustLastOne/JustLastOne___my-project-analysis.mjs";
+} from "../lib/jira/jira.working.plan.mjs";
+import { regenerateProjectTreeHtml } from "../lib/jira/jira.project.tree.plan.mjs";
+import {
+  analyzeMyProject
+, getFunzionaliMetaPayload
+, getTecniciMetaPayload
+, loadAndAnalyzeTestTecnici
+, TECNICI_ANALYSIS_HTML
+, TECNICI_ANALYSIS_JSON
+} from "../lib/admin/dashboard.project.mjs";
 import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./run-manager.mjs";
 import {
   clearRepoServicesLogs
@@ -71,15 +109,15 @@ import {
 , LATEST_HTML
 , LATEST_JSON
 } from "../lib/reporter.mjs";
+import { REPO_EXTRAS_ALL } from "../lib/discovery.services.repo.mjs";
 import {
-  TECNICI_ANALYSIS_HTML
-, TECNICI_ANALYSIS_JSON
-, loadAndAnalyzeTestTecnici
-} from "../PROJECT_JustLastOne/JustLastOne___test-tecnici-analysis.mjs";
-import { getFunzionaliMetaPayload } from "../PROJECT_JustLastOne/JustLastOne___test-funzionali-meta.mjs";
-import { getTecniciMetaPayload } from "../PROJECT_JustLastOne/JustLastOne___test-tecnici-meta.mjs";
-import { REPO_EXTRAS_ALL } from "../lib/repo-service-discovery.mjs";
+  activatePortalInstance
+, getPortalInstance
+, getPrepareStatus
+, listAvailableProjects
+} from "../lib/admin/portal.instance.mjs";
 
+// --- configurazione server — path cruscotto e porta HTTP ---
 const SERVER_DIR   = dirname(fileURLToPath(import.meta.url));
 const CRUSCOTTO_DIR = join(SERVER_DIR, "..", "cruscotto");
 const PORT = Number(
@@ -101,6 +139,7 @@ const MIME = {
 , ".ico" : "image/x-icon"
 };
 
+// --- HTTP helper — CORS localhost, JSON e body POST ---
 /**
  * @param {import("node:http").IncomingMessage} req
  */
@@ -195,18 +234,31 @@ async function preflightRunTarget(options) {
   return { ok: true };
 }
 
+// --- static — file da cruscotto/ e archivi working plan HTML ---
 /**
  * @param {import("node:http").IncomingMessage} req
  * @param {import("node:http").ServerResponse} res
  */
 async function serveStatic(req, res) {
   const urlPath = req.url?.split("?")[0] ?? "/";
-  const rel     = urlPath === "/"
-    ? "index.html"
-    : urlPath === "/favicon.ico"
-      ? "favicon.svg"
-      : urlPath.replace(/^\//, "");
-  const file    = join(CRUSCOTTO_DIR, rel);
+  let rel;
+
+  if (urlPath === "/") {
+    rel = "home.html";
+  } else if (urlPath === "/app" || urlPath === "/app/") {
+    applyCors(res, req);
+    res.writeHead(302, { Location: "/app.html" });
+    res.end();
+    return;
+  } else if (urlPath === "/app.html") {
+    rel = "index.html";
+  } else if (urlPath === "/favicon.ico") {
+    rel = "favicon.svg";
+  } else {
+    rel = urlPath.replace(/^\//, "");
+  }
+
+  const file = join(CRUSCOTTO_DIR, rel);
 
   if (!file.startsWith(CRUSCOTTO_DIR) || !existsSync(file)) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
@@ -294,11 +346,71 @@ function readJsonBody(req) {
   });
 }
 
+// --- API JSON — run test, report, Jira, servizi dev e DB product ---
 /**
+ * Router API sotto `/api/*` — un handler per path/metodo.
+ *
  * @param {import("node:http").IncomingMessage} req
  * @param {import("node:http").ServerResponse} res
+ * @param {string} urlPath
  */
 async function handleApi(req, res, urlPath) {
+  if (urlPath === "/api/portal/projects" && req.method === "GET") {
+    try {
+      const projects = await listAvailableProjects();
+      sendJson(res, 200, { projects }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/portal/instance" && req.method === "GET") {
+    try {
+      const ctx     = await getPortalInstance();
+      const prepare = getPrepareStatus();
+
+      sendJson(res, 200, {
+        instance   : ctx.instance
+          ? { ...ctx.instance, prepare: prepare ?? ctx.instance.prepare }
+          : null
+      , envPrjName : ctx.envPrjName
+      , aligned    : ctx.aligned
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/portal/instance" && req.method === "POST") {
+    try {
+      const body    = await readJsonBody(req);
+      const overlay = typeof body.overlay === "string" ? body.overlay.trim() : "";
+
+      if (!overlay) {
+        sendJson(res, 400, { error: "overlay obbligatorio" }, req);
+        return;
+      }
+
+      const productRepoPath = typeof body.productRepoPath === "string"
+        ? body.productRepoPath.trim()
+        : undefined;
+
+      const state = await activatePortalInstance(overlay, { productRepoPath });
+      sendJson(res, 200, state, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, message.includes("non trovato") ? 404 : 409, { error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/status" && req.method === "GET") {
     const status = getRunStatus();
     sendJson(res, 200, {
@@ -1047,11 +1159,13 @@ async function handleApi(req, res, urlPath) {
   sendJson(res, 404, { error: "Not found" }, req);
 }
 
+// --- dispatcher richieste — OPTIONS, API, tab redirect, static ---
 /**
  * @param {import("node:http").IncomingMessage} req
  * @param {import("node:http").ServerResponse} res
  */
 async function handleRequest(req, res) {
+  // 1. Preflight CORS
   if (req.method === "OPTIONS") {
     applyCors(res, req);
     res.writeHead(204);
@@ -1061,6 +1175,7 @@ async function handleRequest(req, res) {
 
   const urlPath = req.url?.split("?")[0] ?? "/";
 
+  // 2. API JSON
   if (urlPath.startsWith("/api/")) {
     await handleApi(req, res, urlPath);
     return;
@@ -1068,6 +1183,7 @@ async function handleRequest(req, res) {
 
   const tabPath = urlPath.replace(/^\//, "");
 
+  // 3. Deep-link tab cruscotto → hash SPA (/#overview, /#test, …)
   if (tabPath && !tabPath.includes("/") && !tabPath.includes(".")) {
     const knownTabs = new Set([
       "overview"
@@ -1088,19 +1204,22 @@ async function handleRequest(req, res) {
 
     if (knownTabs.has(tabPath)) {
       applyCors(res, req);
-      res.writeHead(302, { Location: `/#${tabPath}` });
+      res.writeHead(302, { Location: `/app.html#${tabPath}` });
       res.end();
       return;
     }
   }
 
+  // 4. Archivio HTML working plan
   if (await serveWorkingArchive(req, res, urlPath)) {
     return;
   }
 
+  // 5. Asset statici cruscotto/
   await serveStatic(req, res);
 }
 
+// --- lifecycle — SIGINT/SIGTERM e bind porta ---
 function shutdown(signal) {
   console.log(`\n${signal} — chiusura server…`);
 
@@ -1117,6 +1236,7 @@ function shutdown(signal) {
 }
 
 async function main() {
+  // 1. HTTP server — delega a handleRequest con catch 500
   httpServer = createServer((req, res) => {
     handleRequest(req, res).catch((err) => {
       console.error(err instanceof Error ? err.message : err);
@@ -1126,6 +1246,7 @@ async function main() {
     });
   });
 
+  // 2. Errore bind (EADDRINUSE) o altro — exit con messaggio operativo
   httpServer.on("error", (err) => {
     if (/** @type {NodeJS.ErrnoException} */ (err).code === "EADDRINUSE") {
       console.error(
@@ -1145,6 +1266,7 @@ async function main() {
     process.exit(1);
   });
 
+  // 3. Listen — log URL dashboard e root static
   httpServer.listen(PORT, () => {
     console.log(`Admin Dashboard  http://localhost:${PORT}/`);
     console.log(`Static: cruscotto/`);

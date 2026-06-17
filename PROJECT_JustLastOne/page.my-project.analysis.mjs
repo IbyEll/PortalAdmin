@@ -2,8 +2,8 @@
  * My Project — analisi indipendente repo JLO vs backlog Jira.
  *
  * Descrizione funzionale:
- *   Perché esiste: la pagina cruscotto My Project non deve dipendere da jira-backlog-insights
- *     né jira-working-insights — serve una vista dedicata repo↔Jira con alberi Epic/sprint.
+ *   Perché esiste: la pagina cruscotto My Project non deve dipendere da jira.backlog.insights
+ *     né jira.working.insights — serve una vista dedicata repo↔Jira con alberi Epic/sprint.
  *   A cosa serve: fetch JLO da API Jira, scan `JLO-xxx` nel monorepo, capability heuristic,
  *     ultimo report test e sezioni strutturate per `cruscotto/my-project.html`.
  *
@@ -18,14 +18,14 @@ import { readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
 import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "./test.catalog.JustLastOne.mjs";
-import { getPortalRoot } from "../lib/portal-paths.mjs";
+import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 import {
   fetchJiraBacklog
 , isEpicType
 , isJiraStatusDone
 , isStoryLikeType
-} from "./jira-backlog.mjs";
-import { scanRepoJiraReferences, walkRepoTextFiles } from "../lib/repo-jira-refs.mjs";
+} from "../lib/jira/jira.backlog.mjs";
+import { scanRepoJiraReferences, walkRepoTextFiles } from "../lib/function.repo.jira.refs.mjs";
 import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
 
 /** Base URL browse issue Jira Cloud (link in tree/list). */
@@ -175,7 +175,7 @@ function statusBucket(status) {
 }
 
 /**
- * @param {import("./jira-backlog.mjs").JiraBacklogRow} row
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow} row
  * @param {Map<string, string[]>} repoRefs
  * @param {{ omitStatus?: boolean }} [options]
  * @returns {TreeNode}
@@ -229,7 +229,7 @@ function sortTreeNodes(nodes) {
 
 /**
  * @param {string[]} issueKeys
- * @param {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} byKey
+ * @param {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @param {{ omitStatus?: boolean }} [options]
  * @returns {TreeNode[]}
@@ -274,7 +274,7 @@ function buildIssueForest(issueKeys, byKey, repoRefs, options = {}) {
 
 /**
  * @param {string} rootKey
- * @param {import("./jira-backlog.mjs").JiraBacklogRow[]} issues
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow[]} issues
  * @returns {string[]}
  */
 function collectSubtreeKeys(rootKey, issues) {
@@ -311,7 +311,7 @@ function collectSubtreeKeys(rootKey, issues) {
 
 /**
  * @param {string[]} keys
- * @param {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} byKey
+ * @param {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} byKey
  * @returns {string[]}
  */
 function expandWithAncestors(keys, byKey) {
@@ -331,12 +331,12 @@ function expandWithAncestors(keys, byKey) {
 }
 
 /**
- * @param {import("./jira-backlog.mjs").JiraBacklogRow[]} issues
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow[]} issues
  * @param {Map<string, string[]>} repoRefs
  * @returns {TreeNode[]}
  */
 function buildEpicForest(issues, repoRefs) {
-  /** @type {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} */
+  /** @type {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} */
   const byKey = new Map(issues.map((row) => [row.key, row]));
   /** @type {TreeNode[]} */
   const forest = [];
@@ -389,8 +389,8 @@ function collectDoneCount(node) {
 }
 
 /**
- * @param {import("./jira-backlog.mjs").JiraBacklogRow[]} rows
- * @param {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow[]} rows
+ * @param {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @returns {TreeNode[]}
  */
@@ -414,8 +414,8 @@ function cleanFeatureLabel(summary) {
 }
 
 /**
- * @param {import("./jira-backlog.mjs").JiraBacklogRow} row
- * @param {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow} row
+ * @param {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} byKey
  */
 function findEpicRow(row, byKey) {
   let parentKey = row.parentKey;
@@ -449,8 +449,8 @@ function futureInline(label) {
 /**
  * Prosa markdown «Sintesi» — story Fatto/aperte raggruppate per Epic.
  *
- * @param {import("./jira-backlog.mjs").JiraBacklogRow[]} issues
- * @param {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("./jira.backlog.mjs").JiraBacklogRow[]} issues
+ * @param {Map<string, import("./jira.bac klog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @returns {string}
  */
@@ -461,11 +461,11 @@ function buildFunctionalSummaryText(issues, byKey, repoRefs) {
   const doneStories = storyLike.filter((row) => isJiraStatusDone(row.status));
   const openStories = storyLike.filter((row) => !isJiraStatusDone(row.status));
 
-  /** @type {Map<string, { epic: import("./jira-backlog.mjs").JiraBacklogRow | null, done: import("./jira-backlog.mjs").JiraBacklogRow[], open: import("./jira-backlog.mjs").JiraBacklogRow[] }>} */
+  /** @type {Map<string, { epic: import("./jira.backlog.mjs").JiraBacklogRow | null, done: import("./jira.backlog.mjs").JiraBacklogRow[], open: import("./jira.backlog.mjs").JiraBacklogRow[] }>} */
   const groups = new Map();
 
   /**
-   * @param {import("./jira-backlog.mjs").JiraBacklogRow} row
+   * @param {import("./jira.backlog.mjs").JiraBacklogRow} row
    * @param {"done" | "open"} bucket
    */
   function addToGroup(row, bucket) {
@@ -758,7 +758,7 @@ function scanRepoCapabilities(testScripts) {
     adminItems.push("dashboard dev :3999 — run test, report HTML, export, health servizi");
   }
 
-  if (repoExists("runner/JustLastOne___run-all.mjs")) {
+  if (repoExists("runner/run-all.mjs")) {
     adminItems.push("runner testScript orchestrato + report latest.json/html");
   }
 
@@ -876,7 +876,7 @@ export async function analyzeMyProject() {
   // 1. Sorgenti dati — backlog Jira, ref repo, struttura, catalogo test, report
   const backlog     = await fetchJiraBacklog();
   const issues      = backlog.issues;
-  /** @type {Map<string, import("./jira-backlog.mjs").JiraBacklogRow>} */
+  /** @type {Map<string, import("./jira.backlog.mjs").JiraBacklogRow>} */
   const byKey       = new Map(issues.map((row) => [row.key, row]));
   const repoRefs    = scanRepoJiraReferences();
   const repoStats   = scanRepoStructure();
@@ -929,7 +929,7 @@ export async function analyzeMyProject() {
   const activeSprint = backlog.jiraSprints.find((s) => s.state === "active") ?? null;
 
   // 3. Alberi Epic/sprint e capability repo per le sezioni UI
-  /** @type {import("./jira-backlog.mjs").JiraBacklogRow[]} */
+  /** @type {import("./jira.backlog.mjs").JiraBacklogRow[]} */
   const sprintIssues = activeSprint
     ? issues.filter((row) => (row.jiraSprints ?? []).some((s) => s.id === activeSprint.id))
     : [];

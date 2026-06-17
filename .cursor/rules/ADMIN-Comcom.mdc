@@ -31,14 +31,10 @@ alwaysApply: true
    - mantieni **sezioni e ordine** del template (testata, step `// N.`, JSDoc);
    - **non** inventare un formato alternativo se il template già lo definisce.
 5. **Solo commenti** — nessun refactor, rinomina o cambio logica; IndentElla invariato.
-6. **Formattazione file** — vedi sotto (non raddoppiare le righe).
 7. **Output chat** — una riga: template usato + path file target (no dump).
 
 ### Formattazione (anti-righe-vuote)
 
-- **Vietato** inserire una riga vuota dopo **ogni** riga di commento o di codice.
-- JSDoc/testata: righe ` * …` consecutive; al massimo **una** riga ` *` vuota tra sezioni (titolo / descrizione / export), come nei template.
-- Step `// N.` — subito sopra il blocco che descrivono; **senza** riga vuota tra commento e codice salvo separare due fasi distinte.
 - Preferire **patch mirate** (`StrReplace`) sulla testata e sui blocchi senza commenti; riscrittura intera solo se necessario.
 - Su Write intero file: fine riga **`\n` (LF)** — non `\r\n` ripetuto riga per riga (su Windows può raddoppiare le righe in editor).
 
@@ -78,7 +74,8 @@ Righe che iniziano con `*!` in `/** … */` o `//`:
 - ❌ Modificare comportamento del file target
 - ❌ Inglese nei commenti (salvo termini tecnici: CLI, env, path)
 - ❌ Incollare il template intero in chat
-- ❌ Riga vuota dopo ogni riga del file (sintomo: file ~2× righe attese)
+
+
 
 ## Priorità
 

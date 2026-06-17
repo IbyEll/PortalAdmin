@@ -5,7 +5,7 @@ import {
 import {
   discoverScriptDescription
 , discoverTestCasesForScript
-} from "../runner/test.dipendenze.mjs";
+} from "../lib/admin/test.dipendenze.mjs";
 
 export const TECNICI_IMPLEMENTATION = {
   title        : "Test tecnici backend"
@@ -17,7 +17,7 @@ export const TECNICI_IMPLEMENTATION = {
   , "Per test web: Next.js su WEB_BASE (es. :3000)"
   ]
 , architecture: [
-    "runner/JustLastOne___run-all.mjs — orchestratore discovery + run sequenziale"
+    "runner/run-all.mjs — orchestratore discovery + run sequenziale"
   , "lib/JustLastOne___prj_testScript_catalog.mjs — discovery script, blocked/excluded"
   , "PROJECT_JustLastOne/test-deps.mjs — catena test case (dependencies/chain)"
   , "lib/reporter.mjs — merge report → latest.json + HTML"

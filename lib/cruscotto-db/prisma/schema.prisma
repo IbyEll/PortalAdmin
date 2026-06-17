@@ -22,7 +22,7 @@ model SyncRun {
   @@map("sync_run")
 }
 
-/// Issue row aligned with JiraBacklogRow (Admin/lib/jira-backlog.mjs).
+/// Issue row aligned with JiraBacklogRow ( /lib/jira/jira.backlog.mjs).
 model JiraIssue {
   id                String    @id @default(uuid())
   jiraKey           String    @unique @map("jira_key")

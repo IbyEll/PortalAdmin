@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { resolveTicketBranch } from "../lib/repo-implementation-signals-catalog.mjs";
+import { resolveTicketBranch } from "../lib/repo.implementation.signals.catalog.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 

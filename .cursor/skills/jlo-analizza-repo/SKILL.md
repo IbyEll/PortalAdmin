@@ -20,7 +20,7 @@ node scripts/analyze-repo-keys.mjs --parent JLO-507 --format md
 | `lib/jira-repo-analysis.mjs` | Modulo analisi |
 | `scripts/analyze-repo-keys.mjs` | CLI |
 | `portal.config.mjs` | Segnali catalogo |
-| `lib/repo-jira-refs.mjs` | Scan citazioni in product repo |
+| `lib/function.repo.jira.refs.mjs` | Scan citazioni in product repo |
 
 ## Aree PortalAdmin
 

@@ -2,13 +2,18 @@
  * {Titolo modulo — responsabilità in una riga.}
  *
  * Descrizione funzionale:
- *   Perché esiste: {duplicazione evitata, policy centralizzata, …}
- *   A cosa serve: {cosa ottengono i consumer — path product repo, meta Jira, …}
+ * 
+ *   Perché esiste:
+ *   - {duplicazione evitata, policy centralizzata, …}
+ * 
+ *   A cosa serve: 
+ *   - {cosa ottengono i consumer — path product repo, meta Jira, …}
  *
- * Consumatori: {runner/…, server/…}
+ * Consumatori: 
+ *   - {runner/…, server/…}
  *
  * Export principali:
- *   {nomeExport} — {scopo breve}
+ *   - {nomeExport} — {scopo breve}
  */
 // import solo ciò che serve al modulo
 // import { helper } from "./altro-modulo.mjs";

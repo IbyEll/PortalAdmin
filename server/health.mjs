@@ -1,28 +1,8 @@
-import { stripTrailingSlash } from "../lib/http-utils.mjs";
+import { checkProjectServices } from "../runner/runner.stack.probe.mjs";
 
 /**
- * @param {string} url
- */
-async function probe(url) {
-  const started = Date.now();
-
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    const up  = res.ok || res.status < 500;
-
-    return {
-      up
-    , latencyMs: Date.now() - started
-    };
-  } catch {
-    return {
-      up        : false
-    , latencyMs : null
-    };
-  }
-}
-
-/**
+ * Stato health stack dev per API dashboard — riusa probe condiviso in lib/dev.stack.probe.mjs.
+ *
  * @returns {Promise<{
  *   checkedAt: string
  *   auth: { up: boolean, url: string, latencyMs: number | null }
@@ -31,20 +11,24 @@ async function probe(url) {
  * }>}
  */
 export async function getHealthStatus() {
-  const authUrl = stripTrailingSlash(process.env.AUTH_URL ?? "http://localhost:4001/api/v1");
-  const apiUrl  = stripTrailingSlash(process.env.API_URL ?? "http://localhost:4000/api/v1");
-  const webUrl  = stripTrailingSlash(process.env.WEB_BASE ?? "http://localhost:3000");
-
-  const [auth, api, web] = await Promise.all([
-    probe(`${authUrl}/health`)
-  , probe(`${apiUrl}/health`)
-  , probe(webUrl)
-  ]);
+  const result = await checkProjectServices();
 
   return {
     checkedAt: new Date().toISOString()
-  , auth: { ...auth, url: authUrl }
-  , api : { ...api, url: apiUrl }
-  , web : { ...web, url: webUrl }
+  , auth: {
+      up        : result.auth
+    , url       : result.authHealthUrl
+    , latencyMs : result.authLatencyMs
+    }
+  , api: {
+      up        : result.api
+    , url       : result.apiHealthUrl
+    , latencyMs : result.apiLatencyMs
+    }
+  , web: {
+      up        : result.web
+    , url       : result.webUrl
+    , latencyMs : result.webLatencyMs
+    }
   };
 }

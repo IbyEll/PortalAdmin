@@ -7,12 +7,12 @@
  *   A cosa serve: getRunnerConfig() + resolveDevServices() per entrypoint start_*.
  *
  * Overlay attivo: config.project.{name}.mjs e runner.config.{name}.mjs
- *   con name = resolveProjectOverlayName() (env PRJ_NAME, default JustLastOne).
+ *   con name = resolveProjectOverlayName() (env PRJ_NAME obbligatorio).
  */
 
-import "../lib/load-env.mjs";
+import "../lib/portal.load.env.mjs";
 
-import { getProjectConfig, resolveProjectOverlayName } from "../lib/config.project.mjs";
+import { getProjectConfig, resolveProjectOverlayName } from "../lib/admin/config.project.mjs";
 
 /**
  * Nome file overlay `runner.config.{name}.mjs` — allineato a config.project.
@@ -28,10 +28,10 @@ const overlayName = resolveRunnerOverlayName();
 let RUNNER_CONFIG_VALUES;
 
 try {
-  ({ RUNNER_CONFIG_VALUES } = await import(`./runner.config.${overlayName}.mjs`));
+  ({ RUNNER_CONFIG_VALUES } = await import(`../PROJECT_${overlayName}/runner.config.${overlayName}.mjs`));
 } catch (err) {
   const notFound = err instanceof Error && "code" in err && err.code === "ERR_MODULE_NOT_FOUND";
-  const hint     = notFound ? ` Crea runner/runner.config.${overlayName}.mjs.` : "";
+  const hint     = notFound ? ` Crea PROJECT_${overlayName}/runner.config.${overlayName}.mjs.` : "";
 
   throw new Error(`runner.config.stack — overlay "${overlayName}" non caricabile.${hint}`, { cause: err });
 }
@@ -286,7 +286,7 @@ export function resolveDevStackFilters() {
 }
 
 /**
- * Entry spawn per start_ALL_Services — ordine devStack.
+ * Entry spawn per process.start.all.services — ordine devStack.
  *
  * @param {RunnerConfigValues} [runnerCfg]
  * @returns {Array<{ id: string, serviceId: string, ps1?: string, mjs: string, label: string, port: number }>}
