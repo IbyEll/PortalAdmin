@@ -14,7 +14,7 @@ import {
 , portalDevManifestExists
 , resolveProductSeedPath
 , resolveProjectOverlayName
-} from "../lib/config.project.mjs";
+} from "../lib/project.config.mjs";
 import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
 import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
 

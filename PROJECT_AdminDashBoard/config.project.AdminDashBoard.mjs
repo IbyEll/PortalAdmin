@@ -5,7 +5,7 @@
  * PRJ_REPO=PortalAdmin → resolveDefaultProductRepoPath punta a questo repo (sibling ../PortalAdmin).
  * Per smoke/e2e con stack product: imposta PRODUCT_REPO_PATH sul checkout JustLastOne.
  *
- * @type {import("../../lib/admin/config.project.mjs").ProjectConfig}
+ * @type {import("../../lib/project.config.mjs").ProjectConfig}
  */
 export const PROJECT_CONFIG_VALUES = {
   PRJ_REPO             : "PortalAdmin"

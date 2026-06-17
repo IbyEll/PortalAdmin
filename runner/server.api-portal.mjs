@@ -17,7 +17,7 @@ import { createServer } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 
-import { buildApiPortalConfig } from "../lib/admin/config_api-portal.mjs";
+import { buildApiPortalConfig } from "../lib/config_api-portal.mjs";
 import { getProductRepoPath, getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
 const portalRoot = getPortalRoot();

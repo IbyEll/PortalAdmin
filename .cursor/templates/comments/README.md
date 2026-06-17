@@ -9,7 +9,7 @@ I template sono **riferimento obbligatorio** — non importati a runtime. Placeh
 | Template | File da leggere | Quando |
 | --- | --- | --- |
 | **Script / entrypoint** | `script-entrypoint.mjs` | `#!/usr/bin/env node`, `runner/start_*.mjs`, `scripts/`, seed CLI, `main` implicito |
-| **Libreria** | `lib-module.mjs` | `lib/*.mjs`, `runner/runner.stack.base.mjs`, `runner/runner.config.stack.mjs` — export, no argv |
+| **Libreria** | `lib-module.mjs` | `lib/*.mjs`, `runner/cruscotto.runner.stack.base.mjs`, `runner/runner.config.stack.mjs` — export, no argv |
 | **Server / UI** | `app-module.mjs` | `server/`, `cruscotto/`, `api-portal/` |
 
 Path base: `.cursor/templates/comments/`
@@ -41,7 +41,7 @@ Derivare da codice + `grep` consumer del file target.
 ## Formattazione
 
 - **No** riga vuota dopo ogni riga commento/codice — solo spaziatura normale tra sezioni.
-- JSDoc compatto come `runner/runner.stack.mjs` (riferimento), non “una riga sì una no”.
+- JSDoc compatto come `runner/cruscotto.runner.stack.mjs` (riferimento), non “una riga sì una no”.
 - Write intero file: fine riga `\n`; preferire patch mirate.
 
 ## Checklist agente

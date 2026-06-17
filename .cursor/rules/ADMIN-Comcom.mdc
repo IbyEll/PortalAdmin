@@ -85,4 +85,4 @@ Su `comcom`, questa regola **prevale** su «pochi commenti» e su `ADMIN-ScriptC
 
 - Scelta tipo file: `.cursor/templates/comments/README.md`
 - Template: `script-entrypoint.mjs` · `lib-module.mjs` · `app-module.mjs`
-- Esempio reale commentato: `runner/runner.stack.base.mjs`, `lib/cruscotto-db/script_seed/script_seed-lib.mjs`
+- Esempio reale commentato: `runner/cruscotto.runner.stack.base.mjs`, `lib/cruscotto-db/script_seed/script_seed-lib.mjs`

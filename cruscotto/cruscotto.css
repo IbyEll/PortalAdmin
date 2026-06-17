@@ -3259,7 +3259,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-panel {
+.process-console-panel {
 
   display: flex;
 
@@ -3271,7 +3271,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-head {
+.process-console-head {
 
   display: flex;
 
@@ -3287,7 +3287,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-head h2 {
+.process-console-head h2 {
 
   margin: 0;
 
@@ -3295,7 +3295,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-tools {
+.process-console-tools {
 
   display: flex;
 
@@ -3309,7 +3309,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-follow-label {
+.process-console-follow-label {
 
   display: inline-flex;
 
@@ -3327,7 +3327,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-badge {
+.process-console-badge {
 
   display: inline-block;
 
@@ -3351,7 +3351,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-badge.is-running {
+.process-console-badge.is-running {
 
   background: rgba(56, 189, 120, 0.18);
 
@@ -3361,7 +3361,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-output {
+.process-console-output {
 
   margin: 0;
 
@@ -3387,21 +3387,21 @@ body.ttecnici-modal-open {
 
 }
 
-.utility-console-panes {
+.process-console-panes {
   display: flex;
   flex-direction: column;
   min-height: 14rem;
 }
 
-.utility-console-pane {
+.process-console-pane {
   display: none;
 }
 
-.utility-console-pane.is-active {
+.process-console-pane.is-active {
   display: block;
 }
 
-.utility-console-tabs {
+.process-console-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -3409,7 +3409,7 @@ body.ttecnici-modal-open {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.utility-console-tab {
+.process-console-tab {
   appearance: none;
   border: 1px solid transparent;
   border-radius: 0.35rem;
@@ -3420,36 +3420,36 @@ body.ttecnici-modal-open {
   cursor: pointer;
 }
 
-.utility-console-tab:hover {
+.process-console-tab:hover {
   color: rgba(255, 255, 255, 0.9);
   background: rgba(255, 255, 255, 0.06);
 }
 
-.utility-console-tab.is-active {
+.process-console-tab.is-active {
   color: rgba(255, 255, 255, 0.95);
   border-color: rgba(147, 197, 253, 0.45);
   background: rgba(147, 197, 253, 0.1);
 }
 
-.utility-console-tab[data-console-tab="web"].is-active {
+.process-console-tab[data-console-tab="web"].is-active {
   border-color: rgba(134, 239, 172, 0.5);
 }
 
-.utility-console-tab[data-console-tab="api"].is-active {
+.process-console-tab[data-console-tab="api"].is-active {
   border-color: rgba(125, 211, 252, 0.5);
 }
 
-.utility-console-tab[data-console-tab="auth"].is-active {
+.process-console-tab[data-console-tab="auth"].is-active {
   border-color: rgba(196, 181, 253, 0.5);
 }
 
-.utility-console-tab[data-console-tab="database"].is-active {
+.process-console-tab[data-console-tab="database"].is-active {
   border-color: rgba(252, 211, 77, 0.5);
 }
 
 
 
-.utility-console-line {
+.process-console-line {
 
   white-space: pre-wrap;
 
@@ -3459,7 +3459,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-line + .utility-console-line {
+.process-console-line + .process-console-line {
 
   margin-top: 0.15rem;
 
@@ -3467,7 +3467,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-stderr {
+.process-console-stderr {
 
   color: #fca5a5;
 
@@ -3475,53 +3475,53 @@ body.ttecnici-modal-open {
 
 
 
-.utility-console-system {
+.process-console-system {
 
   color: #93c5fd;
 
 }
 
-.utility-console-pkg {
+.process-console-pkg {
   font-weight: 600;
 }
 
-.utility-console-pkg-web {
+.process-console-pkg-web {
   color: #86efac;
 }
 
-.utility-console-pkg-api {
+.process-console-pkg-api {
   color: #7dd3fc;
 }
 
-.utility-console-pkg-api-portal {
+.process-console-pkg-api-portal {
   color: #67e8f9;
 }
 
-.utility-console-pkg-auth {
+.process-console-pkg-auth {
   color: #c4b5fd;
 }
 
-.utility-console-pkg-friendbot {
+.process-console-pkg-friendbot {
   color: #bef264;
 }
 
-.utility-console-pkg-database {
+.process-console-pkg-database {
   color: #fcd34d;
 }
 
-.utility-console-pkg-shared {
+.process-console-pkg-shared {
   color: #5eead4;
 }
 
-.utility-console-pkg-i18n {
+.process-console-pkg-i18n {
   color: #f9a8d4;
 }
 
-.utility-console-pkg-auth-kit {
+.process-console-pkg-auth-kit {
   color: #fdba74;
 }
 
-.utility-console-pkg-default {
+.process-console-pkg-default {
   color: #a5b4fc;
 }
 
@@ -3532,7 +3532,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-header {
+.process-intro-header {
 
   margin: 0;
 
@@ -3540,7 +3540,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-body {
+.process-intro-body {
 
   padding: 0 0.15rem 0.35rem;
 
@@ -3548,7 +3548,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-body h3 {
+.process-intro-body h3 {
 
   margin: 1rem 0 0.35rem;
 
@@ -3558,7 +3558,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-body h3:first-child {
+.process-intro-body h3:first-child {
 
   margin-top: 0.15rem;
 
@@ -3566,7 +3566,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-body p {
+.process-intro-body p {
 
   margin: 0.35rem 0 0.5rem;
 
@@ -3578,7 +3578,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-steps {
+.process-intro-steps {
 
   margin: 0.35rem 0 0.75rem 1.25rem;
 
@@ -3592,7 +3592,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-steps li + li {
+.process-intro-steps li + li {
 
   margin-top: 0.35rem;
 
@@ -3600,7 +3600,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-note {
+.process-intro-note {
 
   margin-top: 0.5rem;
 
@@ -3616,7 +3616,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-table {
+.process-intro-table {
 
   margin: 0.5rem 0 0.85rem;
 
@@ -3626,9 +3626,9 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-table th,
+.process-intro-table th,
 
-.utility-intro-table td {
+.process-intro-table td {
 
   vertical-align: top;
 
@@ -3638,7 +3638,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-intro-table code {
+.process-intro-table code {
 
   font-size: 0.78rem;
 
@@ -3648,7 +3648,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-stop-hint {
+.process-stop-hint {
 
   margin-top: 0.45rem;
 
@@ -3658,7 +3658,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-proc-up {
+.process-proc-up {
 
   color: #6ee7b7;
 
@@ -3668,7 +3668,7 @@ body.ttecnici-modal-open {
 
 
 
-.utility-proc-down {
+.process-proc-down {
 
   color: var(--muted);
 
@@ -3676,35 +3676,35 @@ body.ttecnici-modal-open {
 
 }
 
-.utility-proc-user-cell {
+.process-proc-user-cell {
   font-size: 0.78rem;
   line-height: 1.35;
   vertical-align: middle;
   white-space: nowrap;
 }
 
-.utility-proc-user {
+.process-proc-user {
   font-weight: 600;
 }
 
-.utility-proc-user-cursor {
+.process-proc-user-cursor {
   color: #a78bfa;
 }
 
-.utility-proc-user-terminal {
+.process-proc-user-terminal {
   color: #86efac;
 }
 
-.utility-proc-user-dashboard {
+.process-proc-user-dashboard {
   color: #6b9fff;
 }
 
-.utility-proc-user-name {
+.process-proc-user-name {
   font-weight: 400;
 }
 
-th.utility-block-col,
-.utility-block-cell {
+th.process-block-col,
+.process-block-cell {
   width: 2.35rem;
   min-width: 2.35rem;
   max-width: 2.35rem;
@@ -3717,19 +3717,19 @@ th.utility-block-col,
   color: var(--muted-fg, #9ca3af);
 }
 
-.utility-service-path {
+.process-service-path {
   font-size: 0.78rem;
   word-break: break-all;
   white-space: normal;
 }
 
-.utility-service-desc {
+.process-service-desc {
   font-size: 0.82rem;
   max-width: 14rem;
   line-height: 1.35;
 }
 
-.utility-svc-suffix {
+.process-svc-suffix {
   display: block;
   margin-top: 0.12rem;
   font-size: 0.62rem;
@@ -3739,59 +3739,59 @@ th.utility-block-col,
   color: var(--muted-fg, #9ca3af);
 }
 
-.utility-actions-cell {
+.process-actions-cell {
   vertical-align: middle;
   min-width: 5.5rem;
   text-align: center;
 }
 
-.utility-actions-stack {
+.process-actions-stack {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0.35rem;
 }
 
-.utility-action-btn {
+.process-action-btn {
   font-size: 0.78rem;
   padding: 0.25rem 0.5rem;
   white-space: nowrap;
 }
 
-#utility-services-body tr.utility-block-odd > td {
+#process-services-body tr.process-block-odd > td {
   background: var(--surface);
 }
 
-#utility-services-body tr.utility-block-even > td {
+#process-services-body tr.process-block-even > td {
   background: color-mix(in srgb, var(--surface) 86%, rgb(255 255 255 / 0.07));
 }
 
-.utility-db-stato {
+.process-db-stato {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   line-height: 1.3;
 }
 
-.utility-db-created {
+.process-db-created {
   font-size: 0.82rem;
 }
 
-.utility-db-absent {
+.process-db-absent {
   color: #b06680;
   font-weight: 600;
 }
 
-.utility-stack-complete-cell {
+.process-stack-complete-cell {
   min-width: 6.75rem;
 }
 
-#utility-services-body tr.utility-product-boundary-row > td {
+#process-services-body tr.process-product-boundary-row > td {
   border-top: 3px solid #111822;
   box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.35);
 }
 
-.utility-node-cmd {
+.process-node-cmd {
   display: block;
   max-width: 14rem;
   overflow: hidden;
@@ -3800,7 +3800,7 @@ th.utility-block-col,
   font-size: 0.72rem;
 }
 
-.utility-confirm-overlay {
+.process-confirm-overlay {
   position: fixed;
   inset: 0;
   z-index: 120;
@@ -3812,15 +3812,15 @@ th.utility-block-col,
   backdrop-filter: blur(4px);
 }
 
-.utility-confirm-overlay.hidden {
+.process-confirm-overlay.hidden {
   display: none;
 }
 
-body.utility-confirm-open {
+body.process-confirm-open {
   overflow: hidden;
 }
 
-.utility-confirm-panel {
+.process-confirm-panel {
   width: 100%;
   max-width: 28rem;
   padding: 1.1rem 1.25rem 1rem;
@@ -3830,32 +3830,32 @@ body.utility-confirm-open {
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
 }
 
-.utility-confirm-title {
+.process-confirm-title {
   margin: 0 0 0.65rem;
   font-size: 1.05rem;
   font-weight: 600;
 }
 
-.utility-confirm-body {
+.process-confirm-body {
   margin: 0 0 1rem;
   font-size: 0.88rem;
   line-height: 1.45;
   color: var(--muted);
 }
 
-.utility-confirm-actions {
+.process-confirm-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
 }
 
-.utility-confirm-danger {
+.process-confirm-danger {
   border-color: color-mix(in srgb, var(--fail) 55%, var(--border));
   color: var(--fail);
   background: color-mix(in srgb, var(--fail) 12%, transparent);
 }
 
-.utility-confirm-danger:hover {
+.process-confirm-danger:hover {
   background: color-mix(in srgb, var(--fail) 22%, transparent);
 }
 

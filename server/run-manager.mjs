@@ -5,7 +5,7 @@ import {
   BLOCKED_REASONS
 , BLOCKED_SCRIPTS
 , discoverTestScripts
-} from "../lib/admin/test.catalog.mjs";
+} from "../lib/test.catalog.mjs";
 import {
   getPortalRoot
 , getProductRepoPath

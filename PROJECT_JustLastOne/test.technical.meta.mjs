@@ -5,7 +5,7 @@ import {
 import {
   discoverScriptDescription
 , discoverTestCasesForScript
-} from "../lib/admin/test.dipendenze.mjs";
+} from "../lib/test.dipendenze.mjs";
 
 export const TECNICI_IMPLEMENTATION = {
   title        : "Test tecnici backend"

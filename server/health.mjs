@@ -1,4 +1,4 @@
-import { checkProjectServices } from "../runner/runner.stack.probe.mjs";
+import { checkProjectServices } from "../runner/cruscotto.runner.stack.probe.mjs";
 
 /**
  * Stato health stack dev per API dashboard — riusa probe condiviso in lib/dev.stack.probe.mjs.

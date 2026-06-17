@@ -20,11 +20,11 @@ Esempi: `JustLastOne___run-all.mjs`, `JustLastOne___product-prisma.mjs`, `JustLa
 
 - **lib/** — prisma, match-fixtures, testScript catalog, test meta/deps, my-project-analysis
 - **lib/cruscotto-db/script_seed/** — init DB, seed, lib condivisa
-- **runner/** — `run-all`, `start_*` web/api/auth, `start_ALL_Services`, `runner.stack`, `kill-product-stack`
+- **runner/** — `run-all`, `cruscotto.process.*`, `cruscotto.runner.stack.*`, `kill-product-stack`
 
 ## Non rinominare (generici PortalAdmin)
 
-`dev-manifest.mjs`, `portal-paths.mjs`, `config_project.mjs`, `discovery-config.mjs`, `discovery-services-repo.mjs`, `repo-service-discovery.mjs`, `dashboard-server.mjs`, `start_API_Portal.mjs`, `serve-api-portal.mjs`, `kill-dev-ports.mjs`, `reporter.mjs` (multi-repo report).
+`dev-manifest.mjs`, `portal-paths.mjs`, `config_project.mjs`, `discovery-config.mjs`, `discovery-services-repo.mjs`, `repo-service-discovery.mjs`, `dashboard-server.mjs`, `cruscotto.process.start.api.portal.mjs`, `serve-api-portal.mjs`, `kill-dev-ports.mjs`, `reporter.mjs` (multi-repo report).
 
 ## Nuovo file JLO
 

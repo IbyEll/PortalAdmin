@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html lang="it">
+
+<head>
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>JustLastOne — Cruscotto Dev</title>
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
+  <link rel="stylesheet" href="/cruscotto.css" />
+
+</head>
+
+<body class="cruscotto-app">
+
+  <aside class="cruscotto-sidebar" aria-label="Menu principale">
+
+    <div class="sidebar-brand">
+
+      <strong>Cruscotto Dev</strong>
+
+      <span class="muted">JustLastOne local</span>
+
+      <a class="sidebar-home-link muted" href="/" title="PortalAdmin Home">← Home</a>
+
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <button type="button" data-tab="overview" class="active">
+
+        <span class="nav-label">Overview</span>
+
+      </button>
+
+      <button type="button" data-tab="requisiti">
+
+        <span class="nav-label">Requisiti</span>
+
+      </button>
+
+      <button type="button" data-tab="servizi">
+
+        <span class="nav-label">Servizi</span>
+
+      </button>
+
+      <button type="button" data-tab="test">
+
+        <span class="nav-label">Test</span>
+
+        <span class="nav-hint muted">testScript/</span>
+
+      </button>
+
+      <button type="button" data-tab="summary">
+
+        <span class="nav-label">Summary</span>
+
+        <span class="nav-hint muted">test case</span>
+
+      </button>
+
+      <button type="button" data-tab="testtecnici">
+
+        <span class="nav-label">TestTecnici</span>
+
+        <span class="nav-hint muted">run + case</span>
+
+      </button>
+
+      <button type="button" data-tab="testfunzionali">
+
+        <span class="nav-label">TestFunzionali</span>
+
+        <span class="nav-hint muted">multi-utente</span>
+
+      </button>
+
+      <button type="button" data-tab="jiraworking">
+
+        <span class="nav-label">Jira Working</span>
+
+        <span class="nav-hint muted">backlog</span>
+
+      </button>
+
+      <button type="button" data-tab="jiraworkingold">
+
+        <span class="nav-label">Working OLD</span>
+
+        <span class="nav-hint muted">snapshot</span>
+
+      </button>
+
+      <button type="button" data-tab="jiraproject">
+
+        <span class="nav-label">Project Tree</span>
+
+        <span class="nav-hint muted">checklist</span>
+
+      </button>
+
+      <button type="button" data-tab="backlog">
+
+        <span class="nav-label">Backlog</span>
+
+        <span class="nav-hint muted">Jira</span>
+
+      </button>
+
+      <button type="button" data-tab="myproject">
+
+        <span class="nav-label">My Project</span>
+
+        <span class="nav-hint muted">repo vs Jira</span>
+
+      </button>
+
+      <button type="button" data-tab="pillarmatrix">
+
+        <span class="nav-label">Matrice pilastri</span>
+
+        <span class="nav-hint muted">visione × Jira × repo</span>
+
+      </button>
+
+      <button type="button" data-tab="process">
+
+        <span class="nav-label">Process</span>
+
+        <span class="nav-hint muted">strumenti</span>
+
+      </button>
+
+    </nav>
+
+    <footer class="sidebar-footer muted">
+
+      <code>:3999</code>
+
+    </footer>
+
+  </aside>
+
+
+
+  <div class="cruscotto-shell">
+
+    <header class="cruscotto-topbar">
+
+      <div>
+
+        <h1 id="page-title">Overview</h1>
+
+        <p id="page-subtitle" class="muted">Ambiente locale — requisiti, servizi e test</p>
+
+      </div>
+
+    </header>
+
+
+
+    <main class="cruscotto-main">
+
+      <p id="boot-loading" class="boot-loading">Caricamento cruscotto…</p>
+
+      <section id="section-overview"></section>
+
+      <section id="section-requisiti" class="hidden"></section>
+
+      <section id="section-servizi" class="hidden"></section>
+
+      <section id="section-test" class="hidden"></section>
+
+      <section id="section-summary" class="hidden"></section>
+
+      <section id="section-testtecnici" class="hidden"></section>
+
+      <section id="section-testfunzionali" class="hidden"></section>
+
+      <section id="section-jiraworking" class="hidden" aria-label="Jira Working">
+        <iframe
+          class="jira-working-frame"
+          src="/jira-working.html"
+          title="Jira Working — ordine di sviluppo backlog"
+        ></iframe>
+      </section>
+
+      <section id="section-jiraworkingold" class="hidden" aria-label="Jira Working OLD">
+        <iframe
+          class="jira-working-frame"
+          src="/jira-working-old.html"
+          title="Jira Working OLD — snapshot precedente"
+        ></iframe>
+      </section>
+
+      <section id="section-jiraproject" class="hidden" aria-label="Project Tree">
+        <iframe
+          class="jira-working-frame"
+          src="/jira-project-tree.html"
+          title="Project Tree — backlog JLO con check Fatto"
+        ></iframe>
+      </section>
+
+      <section id="section-backlog" class="hidden" aria-label="Backlog JLO">
+        <iframe
+          class="jira-working-frame"
+          src="/backlog.html"
+          title="Backlog JLO — elenco completo issue"
+        ></iframe>
+      </section>
+
+      <section id="section-myproject" class="hidden" aria-label="My Project">
+        <iframe
+          class="jira-working-frame"
+          src="/my-project.html"
+          title="My Project — analisi repo vs Jira"
+        ></iframe>
+      </section>
+
+      <section id="section-pillarmatrix" class="hidden" aria-label="Matrice pilastri">
+        <iframe
+          class="jira-working-frame"
+          src="/pillar-matrix/index.html"
+          title="Matrice pilastri — JLO × visione × repo"
+        ></iframe>
+      </section>
+
+      <section id="section-process" class="hidden" aria-label="Process"></section>
+
+    </main>
+
+  </div>
+
+
+
+  <div id="ttecnici-doc-modal" class="ttecnici-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ttecnici-doc-modal-title" hidden>
+
+    <div class="ttecnici-modal-panel">
+
+      <div class="ttecnici-modal-header">
+
+        <h2 id="ttecnici-doc-modal-title" class="ttecnici-modal-title"></h2>
+
+        <button type="button" class="ttecnici-modal-close" aria-label="Chiudi documentazione">×</button>
+
+      </div>
+
+      <pre class="ttecnici-doc-modal-body"></pre>
+
+    </div>
+
+  </div>
+
+
+
+  <script src="/expand-collapse-ui.js" defer></script>
+  <script src="/cruscotto.js" defer></script>
+
+</body>
+
+</html>
+
