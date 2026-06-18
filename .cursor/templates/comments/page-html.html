@@ -1,0 +1,113 @@
+<!-- ═══ SCHEMA comcom — page-html ═══
+     Non copiare questa riga nel file target. Compilare con testo reale; zero segnaposto tipo {…}.
+     Re-comcom: preservare creato il / by (riga creato); aggiornare solo commentato il e modificato il (+ by modificato).
+     Titolo: max 120 caratteri/riga; a capo su spazio; centrato nella banda 120 — mai spezzare parole.
+     Testo: max 120 caratteri/riga; a capo su spazio — mai spezzare parole (escluso titolo stellato).
+
+------------------------------------------------------------------------------------------------------------------------
+ ** PAGE HTML ** -- commentato il: yyyy-mm-dd HH:mm
+------------------------------------------------------------------------------------------------------------------------
+ creato     il: yyyy-mm-dd HH:mm   by: 
+ modificato il: yyyy-mm-dd HH:mm   by:  
+ ticket refirement: issueKey + issueTitle
+------------------------------------------------------------------------------------------------------------------------
+
+************************************************************************************************************************
+*     Titolo pagina — ruolo (esempio centrato in banda 120 caratteri).
+************************************************************************************************************************
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - evitare hardcode progetto in shell riusabile da più overlay
+    - vista statica servita dal dashboard senza build frontend
+
+    A cosa serve:
+    - layout, sezioni DOM, link asset CSS/JS
+    - bootstrap server (iniezione config) o dati embedded per pagine generate
+
+  Generalizzazione:
+    Si | No — shell riusabile su overlay o HTML monolitica per un solo contesto?
+
+  Input (obbligatorio se Si; se No scrivere «Input: —»):
+    - window.CRUSCOTTO_PROJECT / data-cruscotto-bind — label e testi da overlay
+    - marker GENERATED / dati embedded — se HTML rigenerata da script Node
+    - asset path (/jira-issue-display.js) — alias statici condivisi
+
+  Servita da:
+    - runner/cruscotto.server.mjs — URL / o /app.html
+    - admin.portal/portal.home.server.mjs — URL / (admin.portal)
+
+  Asset collegati:
+    - nome.css — foglio stili pagina o shared (cruscotto.css, portal.home.css)
+    - nome.js — script client companion (vedi template page-html.mjs)
+    - cruscotto.project.bootstrap.js — config overlay (se iniettato in head)
+
+  API usate (fetch dal companion JS, non da HTML):
+    - GET /api/esempio — scopo breve
+
+  Sezioni DOM principali:
+    - #section-overview — tab Overview
+    - aside.cruscotto-sidebar — navigazione tab
+
+  Note:
+    - data-cruscotto-bind — titoli/label da window.CRUSCOTTO_PROJECT
+    - marker HTML comment (es. WORKING-PLAN-GENERATED) — non modificare a mano se rigenerata
+
+  ═══ fine schema — sotto: commento reale da inserire nel target ═══ -->
+
+<!--
+  PAGE HTML
+  Titolo pagina — ruolo.
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - bullet concreto
+
+    A cosa serve:
+    - bullet concreto
+
+  Generalizzazione:
+    Si | No — …
+
+  Input (obbligatorio se Si; se No: «Input: —»):
+    - …
+
+  Servita da:
+    - runner/… — URL /path
+
+  Asset collegati:
+    - file.css — stili
+    - file.js — logica client
+
+  API usate (fetch dal companion JS):
+    - GET /api/… — scopo
+
+  Sezioni DOM principali:
+    - #id — scopo
+
+------------------------------------------------------------------------------------------------------------------------
+-->
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <!-- 1. head — charset, viewport, title, favicon, CSS, bootstrap server -->
+  <meta charset="utf-8" />
+  <title>Titolo</title>
+  <link rel="stylesheet" href="/esempio.css" />
+</head>
+<body>
+  <!-- 2. layout — header, sidebar, main, pannelli tab -->
+  <main id="main">
+    <section id="section-esempio" aria-label="Esempio">
+      <!-- contenuto statico o placeholder per render JS -->
+    </section>
+  </main>
+
+  <!-- 3. script — defer, ordine: bootstrap → companion pagina -->
+  <script src="/esempio.bootstrap.js" defer></script>
+  <script src="/esempio.js" defer></script>
+</body>
+</html>

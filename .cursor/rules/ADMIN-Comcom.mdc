@@ -17,21 +17,83 @@ alwaysApply: true
 ## Sequenza agente (ordine obbligatorio)
 
 1. **Leggi** il file target e **1–2 consumer** (`grep` import) — per compilare *Perché esiste* / *A cosa serve*.
+   - Se la testata ha già `creato il:` → **estrai e conserva** data/ora e `by` (vedi § **Re-comcom** sotto).
 2. **Scegli il template** — tabella in `.cursor/templates/comments/README.md`.
 3. **Leggi il template scelto** con il tool Read — **obbligatorio**, prima di modificare il target:
 
 | Tipo file | Path template (relativo repo PortalAdmin) |
 | --- | --- |
-| Entrypoint CLI (`#!/usr/bin/env node`, `main` implicito) | `.cursor/templates/comments/script-entrypoint.mjs` |
-| Libreria (`lib/`, `runner/*-lib.mjs`, export senza argv) | `.cursor/templates/comments/lib-module.mjs` |
-| Server / UI (`server/`, `cruscotto/`, `api-portal/`) | `.cursor/templates/comments/app-module.mjs` |
+| Testscript (`testScript/`, `test.smoke/`, `admin.portal.testscript/`, `runTest`/`assert`) | `.cursor/templates/comments/testscript.mjs` |
+| Entrypoint CLI (`#!/usr/bin/env node`, `main` implicito, argv, non test) | `.cursor/templates/comments/script-entrypoint.mjs` |
+| Libreria (`lib/`, `cruscotto.database/`, `runner/*-lib.mjs`, export senza argv) | `.cursor/templates/comments/lib-module.mjs` |
+| Server / handler HTTP Node (`runner/*server*.mjs`, `server/`) | `.cursor/templates/comments/app-module.mjs` |
+| Pagina HTML statica (`cruscotto.frontend/`, `admin.portal/`, pillar-matrix, Jira HTML) | `.cursor/templates/comments/page-html.html` |
+| Script client companion di una HTML (`.js`/`.mjs` senza Node: fetch DOM, tab, bootstrap) | `.cursor/templates/comments/page-html.mjs` |
+| Foglio stili pagina (`.css` linkato da HTML cruscotto o alias statico server) | `.cursor/templates/comments/page-styles.css` |
+| **Regola Cursor** (`.cursor/rules/*.mdc` — workflow, veve, policy agente) | `.cursor/templates/comments/cursor-rule.mdc` |
+| **Fallback** — dubbio, path misto, `.ps1`/`.sh`, tipo non in tabella | `.cursor/templates/comments/template_default.mjs` |
+
+**Sempre un template.** Se non è chiaro quale tipologia usare → **`template_default.mjs`** (mai formato libero o prosa inline al posto del template).
+
+**Scope script eseguibili:** oltre a `comcom` esplicito, quando **crei o modifichi** entrypoint in `runner/`, `scripts/`, `cruscotto.database/script_seed/`, `admin.portal.testscript/` — stesse regole testata + corpo sotto (anche senza invocare `comcom` in chat, se l’utente chiede commenti su quello script).
 
 4. **Applica sul file target** la struttura del template letto:
-   - sostituisci i placeholder `{…}` con contenuto reale (consumer, path, flag, export);
-   - mantieni **sezioni e ordine** del template (testata, step `// N.`, JSDoc);
-   - **non** inventare un formato alternativo se il template già lo definisce.
-5. **Solo commenti** — nessun refactor, rinomina o cambio logica; IndentElla invariato.
-7. **Output chat** — una riga: template usato + path file target (no dump).
+   - **compila** ogni sezione con contenuto reale (consumer, path, flag, export, **Generalizzazione**, **Input**) derivato da codice + grep;
+   - mantieni **sezioni, ordine e bullet** del template (righe vuote, `-` sotto Perché/A cosa serve/**Generalizzazione**/Input/Consumatori/Export);
+   - includi solo sezioni facoltative del template se pertinenti (Uso, Flag CLI, env, Route, Prerequisiti);
+   - chiudi la testata con riga `---` (120 trattini) **prima** di `*/`;
+   - aggiungi **step `// N.`** e JSDoc sul corpo come nel template (main, handler, export — non solo testata);
+   - **non** inventare un formato alternativo.
+5. **Valida commento** — checklist § **Validazione commento** (obbligatoria; correggere prima di chiudere).
+6. **Solo commenti** — nessun refactor, rinomina o cambio logica; indentazione invariata.
+7. **Output chat** — una riga: `template {nome} + {path}` (no dump).
+
+### Placeholder — vietati nel target
+
+| Dove | Regola |
+| --- | --- |
+| File target dopo `comcom` | **Zero** `{…}`, zero testo guida del template («sostituire», «compilare», «esempio — …») |
+| Template in `.cursor/templates/comments/` | Possono contenere schema/esempio per l'agente; **non** copiare literalmente nel target |
+
+Autocheck integrato nel passo 5 — vedi § **Validazione commento**.
+
+### Validazione commento (passo 5 — obbligatorio)
+
+Dopo aver applicato il template, **rileggere** la testata e i commenti aggiunti; **non chiudere** finché tutti i controlli passano.
+
+#### Controlli automatici (agente)
+
+Eseguire sul file target (escludere righe `*!` e JSDoc `@param`/`@returns`/`@type`):
+
+| # | Controllo | Come |
+| --- | --- | --- |
+| V1 | Zero placeholder schema | `grep` testo guida: `sostituire`, `compilare`, `esempio —`, `yyyy-mm-dd` |
+| V2 | Zero `{…}` in commenti testata/step | `grep` `{` nelle righe ` * ` / `//` / `<!--` (ok in codice e `@param {…}`) |
+| V3 | Zero glob `*` nel testo commento | Niente `resolve*`, `PROJECT_*/`, `PRJ_*_` — usare nomi espliciti (`PROJECT_NOME`, elenco funzioni) |
+| V4 | Separatori 120 trattini | Ogni riga `---` in testata = esattamente 120 `-` (JSDoc: dopo ` * `; HTML: a inizio riga) |
+| V5 | Chiusura testata | Ultima riga prima di `*/` o `-->` = riga `---` (120 trattini), non l'ultimo bullet |
+| V6 | Righe ≤ 120 caratteri | Ogni riga commento (bullet, step, Generalizzazione) — escluso blocco titolo stellato |
+| V7 | Parole intere | Nessuna riga commento spezzata a metà parola (a capo solo su spazio) |
+
+#### Controlli strutturali (lettura)
+
+| # | Controllo | Esito atteso |
+| --- | --- | --- |
+| V8 | Metadati | Riga tipo `** … ** -- commentato il:` + `creato`/`modificato` tra separatori `---` |
+| V9 | Descrizione funzionale | `Perché esiste:` e `A cosa serve:` ciascuno con bullet `-` (mai prosa inline sulla stessa riga) |
+| V10 | Generalizzazione + Input | Presenti; `Si` → elenco Input; `No` → `Input: —` |
+| V11 | Re-comcom | Se `creato il:` preesistente: riga creato **invariata**; solo `commentato`/`modificato` aggiornati |
+| V12 | Corpo | Step `// N.` / `// Step N —` su main/handler/export pubblici come da tipo template (§ Corpo codice); script: branch/exit commentati |
+| V13 | Lingua | Italiano (salvo termini tecnici: CLI, env, path, nomi simbolo codice) |
+| V14 | Logica | Nessuna modifica al codice eseguibile oltre ai commenti |
+
+#### Se un controllo fallisce
+
+1. Correggere nel file target (patch mirata).
+2. Ripetere i controlli falliti.
+3. Solo allora passo 7 (output chat).
+
+**Non** segnalare `comcom` completato con testata incompleta o placeholder residui.
 
 ### Formattazione (anti-righe-vuote)
 
@@ -42,7 +104,7 @@ alwaysApply: true
 
 Tutto ciò che è nel file template letto al passo 3:
 
-- blocchi testata `/** … */` (titolo, descrizione funzionale, uso/route, flag, env, consumatori, export);
+- blocchi testata `/** … */` (titolo, descrizione funzionale a bullet, **Generalizzazione** + **Input**, uso/route, flag, env, consumatori, export);
 - formato step `// N. {cosa} — {perché}`;
 - JSDoc su export e funzioni pubbliche non banali;
 - checklist implicita del template (es. help → exit 0 nello script-entrypoint).
@@ -51,15 +113,175 @@ La regola **non** duplica il template: se c'è conflitto, **vince il template** 
 
 ## Regole aggiuntive (oltre al template)
 
-### Descrizione funzionale
-
-Sempre in testata, compilata da codice + consumer:
+### Descrizione funzionale (formato obbligatorio)
 
 ```text
-Descrizione funzionale:
-  Perché esiste: …
-  A cosa serve: …
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - …
+ *
+ *   A cosa serve:
+ *   - …
 ```
+
+Mai prosa inline su una riga (`Perché esiste: testo lungo…` senza bullet).
+
+### Testata metadati (righe `---`)
+
+Struttura obbligatoria subito dopo `/**` (JSDoc) o dopo la riga schema `<!--` (HTML):
+
+```text
+ * ---- 120 trattini ----
+ * ** {TIPO} ** -- commentato il: …    
+ * ---- 120 trattini ----
+ * creato     il: …   by: …
+ * modificato il: …   by: …
+ * ticket refirement: …   (opzionale)
+ * ---- 120 trattini ----
+```
+
+- Separatori: esattamente **120** trattini dopo ` * ` (JSDoc) o **120** trattini a inizio riga (HTML).
+- Riga tipo: allineata a **sinistra** subito dopo ` * ` (JSDoc) o a inizio riga (HTML) — **senza** padding di centratura.
+- **Vietato:** `creato`/`modificato` senza riga `---` sopra (sotto la riga tipo).
+
+Esempio (lib):
+
+```text
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 03:20
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-17 00:00   by: IbyEll
+ * modificato il: 2026-06-18 03:20   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+```
+
+Dopo l’ultima sezione di testata (Prerequisiti, Variabili d’ambiente, Dipendenze, Export, …) — **sempre** una riga chiusura prima di `*/`:
+
+```text
+ * ------------------------------------------------------------------------------------------------------------------------
+ */
+```
+
+- **Obbligatoria** in ogni `comcom` (lib, script, app-module, page-html, page-styles, default).
+- **Vietato** chiudere la testata con `*/` subito dopo l’ultimo bullet senza riga `---` finale.
+
+### Corpo codice — step `// N.` e JSDoc
+
+Dopo la testata, commentare il **flusso esecutivo** (non import/export ovvi):
+
+| Tipo | Obbligo |
+| --- | --- |
+| **testscript** | Step su help/argv, prerequisiti, setup, `runTest`, riepilogo/exit, cleanup spawn |
+| **script-entrypoint** | Step numerati `// 1. … — …` su main, validazione argv, fasi I/O, exit |
+| **app-module** (server) | Step su `main`, routing (`handleRequest` / handler API), shutdown; JSDoc su helper non banali |
+| **lib-module** | Step su export pubblici e loop core; JSDoc su export e helper con logica non ovvia |
+| **page-html.mjs** | Step su init DOM, fetch API, event handler principali |
+| **page-styles.css** | Sezioni `/* --- {nome} — {scopo} --- */` per blocchi selettori tematici |
+| **cursor-rule.mdc** | Blocco meta `<!-- … -->` dopo frontmatter YAML; sezioni `##` (Trigger, Sequenza, Vietato, Riferimenti) |
+
+Formato step JS: `// N. {cosa} — {perché}` oppure `// Step N — {cosa} — {perché}` (italiano). Formato sezione CSS: `/* --- {nome} — {scopo} --- */`. Regole `.mdc`: blocco meta `<!-- … -->` + sezioni `##` (vedi template `cursor-rule.mdc`).
+
+**Non** omettere step solo perché la testata è completa — `comcom` = testata **+** corpo commentato.
+
+### Script eseguibili — corpo e branch
+
+Per **script-entrypoint**, **testscript** e entrypoint in `runner/`, `scripts/`, `cruscotto.database/script_seed/`, `admin.portal.testscript/`:
+
+| Regola | Dettaglio |
+| --- | --- |
+| **Commenti per fase** | Ogni blocco logico preceduto da commento che spiega *cosa* fa e *perché* — **non** limitarsi a ripetere il nome della funzione |
+| **Ordine numerato** | Nei `main`/entrypoint lunghi: `// 1. … — …` oppure `// Step 1 — …` in sequenza esecutiva |
+| **Branch e exit** | Commentare obbligatoriamente: `process.exit` / `process.exitCode`; early return non banali; flag CLI al primo utilizzo (`--help`, `--dry-run`, `--no-spawn`, `--json`, …) |
+| **Header senza comcom** | Se crei/modifichi lo script a mano: stessa testata del template (titolo, Descrizione funzionale a bullet, Uso CLI, env rilevanti) prima del corpo |
+
+Esempio corpo (entrypoint):
+
+```javascript
+// 1. Argomenti CLI e help — esci 0 senza side effect
+const args = process.argv.slice(2);
+if (args.includes("--help")) { … }
+
+// 2. Validazione input obbligatorio
+const seedIds = parseSeedIds(args);
+if (seedIds.length === 0) { … }
+
+// 3. Attesa stack (opzionale) prima dei seed
+if (waitAuthMs > 0) {
+  await waitForDevStack({ timeoutMs: waitAuthMs });
+}
+
+// 4. Esecuzione seed richiesti
+await runDataSeeds(seedIds);
+```
+
+#### Quando **non** applicare step numerati sul corpo
+
+| Tipo | Cosa commentare |
+| --- | --- |
+| **lib-module** | Solo JSDoc su export pubbliche e helper con logica non ovvia — **no** sequenza `// 1.` su file senza entrypoint |
+| **app-module** (`server/`, `cruscotto.frontend/`, `admin.portal/`) | Step su `main`, routing/handler API, shutdown — non ogni riga di handler |
+| **Runner one-off** in cartelle app | Stesso trattamento **script-entrypoint** se il file ha `#!/usr/bin/env node` e argv |
+
+
+### Titolo (blocco `*****************************************************************`)
+
+- **Larghezza banda:** 120 caratteri (come la riga di `*` separatore).
+- **Max 120 caratteri** per riga di titolo (solo testo titolo, senza prefisso né padding).
+- Se supera 120 caratteri → **più righe** nel blocco stellato; **a capo solo su spazio** — **mai** spezzare una parola.
+- **Centratura:** ogni riga titolo è **centrata** nella banda da 120 con spazi dopo il prefisso:
+  - JSDoc (`/** */`): ` * ` + spazi + testo — `spazi = floor((120 − lunghezza testo) / 2)`
+  - HTML (`<!-- -->`): `*` + spazi + testo — `spazi = floor((120 − 1 − lunghezza testo) / 2)` (il `*` iniziale conta 1)
+- Ogni riga di un titolo multiriga è centrata **in modo indipendente**.
+
+Esempio (lib/script):
+
+```text
+ * ************************************************************************************************************************
+ *              Ticket correlati backlog — parsing ADF description e issue link Jira.
+ * ************************************************************************************************************************
+```
+
+### Testo (tutte le righe commento, escluso titolo)
+
+- **Max 120 caratteri** per riga di testo (bullet, Generalizzazione, Input, Consumatori, Export, Uso, env, step `// N.`, JSDoc in testata).
+- **Escluso** il blocco **titolo** stellato (max **120** caratteri/riga + **centratura** in banda 120).
+- Se supera 120 caratteri → **a capo su spazio** — **mai** spezzare una parola.
+- **Bullet multiriga:** riga successiva con stesso indent del testo bullet (` *     ` in JSDoc, `    ` in HTML dopo `-`).
+
+Esempio:
+
+```text
+ *   - Il backlog arricchisce ogni issue con relatedKeys per tree e inspect; Jira espone
+ *     description in ADF e issueLinks, non un campo flat.
+```
+
+### Generalizzazione (obbligatoria in testata)
+
+Dopo *A cosa serve*, sempre:
+
+```text
+ * Generalizzazione:
+ *   Si — …   oppure   No — …
+ *
+ * Input (obbligatorio se Si; se No: «Input: —»):
+ *   - nomeIngresso — origine e ruolo (env, argv, overlay, bootstrap, API, …)
+```
+
+- **Si** — modulo/script/pagina riusabile su più `PROJECT_*` / overlay, o comportamento guidato da parametri esterni (non hardcoded su un solo product name).
+- **No** — logica dedicata; nessun overlay o parametrizzazione rilevante.
+- **Input** — solo ingressi **esterni** al file (non variabili interne): `PRJ_NAME`, `PRODUCT_REPO_PATH`, `JIRA_PROJECT_KEYS`, flag CLI, `window.CRUSCOTTO_PROJECT`, query/hash, body HTTP, ecc.
+
+### Re-comcom — preserva `creato il` / `by`
+
+| Situazione | `creato il` / `by` (riga creato) | `commentato il` / `modificato il` |
+| --- | --- | --- |
+| **Primo comcom** (nessuna riga `creato il:`) | Data/ora corrente + `by:` da `git config user.name` (se assente: `by: —`) | Stessa sessione: uguali a creato |
+| **Re-comcom** (riga `creato il:` già presente) | **Invariati** — copia letterale dal file, **mai** riscrivere | **Aggiorna** a data/ora corrente; `modificato il` + `by:` (git user o `—`) |
+
+- Aggiorna anche `commentato il` al passaggio corrente (re-comcom = refresh testata).
+- `ticket refinement:` — preserva se già presente; compila solo al primo comcom se noto dal contesto ticket.
+- **Vietato** su re-comcom: azzerare, spostare o sostituire `creato il` / `by` della riga creato.
 
 ### Commenti `*!` (intoccabili)
 
@@ -70,19 +292,23 @@ Righe che iniziano con `*!` in `/** … */` o `//`:
 
 ### Vietato
 
-- ❌ Applicare `comcom` **senza** aver letto il template (passo 3)
-- ❌ Modificare comportamento del file target
+- ❌ Testata senza riga `---` finale (120 trattini) prima di `*/`
+- ❌ Corpo senza step `// N.` / `// Step N —` dove il template prevede flusso (script, server main, export lib, testscript)
+- ❌ Script entrypoint senza commento su `process.exit` / early return / flag CLI non banali
+- ❌ Sovrascrivere `creato il` / `by` (riga creato) su **re-comcom**
+- ❌ Applicare `comcom` **senza** aver letto un template (passo 3)
+- ❌ Formato libero o testata “a parole” senza struttura template
+- ❌ Lasciare `{…}` o sezioni schema nel file target
+- ❌ Modificare comportamento del file target (logica regola, frontmatter YAML `description`/`globs` salvo compilazione reale da contesto)
 - ❌ Inglese nei commenti (salvo termini tecnici: CLI, env, path)
-- ❌ Incollare il template intero in chat
-
-
+- ❌ Chiudere `comcom` senza passo 5 **Validazione commento**
 
 ## Priorità
 
-Su `comcom`, questa regola **prevale** su «pochi commenti» e su `ADMIN-ScriptComments.mdc`.
+Su `comcom` e su script in scope (`runner/`, `scripts/`, `cruscotto.database/script_seed/`, `admin.portal.testscript/`), questa regola **prevale** su «pochi commenti» (branch/exit, commenti per fase, ordine numerato inclusi).
 
 ## Riferimenti
 
-- Scelta tipo file: `.cursor/templates/comments/README.md`
-- Template: `script-entrypoint.mjs` · `lib-module.mjs` · `app-module.mjs`
-- Esempio reale commentato: `runner/cruscotto.runner.stack.base.mjs`, `lib/cruscotto-db/script_seed/script_seed-lib.mjs`
+- Scelta tipo: `.cursor/templates/comments/README.md`
+- Template: `testscript.mjs` · `script-entrypoint.mjs` · `lib-module.mjs` · `app-module.mjs` · `page-html.html` · `page-html.mjs` · `cursor-rule.mdc` · **`template_default.mjs`**
+- Esempio reale: `cruscotto.database/index.mjs`, `cruscotto.database/script_seed/script_seed-lib.mjs`

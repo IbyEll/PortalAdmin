@@ -1,0 +1,66 @@
+/**
+ * ** DEFAULT TEMPLATE ** -- commentato il: 2026-06-18
+ *
+ * Cruscotto.jira.toolbar.insight.css — foglio stili bottoni toolbar insight (Analizza repo / Cancella insight).
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - backlog, working e project tree condividono la stessa coppia di azioni insight con icona SVG
+ *   - centralizza palette arancio e stati hover/disabled senza duplicare regole in ogni HTML
+ *
+ *   A cosa serve:
+ *   - stili per .btn-insight-analyze, .btn-insight-clear e .insight-toolbar-icon in toolbar pagina
+ *
+ * Generalizzazione:
+ *   Si — riusato su tutte le pagine cruscotto con toolbar insight; markup bottoni identico tra viste Jira.
+ *
+ * Input:
+ *   - classi DOM button.action.btn-insight-analyze|btn-insight-clear e svg.insight-toolbar-icon nel markup HTML
+ *
+ * Consumatori:
+ *   - cruscotto.jira.backlog.html, cruscotto.jira.working.html, cruscotto.jira.project.tree.html, cruscotto.jira.working.old.html — <link href="/insight-toolbar.css" />
+ *   - runner/cruscotto.server.mjs — INSIGHT_STATIC_FILES mappa /insight-toolbar.css
+ */
+
+/* --- badge base toolbar insight --- */
+button.action.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button.action.btn-insight-analyze,
+button.action.btn-insight-clear {
+  color: rgba(240, 188, 104, 0.68);
+  border-color: rgba(240, 188, 104, 0.36);
+  background: transparent;
+}
+
+button.action.btn-insight-analyze .insight-toolbar-icon,
+button.action.btn-insight-clear .insight-toolbar-icon {
+  flex-shrink: 0;
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: rgba(240, 188, 104, 0.68);
+}
+
+button.action.btn-insight-analyze:hover:not(:disabled),
+button.action.btn-insight-clear:hover:not(:disabled) {
+  color: #f0bc68;
+  border-color: rgba(240, 188, 104, 0.55);
+  background: transparent;
+  box-shadow: none;
+}
+
+button.action.btn-insight-analyze:hover:not(:disabled) .insight-toolbar-icon,
+button.action.btn-insight-clear:hover:not(:disabled) .insight-toolbar-icon {
+  color: #f0bc68;
+}
+
+button.action.btn-insight-analyze:disabled,
+button.action.btn-insight-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

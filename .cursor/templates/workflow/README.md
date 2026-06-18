@@ -5,7 +5,7 @@ File per **ok chiudi** (subtask) e **chiudi Story/Bug/Todo** (parent).
 | File | Uso | Quando |
 | --- | --- | --- |
 | `ok-chiudi-subtask.md` | Subtask → Fatto | Dopo commit, prima di transition (§8) |
-| `chiudi-parent.md` | Parent → Fatto | `chiudi` / `chiudi fast` dopo `close-story.mjs` |
+| `chiudi-parent.md` | Parent → Fatto | `chiudi` / `chiudi fast` dopo `JiraCORE/close-story.mjs` |
 
 **Veve:** `.cursor/templates/veve/` — AC/DoD sempre `[ ]`.
 

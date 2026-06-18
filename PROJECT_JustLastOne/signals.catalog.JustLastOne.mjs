@@ -24,7 +24,7 @@ export const PRODUCT_REPO_SIGNALS = [
   , label : "Cruscotto Dev UI"
   , paths : [
       "server/dashboard-server.mjs"
-      , "lib/dev-manifest.mjs"
+      , "lib/product.manifest.mjs"
     ]
   , tests : ["dashboard/test-dev-cruscotto.mjs"]
   }
@@ -352,7 +352,7 @@ export const PRODUCT_REPO_SIGNALS = [
       , "packages/shared/src"
       , "packages/database/prisma"
       , "packages/i18n/locales"
-      , "lib/jira/jira.backlog.insights.mjs"
+      , "cruscotto.frontend/cruscotto.jira.backlog.insights.mjs"
     ]
   }
 
@@ -365,7 +365,7 @@ export const PRODUCT_REPO_SIGNALS = [
       , "packages/shared/src"
       , "packages/database/prisma"
       , "packages/i18n/locales"
-      , "lib/jira/jira.backlog.insights.mjs"
+      , "cruscotto.frontend/cruscotto.jira.backlog.insights.mjs"
     ]
   }
 
@@ -378,7 +378,7 @@ export const PRODUCT_REPO_SIGNALS = [
       , "packages/database/prisma"
       , "packages/shared/src"
       , "packages/i18n/locales"
-      , "lib/jira/jira.backlog.insights.mjs"
+      , "cruscotto.frontend/cruscotto.jira.backlog.insights.mjs"
     ]
   }
 
@@ -391,7 +391,7 @@ export const PRODUCT_REPO_SIGNALS = [
       , "packages/shared/src"
       , "packages/database/prisma"
       , "packages/i18n/locales"
-      , "lib/jira/jira.backlog.insights.mjs"
+      , "cruscotto.frontend/cruscotto.jira.backlog.insights.mjs"
     ]
   }
 
@@ -433,15 +433,15 @@ export const PRODUCT_REPO_SIGNALS = [
       , "testScript/funzionali/run-funzionali.mjs"
       , "lib/JustLastOne___test-funzionali-meta.mjs"
       , "server/run-manager.mjs"
-      , "runner/cruscotto.runner.stack.base.mjs"
-      , "runner/cruscotto.runner.stack.mjs"
-      , "runner/cruscotto.process.start.service.mjs"
-      , "runner/cruscotto.process.start.service.ps1"
+      , "cruscotto.frontend/cruscotto.runner.stack.base.mjs"
+      , "cruscotto.frontend/cruscotto.runner.stack.mjs"
+      , "cruscotto.frontend/cruscotto.process.start.service.mjs"
+      , "cruscotto.frontend/cruscotto.process.start.service.ps1"
       , "runner/runner.config.stack.mjs"
       , "lib/seed-cli-args.mjs"
-      , "lib/cruscotto-db/script_seed/script_seed-lib.mjs"
-      , "lib/cruscotto-db/script_seed/init_Database_DEV.mjs"
-      , "lib/cruscotto-db/script_seed/run-data-seeds.mjs"
+      , "cruscotto.database/script_seed/script_seed-lib.mjs"
+      , "cruscotto.database/script_seed/init_Database_DEV.mjs"
+      , "cruscotto.database/script_seed/run-data-seeds.mjs"
       , "runner/serve-api-portal.mjs"
     ]
   , tests : ["funzionali/test-friend-bot.mjs"]

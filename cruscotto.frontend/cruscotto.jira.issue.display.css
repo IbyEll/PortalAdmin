@@ -1,0 +1,97 @@
+/**
+ * ** DEFAULT TEMPLATE ** -- commentato il: 2026-06-18
+ *
+ * Cruscotto.jira.issue.display.css — foglio stili badge tipo issue Jira e link browse.
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - issue.display.core.mjs e il client JS emettono span.issue-type-* e a.jira-link nel DOM
+ *   - serve un tema unico (CSS variables cruscotto) su backlog, working, tree e pillar matrix
+ *
+ *   A cosa serve:
+ *   - pill badge EPIC/STORY/SUB/BUG/TODO/other, nowrap su link key, varianti colore per issueTypeClass()
+ *
+ * Generalizzazione:
+ *   Si — stesso foglio su tutte le pagine Jira/pillar; colori da variabili :root della pagina host.
+ *
+ * Input:
+ *   - classi DOM .issue-type, .issue-type-*, a.jira-link — generate da issueTypeClass() e client display
+ *
+ * Consumatori:
+ *   - runner/cruscotto.server.mjs — alias statico /jira-issue-display.css
+ *   - cruscotto.jira.backlog.html, cruscotto.jira.working.html, cruscotto.jira.project.tree.html, cruscotto.jira.my-project.html
+ *   - pillar-matrix/cruscotto.pillar.*.html — badge tipo issue nelle matrici pilastro
+ *   - cruscotto.jira.pillar.matrix.portal.mjs — HTML generato con stesso link CSS
+ */
+
+/* --- badge base tipo issue --- */
+.issue-type {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+}
+
+/* --- link key Jira — no wrap in celle tabella --- */
+a.jira-link {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+}
+
+/* --- varianti colore per issueTypeClass() --- */
+.issue-type-epic {
+  color: var(--purple);
+  border-color: rgba(183, 148, 246, 0.45);
+  background: rgba(183, 148, 246, 0.12);
+}
+
+.issue-type-story {
+  color: var(--pass);
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.issue-type-bug {
+  color: var(--fail, #f87171);
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.issue-type-sub {
+  color: var(--turquoise, #2ee8d6);
+  border-color: rgba(46, 232, 214, 0.45);
+  background: rgba(46, 232, 214, 0.08);
+}
+
+.issue-type-todo {
+  color: var(--accent);
+  border-color: rgba(61, 156, 245, 0.45);
+  background: rgba(61, 156, 245, 0.1);
+}
+
+.issue-type-other {
+  color: var(--muted);
+}
+
+/* --- contesto layout tabella backlog --- */
+.jira-key-wrap .issue-type {
+  flex-shrink: 0;
+}
+
+.col-key .issue-type {
+  margin-right: 0.3rem;
+}

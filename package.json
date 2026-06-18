@@ -1,40 +1,47 @@
 {
-  "name": "portal-admin"
-, "version": "0.1.0"
-, "private": true
-, "type": "module"
-, "description": "PortalAdmin — Admin Dashboard estratto da JustLastOne (epic ADMIN-88)"
-, "engines": {
+  "name": "portal-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PortalAdmin — Admin Dashboard estratto da JustLastOne (epic ADMIN-88)",
+  "engines": {
     "node": ">=20"
-  }
-, "scripts": {
-    "admin:dashboard": "node server/dashboard-server.mjs"
-  , "admin:home": "node server/portal-home-server.mjs"
-  , "start:dev": "node runner/start-dev.mjs"
-  , "dev:prepare": "node runner/start-dev.mjs --prepare-only"
-  , "dev:db": "node lib/cruscotto-db/script_seed/init_Database_DEV.mjs --push"
-  , "dev:seed-data": "node lib/cruscotto-db/script_seed/run-data-seeds.mjs"
-  , "dev:api-auth": "node runner/cruscotto.process.start.service.mjs auth"
-  , "dev:api-project": "node runner/cruscotto.process.start.service.mjs api"
-  , "dev:api-portal": "node runner/cruscotto.process.start.service.mjs portal"
-  , "dev:web": "node runner/cruscotto.process.start.service.mjs web"
-  , "dev:all": "node runner/cruscotto.process.start.all.services.mjs"
-  , "db:migrate": "node lib/cruscotto-db/migrate.mjs"
-  , "db:sync": "node scripts/sync-jira-backlog.mjs"
-  , "test:paths": "node scripts/smoke-portal-paths.mjs"
-  , "test:run-all": "node scripts/smoke-run-all.mjs"
-  , "test:config": "node scripts/smoke-portal-config.mjs"
-  , "test:workflow": "node scripts/smoke-workflow.mjs"
-  , "test:dashboard": "node scripts/smoke-dashboard.mjs"
-  , "test:cruscotto-db": "node scripts/smoke-cruscotto-db.mjs"
-  , "test:portal-e2e": "node scripts/smoke-portal-e2e.mjs"
-  , "test:ci": "node scripts/smoke-ci.mjs"
-  , "start:all": "node runner/cruscotto.process.start.all.services.mjs"
-  , "stop:all": "node runner/cruscotto.process.stop.all.services.mjs"
-  }
-, "dependencies": {
-    "dotenv": "^16.4.7"
-  , "@prisma/client": "^6.9.0"
-  , "exceljs": "^4.4.0"
+  },
+  "scripts": {
+    "admin:dashboard": "node cruscotto.frontend/cruscotto.server.mjs",
+    "admin:home": "node admin.portal/portal.home.server.mjs",
+    "start:dev": "node runner/start-dev.mjs",
+    "dev:prepare": "node runner/start-dev.mjs --prepare-only",
+    "dev:db": "node cruscotto.database/product.database.init.mjs --push",
+    "dev:seed-data": "node cruscotto.database/product.database.seed.run.call.mjs",
+    "dev:api-auth": "node cruscotto.frontend/cruscotto.process.start.service.mjs auth",
+    "dev:api-project": "node cruscotto.frontend/cruscotto.process.start.service.mjs api",
+    "dev:api-portal": "node cruscotto.frontend/cruscotto.process.start.service.mjs portal",
+    "dev:web": "node cruscotto.frontend/cruscotto.process.start.service.mjs web",
+    "dev:all": "node cruscotto.frontend/cruscotto.process.start.all.services.mjs",
+    "db:migrate": "node cruscotto.database/migrate.mjs",
+    "db:sync": "node admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs",
+    "sync:jira-issue-display": "node admin.portal.JiraCORE/jiraCORE.issuedisplay.client.mjs",
+    "test:paths": "node scripts/smoke-portal-paths.mjs",
+    "test:run-all": "node scripts/smoke-run-all.mjs",
+    "test:config": "node scripts/smoke-portal-config.mjs",
+    "test:workflow": "node scripts/smoke-workflow.mjs",
+    "test:dashboard": "node scripts/smoke-dashboard.mjs",
+    "test:cruscotto-db": "node scripts/smoke-cruscotto-db.mjs",
+    "test:portal-e2e": "node scripts/smoke-portal-e2e.mjs",
+    "test:cruscotto-startup": "node admin.portal.testscript/cruscotto.setup/test.cruscotto.startup.mjs",
+    "test:portal-api": "node admin.portal.testscript/run-portal-api.mjs",
+    "test:backlog-gogo": "node admin.portal.testscript/funzionali/test.cruscotto.backlog.gogo.mjs",
+    "test:cursor-api": "node admin.portal.testscript/cursor/test.api.cursor.agent.mjs",
+    "test:cursor-funzionale": "node admin.portal.testscript/funzionali/test.cursor.agent.ui.mjs",
+    "test:ci": "node scripts/smoke-ci.mjs",
+    "start:all": "node cruscotto.frontend/cruscotto.process.start.all.services.mjs",
+    "stop:all": "node cruscotto.frontend/cruscotto.process.stop.all.services.mjs"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.19",
+    "@prisma/client": "^6.9.0",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0"
   }
 }

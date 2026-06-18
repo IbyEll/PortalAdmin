@@ -1,0 +1,116 @@
+<!--
+  PAGE HTML
+  commentato il: 2026-06-17
+
+  Creare feed — Matrice pilastri — audit pilastro post, gruppi e feed amici (Home · Community).
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - correlare issue feed social interno con tab Home e visibilità amici accettati nel doc prodotto
+    - verificare allineamento Jira/repo per creazione post e gruppi
+
+    A cosa serve:
+    - estratto pilastro creare feed e riepilogo 9 issue (tutte Jira Fatto)
+    - albero Epic → Story → Subtask con sprint, repo ok e commit GitHub
+
+  Generalizzazione:
+    Si — HTML rigenerata da generatore pilastri; contenuto statico embedded; interazione via pillar-matrix.js.
+
+  Input:
+    - scripts/generate-confluence-pillar-matrix.mjs — mapping creare-feed e analisi segnali
+    - snapshot embedded (9 issue, righe tabella, versione 2026-06-14)
+    - pillar-matrix.js — albero interattivo e resize colonne
+
+  Servita da:
+    - runner/cruscotto.server.mjs — URL /pillar-matrix/cruscotto.pillar.creare-feed.html
+
+  Asset collegati:
+    - jira-issue-display.css — badge tipo issue
+    - expand-collapse-toolbar.css — stili espansione
+    - pillar-matrix.css — layout pagina
+    - expand-collapse-ui.js — toggle albero
+    - pillar-matrix.js — logica client
+
+  Sezioni DOM principali:
+    - header + nav.pillar-nav — navigazione (active: Creare feed)
+    - h2.pillar-title — Creare feed
+    - .panel.panel-info — tab Home, post/gruppi, visibilità amici
+    - table.matrix-table.matrix-tree — albero issue feed
+    - footer.page-footer — link cruscotto
+-->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Creare feed — Matrice pilastri</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/jira-issue-display.css" />
+  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
+  <link rel="stylesheet" href="/pillar-matrix.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>JLO × Visione × Repo</h1>
+      <p class="meta">Matrice pilastri — backlog JLO, documento prodotto, segnali repository</p>
+<p class="meta pillar-version">Versione <time datetime="2026-06-14">2026-06-14</time> · <a href="https://myfuturejobsearch.atlassian.net/wiki/spaces/SDS/pages/9076737/Piattaforma+Social+per+Gamer+Documento+di+lavoro" target="_blank" rel="noopener">Doc 9076737</a></p>
+      <nav class="pillar-nav" aria-label="Pilastri">
+        <a href="/pillar-matrix/cruscotto.pillar.index.html">Indice</a>
+        <a href="/pillar-matrix/cruscotto.pillar.auth-onboarding.html">1. Auth &amp; onboarding</a>
+        <a href="/pillar-matrix/cruscotto.pillar.profilo-gamer.html">2. Profilo gamer</a>
+        <a href="/pillar-matrix/cruscotto.pillar.trovare-giocatori.html">3. Trovare giocatori</a>
+        <a href="/pillar-matrix/cruscotto.pillar.chattare.html">4. Chattare</a>
+        <a href="/pillar-matrix/cruscotto.pillar.notifiche.html">5. Sistema notifiche</a>
+        <a href="/pillar-matrix/cruscotto.pillar.creare-feed.html" class="active">6. Creare feed</a>
+        <a href="/pillar-matrix/cruscotto.pillar.creare-storie.html">7. Creare storie (GameBook)</a>
+        <a href="/pillar-matrix/cruscotto.pillar.condividere-esterno.html">8. Condividere verso social esterni</a>
+        <a href="/pillar-matrix/cruscotto.pillar.creare-partite.html">9. Creare partite</a>
+        <a href="/pillar-matrix/cruscotto.pillar.organizzare-tornei.html">10. Organizzare tornei</a>
+        <a href="/pillar-matrix/cruscotto.pillar.admin-dev.html">11. Admin / Dev tooling</a>
+        <a href="/pillar-matrix/cruscotto.pillar.orfani.html">12. Orfani / fuori scope</a>
+      </nav>
+    </header>
+    <main>
+      <h2 class="pillar-title">Creare feed</h2>
+<h3>Estratto documento prodotto</h3>
+<div class="panel panel-info">
+<p><strong>Fonte:</strong> <a href="https://myfuturejobsearch.atlassian.net/wiki/spaces/SDS/pages/9076737/Piattaforma+Social+per+Gamer+Documento+di+lavoro">Piattaforma Social per Gamer — Documento di lavoro</a> · Pilastri · Post, gruppi, feed amici · <em>Home · Community</em></p>
+<p><strong>Pilastro definizione operativa:</strong> creare feed — post propri, gruppi, visibilità amici accettati.</p>
+<ul>
+<li><strong>Area prodotto:</strong> Home · Community</li>
+<li><strong>Tab Home:</strong> feed (clip, risultati, post); attività amici; post e storie amici nel feed</li>
+<li><strong>Core:</strong> creazione feed proprio — post e gruppi con visibilità tra amici accettati</li>
+<li><strong>Sprint 6:</strong> Fase 0 Social JLO-507 (gate amicizie) · Fase 1 Feed JLO-533</li>
+<li><strong>MVP:</strong> amicizie e feed minimo; post/gruppi JLO-526</li>
+</ul>
+</div>
+<p><strong>Riepilogo matrice:</strong> 9 issue · Jira Fatto 9 · Jira aperte 0 · Repo ok 3 · gap repo/Jira 0</p>
+<p><em>Albero Epic → Story → Subtask (indentato). Espandi/collassa interattivo nel cruscotto Admin; su Confluence la gerarchia resta visibile per rientro.</em></p>
+<table class="matrix-table matrix-tree">
+<thead><tr><th>Issue</th><th>Summary</th><th>Sprint</th><th>Jira</th><th>Repo</th><th>Sviluppo (GitHub)</th><th>Gap / note</th></tr></thead>
+<tbody class="matrix-tree-body">
+<tr class="matrix-tree-row tier-task" data-issue-key="JLO-507" data-depth="0" data-has-children="true"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><button type="button" class="matrix-tree-toggle" aria-expanded="true" aria-label="Espandi o collassa JLO-507">▼</button><span class="matrix-tree-content"><span class="status status-ok">STORY</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-507">JLO-507</a></span></div></td><td>[Gap] Integrazione Social minimo</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-ok">Repo ok</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/41e6b6639ecab5d0764dde9506f77d69b7ee59e3"><code>main</code> @ 41e6b66</a><br/><small>Merge pull request #65 from IbyEll/STORY---JLO-507-integrazione-…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/dffe03a1202c9dea14988b47ad63fc1728a06134"><code>main</code> @ dffe03a</a><br/><small>Merge pull request #64 from IbyEll/STORY---JLO-507-integrazione-…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/9f3d2368ba69fdf6d88a12d13cde4d11d0778668"><code>main</code> @ 9f3d236</a><br/><small>JLO-507 REPO_IMPLEMENTATION_SIGNALS catalogo</small></div></div><div class="git-commit-branch"><small>branch STORY---JLO-507-integrazione-social-minimo</small></div></td><td>—</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-524" data-depth="1" data-parent-key="JLO-507"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-524">JLO-524</a></span></div></td><td>[Plus] Prisma Group e Post (Friendship già in repo)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/5abb9e8f9f95a93a9327cf32437092ef2dbb7c3a"><code>main</code> @ 5abb9e8</a><br/><small>JLO-524 Prisma Group e Post</small></div></div></td><td>citazione solo tooling Admin</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-525" data-depth="1" data-parent-key="JLO-507"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-525">JLO-525</a></span></div></td><td>[Plus] API amicizie (richiesta, accetta, lista)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/41e6b6639ecab5d0764dde9506f77d69b7ee59e3"><code>main</code> @ 41e6b66</a><br/><small>Merge pull request #65 from IbyEll/STORY---JLO-507-integrazione-…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/dffe03a1202c9dea14988b47ad63fc1728a06134"><code>main</code> @ dffe03a</a><br/><small>Merge pull request #64 from IbyEll/STORY---JLO-507-integrazione-…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/9f3d2368ba69fdf6d88a12d13cde4d11d0778668"><code>main</code> @ 9f3d236</a><br/><small>JLO-507 REPO_IMPLEMENTATION_SIGNALS catalogo</small></div></div><div class="git-commit-branch"><small>branch STORY---JLO-507-integrazione-social-minimo</small></div><div class="git-commit-via"><small>via JLO-507</small></div></td><td>citazione solo tooling Admin</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-526" data-depth="1" data-parent-key="JLO-507"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-526">JLO-526</a></span></div></td><td>[Plus] Gruppo e post minimi (API + feed UI)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/a613915b0a26e109a82617cdc3d0d9ef1460a0ef"><code>main</code> @ a613915</a><br/><small>JLO-526 Gruppo e post minimi</small></div></div></td><td>citazione solo tooling Admin</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-616" data-depth="1" data-parent-key="JLO-507"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-616">JLO-616</a></span></div></td><td>[Plus] UI amicizie (richiesta, accetta, lista)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-ok">Repo ok</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/a7812822373148cc2587a953e4380d4cb55ef720"><code>main</code> @ a781282</a><br/><small>JLO-616 UI amicizie</small></div></div></td><td>—</td></tr>
+<tr class="matrix-tree-row tier-task" data-issue-key="JLO-533" data-depth="0" data-has-children="true"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><button type="button" class="matrix-tree-toggle" aria-expanded="true" aria-label="Espandi o collassa JLO-533">▼</button><span class="matrix-tree-content"><span class="status status-ok">STORY</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-533">JLO-533</a></span></div></td><td>[Plus][OneNote] Home — feed social e tornei in evidenza</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-ok">Repo ok</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/eb7a30f8e5a23be29522b891c2dd4b7acbf024f9"><code>main</code> @ eb7a30f</a><br/><small>Merge pull request #66 from IbyEll/STORY---JLO-533-home-feed-soc…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/8e5845b6b4850f649e55b48f6c70ef1d6bb44491"><code>main</code> @ 8e5845b</a><br/><small>JLO-533 REPO_IMPLEMENTATION_SIGNALS catalogo</small></div></div><div class="git-commit-branch"><small>branch STORY---JLO-533-home-feed-social-tornei</small></div></td><td>—</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-544" data-depth="1" data-parent-key="JLO-533"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-544">JLO-544</a></span></div></td><td>[Plus] API feed home (post amici accettati)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/3f7686503984c322d180bce853acf9f841bc3f01"><code>main</code> @ 3f76865</a><br/><small>JLO-544 API feed home</small></div></div></td><td>citazione solo tooling Admin</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-545" data-depth="1" data-parent-key="JLO-533"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-545">JLO-545</a></span></div></td><td>[Plus] UI home feed social</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/ee5baaf43338b62b800a1de572ab3a5f4f457cc6"><code>main</code> @ ee5baaf</a><br/><small>JLO-545 PostCard e SocialFeedSection</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/ad5e562f3f93796777077b57bc52ccbbb69a3842"><code>main</code> @ ad5e562</a><br/><small>JLO-545 UI home feed social</small></div></div></td><td>citazione solo tooling Admin</td></tr>
+<tr class="matrix-tree-row tier-subtask" data-issue-key="JLO-546" data-depth="1" data-parent-key="JLO-533"><td class="matrix-tree-issue-col"><div class="matrix-tree-cell"><span class="matrix-tree-indent" style="display:inline-block;width:20px;min-width:20px"></span><span class="matrix-tree-toggle matrix-tree-leaf" aria-hidden="true">·</span><span class="matrix-tree-content"><span data-type="status" data-color="blue">SUB</span> <a href="https://myfuturejobsearch.atlassian.net/browse/JLO-546">JLO-546</a></span></div></td><td>[Plus] Sezione tornei in evidenza (Featured)</td><td><span title="Sprint 6 — Chat &amp; Gamebook">Sprint 6 — Chat &amp; Gamebook</span></td><td><span class="status status-ok">Jira Fatto</span></td><td><span class="status status-muted">Repo assente</span></td><td><div class="git-commit-stack"><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/eb7a30f8e5a23be29522b891c2dd4b7acbf024f9"><code>main</code> @ eb7a30f</a><br/><small>Merge pull request #66 from IbyEll/STORY---JLO-533-home-feed-soc…</small></div><div class="git-commit-item"><a href="https://github.com/IbyEll/JustLastOne/commit/8e5845b6b4850f649e55b48f6c70ef1d6bb44491"><code>main</code> @ 8e5845b</a><br/><small>JLO-533 REPO_IMPLEMENTATION_SIGNALS catalogo</small></div></div><div class="git-commit-branch"><small>branch STORY---JLO-533-home-feed-social-tornei</small></div><div class="git-commit-via"><small>via JLO-533</small></div></td><td>citazione solo tooling Admin</td></tr>
+</tbody>
+</table>
+    </main>
+    <footer class="page-footer muted">
+      <a href="/">Cruscotto Dev</a> ·
+      <a href="/backlog.html">Backlog</a> ·
+      <a href="/my-project.html">My Project</a> ·
+      <a href="/jira-working.html">Jira Working</a>
+    </footer>
+  </div>
+  <script src="/expand-collapse-ui.js" defer></script>
+  <script src="/pillar-matrix.js?v=20260614-portal" defer></script>
+</body>
+</html>

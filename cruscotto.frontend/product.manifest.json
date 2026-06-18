@@ -1,0 +1,95 @@
+{
+  "requirements": {
+    "nodeMin": "20"
+  , "stack": [
+      { "app": "web", "label": "Web", "tech": "Next.js 15" }
+    , { "app": "api", "label": "API", "tech": "NestJS" }
+    , { "app": "auth", "label": "Auth", "tech": "NestJS" }
+    , { "app": "database", "label": "Database", "tech": "Prisma + SQLite" }
+    , { "app": "monorepo", "label": "Monorepo", "tech": "Turbo" }
+    ]
+  , "prerequisites": [
+      "Node.js >= 20"
+    , "npm"
+    , "SQLite (via Prisma)"
+    , "PRODUCT_REPO_PATH — checkout monorepo product (es. ../JustLastOne)"
+    , "PRJ_NAME in PortalAdmin/.env — overlay PROJECT_{nome}"
+    ]
+  , "envFiles": [
+      { "path": ".env", "label": "PortalAdmin — PRJ_NAME, PRODUCT_REPO_PATH, Jira" }
+    , { "path": "packages/database/.env", "label": "Database (product repo)" }
+    , { "path": "apps/api/.env", "label": "API (product repo)" }
+    , { "path": "apps/authentication/.env", "label": "Auth (product repo)" }
+    , { "path": "apps/web/.env", "label": "Web (product repo)" }
+    ]
+  , "commands": [
+      { "id": "install", "label": "Installa dipendenze (product repo)", "cmd": "npm install" }
+    , { "id": "db-setup", "label": "Setup database (product repo)", "cmd": "npm run db:setup" }
+    , { "id": "dev", "label": "Avvia stack dev (product repo)", "cmd": "npm run dev" }
+    , { "id": "dev-all", "label": "Avvia stack da PortalAdmin", "cmd": "npm run dev:all" }
+    , { "id": "db-push", "label": "Allinea schema Prisma", "cmd": "npm run dev:db" }
+    , { "id": "db-reset-seed", "label": "Reset SQLite + seed Prisma", "cmd": "node cruscotto.database/product.database.init.mjs --reset --seed" }
+    , { "id": "seed-func", "label": "Seed funzionali (friendBOT, match, …)", "cmd": "node cruscotto.database/product.database.seed.run.call.mjs --seed func --wait-auth" }
+    , { "id": "stop-all", "label": "Ferma stack dev (porte product)", "cmd": "npm run stop:all" }
+    , { "id": "dashboard", "label": "Avvia cruscotto PortalAdmin", "cmd": "npm run admin:dashboard" }
+    ]
+  , "readmeUrl": "README.md"
+  }
+, "services": [
+    {
+      "id": "web"
+    , "label": "Web"
+    , "description": "Frontend Next.js — UI prodotto"
+    , "port": 3000
+    , "healthUrl": "http://localhost:3000/it"
+    , "openUrl": "http://localhost:3000/it"
+    , "docs": null
+    }
+  , {
+      "id": "api"
+    , "label": "API"
+    , "description": "API REST NestJS — dominio applicativo"
+    , "port": 4000
+    , "healthUrl": "http://localhost:4000/api/v1/health"
+    , "openUrl": "http://localhost:4000/api/v1/docs"
+    , "docs": "/docs"
+    }
+  , {
+      "id": "auth"
+    , "label": "Auth"
+    , "description": "API auth — login, JWT, registrazione"
+    , "port": 4001
+    , "healthUrl": "http://localhost:4001/api/v1/health"
+    , "openUrl": "http://localhost:4001/api/v1/docs"
+    , "docs": "/docs"
+    }
+  , {
+      "id": "dashboard"
+    , "label": "Admin Dashboard"
+    , "description": "Cruscotto dev — test, report, Process, Jira"
+    , "port": 3999
+    , "healthUrl": "http://localhost:3999/api/health"
+    , "openUrl": "http://localhost:3999/"
+    , "docs": null
+    }
+  , {
+      "id": "friendbot"
+    , "label": "friendBOT"
+    , "description": "Daemon dev — amicizie e risposte chat automatiche (testScript)"
+    , "processScript": "testScript/funzionali/friend-bot.mjs"
+    , "start": {
+        "type": "node"
+      , "script": "testScript/funzionali/friend-bot.mjs"
+      }
+    }
+  , {
+      "id": "api-portal"
+    , "label": "API Portal"
+    , "description": "Navigazione OpenAPI — PortalAdmin, config da product repo"
+    , "port": 4080
+    , "healthUrl": "http://localhost:4080/"
+    , "openUrl": "http://localhost:4080/"
+    , "docs": null
+    }
+  ]
+}

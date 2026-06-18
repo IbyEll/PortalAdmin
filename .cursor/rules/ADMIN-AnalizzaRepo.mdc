@@ -19,9 +19,9 @@ alwaysApply: true
 ## CLI
 
 ```bash
-node scripts/analyze-repo-keys.mjs --parent ADMIN-88 --format md
-node scripts/analyze-repo-keys.mjs --keys ADMIN-121,ADMIN-122
-node scripts/analyze-repo-keys.mjs --parent JLO-507 --format md
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-88 --format md
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys ADMIN-121,ADMIN-122
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507 --format md
 ```
 
 Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
@@ -45,5 +45,5 @@ Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
 
 ## Modulo
 
-- `lib/jira-repo-analysis.mjs` — `analyzeIssueKeys`, `formatRepoAnalysisMarkdown`
-- `scripts/analyze-repo-keys.mjs` — CLI
+- `JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs` — `analyzeIssueKeys`, `formatRepoAnalysisMarkdown`
+- `JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` — CLI

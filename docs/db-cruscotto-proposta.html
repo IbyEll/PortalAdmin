@@ -238,7 +238,7 @@
     </p>
 
     <pre><code>data/cruscotto.db          ← SQLite dedicato
-lib/cruscotto-db/          ← schema + client (Prisma o better-sqlite3)</code></pre>
+cruscotto.database/          ← schema + client (Prisma o better-sqlite3)</code></pre>
 
     <p>
       Motivi: zero impatto su deploy prodotto, schema libero, backup/reset indipendente,
@@ -389,7 +389,7 @@ flowchart LR
     </div>
 
     <ul>
-      <li><code>POST /api/cruscotto/sync/jira</code> o script <code>node scripts/sync-jira-backlog.mjs</code></li>
+      <li><code>POST /api/cruscotto/sync/jira</code> o script <code>node JiraCORE/sync-jira-backlog.mjs</code></li>
       <li>Le API leggono dal DB; sync esplicito o TTL (es. max age 15 min)</li>
       <li>Matrice pilastri: legge issue + assessment repo <strong>già in cache</strong> → niente Jira, scan repo una volta per sync</li>
     </ul>

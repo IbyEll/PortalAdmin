@@ -1,105 +1,168 @@
 ---
-description: Workflow ADMIN — procedi/gogo/chiudi su ticket ADMIN-xxx in repo PortalAdmin (epic ADMIN-88)
+description: Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)
 alwaysApply: true
 ---
 
-# Workflow ADMIN (PortalAdmin)
+# Workflow — progetto istanziato + `{JIRA_KEY}`
 
-**Ticket parent** = Story, Bug o Todo **ADMIN-xxx** (o **JLO-xxx** quando lo scope è nel product repo). **Repo workflow:** [PortalAdmin](https://github.com/IbyEll/PortalAdmin) · **Product repo:** `PRODUCT_REPO_PATH` (default `../JustLastOne`).
+Il workflow **git** (branch, commit, push, PR) opera **solo** sul **repo del progetto istanziato**, non sul checkout PortalAdmin in sé.
 
-**Branch:** `{TIPO}---{PROJ}-{num}-{slug}` — `TIPO` = `STORY` | `BUG` | `TODO` · `PROJ` = `ADMIN` | `JLO` · tre trattini `---`.
+| Ruolo | Path / env |
+| --- | --- |
+| **Host tooling** | Checkout PortalAdmin — cruscotto, regole `.cursor/`, script `JiraCORE/` |
+| **Repo workflow** | `PRODUCT_REPO_PATH` del progetto **istanziato** (`PRJ_NAME` in `.env` allineato) |
+| **Default path** | Sibling `../{PRJ_REPO}` da `PROJECT_{PRJ_NAME}/project.config.{overlay}.mjs` |
 
-| Tipo Jira | Prefisso | Esempio |
+Esempi: overlay `JustLastOne` → repo workflow `…/JustLastOne` · overlay `AdminDashBoard` → `…/PortalAdmin` (product = stesso repo).
+
+---
+
+## Prerequisito — istanziazione
+
+Prima di `procedi` / `gogo` / `chiudi` su `{KEY}`:
+
+| Controllo | Stop se |
+| --- | --- |
+| `PRJ_NAME` | Assente o non corrisponde all'overlay del ticket |
+| `PRODUCT_REPO_PATH` | Assente, path inesistente o non allineato all'istanza portal |
+| `JIRA_KEY` del ticket | Diverso da `PRJ_JIRA_PREFIX` del progetto istanziato |
+| **Cwd git** | Non è la root del **repo workflow** (`git rev-parse --show-toplevel` ≠ `PRODUCT_REPO_PATH`) |
+
+Istanza portal: `activatePortalInstance` / HOME `POST /api/portal/instance` · stato in `.env` (`PRJ_NAME`, `PRODUCT_REPO_PATH`).
+
+**Non** avviare workflow su ticket il cui prefisso Jira non appartiene al progetto attualmente istanziato (es. `JLO-507` con solo overlay `AdminDashBoard` e product non puntato a JustLastOne).
+
+---
+
+## Parametri
+
+| Simbolo | Significato | Fonte |
 | --- | --- | --- |
-| Story | `STORY---` | `STORY---ADMIN-96-jira-tooling-workflow-cursor` |
-| Bug | `BUG---` | `BUG---ADMIN-100-example-bug` |
-| Todo | `TODO---` | `TODO---JLO-930-admin-cruscotto` |
+| **`PRJ_NAME`** | Overlay attivo | `.env` / istanza portal |
+| **`JIRA_KEY`** | Prefisso Jira = `PRJ_JIRA_PREFIX` overlay | `project.config.{overlay}.mjs` |
+| **`{KEY}`** | Ticket completo | `JLO-507` · `ADMIN-96` |
+| **`{num}`** | Numero issue | `507` · `96` |
+| **`{TIPO}`** | Branch tipo | `STORY` · `BUG` · `TODO` |
+| **`{slug}`** | Branch slug kebab-case | `export-excel-latest-json` |
 
-**Legacy (solo ripresa):** `ADMIN-{num}-*` o `JLO-{num}-*` senza prefisso tipo — non crearne di nuove.
+**Ticket parent** = Story, Bug o Todo **`{JIRA_KEY}-{num}`**. Nei testi «story» include **Bug** e **Todo** salvo dove escluso.
+
+### Determinazione `JIRA_KEY`
+
+| Fonte | Regola |
+| --- | --- |
+| Progetto istanziato | **`PRJ_JIRA_PREFIX`** dell'overlay `PRJ_NAME` (autoritativo per repo workflow) |
+| Comando utente | Key esplicita — deve **coincidere** con `PRJ_JIRA_PREFIX` istanza |
+| `gogo JLO-507` / `procedi ADMIN-96` | Prefisso dalla key; **stop** se ≠ `PRJ_JIRA_PREFIX` |
+| Step 0 ambiguo | `issuetype` Jira + verifica allineamento overlay |
+
+### Branch
+
+**Pattern:** `{TIPO}---{JIRA_KEY}-{num}-{slug}` — tre trattini `---`, `TIPO` maiuscolo.
+
+**Legacy (solo ripresa):** `{JIRA_KEY}-{num}-*` senza prefisso tipo — non crearne di nuove.
+
+### Catalogo segnali (chiudi)
+
+Aggiornamento `REPO_IMPLEMENTATION_SIGNALS` in chiusura parent — **solo** sul progetto istanziato:
+
+| Elemento | Regola |
+| --- | --- |
+| File catalogo | `PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs` (overlay attivo) |
+| Script | `JiraCORE/close-story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
+| Scrittura | Commit catalogo nel **repo workflow** se il file segnali vive lì; path da `PRJ_NAME` + implementazione `close-story` |
+
+Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PRJ_NAME`** e `PRJ_JIRA_PREFIX` dell’istanza corrente.
 
 ---
 
 ## Comandi
 
+`{KEY}` = `{JIRA_KEY}-{num}`. Case-insensitive sulla key.
+
 | Comando | Effetto |
 | --- | --- |
-| **`gogo admin-xxx`** / **`gogo ADMIN-xxx`** | FULL silent — START → subtask in background → ok chiudi automatico → END-A |
-| `procedi Story ADMIN-xxx` | Piano → implementazione → confirm (default) |
-| `chiudi Story ADMIN-xxx` | Push + PR + catalogo + gap test + parent Jira → Fatto |
-| **`chiudi fast Story ADMIN-xxx`** | Push + PR + catalogo + parent Jira (no gap test) |
+| **`gogo {KEY}`** | FULL silent — START → subtask → ok chiudi automatico → END-A |
+| `procedi Story {KEY}` | Piano → implementazione → confirm |
+| `chiudi Story {KEY}` | Push + PR + catalogo + gap test + parent Jira → Fatto |
+| **`chiudi fast Story {KEY}`** | Push + PR + catalogo + parent Jira (no gap test) |
 
-Varianti: `procedi`, `chiudi Bug`, `chiudi Todo`, case-insensitive sulla key.
+Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output correlate.
 
 ---
 
 ## Verifica branch (primo passo)
 
+Eseguire nel **repo workflow** (`cd` su `PRODUCT_REPO_PATH`):
+
 ```bash
+git rev-parse --show-toplevel   # deve coincidere con PRODUCT_REPO_PATH
 git branch --show-current
-git branch --list 'STORY---ADMIN-{num}-*'
-git branch -r --list 'origin/STORY---ADMIN-{num}-*'
-# Idem BUG--- / TODO--- e JLO-{num} se ticket JLO
+git branch --list 'STORY---{JIRA_KEY}-{num}-*'
+git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
+# Idem BUG--- / TODO---
 ```
 
 | Situazione | Azione |
 | --- | --- |
+| Non sul repo workflow | **Stop** — `cd` su `PRODUCT_REPO_PATH` o istanzia overlay |
 | Sei sulla branch del ticket | **Ripresa** |
-| Branch esiste, sei altrove | **Stop** — `git checkout {branch}` e ripeti `procedi` |
+| Branch esiste, sei altrove (stesso repo) | **Stop** — `git checkout {branch}` e ripeti `procedi` |
 | Nessuna branch | Pre-flight → nuova branch da `main` |
 
 ---
 
 ## Pre-flight git
 
-1. `git status --porcelain` — deve essere vuoto (no stash automatico)
-2. `git fetch origin` · su `main` allineato a `origin/main`
-3. Nuova branch: `git checkout main && git pull && git checkout -b STORY---ADMIN-{num}-{slug}`
+Nel **repo workflow** (`PRODUCT_REPO_PATH`):
+
+1. `git status --porcelain` — vuoto (no stash automatico agente)
+2. `git fetch origin` · `main` allineato a `origin/main`
+3. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}`
 
 ---
 
 ## Script chiudi
 
+Eseguire dallo **host PortalAdmin** (path script); git/PR sul **repo workflow** del ticket:
+
 ```bash
-node scripts/close-story.mjs --key ADMIN-93
-node scripts/close-story.mjs --key ADMIN-93 --dry-run
+node JiraCORE/close-story.mjs --key {KEY}
+node JiraCORE/close-story.mjs --key {KEY} --dry-run
 ```
 
-**Template Jira:** `.cursor/templates/workflow/chiudi-parent.md` (parent) · `ok-chiudi-subtask.md` (subtask ok chiudi). Veve: `.cursor/templates/veve/`.
+**Template Jira:** `.cursor/templates/workflow/chiudi-parent.md` · `ok-chiudi-subtask.md`
 
-- Catalogo segnali → `portal.config.mjs` (`REPO_IMPLEMENTATION_SIGNALS`)
-- Key ammesse: `ADMIN-xxx` e `JLO-xxx`
-- Git ticket **ADMIN**: repo PortalAdmin · git ticket **JLO**: product repo (`PRODUCT_REPO_PATH`)
-- Pillar matrix: solo con `--pillar` (opt-in)
+- Key: `{JIRA_KEY}-xxx` coerente con progetto istanziato
+- Pillar matrix: `--pillar` (opt-in)
 
 ---
 
 ## Analizza repo
 
+Gap analysis sul **repo workflow** del progetto istanziato:
+
 ```bash
-node scripts/analyze-repo-keys.mjs --parent ADMIN-88 --format md
-node scripts/analyze-repo-keys.mjs --keys ADMIN-121,ADMIN-122
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent {KEY} --format md
 ```
 
-Regola: `.cursor/rules/ADMIN-AnalizzaRepo.mdc` · skill `.cursor/skills/jlo-analizza-repo/SKILL.md`
+Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
 
-**Aree PortalAdmin:** `lib/`, `server/`, `cruscotto/`, `scripts/`, `portal.config.mjs`  
-**Aree product (JLO):** `apps/`, `packages/`, `testScript/`
+**Aree** da `PRJ_NAME` / overlay — es. JustLastOne: `apps/`, `packages/`, `testScript/` · AdminDashBoard: `lib/`, `cruscotto/`, `admin.portal.testscript/`
 
 ---
 
 ## Jira — pannelli «Jira Auto»
 
-Tutte le operazioni Jira nel workflow passano da **`Task`** (subagent), **mai** `CallMcpTool` diretto.
+Solo **`Task`** subagent — mai `CallMcpTool` diretto nel workflow.
 
 | Fase | `description` Task |
 | --- | --- |
-| Step 0 | `Step 0 ADMIN-{key} plan Jira` |
-| Ok chiudi | `Ok chiudi ADMIN-{subkey} subtask Jira` |
-| Chiudi parent | `Close ADMIN-{key} parent Jira` |
+| Step 0 | `Step 0 {KEY} plan Jira` |
+| Ok chiudi | `Ok chiudi {subkey} subtask Jira` |
+| Chiudi parent | `Close {KEY} parent Jira` |
 
-Server MCP: `plugin-atlassian-atlassian` · cloudId `3caddd74-469e-4ca3-adf8-926f79c98e7c` · transizione Fatto `"41"`.
-
-Veve (grooming read-only): `CallMcpTool` `user-atlassian` ammesso — regole `ADMIN-Veve*.mdc`.
+Veve: `CallMcpTool` `user-atlassian` — regole `ADMIN-Veve*.mdc`
 
 ---
 
@@ -107,23 +170,24 @@ Veve (grooming read-only): `CallMcpTool` `user-atlassian` ammesso — regole `AD
 
 | Fase | Contenuto |
 | --- | --- |
-| **START** | AC, DoD, STATO, BRANCH, subtask Da fare |
-| **Background** | Silenzio — solo tool |
-| **END-A** | Completato — parent ancora Da fare, `PR: —`, suggerire `chiudi fast` |
-| **END-B / END-B-FAST** | Dopo `chiudi` — PR, Jira, Repo |
+| **START** | AC, DoD, STATO, BRANCH, subtask, Macrostep |
+| **PROGRESS** | Tabella Macrostep |
+| **END-A / END-B** | Template workflow |
 
-Formato link repo (END):
+Formato END — repo = **progetto istanziato**:
 
 ```text
 PR: {url}
-Jira: {url}
-Repo: [PortalAdmin](https://github.com/IbyEll/PortalAdmin) · branch `{branch}` · commit `{hash}`
+Jira: https://myfuturejobsearch.atlassian.net/browse/{KEY}
+Repo: [{PRJ_GITHUB_REPO}](https://github.com/{owner}/{repo}) · branch `{branch}` · commit `{hash}`
 ```
+
+`owner`/`repo` da `PRJ_GITHUB_OWNER` / `PRJ_GITHUB_REPO` dell'overlay attivo — **non** assumere sempre PortalAdmin.
 
 ---
 
 ## Commit
 
-Messaggio: `ADMIN-{subkey} …` o `ADMIN-xxx [Priorità] titolo breve`.
+Messaggio: `{subkey} …` nel **repo workflow**.
 
-Un commit per subtask; push solo in `chiudi` / `chiudi fast` (salvo push opzionale post FULL silent).
+Un commit per subtask; push solo in `chiudi` / `chiudi fast`.

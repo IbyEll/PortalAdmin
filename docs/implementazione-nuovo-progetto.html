@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Implementazione nuovo progetto</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --turquoise: #2ee8d6;
+      --purple: #b794f6;
+      --amber: #f0b429;
+      --green: #5fd38d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .callout {
+      border-left: 3px solid var(--amber);
+      background: rgba(240, 180, 41, 0.08);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .callout.ok {
+      border-left-color: var(--green);
+      background: rgba(95, 211, 141, 0.08);
+    }
+
+    .oneliner {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    ul, ol { padding-left: 1.25rem; }
+
+    li { margin: 0.35rem 0; }
+
+    a { color: var(--accent); }
+
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .checklist li::before {
+      content: "☐ ";
+      color: var(--turquoise);
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+
+    .tag-req { background: rgba(240, 100, 100, 0.2); color: #f5a0a0; }
+    .tag-rec { background: rgba(240, 180, 41, 0.2); color: var(--amber); }
+    .tag-opt { background: rgba(139, 156, 179, 0.2); color: var(--muted); }
+
+    nav.doc-links {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Implementazione nuovo progetto</h1>
+      <p class="meta">
+        PortalAdmin — overlay <code>PROJECT_{PRJ_NAME}</code> · aggiornato giugno 2026
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="portal-product-project-repo.html">Product, project e repo</a> ·
+        <a href="config-runner-overlay-order.html">Config runner overlay</a> ·
+        <a href="db-cruscotto-proposta.html">DB cruscotto</a>
+      </nav>
+      <p class="lead">
+        Guida operativa per registrare un nuovo product in PortalAdmin: variabili d'ambiente,
+        cartella overlay, file di config e verifiche di avvio. Non modifica codice — descrive
+        cosa creare e dove.
+      </p>
+    </header>
+
+    <div class="oneliner">
+      <strong>In una riga:</strong>
+      imposta <code>PRJ_NAME</code> + <code>PRODUCT_REPO_PATH</code>, crea
+      <code>PROJECT_{Nome}/project.config.{Nome}.mjs</code> e
+      <code>test.catalog.{Nome}.mjs</code>; aggiungi discovery/runner se serve lo stack dev completo.
+    </div>
+
+    <h2>Panoramica</h2>
+
+    <div class="mermaid">
+flowchart LR
+  subgraph env[".env"]
+    PRJ["PRJ_NAME"]
+    PATH["PRODUCT_REPO_PATH"]
+    JIRA["JIRA_* opzionale"]
+  end
+
+  subgraph overlay["PROJECT_{Nome}/"]
+    PC["project.config"]
+    TC["test.catalog"]
+    DC["discovery.config"]
+    RC["runner.config"]
+    SC["signals.catalog"]
+  end
+
+  subgraph runtime["Runtime PortalAdmin"]
+    LIB["lib/project.config.mjs"]
+    HOME["HOME cruscotto"]
+    CRU["cruscotto.server.mjs"]
+  end
+
+  PRJ --> LIB
+  LIB --> PC
+  PATH --> CRU
+  PC --> HOME
+  TC --> HOME
+  DC --> CRU
+  RC --> CRU
+    </div>
+
+    <h2>1. Variabili d'ambiente</h2>
+
+    <p>Copia <code>.env.example</code> in <code>.env</code> e compila almeno:</p>
+
+    <pre><code># Overlay attivo — obbligatorio (nessun default in codice)
+PRJ_NAME=MyApp
+
+# Checkout assoluto del product repo (monorepo da buildare/testare)
+PRODUCT_REPO_PATH=C:\dev\MyApp
+
+# Porta cruscotto — opzionale se definita PRJ_DASHBOARD_PORT nel project.config
+DASHBOARD_PORT=3999
+
+# HOME multi-istanza (selettore progetti)
+PORTAL_HOME_PORT=3990
+
+# Backlog Jira → SQLite (npm run db:sync) — solo se usi cache Jira
+JIRA_EMAIL=...
+JIRA_API_TOKEN=...
+JIRA_CLOUD_ID=...
+JIRA_BOARD_ID=...</code></pre>
+
+    <div class="callout">
+      <strong>PRJ_NAME</strong> deve coincidere con il suffisso della cartella
+      <code>PROJECT_{PRJ_NAME}</code> (es. <code>PRJ_NAME=JustLastOne</code> →
+      <code>PROJECT_JustLastOne/</code>). Senza <code>PRJ_NAME</code> falliscono
+      <code>getProjectConfig()</code>, discovery, test catalog e cruscotto.
+    </div>
+
+    <h2>2. Cartella overlay <code>PROJECT_{Nome}/</code></h2>
+
+    <p>
+      Tutti i valori specifici del product vivono sotto
+      <code>PortalAdmin/PROJECT_{Nome}/</code>. I moduli in <code>lib/</code> importano
+      dinamicamente in base a <code>PRJ_NAME</code>.
+    </p>
+
+    <h3>2.1 Minimo (obbligatorio per HOME cruscotto)</h3>
+
+    <table>
+      <thead>
+        <tr><th>File</th><th>Export</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>project.config.{Nome}.mjs</code></td>
+          <td><code>PROJECT_CONFIG_VALUES</code></td>
+          <td>
+            Costanti <code>PRJ_*</code>: Jira prefix, GitHub, path DB Prisma, testScript,
+            URL health auth/api/web, porta dashboard, manifest stack.
+            Schema completo in <code>lib/project.config.mjs</code> →
+            <code>PROJECT_CONFIG_KEYS</code> (tutte obbligatorie).
+          </td>
+        </tr>
+        <tr>
+          <td><code>test.catalog.{Nome}.mjs</code></td>
+          <td>catalogo test</td>
+          <td>
+            Elenco testScript per tab Test del cruscotto. Richiesto da
+            <code>lib/portal.instance.mjs</code> per considerare l'overlay valido in HOME.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.2 Stack dev (consigliato — product tipo monorepo)</h3>
+
+    <table>
+      <thead>
+        <tr><th>File</th><th>Export</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>discovery.config.{Nome}.mjs</code></td>
+          <td><code>DISCOVERY_CONFIG_VALUES</code></td>
+          <td>
+            Servizi tab Servizi/Process, path script avvio, extras (friendbot, dashboard),
+            descrizioni UI. Caricato da <code>lib/discovery.config.mjs</code>.
+          </td>
+        </tr>
+        <tr>
+          <td><code>runner.config.{Nome}.mjs</code></td>
+          <td><code>RUNNER_CONFIG_VALUES</code></td>
+          <td>
+            Turbo/build, <code>cleanPaths</code>, <code>envFiles</code>, ordine workspace,
+            <code>devStack</code> (auth, api, web). Usato da
+            <code>cruscotto.runner.stack.config.overlay.mjs</code>.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.3 Jira e gap analysis (opzionale)</h3>
+
+    <table>
+      <thead>
+        <tr><th>File</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>signals.catalog.{Nome}.mjs</code></td>
+          <td>
+            <code>PRODUCT_REPO_SIGNALS</code> — mappa issue key → path/test nel product repo.
+            Usato da close-story, pillar matrix, backlog insights.
+          </td>
+        </tr>
+        <tr>
+          <td><code>test.custom.match-fixtures.{Nome}.mjs</code></td>
+          <td>Fixture test match (re-export da <code>lib/test.match-fixtures.mjs</code>).</td>
+        </tr>
+        <tr>
+          <td><code>test.technical.meta.{Nome}.mjs</code>, <code>test.functional.meta.{Nome}.mjs</code>, …</td>
+          <td>Metadati analisi tecniche/funzionali in dashboard (se previsti).</td>
+        </tr>
+        <tr>
+          <td>Pagine HTML / plan sotto <code>PROJECT_{Nome}/</code></td>
+          <td>
+            Es. <code>cruscotto.jira.project.tree.html</code>, pillar matrix — solo se serve
+            lo stesso tooling MVP di JustLastOne; non obbligatori per un nuovo product.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Contenuto <code>project.config.{Nome}.mjs</code></h2>
+
+    <p>Parti da un overlay esistente e adatta i valori:</p>
+    <ul>
+      <li><a href="../PROJECT_JustLastOne/project.config.JustLastOne.mjs">PROJECT_JustLastOne/project.config.JustLastOne.mjs</a> — product monorepo</li>
+      <li><a href="../PROJECT_AdminDashBoard/config.project.AdminDashBoard.mjs">PROJECT_AdminDashBoard/config.project.AdminDashBoard.mjs</a> — tooling su PortalAdmin</li>
+    </ul>
+
+    <table>
+      <thead>
+        <tr><th>Chiave</th><th>Cosa impostare</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>PRJ_REPO</code></td><td>Nome cartella sibling (<code>../MyApp</code> se checkout affiancato)</td></tr>
+        <tr><td><code>PRJ_NAME</code> / <code>PRJ_SLUG</code></td><td>Etichetta UI e slug (kebab-case)</td></tr>
+        <tr><td><code>PRJ_JIRA_PREFIX</code></td><td>Prefisso issue Jira (<code>JLO</code>, <code>ADMIN</code>, …)</td></tr>
+        <tr><td><code>PRJ_GITHUB_OWNER</code> / <code>PRJ_GITHUB_REPO</code></td><td>Repository GitHub del product</td></tr>
+        <tr><td><code>PRJ_DB_*</code>, <code>PRJ_SEED</code></td><td>Path Prisma/seed nel product repo</td></tr>
+        <tr><td><code>PRJ_TEST_SCRIPT</code></td><td>Directory test (es. <code>testScript</code>)</td></tr>
+        <tr><td><code>PRJ_AUTH_HEALTH_URL</code>, <code>PRJ_API_HEALTH_URL</code>, <code>PRJ_WEB_OPEN_URL</code></td><td>Endpoint health stack dev</td></tr>
+        <tr><td><code>PRJ_DASHBOARD_PORT</code></td><td>Porta HTTP dedicata al cruscotto di questo overlay</td></tr>
+        <tr><td><code>PRJ_PRODUCT_MANIFEST</code></td><td>Path manifest stack (es. <code>cruscotto.frontend/product.manifest.json</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Due casi d'uso</h2>
+
+    <table>
+      <thead>
+        <tr><th>Caso</th><th>Esempio</th><th>Overlay tipico</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Product monorepo</strong></td>
+          <td>JustLastOne</td>
+          <td>
+            project + test.catalog + discovery + runner + signals (+ asset Jira/pillar se serve)
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Tooling PortalAdmin</strong></td>
+          <td>AdminDashBoard</td>
+          <td>
+            project + test.catalog; <code>PRODUCT_REPO_PATH</code> può puntare a JustLastOne
+            per e2e con stack product reale
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. Registrazione in HOME (opzionale)</h2>
+
+    <p>
+      Per ordinare le card nella HOME multi-istanza, aggiungi il nome overlay in
+      <code>HOME_PROJECT_ORDER</code> dentro <code>lib/portal.instance.mjs</code>.
+      Porte di fallback in <code>DEFAULT_OVERLAY_PORTS</code> se
+      <code>PRJ_DASHBOARD_PORT</code> non è valida.
+    </p>
+
+    <h2>6. Avvio e verifica</h2>
+
+    <ol>
+      <li>Crea <code>PROJECT_MyApp/</code> con almeno <code>project.config</code> e <code>test.catalog</code>.</li>
+      <li>Imposta <code>.env</code> (<code>PRJ_NAME=MyApp</code>, <code>PRODUCT_REPO_PATH</code> assoluto).</li>
+      <li>
+        (Consigliato) Aggiungi <code>discovery.config</code> e <code>runner.config</code> copiando
+        da JustLastOne e adattando servizi/path.
+      </li>
+      <li>
+        Avvia HOME: <code>npm run portal:home</code> (o script equivalente) → seleziona il progetto,
+        oppure prepare:
+        <code>node admin.portal/portal.instance.prepare.mjs --overlay MyApp</code>
+      </li>
+      <li>
+        Avvia cruscotto sulla porta <code>PRJ_DASHBOARD_PORT</code> (es. <code>npm run admin:dashboard</code>).
+      </li>
+      <li>
+        (Opzionale) Sync backlog Jira in SQLite:
+        <code>npm run db:sync</code> — richiede credenziali <code>JIRA_*</code>.
+      </li>
+      <li>
+        (Opzionale) Popola catalogo segnali da branch/piano:
+        <code>node admin.portal.JiraCORE/sync-repo-catalog.mjs --dry-run</code>
+      </li>
+    </ol>
+
+    <div class="callout ok">
+      Smoke rapido: con <code>PRJ_NAME</code> impostato, esegui
+      <code>node test.smoke/smoke-portal-config.mjs</code> per verificare merge config Jira e segnali.
+    </div>
+
+    <h2>7. Checklist</h2>
+
+    <ul class="checklist">
+      <li><span class="tag tag-req">obbl.</span> <code>.env</code> — <code>PRJ_NAME</code>, <code>PRODUCT_REPO_PATH</code></li>
+      <li><span class="tag tag-req">obbl.</span> <code>PROJECT_{Nome}/project.config.{Nome}.mjs</code> — tutte le chiavi <code>PRJ_*</code></li>
+      <li><span class="tag tag-req">obbl.</span> <code>PROJECT_{Nome}/test.catalog.{Nome}.mjs</code></li>
+      <li><span class="tag tag-rec">cons.</span> <code>discovery.config.{Nome}.mjs</code></li>
+      <li><span class="tag tag-rec">cons.</span> <code>runner.config.{Nome}.mjs</code></li>
+      <li><span class="tag tag-opt">opt.</span> <code>signals.catalog.{Nome}.mjs</code></li>
+      <li><span class="tag tag-opt">opt.</span> Credenziali Jira + <code>db:sync</code></li>
+      <li><span class="tag tag-opt">opt.</span> Voce in <code>HOME_PROJECT_ORDER</code></li>
+    </ul>
+
+    <h2>8. Riferimenti nel codice</h2>
+
+    <table>
+      <thead>
+        <tr><th>Modulo</th><th>Funzione</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>lib/project.config.mjs</code></td>
+          <td>Carica <code>PROJECT_CONFIG_VALUES</code> da overlay; valida chiavi obbligatorie</td>
+        </tr>
+        <tr>
+          <td><code>lib/discovery.config.mjs</code></td>
+          <td>Carica <code>DISCOVERY_CONFIG_VALUES</code></td>
+        </tr>
+        <tr>
+          <td><code>lib/test.catalog.mjs</code></td>
+          <td>Facade → <code>PROJECT_{Nome}/test.catalog.{Nome}.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>lib/cruscotto.config.overlay.mjs</code></td>
+          <td>Payload <code>window.__CRUSCOTTO_PROJECT__</code> (jiraPrefix, titoli, path DB)</td>
+        </tr>
+        <tr>
+          <td><code>lib/portal.instance.mjs</code></td>
+          <td>Elenco overlay, porte, prepare istanza, validazione file richiesti</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.frontend/jira/jira.project.config.mjs</code></td>
+          <td>Merge config Jira + <code>REPO_IMPLEMENTATION_SIGNALS</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <footer class="meta" style="margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+      PortalAdmin · docs/implementazione-nuovo-progetto.html
+    </footer>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true
+      , theme: "dark"
+      , securityLevel: "loose"
+    });
+  </script>
+</body>
+</html>

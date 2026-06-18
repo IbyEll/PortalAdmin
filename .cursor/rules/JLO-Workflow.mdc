@@ -1,19 +1,19 @@
 ---
-description: Alias workflow — regola canonica ADMIN-Workflow.mdc (branch STORY---ADMIN-* e JLO-*)
+description: Alias workflow — ADMIN-Workflow.mdc; JLO = progetto istanziato JustLastOne (PRJ_JIRA_PREFIX=JLO)
 alwaysApply: true
 ---
 
-# JLO-Workflow (PortalAdmin)
+# JLO-Workflow (progetto istanziato)
 
-In questo repo la regola operativa è **`.cursor/rules/ADMIN-Workflow.mdc`**.
+Regola canonica: **`.cursor/rules/ADMIN-Workflow.mdc`**.
 
-Branch ticket:
-
-| Progetto | Pattern |
+| | |
 | --- | --- |
-| ADMIN | `STORY---ADMIN-{num}-{slug}` · `BUG---ADMIN-*` · `TODO---ADMIN-*` |
-| JLO (product) | `STORY---JLO-{num}-{slug}` |
+| Overlay | `PRJ_NAME=JustLastOne` |
+| Repo workflow | `PRODUCT_REPO_PATH` → checkout **JustLastOne** (non il solo host PortalAdmin) |
+| `JIRA_KEY` | `JLO` (= `PRJ_JIRA_PREFIX`) |
+| Branch | `STORY---JLO-{num}-{slug}` |
 
-Comandi: `gogo admin-96`, `procedi Story ADMIN-96`, `chiudi fast Story ADMIN-96`.
+Comandi: `gogo JLO-507` · `chiudi fast Story JLO-930` — **stop** se istanza non allineata a JustLastOne.
 
-Script: `node scripts/close-story.mjs --key ADMIN-xxx` · `node scripts/analyze-repo-keys.mjs --parent ADMIN-88`.
+Ticket **ADMIN**: stessa regola con overlay `AdminDashBoard` e repo workflow PortalAdmin.

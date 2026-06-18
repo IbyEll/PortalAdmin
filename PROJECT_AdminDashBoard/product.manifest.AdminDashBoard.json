@@ -1,0 +1,58 @@
+{
+  "requirements": {
+    "nodeMin": "20"
+  , "stack": [
+      { "app": "dashboard", "label": "Cruscotto", "tech": "Node HTTP — test, Jira, Process" }
+    , { "app": "home", "label": "Portal HOME", "tech": "Selezione overlay PROJECT_*" }
+    , { "app": "api-portal", "label": "API Portal", "tech": "Navigazione OpenAPI stack" }
+    , { "app": "database", "label": "Database", "tech": "SQLite Prisma — cache Jira" }
+    ]
+  , "prerequisites": [
+      "Node.js >= 20"
+    , "npm"
+    , "PRJ_NAME=AdminDashBoard in PortalAdmin/.env"
+    , "PRODUCT_REPO_PATH → checkout PortalAdmin (default ../PortalAdmin)"
+    ]
+  , "envFiles": [
+      { "path": ".env", "label": "PortalAdmin — PRJ_NAME, Jira, CURSOR_API_KEY" }
+    ]
+  , "commands": [
+      { "id": "install", "label": "Installa dipendenze PortalAdmin", "cmd": "npm install" }
+    , { "id": "db-migrate", "label": "Migra SQLite cruscotto", "cmd": "npm run db:migrate" }
+    , { "id": "db-sync", "label": "Sync backlog Jira → DB", "cmd": "npm run db:sync" }
+    , { "id": "dashboard", "label": "Avvia cruscotto progetto", "cmd": "npm run admin:dashboard" }
+    , { "id": "home", "label": "Avvia HOME overlay", "cmd": "npm run admin:home" }
+    , { "id": "test-portal-api", "label": "Smoke API cruscotto", "cmd": "npm run test:portal-api -- --overlay AdminDashBoard" }
+    ]
+  , "readmeUrl": "README.md"
+  }
+, "services": [
+    {
+      "id": "dashboard"
+    , "label": "Cruscotto PortalAdmin"
+    , "description": "Dashboard dev — testScript, backlog Jira, Process, Cursor agent"
+    , "port": 3998
+    , "healthUrl": "http://localhost:3998/api/health"
+    , "openUrl": "http://localhost:3998/"
+    , "docs": null
+    }
+  , {
+      "id": "home"
+    , "label": "Portal HOME"
+    , "description": "Selezione e attivazione overlay PROJECT_*"
+    , "port": 3990
+    , "healthUrl": "http://localhost:3990/api/health"
+    , "openUrl": "http://localhost:3990/"
+    , "docs": null
+    }
+  , {
+      "id": "api-portal"
+    , "label": "API Portal"
+    , "description": "Catalogo OpenAPI servizi (product + PortalAdmin)"
+    , "port": 4080
+    , "healthUrl": "http://localhost:4080/"
+    , "openUrl": "http://localhost:4080/"
+    , "docs": null
+    }
+  ]
+}

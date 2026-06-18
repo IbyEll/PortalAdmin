@@ -1,0 +1,77 @@
+/* ═══ SCHEMA comcom — page-styles.css ═══
+   Foglio stili statico servito con pagine cruscotto HTML (link in head, alias server).
+   Non copiare questa riga nel file target. Compilare testata con testo reale; zero {…} nel target.
+   Re-comcom: preservare creato il / by (riga creato); aggiornare solo commentato il e modificato il (+ by modificato).
+   Titolo: max 120 caratteri/riga; a capo su spazio; centrato nella banda 120 — mai spezzare parole.
+   Testo: max 120 caratteri/riga; a capo su spazio — mai spezzare parole (escluso titolo stellato).
+   ═══ fine schema — sotto: esempio da applicare nel target ═══ */
+
+/**
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** STYLESHEET ** -- commentato il: yyyy-mm-dd HH:mm
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: yyyy-mm-dd HH:mm   by:
+ * modificato il: yyyy-mm-dd HH:mm   by:
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Titolo foglio — ruolo visivo nel cruscotto (esempio centrato in banda 120 caratteri).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - più pagine HTML condividono gli stessi componenti DOM senza duplicare regole inline
+ *   - centralizza palette, spaziatura e stati hover/disabled coerenti con il tema cruscotto
+ *
+ *   A cosa serve:
+ *   - stili per classi usate nel markup HTML companion (toolbar, badge, tabelle, link)
+ *   - varianti colore o layout per tipi issue, bottoni azione, pannelli collassabili
+ *
+ * Generalizzazione:
+ *   Si | No — foglio riusato su più pagine o dedicato a una sola vista?
+ *
+ * Input:
+ *   - classi DOM nel markup HTML — selettori principali (.btn-esempio, .issue-type-*, …)
+ *   - variabili CSS :root della pagina host — var(--border), var(--accent), var(--surface-2), …
+ *
+ * Consumatori:
+ *   - cruscotto.jira.backlog.html — <link rel="stylesheet" href="/nome.css" />
+ *   - cruscotto.frontend/cruscotto.server.mjs — alias statico (INSIGHT_STATIC_FILES o static root)
+ *
+ * Pagina HTML collegata:
+ *   - elenco pagine che linkano questo foglio (se condiviso, citare tutte le viste)
+ *
+ * Asset correlati:
+ *   - companion.js — script che crea o decora nodi con le classi stilizzate
+ *   - altro.css — fogli caricati insieme nello stesso head (ordine cascade)
+ *
+ * Note:
+ *   - preferire variabili tema :root; evitare colori hardcoded salvo palette brand documentata
+ *   - selettori allineati al markup reale (grep classi in HTML/JS companion)
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
+ */
+
+/* --- selettori base — layout comune (toolbar, badge, contenitori) --- */
+.esempio-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* --- stati interattivi — hover, focus-visible, disabled --- */
+.esempio-base:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--border);
+}
+
+.esempio-base:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- varianti semantiche — tipo issue, stato validazione, … --- */
+.esempio-variante-epic {
+  color: var(--epic, #c9a227);
+}

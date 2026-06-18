@@ -1,6 +1,6 @@
 ---
 name: jlo-analizza-repo
-description: Gap analysis Jira vs codice — ADMIN-xxx (PortalAdmin) e JLO-xxx (product repo). CLI scripts/analyze-repo-keys.mjs + lib/jira-repo-analysis.mjs
+description: Gap analysis Jira vs codice — ADMIN-xxx (PortalAdmin) e JLO-xxx (product repo). CLI JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs + JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs
 ---
 
 # Analizza repo — PortalAdmin
@@ -8,17 +8,17 @@ description: Gap analysis Jira vs codice — ADMIN-xxx (PortalAdmin) e JLO-xxx (
 ## CLI
 
 ```bash
-node scripts/analyze-repo-keys.mjs --parent ADMIN-96 --format md
-node scripts/analyze-repo-keys.mjs --keys ADMIN-121,ADMIN-122
-node scripts/analyze-repo-keys.mjs --parent JLO-507 --format md
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-96 --format md
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys ADMIN-121,ADMIN-122
+node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507 --format md
 ```
 
 ## Artefatti
 
 | Path | Ruolo |
 | --- | --- |
-| `lib/jira-repo-analysis.mjs` | Modulo analisi |
-| `scripts/analyze-repo-keys.mjs` | CLI |
+| `JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` | CLI |
+| `JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs` | Modulo analisi |
 | `portal.config.mjs` | Segnali catalogo |
 | `lib/function.repo.jira.refs.mjs` | Scan citazioni in product repo |
 

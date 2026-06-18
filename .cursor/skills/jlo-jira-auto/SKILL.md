@@ -23,7 +23,7 @@ description: Workflow Jira via Task subagent («Jira Auto»). Usa su procedi/gog
 
 ## Chiudi parent — prompt
 
-Passa `branch`, `prUrl`, `commits`, `catalog` da `node scripts/close-story.mjs --key ADMIN-xxx`.
+Passa `branch`, `prUrl`, `commits`, `catalog` da `node JiraCORE/close-story.mjs --key ADMIN-xxx`.
 
 Repo PR: `https://github.com/IbyEll/PortalAdmin`
 

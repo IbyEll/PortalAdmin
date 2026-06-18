@@ -20,7 +20,7 @@ Repository autonomo per l'**Admin Dashboard** estratto da [JustLastOne](https://
 | `cruscotto/` | SPA frontend cruscotto |
 | `runner/` | `run-all.mjs` — orchestrazione testScript nel **product repo** |
 | `lib/` | Helper condivisi (env, Jira, catalogo, `portal-paths`) |
-| `lib/cruscotto-db/` | SQLite cache Jira (ADMIN-81) |
+| `cruscotto.database/` | SQLite cache Jira (ADMIN-81) |
 | `data/` | Artefatti generati (DB, report) — **gitignored** |
 
 Tree Admin/ migrato in ADMIN-91 — nessun prefisso `Admin/` nel repo PortalAdmin.
@@ -43,8 +43,8 @@ I test vivono nel **product repo** (`JustLastOne/testScript/`). PortalAdmin li o
 | --- | --- | --- |
 | `{PRODUCT_REPO}/testScript/` | JustLastOne | Script `test-*.mjs` eseguiti |
 | `runner/JustLastOne___run-all.mjs` | PortalAdmin | Discovery + run sequenziale |
-| `data/reports/latest.json` | PortalAdmin | Ultimo report JSON |
-| `data/reports/latest.html` | PortalAdmin | Report HTML offline |
+| `cruscotto.frontend/reports/latest.json` | PortalAdmin | Ultimo report JSON |
+| `cruscotto.frontend/reports/latest.html` | PortalAdmin | Report HTML offline |
 
 Layout sibling (consigliato):
 
@@ -55,7 +55,7 @@ C:/dev/
     apps/
   PortalAdmin/          ← questo repo
     runner/JustLastOne___run-all.mjs
-    data/reports/       ← gitignored
+    cruscotto.database/   ← SQLite, reports, runtime (gitignored tranne codice)
 ```
 
 Comandi:
@@ -107,11 +107,11 @@ Esempio entry:
 {
   key   : "ADMIN-81"
 , label : "Schema SQLite cruscotto"
-, paths : ["lib/cruscotto-db/prisma/schema.prisma"]
+, paths : ["cruscotto.database/prisma/schema.prisma"]
 }
 ```
 
-`close-story.mjs --key ADMIN-81` e `analyze-repo-keys.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
+`JiraCORE/close-story.mjs --key ADMIN-81` e `analyze-repo-keys.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
 
 ## Workflow Cursor (ADMIN-96)
 
@@ -133,7 +133,7 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 | Script | Descrizione |
 | --- | --- |
 | `admin:dashboard` | Avvia `server/dashboard-server.mjs` (:3999) |
-| `db:migrate` | Migrazione SQLite cruscotto (`lib/cruscotto-db`) |
+| `db:migrate` | Migrazione SQLite cruscotto (`cruscotto.database`) |
 | `test:paths` | Smoke `PRODUCT_REPO_PATH` + scan Jira refs |
 | `test:run-all` | Smoke discovery `run-all.mjs --list` |
 | `test:config` | Smoke `portal.config.mjs` + ADMIN keys + close-story |
@@ -141,7 +141,7 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 | `test:ci` | Sequenza smoke per CI locale (equivale ai job `smoke`) |
 | `test:dashboard` | Smoke HTTP `dashboard-server.mjs` |
 | `test:cruscotto-db` | Smoke path DB + migrate + load fallback |
-| `db:sync` | `node scripts/sync-jira-backlog.mjs` — Jira → `data/cruscotto.db` |
+| `db:sync` | `node JiraCORE/sync-jira-backlog.mjs` — Jira → `cruscotto.database/cruscotto.db` |
 
 ## Cruscotto DB (ADMIN-81 / ADMIN-99)
 
@@ -149,9 +149,9 @@ Cache SQLite Jira sotto PortalAdmin root — non più `Admin/data/`.
 
 | Path / env | Ruolo |
 | --- | --- |
-| `data/cruscotto.db` | DB SQLite (gitignored) |
+| `cruscotto.database/cruscotto.db` | DB SQLite (gitignored) |
 | `CRUSCOTTO_DB_PATH` | Override path assoluto (opzionale) |
-| `lib/cruscotto-db/` | Schema Prisma, client, sync/load |
+| `cruscotto.database/` | Schema Prisma, client, sync/load |
 
 Comandi:
 

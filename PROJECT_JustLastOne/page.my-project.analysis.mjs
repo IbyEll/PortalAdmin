@@ -1,33 +1,61 @@
 /**
- * My Project — analisi indipendente repo JLO vs backlog Jira.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 11:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 11:30   by: IbyEll
+ * modificato il: 2026-06-18 11:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *   My Project JustLastOne — analisi repo product vs backlog Jira (Epic, sprint, capability, test)
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
- *   Perché esiste: la pagina cruscotto My Project non deve dipendere da jira.backlog.insights
- *     né jira.working.insights — serve una vista dedicata repo↔Jira con alberi Epic/sprint.
- *   A cosa serve: fetch JLO da API Jira, scan `JLO-xxx` nel monorepo, capability heuristic,
- *     ultimo report test e sezioni strutturate per `cruscotto/my-project.html`.
  *
- * Consumatori: server/dashboard-server.mjs (GET /api/my-project)
+ *   Perché esiste:
+ *   - La pagina My Project del cruscotto non deve dipendere da backlog/working insights generiche.
+ *   - Serve una vista dedicata repo↔Jira con alberi Epic/sprint e gap ref JLO-xxx nel monorepo.
+ *
+ *   A cosa serve:
+ *   - Fetch backlog JLO da API Jira, scan pattern issue key nel product repo, capability heuristic
+ *     su path noti, ultimo report test e sezioni per cruscotto.jira.my-project.html.
+ *
+ * Generalizzazione:
+ *   Si — caricato da lib/dashboard.project.mjs quando overlay espone page.my-project.analysis.mjs;
+ *   fallback generico in cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs.
+ *
+ * Input:
+ *   - PRJ_NAME=JustLastOne — overlay PROJECT_JustLastOne
+ *   - lib/test.catalog.mjs — REPO_ROOT, discoverTestScripts, BLOCKED_SCRIPTS
+ *   - Credenziali Jira — fetchJiraBacklog (project JLO)
+ *   - data/reports/latest.json — riepilogo ultimo run test
+ *
+ * Consumatori:
+ *   - lib/dashboard.project.mjs — re-export analyzeMyProject
+ *   - cruscotto.frontend/cruscotto.server.mjs — GET /api/my-project/analyze
  *
  * Export principali:
- *   analyzeMyProject — payload completo (summary, sections, testBySuite)
+ *   - analyzeMyProject — payload completo (summary, sections, testBySuite)
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
-import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "./test.catalog.JustLastOne.mjs";
+import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../lib/test.catalog.mjs";
 import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 import {
   fetchJiraBacklog
 , isEpicType
 , isJiraStatusDone
 , isStoryLikeType
-} from "../lib/jira/jira.backlog.mjs";
+} from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { scanRepoJiraReferences, walkRepoTextFiles } from "../lib/function.repo.jira.refs.mjs";
 import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
 
+// --- costanti Jira browse (link in tree/list) ---
 /** Base URL browse issue Jira Cloud (link in tree/list). */
 const JIRA_SITE   = "https://myfuturejobsearch.atlassian.net/browse/";
 
@@ -57,6 +85,7 @@ const JIRA_SITE   = "https://myfuturejobsearch.atlassian.net/browse/";
  * }} AnalysisSection
  */
 
+// --- scan struttura monorepo + PortalAdmin (conteggio file testo per area) ---
 /**
  * Conteggi file testo per area monorepo + PortalAdmin (walk repo).
  *
@@ -98,6 +127,7 @@ function scanRepoStructure() {
   return stats;
 }
 
+// --- riepilogo ultimo run test da data/reports/latest.json ---
 /**
  * Riepilogo ultimo run test da `data/reports/latest.json`.
  *
@@ -151,6 +181,7 @@ async function loadTestReportSummary() {
   }
 }
 
+// --- Jira — bucket stato, alberi Epic/issue e sprint ---
 /**
  * Normalizza stato Jira in bucket UI (Fatto / In corso / Da fare).
  *
@@ -446,6 +477,7 @@ function futureInline(label) {
   return `{{future:${safe}}}`;
 }
 
+// --- prosa markdown Sintesi — story Fatto/aperte raggruppate per Epic ---
 /**
  * Prosa markdown «Sintesi» — story Fatto/aperte raggruppate per Epic.
  *
@@ -579,6 +611,7 @@ function buildFunctionalSummaryText(issues, byKey, repoRefs) {
   return paragraphs.join("\n\n");
 }
 
+// --- capability repo — macro-aree dedotte da path noti (non da Jira) ---
 /**
  * @param {string} rel
  */
@@ -589,7 +622,7 @@ function repoExists(rel) {
 /**
  * Macro-aree prodotto dedotte da path noti (controller, page, schema) — non da Jira.
  *
- * @param {import("./test.catalog.JustLastOne.mjs").ScriptEntry[]} testScripts
+ * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
  */
 function scanRepoCapabilities(testScripts) {
   // 1. Per dominio (auth, match, tornei, …) — existsSync su path canonici
@@ -815,11 +848,12 @@ function scanRepoCapabilities(testScripts) {
   };
 }
 
+// --- prosa markdown Sintesi By Repo — capability + test report ---
 /**
  * Prosa markdown «Sintesi By Repo» per sezione repo-summary.
  *
  * @param {ReturnType<typeof scanRepoCapabilities>} capabilities
- * @param {import("./test.catalog.JustLastOne.mjs").ScriptEntry[]} testScripts
+ * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
  * @param {{ generatedAt: string | null, passed: number, failed: number, scripts: number }} testReport
  * @returns {string}
  */
@@ -859,6 +893,7 @@ function buildRepoSummaryText(capabilities, testScripts, testReport) {
   return paragraphs.join("\n\n");
 }
 
+// --- entry API My Project — assembly sezioni cruscotto ---
 /**
  * Entry point API My Project — Jira + repo scan + sezioni cruscotto.
  *

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Audit ridondanze e gap</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --turquoise: #2ee8d6;
+      --purple: #b794f6;
+      --amber: #f0b429;
+      --danger: #f56565;
+      --ok: #48bb78;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .sev-high { color: var(--danger); font-weight: 600; }
+    .sev-medium { color: var(--amber); font-weight: 600; }
+    .sev-low { color: var(--ok); font-weight: 600; }
+
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .callout {
+      border-left: 3px solid var(--amber);
+      background: rgba(240, 180, 41, 0.08);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.95rem;
+    }
+
+    .callout-danger {
+      border-left-color: var(--danger);
+      background: rgba(245, 101, 101, 0.08);
+    }
+
+    ol { padding-left: 1.35rem; }
+    ul { padding-left: 1.25rem; }
+
+    li { margin: 0.35rem 0; }
+
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>PortalAdmin — Audit ridondanze e gap</h1>
+      <p class="meta">
+        Analisi repo · giugno 2026 ·
+        vedi anche
+        <a href="portal-product-project-repo.html">product/project/repo</a>,
+        <a href="config-runner-overlay-order.html">config/runner overlay</a>
+      </p>
+      <p class="lead">
+        Il repository è in <strong>migrazione attiva</strong> verso
+        <code>cruscotto.frontend/</code>, <code>admin.portal/</code> e
+        <code>admin.portal.JiraCORE/</code>, ma convivono ancora path legacy
+        (<code>server/</code>, <code>runner/</code>, <code>JiraCORE/</code>, <code>scripts/</code>).
+      </p>
+    </header>
+
+    <h2>Ridondanze</h2>
+
+    <h3>1. Tripla copia JiraCORE — <span class="sev-high">alta</span></h3>
+    <p>Stesso dominio (backlog, gap analysis, close-story, signals) in tre alberi:</p>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Ruolo attuale</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>admin.portal.JiraCORE/</code></td>
+          <td>Usato da <code>package.json</code> (<code>db:sync</code>, <code>sync:jira-issue-display</code>)</td>
+        </tr>
+        <tr>
+          <td><code>JiraCORE/</code> (root)</td>
+          <td>Ancora citato in CI (<code>.github/workflows/portal-smoke.yml</code>)</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.frontend/jira/JiraCORE/</code></td>
+          <td>Copia ampia, include smoke e script standalone duplicati</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout callout-danger">
+      <strong>Rischio:</strong> fix in un posto, regressioni negli altri. In
+      <code>cruscotto.frontend/jira/JiraCORE/admin.script.standalone/</code> compaiono file
+      <code>* - Copia.mjs</code>.
+    </div>
+    <p><strong>Raccomandazione:</strong> un solo canonico (<code>admin.portal.JiraCORE/</code>), shim sottili o aggiornamento massivo dei riferimenti; eliminare le copie parallele.</p>
+
+    <h3>2. Smoke test duplicati — <span class="sev-high">alta</span></h3>
+    <p>
+      <code>scripts/smoke-*.mjs</code> e <code>test.smoke/smoke-*.mjs</code> sono copie
+      (es. <code>smoke-cruscotto-db.mjs</code> identico).
+      <code>npm run test:*</code> punta a <code>scripts/</code>, ma la suite esiste anche in <code>test.smoke/</code>.
+    </p>
+    <p><strong>Raccomandazione:</strong> una cartella canonica (<code>scripts/</code> o <code>test.smoke/</code>), l'altra rimossa o ridotta a re-export.</p>
+
+    <h3>3. <code>server/</code> vs <code>cruscotto.frontend/</code> — <span class="sev-medium">media</span></h3>
+    <ul>
+      <li><code>server/dashboard-server.mjs</code> → alias verso <code>cruscotto.server.mjs</code> (OK)</li>
+      <li><code>server/dev-api.mjs</code> e <code>server/cruscotto.health.mjs</code> ancora importati da <code>cruscotto.server.mjs</code></li>
+      <li>README e UI citano ancora <code>node server/dashboard-server.mjs</code></li>
+    </ul>
+    <p><strong>Raccomandazione:</strong> spostare health/dev-api in <code>cruscotto.frontend/</code> o <code>lib/</code>, deprecare <code>server/</code>.</p>
+
+    <h3>4. <code>portal-paths</code> vs <code>portal.paths.resolver</code> — <span class="sev-low">bassa</span></h3>
+    <p>
+      <code>lib/portal-paths.mjs</code> è alias <code>@deprecated</code> del resolver;
+      ~15 consumer usano ancora il vecchio path.
+    </p>
+
+    <h3>5. Overlay <code>PROJECT_*</code> — <span class="sev-low">bassa (pattern intenzionale)</span></h3>
+    <table>
+      <thead>
+        <tr><th>Overlay</th><th>File</th><th>Gap vs JLO</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>JustLastOne</strong></td>
+          <td>10 file (+ <code>page.my-project.analysis</code>)</td>
+          <td>completo</td>
+        </tr>
+        <tr>
+          <td><strong>AdminDashBoard</strong></td>
+          <td>9 file</td>
+          <td>manca <code>page.my-project.analysis</code></td>
+        </tr>
+        <tr>
+          <td><strong>PortalAdmin</strong></td>
+          <td>—</td>
+          <td>citato in <code>.env.example</code> ma nessuna cartella <code>PROJECT_PortalAdmin/</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Re-export tipo <code>PROJECT_*/test.technical.analysis.*</code> → <code>lib/test.technical.analysis.mjs</code> è coerente col pattern overlay.</p>
+
+    <h2>Gap (import rotti / path mancanti)</h2>
+    <table>
+      <thead>
+        <tr><th>Import atteso</th><th>Stato reale</th><th>Chi lo usa</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>cruscotto.database/jiraCORE.backlog.load.mjs</code></td>
+          <td><strong>assente</strong> — impl in <code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code></td>
+          <td><code>cruscotto.jira.backlog.mjs</code>, smoke DB</td>
+        </tr>
+        <tr>
+          <td><code>lib/function.repo.jira.refs.mjs</code></td>
+          <td><strong>assente</strong> — impl in <code>cruscotto.frontend/jira/jira.function.repo.refs.mjs</code></td>
+          <td>smoke config/paths, <code>page.my-project.analysis</code></td>
+        </tr>
+        <tr>
+          <td><code>lib/repo.implementation.signals.catalog.mjs</code></td>
+          <td><strong>assente</strong> — impl in <code>admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs</code></td>
+          <td><code>smoke-workflow.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>portal.config.mjs</code></td>
+          <td><strong>assente</strong> — sostituito da <code>cruscotto.frontend/jira/jira.project.config.overlay.mjs</code></td>
+          <td>README, regole, gap analysis</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.database/load-backlog.mjs</code></td>
+          <td><strong>assente</strong> (solo nei commenti)</td>
+          <td>signals catalog ADMIN</td>
+        </tr>
+        <tr>
+          <td><code>runner/serve-api-portal.mjs</code></td>
+          <td><strong>assente</strong> — server reale: <code>cruscotto.api.documentation.server.mjs</code></td>
+          <td>discovery JLO, commenti</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      Questi gap spiegano smoke/CI fragili anche quando il cruscotto funziona a mano.
+    </div>
+
+    <h2>Inconsistenze architetturali</h2>
+    <div class="mermaid">
+flowchart LR
+  subgraph canonico [Target]
+    CF[cruscotto.frontend]
+    AP[admin.portal]
+    AJ[admin.portal.JiraCORE]
+    LIB[lib]
+  end
+  subgraph legacy [Legacy / duplicati]
+    SRV[server]
+    RUN[runner]
+    JC1[JiraCORE root]
+    JC2[jira/JiraCORE]
+    TS[test.smoke]
+  end
+  CF --> SRV
+  CF --> RUN
+  AJ -.-> JC1
+  AJ -.-> JC2
+  scripts --> TS
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Area</th><th>Canonico</th><th>Legacy / parziale</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dashboard HTTP</td>
+          <td><code>cruscotto.frontend/cruscotto.server.mjs</code></td>
+          <td><code>server/dashboard-server.mjs</code></td>
+        </tr>
+        <tr>
+          <td>HOME</td>
+          <td><code>admin.portal/portal.home.server.mjs</code></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Discovery/runner</td>
+          <td><code>cruscotto.runner.stack.*</code> + overlay <code>PROJECT_*</code></td>
+          <td><code>runner/start-dev.mjs</code>, path <code>serve-api-portal</code> obsoleto</td>
+        </tr>
+        <tr>
+          <td>Manifest product</td>
+          <td><code>lib/product.manifest.mjs</code> + <code>PROJECT_*/product.manifest.*</code></td>
+          <td>OK</td>
+        </tr>
+        <tr>
+          <td>Pillar matrix</td>
+          <td><code>admin.script.standalone/confluence.pillar.matrix.*</code></td>
+          <td><code>PARKING_tocheck/</code>, vecchio <code>cruscotto/pillar-matrix/</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Test e CI</h2>
+    <table>
+      <thead>
+        <tr><th>Voce</th><th>Stato</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CI (<code>portal-smoke.yml</code>)</td>
+          <td>Solo overlay <strong>JustLastOne</strong>; path <code>JiraCORE/...</code> non allineato a <code>admin.portal.JiraCORE/</code></td>
+        </tr>
+        <tr>
+          <td><code>admin.portal.testscript/</code></td>
+          <td>~24 script; <code>test:portal-api</code> non in smoke CI standard</td>
+        </tr>
+        <tr>
+          <td>Overlay <strong>AdminDashBoard</strong></td>
+          <td>Nessun job CI dedicato</td>
+        </tr>
+        <tr>
+          <td><code>admin:home</code></td>
+          <td>Senza smoke in CI</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Debito tecnico minore</h2>
+    <ul>
+      <li><strong>Naming JLO:</strong> regola <code>JustLastOne___</code> applicata solo a <code>runner/JustLastOne___kill-product-stack.mjs</code>; signals citano path <code>lib/JustLastOne___*</code> inesistenti.</li>
+      <li><strong><code>PRJ_NAME</code>:</strong> env <code>AdminDashBoard</code> vs display <code>AdminDashboard</code> — eccezione solo in <code>smoke-portal-config.mjs</code>.</li>
+      <li><strong><code>PARKING_tocheck/</code>:</strong> codice pillar/project-tree non integrato nel flusso principale.</li>
+      <li><strong><code>PROJECT_JustLastOne/Untitled</code>:</strong> file spurio.</li>
+    </ul>
+
+    <h2>Priorità consigliate</h2>
+    <ol>
+      <li><strong>Shim import</strong> (basso sforzo, alto impatto): re-export in <code>cruscotto.database/jiraCORE.backlog.load.mjs</code>, <code>lib/function.repo.jira.refs.mjs</code>, <code>lib/repo.implementation.signals.catalog.mjs</code> verso le impl reali.</li>
+      <li><strong>Unificare JiraCORE</strong> in <code>admin.portal.JiraCORE/</code> e aggiornare CI/README/workflow.</li>
+      <li><strong>Eliminare duplicato smoke</strong> (<code>scripts/</code> vs <code>test.smoke/</code>).</li>
+      <li><strong>Completare overlay AdminDashBoard</strong> (<code>page.my-project.analysis</code> se serve parità con JLO).</li>
+      <li><strong>Pulizia</strong> <code>server/</code>, copie <code>* - Copia.mjs</code>, <code>PARKING_tocheck/</code> quando non più necessari.</li>
+    </ol>
+
+    <h2>Nota metodologica</h2>
+    <p class="meta">
+      Analisi su filesystem e riferimenti import; alcuni path compaiono in git index ma non sono allineati
+      al layout attuale — trattati come migrazione incompleta.
+    </p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true
+    , theme: "dark"
+    , securityLevel: "loose"
+    });
+  </script>
+</body>
+</html>

@@ -1,29 +1,57 @@
 /**
- * dev-api — health probe servizi dev per tab Servizi del cruscotto.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** APPLICATION MODULE ** -- commentato il: 2026-06-18 04:09
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 04:09   by: IbyEll
+ * modificato il: 2026-06-18 04:09   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *                            Health probe servizi dev — tab Requisiti e Servizi del cruscotto.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - la UI Servizi deve mostrare up/down e latenza senza duplicare logica probe nel frontend
- *   - friendBOT e servizi senza healthUrl usano match su command line invece di HTTP
+ *   - La UI Servizi deve mostrare up/down e latenza senza duplicare logica probe nel frontend.
+ *   - friendBOT e servizi senza healthUrl usano match su command line invece di HTTP.
  *
  *   A cosa serve:
- *   - carica dev-manifest.json e arricchisce ogni servizio con status, latencyMs, error
- *   - espone requirements (prerequisiti stack) per checklist avvio
+ *   - Carica product.manifest.json e arricchisce ogni servizio con status, latencyMs, error.
+ *   - Espone requirements (prerequisiti stack) per checklist avvio tab Requisiti.
  *
- * Route (montate da cruscotto.server.mjs):
- *   GET /api/dev/requirements — prerequisiti da manifest.requirements
- *   GET /api/dev/services     — servizi manifest + probe health/processo
+ * Generalizzazione:
+ *   Si — servizi e requirements da product.manifest (overlay PRJ_NAME / PRODUCT_REPO_PATH).
  *
- * Consumatori: server/cruscotto.server.mjs
+ * Input:
+ *   - product.manifest.json — loadProductManifest (lib/product.manifest.mjs)
+ *   - svc.healthUrl, svc.processScript — probe HTTP o fragment processo per servizio
  *
- * Dipendenze: lib/dev-manifest.mjs, lib/discovery.services.repo.mjs, runner/kill-dev-ports.mjs
+ * Route o endpoint (montate da runner/cruscotto.server.mjs):
+ *   - GET /api/dev/requirements — prerequisiti da manifest.requirements
+ *   - GET /api/dev/services     — servizi manifest + probe health/processo
+ *
+ * Consumatori:
+ *   - runner/cruscotto.server.mjs — route /api/dev/*
+ *   - cruscotto.frontend/cruscotto.home.js — tab Requisiti e Servizi
+ *
+ * Dipendenze:
+ *   - lib/product.manifest.mjs — definizione servizi e requirements
+ *   - lib/discovery.services.repo.mjs — FRIEND_BOT_PROCESS_FRAGMENT
+ *   - runner/cruscotto.process.kill.ports.mjs — findPidsByCommandFragment
+ *
+ * Export principali:
+ *   - getDevRequirements — manifest.requirements per checklist
+ *   - getDevServicesWithHealth — servizi con status/latency/error
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { loadDevManifest } from "../lib/dev-manifest.mjs";
-import { findPidsByCommandFragment } from "../runner/kill-dev-ports.mjs";
+import { loadProductManifest } from "../lib/product.manifest.mjs";
+import { findPidsByCommandFragment } from "../cruscotto.frontend/cruscotto.process.kill.ports.mjs";
 import { FRIEND_BOT_PROCESS_FRAGMENT } from "../lib/discovery.services.repo.mjs";
 
+// --- policy probe ---
 const PROBE_TIMEOUT_MS = 2000;
 
 /**
@@ -35,6 +63,7 @@ async function probeService(url) {
   const started = Date.now();
 
   try {
+    // 1. Fetch healthUrl — 2xx o 4xx (< 500) = up
     const res = await fetch(url, { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const up  = res.ok || res.status < 500;
 
@@ -44,6 +73,7 @@ async function probeService(url) {
     , error     : up ? null : `HTTP ${res.status}`
     };
   } catch (err) {
+    // 2. Timeout o rete — down con messaggio
     return {
       status    : "down"
     , latencyMs : null
@@ -53,28 +83,31 @@ async function probeService(url) {
 }
 
 /**
- * Prerequisiti stack dev (node, env, DB, …) da dev-manifest.requirements.
+ * Prerequisiti stack dev (node, env, DB, …) da product.manifest.requirements.
  *
  * @returns {Promise<Record<string, unknown>>}
  */
 export async function getDevRequirements() {
-  const manifest = await loadDevManifest();
+  // 1. Manifest product — sezione requirements per tab Requisiti
+  const manifest = await loadProductManifest();
   return manifest.requirements;
 }
 
 /**
- * Servizi dev-manifest con status arricchito: dashboard sempre up, friendBOT via PID,
+ * Servizi product.manifest con status arricchito: dashboard sempre up, friendBOT via PID,
  * altri via healthUrl HTTP (salvo processScript esplicito).
  *
  * @returns {Promise<Array<Record<string, unknown>>>}
  */
 export async function getDevServicesWithHealth() {
-  const manifest = await loadDevManifest();
+  // 1. Carica manifest e lista servizi da arricchire
+  const manifest = await loadProductManifest();
   const services = manifest.services ?? [];
 
+  // 2. Probe parallelo per ogni voce (HTTP, processo o skip dashboard)
   const probed = await Promise.allSettled(
     services.map(async (svc) => {
-      // 1. Dashboard — skip self-probe su :3999 (evita deadlock durante la richiesta HTTP)
+      // 2a. Dashboard — skip self-probe su :3999 (evita deadlock durante la richiesta HTTP)
       if (svc.id === "dashboard") {
         return {
           ...svc
@@ -90,7 +123,7 @@ export async function getDevServicesWithHealth() {
           ? FRIEND_BOT_PROCESS_FRAGMENT
           : null;
 
-      // 2. Servizi senza healthUrl — up se esiste un processo con fragment noto
+      // 2b. Servizi senza healthUrl — up se esiste un processo con fragment noto
       if (processScript) {
         const running = findPidsByCommandFragment(processScript).length > 0;
 
@@ -102,7 +135,7 @@ export async function getDevServicesWithHealth() {
         };
       }
 
-      // 3. Probe HTTP su healthUrl
+      // 2c. Probe HTTP su healthUrl
       const healthUrl = typeof svc.healthUrl === "string" ? svc.healthUrl : "";
       const probe     = healthUrl ? await probeService(healthUrl) : { status: "down", latencyMs: null, error: "no healthUrl" };
 
@@ -115,7 +148,7 @@ export async function getDevServicesWithHealth() {
     })
   );
 
-  // 4. Normalizza rejected — servizio down con messaggio errore
+  // 3. Normalizza rejected — servizio down con messaggio errore
   return probed.map((result, index) => {
     if (result.status === "fulfilled") {
       return result.value;

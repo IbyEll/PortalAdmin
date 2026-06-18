@@ -1,0 +1,149 @@
+<!--
+  ** PAGE HTML ** -- commentato il: 2026-06-17
+
+  Cruscotto Dev — shell SPA con sidebar e pannelli tab (overview, test, Jira).
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - unificare in un’unica UI locale requisiti, servizi, test e viste Jira del product attivo
+    - evitare hardcode nome repo nella shell riusabile tra overlay PROJECT_*
+
+    A cosa serve:
+    - layout sidebar + main, routing hash tra tab, iframe per pagine Jira dedicate
+    - host per bootstrap progetto e companion cruscotto.home.js
+
+  Generalizzazione:
+    Si — titoli e label da overlay via data-cruscotto-bind e window.__CRUSCOTTO_PROJECT__.
+
+  Input:
+    - window.__CRUSCOTTO_PROJECT__ — iniettato da runner/cruscotto.server.mjs in head
+    - cruscotto.project.bootstrap.js — applica template data-cruscotto-bind
+    - hash location (#overview, #test, …) — tab attiva lato client
+
+  Servita da:
+    - runner/cruscotto.server.mjs — URL / e /app.html (alias home.html, index.html)
+
+  Asset collegati:
+    - cruscotto.css, expand-collapse-toolbar.css — stili shell
+    - cruscotto.js (alias → cruscotto.home.js) — logica tab, fetch API test/servizi
+    - expand-collapse-ui.js — toolbar espandi/collassa condivisa
+
+  Sezioni DOM principali:
+    - aside.cruscotto-sidebar — navigazione tab data-tab
+    - header.cruscotto-topbar — #page-title, #page-subtitle
+    - #section-overview … #section-process — pannelli tab (iframe Jira in section-jiraworking, backlog, myproject, …)
+    - #ttecnici-doc-modal — modale documentazione test tecnici
+
+  Note:
+    - le pagine Jira sono iframe verso URL brevi (/jira-working.html, /backlog.html, …)
+-->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-cruscotto-bind="document.title" data-cruscotto-template="Cruscotto {repoName}">Cruscotto Dev</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
+  <link rel="stylesheet" href="/cruscotto.css" />
+</head>
+<body class="cruscotto-app">
+  <aside class="cruscotto-sidebar" aria-label="Menu principale">
+    <div class="sidebar-brand">
+      <strong data-cruscotto-bind="text" data-cruscotto-template="Cruscotto {repoName}">Cruscotto Dev</strong>
+      <span class="muted" data-cruscotto-bind="text" data-cruscotto-template="{repoName} local">local</span>
+      <a class="sidebar-home-link muted" href="/" title="PortalAdmin Home">← Home</a>
+    </div>
+    <nav class="sidebar-nav">
+      <button type="button" data-tab="overview" class="active">
+        <span class="nav-label">Overview</span>
+      </button>
+      <button type="button" data-tab="requisiti">
+        <span class="nav-label">Requisiti</span>
+      </button>
+      <button type="button" data-tab="servizi">
+        <span class="nav-label">Servizi</span>
+      </button>
+      <button type="button" data-tab="summary">
+        <span class="nav-label">Summary</span>
+        <span class="nav-hint muted">test case</span>
+      </button>
+      <button type="button" data-tab="process">
+        <span class="nav-label">Process</span>
+        <span class="nav-hint muted">strumenti</span>
+      </button>
+      <button type="button" data-tab="testtecnici">
+        <span class="nav-label">TestTecnici</span>
+        <span class="nav-hint muted">run + case</span>
+      </button>
+      <button type="button" data-tab="testfunzionali">
+        <span class="nav-label">TestFunzionali</span>
+        <span class="nav-hint muted">multi-utente</span>
+      </button>
+      <button type="button" data-tab="jiraworking">
+        <span class="nav-label">Jira Working</span>
+        <span class="nav-hint muted">backlog</span>
+      </button>
+      <button type="button" data-tab="backlog">
+        <span class="nav-label">Backlog</span>
+        <span class="nav-hint muted">Jira</span>
+      </button>
+      <button type="button" data-tab="myproject">
+        <span class="nav-label">My Project</span>
+        <span class="nav-hint muted">repo vs Jira</span>
+      </button>
+      <button type="button" data-tab="cursor">
+        <span class="nav-label">Cursor Agent</span>
+        <span class="nav-hint muted">local / cloud</span>
+      </button>
+    </nav>
+    <footer class="sidebar-footer muted">
+      <code>:3999</code>
+    </footer>
+  </aside>
+
+  <div class="cruscotto-shell">
+    <header class="cruscotto-topbar">
+      <div>
+        <h1 id="page-title">Overview</h1>
+        <p id="page-subtitle" class="muted">Ambiente locale — requisiti, servizi e test</p>
+      </div>
+    </header>
+    <main class="cruscotto-main">
+      <p id="boot-loading" class="boot-loading">Caricamento cruscotto…</p>
+      <section id="section-overview"></section>
+      <section id="section-requisiti" class="hidden"></section>
+      <section id="section-servizi" class="hidden"></section>
+      <section id="section-test" class="hidden"></section>
+      <section id="section-summary" class="hidden"></section>
+      <section id="section-process" class="hidden" aria-label="Process Utility"></section>
+      <section id="section-testtecnici" class="hidden"></section>
+      <section id="section-testfunzionali" class="hidden"></section>
+      <section id="section-jiraworking" class="hidden" aria-label="Jira Working">
+        <iframe class="jira-working-frame" src="/jira-working.html" title="Jira Working — ordine di sviluppo backlog"></iframe>
+      </section>
+      <section id="section-backlog" class="hidden" aria-label="Backlog JLO">
+        <iframe class="jira-working-frame" src="/backlog.html" title="Backlog JLO — elenco completo issue"></iframe>
+      </section>
+      <section id="section-myproject" class="hidden" aria-label="My Project">
+        <iframe class="jira-working-frame" src="/my-project.html" title="My Project — analisi repo vs Jira"></iframe>
+      </section>
+      <section id="section-cursor" class="hidden" aria-label="Cursor Agent"></section>
+    </main>
+  </div>
+
+  <div id="ttecnici-doc-modal" class="ttecnici-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ttecnici-doc-modal-title" hidden>
+    <div class="ttecnici-modal-panel">
+      <div class="ttecnici-modal-header">
+        <h2 id="ttecnici-doc-modal-title" class="ttecnici-modal-title"></h2>
+        <button type="button" class="ttecnici-modal-close" aria-label="Chiudi documentazione">×</button>
+      </div>
+      <pre class="ttecnici-doc-modal-body"></pre>
+    </div>
+  </div>
+
+  <script src="/expand-collapse-ui.js" defer></script>
+  <script src="/cruscotto.js" defer></script>
+</body>
+</html>

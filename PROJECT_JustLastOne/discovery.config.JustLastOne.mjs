@@ -30,7 +30,7 @@ export const DISCOVERY_CONFIG_VALUES = {
     friendbot: "friend-bot.mjs"
   }
 , stackStartScript: {
-    rel           : "runner/cruscotto.process.start.all.services.mjs"
+    rel           : "cruscotto.frontend/cruscotto.process.start.all.services.mjs"
   , processScript : "cruscotto.process.start.all.services"
   }
 , stackStartServiceIds: ["web", "api", "auth"]
@@ -43,12 +43,12 @@ export const DISCOVERY_CONFIG_VALUES = {
     }
   ]
 , servicePathById: {
-    web         : "runner/cruscotto.process.start.service.mjs web"
-  , api         : "runner/cruscotto.process.start.service.mjs api"
-  , auth        : "runner/cruscotto.process.start.service.mjs auth"
-  , "api-portal": "runner/cruscotto.process.start.service.mjs portal"
+    web         : "cruscotto.frontend/cruscotto.process.start.service.mjs web"
+  , api         : "cruscotto.frontend/cruscotto.process.start.service.mjs api"
+  , auth        : "cruscotto.frontend/cruscotto.process.start.service.mjs auth"
+  , "api-portal": "cruscotto.frontend/cruscotto.process.start.service.mjs portal"
   , friendbot   : "testScript/funzionali/friend-bot.mjs"
-  , dashboard   : "server/dashboard-server.mjs"
+  , dashboard   : "cruscotto.frontend/cruscotto.server.mjs"
   }
 , serviceDescriptionById: {
     web         : "Frontend Next.js 15 — UI prodotto IT/EN"
@@ -59,6 +59,6 @@ export const DISCOVERY_CONFIG_VALUES = {
   , friendbot   : "Daemon dev — amicizie e risposte chat automatiche"
   }
 , portalDashboardNpmScript: "admin:dashboard"
-, apiPortalRunnerRel      : "runner/cruscotto.process.start.api.portal.mjs"
+, apiPortalRunnerRel      : "cruscotto.frontend/cruscotto.process.start.api.documentation.mjs"
 , apiPortalServeRel       : "runner/serve-api-portal.mjs"
 };

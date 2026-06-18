@@ -1,7 +1,10 @@
 /**
- * Metadati pagina Cruscotto — TestFunzionali.
- * Pool multi-utente, scenari amici/match, orchestratore run-funzionali.
+ * Meta test funzionali JustLastOne — implementation e scenari statici su lib/test.functional.meta.mjs.
  */
+
+import {
+  buildFunzionaliMetaPayload
+} from "../lib/test.functional.meta.mjs";
 
 export const FUNZIONALI_IMPLEMENTATION = {
   title       : "Test funzionali multi-utente"
@@ -139,13 +142,11 @@ export const FUNZIONALI_SCENARIOS = [
 ];
 
 /**
- * @returns {Record<string, unknown>}
+ * @returns {Promise<Record<string, unknown>>}
  */
-export function getFunzionaliMetaPayload() {
-  return {
+export async function getFunzionaliMetaPayload() {
+  return buildFunzionaliMetaPayload({
     implementation : FUNZIONALI_IMPLEMENTATION
   , scenarios      : FUNZIONALI_SCENARIOS
-  , scriptCount    : FUNZIONALI_SCENARIOS.length
-  , caseCount      : FUNZIONALI_SCENARIOS.reduce((sum, row) => sum + row.cases.length, 0)
-  };
+  });
 }

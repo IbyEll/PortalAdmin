@@ -6,17 +6,17 @@ export const PRODUCT_REPO_SIGNALS = [
     key   : "ADMIN-81"
   , label : "Schema SQLite cruscotto"
   , paths : [
-      "lib/cruscotto-db/prisma/schema.prisma"
-    , "lib/cruscotto-db/index.mjs"
+      "cruscotto.database/prisma/schema.prisma"
+    , "cruscotto.database/index.mjs"
     ]
   }
 , {
     key   : "ADMIN-99"
   , label : "Cruscotto DB sync + loadJiraBacklog"
   , paths : [
-      "lib/cruscotto-db/sync-backlog.mjs"
-    , "lib/cruscotto-db/load-backlog.mjs"
-    , "scripts/sync-jira-backlog.mjs"
+      "cruscotto.database/sync-backlog.mjs"
+    , "cruscotto.database/load-backlog.mjs"
+    , "JiraCORE/jiraCORE.backlog.sync.mjs"
     ]
   }
 , {

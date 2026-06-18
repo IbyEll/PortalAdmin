@@ -6,11 +6,30 @@ node_modules/
 .env.local
 .env.*.local
 
-# Generated data (SQLite, reports, exports)
+# Generated report HTML/JSON (run-all, export)
+cruscotto.frontend/reports/
+
+# Generated data (SQLite, exports, runtime state)
+cruscotto.database/*
+!cruscotto.database/.gitkeep
+!cruscotto.database/prisma/
+!cruscotto.database/prisma/**
+!cruscotto.database/script_seed/
+!cruscotto.database/script_seed/**
+!cruscotto.database/index.mjs
+!cruscotto.database/migrate.mjs
+!cruscotto.database/load-backlog.mjs
+!cruscotto.database/sync-backlog.mjs
+!cruscotto.database/package.json
+!cruscotto.database/package-lock.json
+
+# Legacy data/ (deprecato — usare cruscotto.database/)
 data/*
 !data/.gitkeep
 
 # OS / editor
+admin.portal/.cursor-agent-job.*.json
+admin.portal/cursor.agent.runtime.state.json
 .DS_Store
 Thumbs.db
 desktop.ini

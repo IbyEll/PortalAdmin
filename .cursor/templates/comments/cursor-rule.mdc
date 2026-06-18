@@ -1,0 +1,148 @@
+<!-- ═══ SCHEMA comcom — cursor-rule (.mdc) ═══
+     Non copiare questa riga nel file target. Compilare con testo reale; zero segnaposto tipo {…} nel target.
+     Re-comcom: preservare creato il / by (riga creato); aggiornare solo commentato il e modificato il (+ by modificato).
+     Titolo H1: max 120 caratteri/riga; a capo su spazio — mai spezzare parole.
+     Testo bullet/paragrafi: max 120 caratteri/riga; a capo su spazio — mai spezzare parole.
+
+------------------------------------------------------------------------------------------------------------------------
+ ** CURSOR RULE ** -- commentato il: yyyy-mm-dd HH:mm
+------------------------------------------------------------------------------------------------------------------------
+ creato     il: yyyy-mm-dd HH:mm   by:
+ modificato il: yyyy-mm-dd HH:mm   by:
+ ticket refirement: issueKey + issueTitle
+------------------------------------------------------------------------------------------------------------------------
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - policy agente centralizzata (workflow, veve, comcom, silenzio chat, …)
+    - evitare istruzioni duplicate in chat o in skill sparse
+
+    A cosa serve:
+    - quando l'agente deve applicare la regola (trigger, comandi, output ammesso)
+    - sequenza operativa e vincoli (vietato, priorità, riferimenti template/skill)
+
+  Generalizzazione:
+    Si | No — parametrizzata (JIRA_KEY, overlay, repo) o regola fissa su un solo dominio?
+
+  Input (obbligatorio se Si; se No scrivere «Input: —»):
+    - JIRA_KEY / {KEY} — prefisso ticket da comando utente
+    - alwaysApply / globs — quando Cursor carica la regola automaticamente
+    - comandi chat — es. procedi, gogo, veve, comcom
+
+  Trigger:
+    - comando o condizione che attiva la regola (tabella o elenco)
+
+  Non attiva:
+    - comandi o contesti esclusi (es. veve non attiva procedi)
+
+  Regole correlate:
+    - .cursor/rules/NOME.mdc — ruolo (parent, figlia, alias)
+
+  Template / skill:
+    - .cursor/templates/… — se la regola impone un template
+    - .cursor/skills/… — skill obbligatoria
+
+  Priorità:
+    - conflitti con altre regole (prevale su user_rules, dopo §0 workflow, …)
+
+  ═══ fine schema — sotto: esempio struttura file target ═══ -->
+
+---
+description: Una riga — cosa fa la regola e quando si applica (compare nel picker Cursor)
+alwaysApply: true
+globs:
+  - path/opzionale/**/*.mjs
+---
+
+<!--
+  CURSOR RULE — Nome breve regola
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - bullet concreto
+
+    A cosa serve:
+    - bullet concreto
+
+  Generalizzazione:
+    Si | No — …
+
+  Input (obbligatorio se Si; se No: «Input: —»):
+    - …
+
+  Trigger:
+    - comando1, comando2
+
+  Non attiva:
+    - …
+
+  Regole correlate:
+    - .cursor/rules/… — …
+
+  Template / skill:
+    - …
+
+  Priorità:
+    - …
+
+  creato     il: yyyy-mm-dd HH:mm   by:
+  modificato il: yyyy-mm-dd HH:mm   by:
+-->
+
+# Titolo regola — comando o dominio
+
+Breve paragrafo operativo (una riga) se serve contesto oltre al blocco commento sopra.
+
+---
+
+## Parametri
+
+| Simbolo | Significato |
+| --- | --- |
+| NOME | descrizione |
+
+(Omettere intera sezione se la regola non ha parametri.)
+
+---
+
+## Trigger
+
+| Comando / condizione | Effetto |
+| --- | --- |
+| esempio | cosa succede |
+
+---
+
+## Sequenza
+
+1. Primo passo — perché
+2. Secondo passo — perché
+
+(Oppure tabella step · regola figlia · template.)
+
+---
+
+## Output chat / agente
+
+| Fase | Contenuto ammesso |
+| --- | --- |
+| … | … |
+
+(Omettere se la regola non governa output chat.)
+
+---
+
+## Vietato
+
+- ❌ azione esplicita vietata
+- ❌ altro vincolo
+
+---
+
+## Riferimenti
+
+- `.cursor/rules/…` — regola collegata
+- `.cursor/templates/…` — template obbligatorio
+- `.cursor/skills/…` — skill
