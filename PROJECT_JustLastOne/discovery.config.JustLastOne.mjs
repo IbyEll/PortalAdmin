@@ -22,9 +22,9 @@ export const DISCOVERY_CONFIG_VALUES = {
 , appIdAliases: {
     auth: "authentication"
   }
-, portalServiceIds: ["dashboard", "api-portal"]
+, portalServiceIds: ["dashboard", "api-documentation"]
 , productExtras: ["friendbot"]
-, portalExtras: ["dashboard", "api-portal"]
+, portalExtras: ["dashboard", "api-documentation"]
 , stackCompleteExtras: []
 , processFragments: {
     friendbot: "friend-bot.mjs"
@@ -46,7 +46,7 @@ export const DISCOVERY_CONFIG_VALUES = {
     web         : "cruscotto.frontend/cruscotto.process.start.service.mjs web"
   , api         : "cruscotto.frontend/cruscotto.process.start.service.mjs api"
   , auth        : "cruscotto.frontend/cruscotto.process.start.service.mjs auth"
-  , "api-portal": "cruscotto.frontend/cruscotto.process.start.service.mjs portal"
+  , "api-documentation": "cruscotto.frontend/cruscotto.process.start.service.mjs portal"
   , friendbot   : "testScript/funzionali/friend-bot.mjs"
   , dashboard   : "cruscotto.frontend/cruscotto.server.mjs"
   }
@@ -54,11 +54,11 @@ export const DISCOVERY_CONFIG_VALUES = {
     web         : "Frontend Next.js 15 — UI prodotto IT/EN"
   , api         : "API REST NestJS — dominio applicativo"
   , auth        : "API auth NestJS — login, JWT, registrazione"
-  , "api-portal": "Navigazione OpenAPI centralizzata — config da PRODUCT_REPO_PATH"
+  , "api-documentation": "Navigazione OpenAPI centralizzata — config da PRODUCT_REPO_PATH"
   , dashboard   : "Cruscotto dev — test, report, process"
   , friendbot   : "Daemon dev — amicizie e risposte chat automatiche"
   }
 , portalDashboardNpmScript: "admin:dashboard"
-, apiPortalRunnerRel      : "cruscotto.frontend/cruscotto.process.start.api.documentation.mjs"
-, apiPortalServeRel       : "runner/serve-api-portal.mjs"
+  , apiDocumentationRunnerRel : "cruscotto.frontend/cruscotto.process.start.api.documentation.mjs"
+, apiDocumentationServeRel  : "cruscotto.frontend/cruscotto.api.documentation.server.mjs"
 };

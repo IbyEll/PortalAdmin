@@ -11,7 +11,7 @@
  *
  * Consumatori:
  *   - cruscotto.database/load-backlog.mjs, sync-backlog.mjs, migrate.mjs
- *   - JiraCORE/sync-jira-backlog.mjs, scripts/smoke-cruscotto-db.mjs
+ *   - admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs, test.smoke/smoke-cruscotto-db.mjs
  *   - cruscotto.frontend/cruscotto.jira.backlog.mjs — loadJiraBacklogFromDb via load-backlog
  *
  * Export principali:

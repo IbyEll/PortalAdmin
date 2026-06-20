@@ -16,7 +16,7 @@
     "dev:seed-data": "node cruscotto.database/product.database.seed.run.call.mjs",
     "dev:api-auth": "node cruscotto.frontend/cruscotto.process.start.service.mjs auth",
     "dev:api-project": "node cruscotto.frontend/cruscotto.process.start.service.mjs api",
-    "dev:api-portal": "node cruscotto.frontend/cruscotto.process.start.service.mjs portal",
+    "dev:api-documentation": "node cruscotto.frontend/cruscotto.process.start.service.mjs portal",
     "dev:web": "node cruscotto.frontend/cruscotto.process.start.service.mjs web",
     "dev:all": "node cruscotto.frontend/cruscotto.process.start.all.services.mjs",
     "db:migrate": "node cruscotto.database/migrate.mjs",

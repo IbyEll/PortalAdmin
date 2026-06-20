@@ -442,7 +442,7 @@ export const PRODUCT_REPO_SIGNALS = [
       , "cruscotto.database/script_seed/script_seed-lib.mjs"
       , "cruscotto.database/script_seed/init_Database_DEV.mjs"
       , "cruscotto.database/script_seed/run-data-seeds.mjs"
-      , "runner/serve-api-portal.mjs"
+      , "cruscotto.frontend/cruscotto.api.documentation.server.mjs"
     ]
   , tests : ["funzionali/test-friend-bot.mjs"]
   }

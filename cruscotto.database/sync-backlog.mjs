@@ -10,7 +10,7 @@
  *   - wipe sync_run precedenti, upsert sprint/issue/plan keys da fetch live
  *
  * Consumatori:
- *   - JiraCORE/sync-jira-backlog.mjs — syncJiraBacklogFromApi dopo migrate
+ *   - admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs — syncJiraBacklogFromApi dopo migrate
  *
  * Export principali:
  *   - syncJiraBacklogSnapshot — scrive da oggetto backlog già fetchato

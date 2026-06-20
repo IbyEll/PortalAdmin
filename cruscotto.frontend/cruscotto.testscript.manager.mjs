@@ -40,7 +40,7 @@
  * Dipendenze:
  *   - lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
  *   - lib/portal-paths.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
- *   - runner/run-all.mjs — child process per run tecnici
+ *   - lib/test.run-all.mjs — child process per run tecnici
  *
  * Export principali:
  *   - getRunStatus, isRunActive — snapshot stato run
@@ -154,7 +154,7 @@ export function getRunStatus() {
 }
 
 /**
- * Avvia runner/run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
+ * Avvia lib/test.run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
  *
  * @param {string} [productRepoRoot] — legacy; default da PRODUCT_REPO_PATH
  * @param {{ scriptRel?: string, suite?: string, testCase?: string }} [options]
@@ -177,7 +177,7 @@ export async function startRun(productRepoRoot, options = {}) {
 
   const productRoot = productRepoRoot ?? getProductRepoPath();
   const portalRoot  = getPortalRoot();
-  const runAll      = join(portalRoot, "runner", "run-all.mjs");
+  const runAll      = join(portalRoot, "lib", "test.run-all.mjs");
 
   const scriptRel = options.scriptRel?.replace(/\\/g, "/") ?? null;
   const suite     = options.suite?.replace(/\\/g, "/") ?? null;

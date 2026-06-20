@@ -4,7 +4,7 @@
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - avvio e kill di web, api, auth, api-portal, friendBOT dal browser senza shell manuali
+ *   - avvio e kill di web, api, auth, api-documentation, friendBOT dal browser senza shell manuali
  *   - job Prisma dev (push, reset, seed) con log unificato per la console Process
  *
  *   A cosa serve:
@@ -39,7 +39,8 @@ import { spawn } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig, projectHasProductDatabase } from "../lib/project.config.mjs";
+import { getDiscoveryConfig } from "../lib/discovery.config.mjs";
 import { resolveSqliteDbFiles } from "../cruscotto.database/product.database.seed.run.mjs";
 
 import {
@@ -78,6 +79,11 @@ import {
 } from "../lib/discovery.services.repo.mjs";
 import { getPortalDataDir, getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
+  isFullDashboardUp
+, killDashboardOnPort
+, spawnDashboardLauncher
+} from "../lib/portal.launch.dashboard.mjs";
+import {
   listProjectNodeProcesses
 , matchNodeProcessToServiceId
 , shortenNodeCommand
@@ -85,6 +91,17 @@ import {
 import { spawnShellOption } from "../lib/portal.utils.mjs";
 
 const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();
+const HAS_PRODUCT_DATABASE                     = projectHasProductDatabase();
+
+/**
+ * @returns {{ ok: false, error: string }}
+ */
+function productDatabaseDisabledResult() {
+  return {
+    ok    : false
+  , error : "Database product non configurato per questo overlay (PRJ_DB_* vuoti in project.config)"
+  };
+}
 
 // --- configurazione modulo — porte dashboard, script runner, core stack ---
 const DASHBOARD_PORT = Number(
@@ -220,11 +237,12 @@ function spawnDetachedStartUnit(unit) {
 
   // 2. Spawn detached con PRODUCT_REPO_PATH nel product checkout
   const spawned = spawn(unit.cmd, unit.args, {
-    cwd      : unit.cwd
-  , stdio    : ["ignore", "pipe", "pipe"]
-  , shell    : spawnShellOption(unit.cmd)
-  , detached : true
-  , env      : {
+    cwd         : unit.cwd
+  , stdio       : ["ignore", "pipe", "pipe"]
+  , shell       : spawnShellOption(unit.cmd)
+  , detached    : true
+  , windowsHide : process.platform === "win32"
+  , env         : {
       ...process.env
     , PRODUCT_REPO_PATH: getProductRepoPath()
     }
@@ -602,7 +620,7 @@ async function spawnExtraRepoServices(options = {}) {
 // --- avvio stack (product, extras, stack-complete) ---
 /**
  * Avvia stack dev secondo modalità: core product via cruscotto.process.start.all.services.mjs
- * oppure spawn singoli StartUnit per extras (api-portal, friendBOT, …).
+ * oppure spawn singoli StartUnit per extras (api-documentation, friendBOT, …).
  *
  * @param {{
  *   extras?: string[]
@@ -993,16 +1011,26 @@ export async function stopRepoServices(options = {}) {
   }
 
   const discovery = await discoverRepoServices(getProductRepoPath(), {
-    extras     : productStackComplete ? [...PRODUCT_STACK_COMPLETE_EXTRAS] : ["api-portal", "dashboard"]
+    extras     : productStackComplete ? [...PRODUCT_STACK_COMPLETE_EXTRAS] : ["api-documentation", "dashboard"]
   , withPortal : productStackComplete ? false : true
   });
 
   const ports = discovery.services
-    .filter((svc) => !productStackComplete || (
-      svc.id !== "friendbot"
-      && svc.id !== "dashboard"
-      && svc.id !== "api-portal"
-    ))
+    .filter((svc) => {
+      if (!productStackComplete) {
+        return true;
+      }
+
+      const stackIds = getDiscoveryConfig().stackStartServiceIds;
+
+      if (stackIds.length > 0) {
+        return stackIds.includes(String(svc.id ?? ""));
+      }
+
+      return svc.id !== "friendbot"
+        && svc.id !== "dashboard"
+        && svc.id !== "api-documentation";
+    })
     .map((svc) => svc.port)
     .filter((port) => typeof port === "number")
     .filter((port) => includeDashboard || port !== DASHBOARD_PORT);
@@ -1171,6 +1199,24 @@ export async function stopRepoServices(options = {}) {
  * Metadati file PRJ_DB_FILENAME: esistenza, dimensione, seed completato.
  */
 export function getProductDatabaseStatus() {
+  if (!HAS_PRODUCT_DATABASE) {
+    return {
+      enabled       : false
+    , id            : "database"
+    , label         : "Database"
+    , product       : getProjectConfig().PRJ_NAME
+    , description   : "Database product non configurato"
+    , path          : ""
+    , exists        : false
+    , sizeBytes     : 0
+    , createdAt     : null
+    , seedCompletedAt : null
+    , seedCompleted : false
+    , filePath      : ""
+    , checkedAt     : new Date().toISOString()
+    };
+  }
+
   const repoRoot = getProductRepoPath();
   const files    = resolveSqliteDbFiles();
   const mainFile = files[0] ?? "";
@@ -1196,7 +1242,8 @@ export function getProductDatabaseStatus() {
   const { seedCompletedAt } = readDbSeedState();
 
   return {
-    id          : "database"
+    enabled       : true
+  , id          : "database"
   , label       : "Database"
   , product     : "JustLastOne"
   , description : "SQLite Prisma — schema e seed dev"
@@ -1229,6 +1276,10 @@ function hintDatabaseJobError(label) {
  * Allinea schema Prisma (db:push) senza eliminare JLO_DEV.db.
  */
 export async function pushProductDatabase() {
+  if (!HAS_PRODUCT_DATABASE) {
+    return productDatabaseDisabledResult();
+  }
+
   await stopProductStackForDatabaseJob();
 
   const result = await runPortalScriptJob(
@@ -1251,6 +1302,10 @@ export async function pushProductDatabase() {
  * Elimina JLO_DEV.db (e journal/wal/shm) e ricrea schema (generate + push).
  */
 export async function resetProductDatabase() {
+  if (!HAS_PRODUCT_DATABASE) {
+    return productDatabaseDisabledResult();
+  }
+
   await stopProductStackForDatabaseJob();
 
   const result = await runPortalScriptJob(
@@ -1277,6 +1332,10 @@ export async function resetProductDatabase() {
  * Esegue npm run db:seed (righe host/player).
  */
 export async function seedProductDatabase() {
+  if (!HAS_PRODUCT_DATABASE) {
+    return productDatabaseDisabledResult();
+  }
+
   const result = await runPortalScriptJob(
     [INIT_DATABASE_DEV_SCRIPT, "--seed"]
   , "Database inizializza (seed)"
@@ -1301,9 +1360,67 @@ export async function seedProductDatabase() {
  */
 export async function startSingleRepoService(serviceId) {
   if (serviceId === "dashboard") {
+    const discovery = await discoverRepoServices(getProductRepoPath(), {
+      extras     : [...REPO_EXTRAS_ALL]
+    , withPortal : true
+    });
+
+    const service    = discovery.services.find((svc) => svc.id === "dashboard");
+    const targetPort = Number(service?.port ?? DASHBOARD_PORT);
+
+    if (!Number.isFinite(targetPort) || targetPort <= 0) {
+      return {
+        started : false
+      , error   : "porta cruscotto non valida nel manifest"
+      };
+    }
+
+    logLines  = [];
+    logSeq    = 0;
+    stdoutBuf = "";
+    stderrBuf = "";
+
+    if (await isFullDashboardUp(targetPort)) {
+      pushLogLine("stdout", `Cruscotto già attivo su :${targetPort} (/api/scripts OK)`);
+
+      return {
+        started   : true
+      , serviceId : "dashboard"
+      , pid       : null
+      , logCursor : logSeq
+      };
+    }
+
+    if (targetPort === DASHBOARD_PORT) {
+      pushLogLine(
+        "system"
+      , `Avvio cruscotto su :${targetPort} (sessione corrente non risponde — spawn portal.dashboard.launch)…`
+      );
+    } else {
+      pushLogLine(
+        "system"
+      , `Avvio cruscotto su :${targetPort} (istanza separata da :${DASHBOARD_PORT})…`
+      );
+    }
+
+    const overlay = process.env.PRJ_NAME?.trim() || undefined;
+    const spawned = spawnDashboardLauncher({
+      port            : targetPort
+    , overlay
+    , productRepoPath : getProductRepoPath()
+    , openBrowser     : false
+    });
+
+    pushLogLine(
+      "stdout"
+    , `Spawn admin.portal/portal.dashboard.launch.mjs — pid ${spawned.pid ?? "—"}`
+    );
+
     return {
-      started : false
-    , error   : "il cruscotto è già questo processo — non avviabile da qui"
+      started   : true
+    , serviceId : "dashboard"
+    , pid       : spawned.pid ?? null
+    , logCursor : logSeq
     };
   }
 
@@ -1373,9 +1490,51 @@ export async function startSingleRepoService(serviceId) {
  */
 export async function stopSingleRepoService(serviceId) {
   if (serviceId === "dashboard") {
+    const discovery = await discoverRepoServices(getProductRepoPath(), {
+      extras     : [...REPO_EXTRAS_ALL]
+    , withPortal : true
+    });
+
+    const service    = discovery.services.find((svc) => svc.id === "dashboard");
+    const targetPort = Number(service?.port ?? DASHBOARD_PORT);
+
+    if (!Number.isFinite(targetPort) || targetPort <= 0) {
+      return {
+        ok    : false
+      , error : "porta cruscotto non valida nel manifest"
+      };
+    }
+
+    if (targetPort === DASHBOARD_PORT) {
+      return {
+        ok    : false
+      , error : "non puoi terminare il cruscotto di questa sessione — usa un altro overlay/porta o chiudi il terminale"
+      };
+    }
+
+    logLines  = [];
+    logSeq    = 0;
+    stdoutBuf = "";
+    stderrBuf = "";
+
+    pushLogLine("system", `=== Kill cruscotto su :${targetPort} ===`);
+
+    const killResult = killDashboardOnPort(targetPort);
+
+    for (const pid of killResult.killed) {
+      pushLogLine("stdout", `Terminato pid ${pid} (porta ${targetPort})`);
+    }
+
+    for (const fail of killResult.failed) {
+      pushLogLine("stderr", `Kill pid ${fail.pid}: ${fail.error ?? "errore"}`);
+    }
+
     return {
-      ok    : false
-    , error : "non puoi terminare il cruscotto da questa pagina"
+      ok      : killResult.killed.length > 0 || killResult.failed.length === 0
+    , summary : killResult.killed.length > 0
+        ? `Kill cruscotto :${targetPort} — ${killResult.killed.length} processo/i`
+        : `Nessun listener su :${targetPort}`
+    , logCursor : logSeq
     };
   }
 

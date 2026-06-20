@@ -26,7 +26,7 @@
  *   - runner/cruscotto.server.mjs — fetchBacklogInsights, buildRepoAlignMap
  *   - cruscotto.jira.working.insights.mjs — buildInsightSnapshot, inspectRepoSignal
  *   - cruscotto.jira.working.plan.mjs — inspectRepoSignal
- *   - jira/JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — isJiraStatusDone correlato
+ *   - admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — isJiraStatusDone correlato
  *
  * Export principali:
  *   - fetchBacklogInsights — fetch backlog + buildInsightSnapshot

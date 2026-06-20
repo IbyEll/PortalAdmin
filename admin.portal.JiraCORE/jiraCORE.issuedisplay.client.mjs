@@ -1,36 +1,52 @@
 #!/usr/bin/env node
 /**
- * ** SCRIPT ENTRYPOINT **
- * Rigenera jira.issue.display.client.js dal core ESM + parte DOM statica.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-18 21:32
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 21:32   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Rigenera bundle browser JiraIssueDisplay da core ESM + fragment DOM statico.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Le pagine cruscotto HTML non possono importare ESM Node; servono funzioni core
- *     (badge tipo issue, link Jira) in un IIFE browser sincrono.
- *   - Evita duplicazione manuale tra jira.issue.display.core.mjs e il client servito al browser.
+ *   - Le pagine cruscotto HTML non possono importare ESM Node; serve IIFE browser sincrono.
+ *   - Evita duplicazione manuale tra cruscotto.jira.issue.display.core.mjs e asset servito al browser.
  *
  *   A cosa serve:
- *   - Legge il core ESM e jira.issue.display.client.dom.part.js, concatena in un unico
- *     jira.issue.display.client.js con global.JiraIssueDisplay esposto su window.
+ *   - Serializza funzioni core, concatena dom.part, scrive cruscotto.jira.issue.display.client.js.
+ *   - Propaga testata comcom nel bundle generato (preserva riga creato da output precedente).
+ *
+ * Generalizzazione:
+ *   Si — core da cruscotto.jira.issue.display.core.mjs; prefisso Jira da window.CRUSCOTTO_PROJECT nel bundle.
+ *
+ * Input:
+ *   - cruscotto.jira.issue.display.core.mjs — funzioni badge/link serializzate
+ *   - cruscotto.jira.issue.display.client.dom.part.js — handler DOM editabile a mano
+ *   - COMCOM_BY — autore righe metadati bundle (default IbyEll)
  *
  * Uso:
  *   - node admin.portal.JiraCORE/jiraCORE.issuedisplay.client.mjs
  *
  * Flag CLI:
- *   nessuno — nessun argomento; rigenera sempre l'output
+ *   nessuno — rigenera sempre l'output
  *
- * npm (se applicabile):
+ * npm:
  *   npm run sync:jira-issue-display
  *
  * Prerequisiti:
- *   - cruscotto.frontend/cruscotto.jira.issue.display.core.mjs aggiornato (modifiche badge/link vanno nel core)
- *   - cruscotto.frontend/cruscotto.jira.issue.display.client.dom.part.js — parte DOM editabile a mano
+ *   - Core e dom.part aggiornati prima del sync (modifiche badge/link vanno nel core)
  *
  * Consumatori:
- *   - cruscotto.frontend/cruscotto.jira.issue.display.client.js — output generato (non editare il core a mano)
- *   - cruscotto.frontend/cruscotto.jira.issue.display.mjs — HTML server-side
- *   - Pagine HTML cruscotto che caricano JiraIssueDisplay via script tag
+ *   - cruscotto.frontend/cruscotto.jira.issue.display.client.js — output generato
+ *   - cruscotto.frontend/cruscotto.server.mjs — alias /jira-issue-display.js
+ *   - Pagine HTML cruscotto backlog, working, my-project, project tree
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { readFileSync, writeFileSync } from "node:fs";

@@ -1,41 +1,53 @@
 <!--
-  ** PAGE HTML ** -- commentato il: 2026-06-17
+------------------------------------------------------------------------------------------------------------------------
+ ** PAGE HTML ** -- commentato il: 2026-06-18 20:15
+------------------------------------------------------------------------------------------------------------------------
+ creato     il: 2026-06-17   by: IbyEll
+ modificato il: 2026-06-18 20:15   by: IbyEll
+------------------------------------------------------------------------------------------------------------------------
 
-  API Portal — indice OpenAPI servizi product (auth + api).
+************************************************************************************************************************
+              API Documentation — indice OpenAPI servizi product (card + tabella path aggregata)
+************************************************************************************************************************
 
   Descrizione funzionale:
 
     Perché esiste:
     - offrire una vista leggibile degli endpoint del monorepo product senza Swagger UI esterno
-    - pagina statica servita su porta dedicata accanto allo stack dev
+    - pagina statica servita su porta dedicata (:4080) accanto allo stack dev
 
     A cosa serve:
-    - header progetto, card servizi auth/api e tabella path OpenAPI aggregati
-    - shell HTML per il companion che carica config e spec
+    - header progetto, card servizi con link /docs e tabella path OpenAPI aggregati
+    - shell HTML per il companion cruscotto.api.documentation.js (href legacy ./portal.js)
 
   Generalizzazione:
-    Si — path servizi e titoli da PRODUCT_REPO_PATH via buildApiPortalConfig.
+    Si — path servizi e titoli da PRODUCT_REPO_PATH via buildApiDocumentationConfig.
 
   Input:
     - PRODUCT_REPO_PATH — monorepo product per manifest e URL servizi
-    - GET /config.json — payload runtime (titolo, base URL auth/api, path OpenAPI)
+    - GET /config.json — payload runtime (titolo, base URL, specUrl per ogni servizio)
     - spec OpenAPI — fetch dal companion cruscotto.api.documentation.js
 
   Servita da:
-    - runner/cruscotto.api.documentation.server.mjs — URL / su :4080 (static root api-portal/ o copia index)
-    - runner/cruscotto.process.start.api.documentation.mjs — avvio processo API Portal
+    - cruscotto.frontend/cruscotto.api.documentation.server.mjs — URL / su :4080 (root api.documentation/)
+    - cruscotto.frontend/cruscotto.process.start.api.documentation.mjs — avvio processo API Documentation
 
   Asset collegati:
-    - CSS inline in head — tema dark API Portal
-    - cruscotto.api.documentation.js — script companion (href legacy ./portal.js in pagina)
+    - CSS inline in head — tema dark API Documentation
+    - cruscotto.api.documentation.js — script companion (servito come ./portal.js in api.documentation/)
+
+  API usate (fetch dal companion JS):
+    - GET /config.json — servizi OpenAPI del product repo attivo
+    - GET service.specUrl — documento OpenAPI per ogni servizio in config
 
   Sezioni DOM principali:
     - #portal-title, #portal-subtitle, #portal-meta — intestazione progetto
-    - #service-cards — card auth e api con link health/OpenAPI
+    - #service-cards — card servizi con link Swagger nativo
     - #paths-status, #paths-body — stato caricamento e righe tabella path
 
   Note:
     - modificare solo layout/statica; dati path popolati dal companion JS
+------------------------------------------------------------------------------------------------------------------------
 -->
 
 <!DOCTYPE html>
@@ -43,7 +55,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>API Portal — PortalAdmin</title>
+  <title>API Documentation — PortalAdmin</title>
   <style>
     :root {
       --portal-bg       : #0f1419;
@@ -214,7 +226,7 @@
 </head>
 <body>
   <header class="portal-header">
-    <h1 id="portal-title">API Portal</h1>
+    <h1 id="portal-title">API Documentation</h1>
     <p id="portal-subtitle">Caricamento configurazione progetto…</p>
     <div id="portal-meta" class="portal-meta"></div>
   </header>

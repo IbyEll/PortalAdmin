@@ -31,8 +31,8 @@
  *   - cruscotto.jira.backlog.insights.mjs — inspect repo vs stato Jira
  *   - cruscotto.jira.working.insights.mjs — working plan + segnali repo
  *   - cruscotto.jira.my-project.analysis.mjs — analisi progetto
- *   - jira/JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — gap analysis ticket (re-export)
- *   - jira/JiraCORE/JiraCORE.signals.catalog.implementation.mjs — fallback path da scan
+ *   - admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — gap analysis ticket (re-export)
+ *   - admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs — fallback path da scan
  *   - runner/cruscotto.server.mjs — API dashboard scan riferimenti
  *   - scripts/confluence.pillar.matrix.generate.mjs — matrice pillar Confluence
  *

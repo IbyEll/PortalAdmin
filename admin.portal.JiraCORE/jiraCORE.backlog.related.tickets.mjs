@@ -41,7 +41,7 @@
  * 
  * ------------------------------------------------------------------------------------------------------------------------*/
 
-import { JIRA_PROJECT_KEYS } from "./jira.project.config.overlay.mjs";
+import { JIRA_PROJECT_KEYS } from "../cruscotto.frontend/jira/jira.project.config.overlay.mjs";
 
 /** Regex IssueKEY in testo e URL — prefissi da overlay (PRJ_NAME). */
 export const ISSUE_KEY_IN_TEXT_RE = new RegExp(

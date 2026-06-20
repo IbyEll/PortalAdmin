@@ -36,6 +36,7 @@
  *   --port N       porta dashboard (default resolveDashboardPort)
  *   --open PATH    path/hash browser (default /app.html#overview)
  *   --overlay NAME imposta PRJ_NAME sul child
+ *   --no-browser   non apre il browser al termine
  *
  * Variabili d'ambiente:
  *   - DASHBOARD_PORT, PORTAL_HOME_PORT, PORT — risoluzione porta
@@ -73,9 +74,10 @@ const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
  * @param {string[]} argv
  */
 function parseArgs(argv) {
-  let port     = resolveDashboardPort();
-  let openPath = "/app.html#overview";
-  let overlay  = process.env.PRJ_NAME?.trim() || null;
+  let port         = resolveDashboardPort();
+  let openPath     = "/app.html#overview";
+  let overlay      = process.env.PRJ_NAME?.trim() || null;
+  let openBrowser  = true;
 
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === "--port" && argv[i + 1]) {
@@ -84,10 +86,12 @@ function parseArgs(argv) {
       openPath = argv[++i];
     } else if (argv[i] === "--overlay" && argv[i + 1]) {
       overlay = argv[++i].trim();
+    } else if (argv[i] === "--no-browser") {
+      openBrowser = false;
     }
   }
 
-  return { port, openPath, overlay };
+  return { port, openPath, overlay, openBrowser };
 }
 
 /**
@@ -184,12 +188,15 @@ function spawnDashboardProcess(port, options = {}) {
 
 async function main() {
   // 1. Parse argv — porta, URL browser, overlay opzionale
-  const { port, openPath, overlay } = parseArgs(process.argv.slice(2));
-  const openUrl                     = `http://localhost:${port}${openPath.startsWith("/") ? openPath : `/${openPath}`}`;
+  const { port, openPath, overlay, openBrowser } = parseArgs(process.argv.slice(2));
+  const openUrl                                  = `http://localhost:${port}${openPath.startsWith("/") ? openPath : `/${openPath}`}`;
 
-  // 2. Cruscotto già attivo — apri browser e termina
+  // 2. Cruscotto già attivo — apri browser se richiesto e termina
   if (await isFullDashboardUp(port)) {
-    openSystemBrowser(openUrl);
+    if (openBrowser) {
+      openSystemBrowser(openUrl);
+    }
+
     return;
   }
 
@@ -215,7 +222,9 @@ async function main() {
   }
 
   // 6. Apertura browser sul path richiesto
-  openSystemBrowser(openUrl);
+  if (openBrowser) {
+    openSystemBrowser(openUrl);
+  }
 }
 
 main().catch((err) => {

@@ -12,6 +12,7 @@ import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../cruscotto.fro
 import {
   getProjectConfig
 , portalProductManifestExists
+, projectHasProductDatabase
 , resolveProductSeedPath
 , resolveProjectOverlayName
 } from "../lib/project.config.mjs";
@@ -36,9 +37,13 @@ if (!portalProductManifestExists(getPortalRoot())) {
   process.exit(1);
 }
 
-if (!existsSync(resolveProductSeedPath(getProductRepoPath()))) {
-  console.error(`FAIL: PRJ_SEED assente: ${project.PRJ_SEED}`);
-  process.exit(1);
+if (projectHasProductDatabase()) {
+  const seedPath = resolveProductSeedPath(getProductRepoPath());
+
+  if (!seedPath || !existsSync(seedPath)) {
+    console.error(`FAIL: PRJ_SEED assente: ${project.PRJ_SEED}`);
+    process.exit(1);
+  }
 }
 
 if (!JIRA_PROJECT_KEYS.includes(project.PRJ_JIRA_PREFIX)) {
@@ -83,7 +88,7 @@ if (sampleRef?.length) {
 const dryKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-92" : "JLO-850";
 const dry    = execFileSync(
   process.execPath
-, ["JiraCORE/close-story.mjs", "--key", dryKey, "--dry-run"]
+, ["admin.portal.JiraCORE/jiraCORE.close.story.mjs", "--key", dryKey, "--dry-run"]
 , { cwd: ROOT, encoding: "utf8" }
 );
 

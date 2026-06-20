@@ -27,7 +27,7 @@
  *   - runner/cruscotto.server.mjs — fetchJiraBacklog, loadJiraBacklog, fetchJiraIssueStatus
  *   - cruscotto.database/sync-backlog.mjs, load-backlog.mjs — persistenza e lettura cache
  *   - cruscotto.jira.backlog.insights.mjs, working.plan.mjs, project.tree.plan.mjs — piano e insight
- *   - JiraCORE/create-jlo-sprints.mjs, jiraCORE.repo..issuekey.gap.analysis.mjs — tooling batch
+ *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — tooling batch
  *
  * Export principali:
  *   - fetchJiraBacklog, loadJiraBacklog — backlog normalizzato
@@ -45,7 +45,7 @@ import {
 , JLO_WORKING_PLAN
 , normalizeSprintLabel
 } from "./cruscotto.jira.working.order.mjs";
-import { resolveRelatedTicketKeys } from "./jira/cruscotto.jira.backlog.related.tickets.mjs";
+import { extractIssueKeysFromText } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 
 const JIRA_SPRINT_FIELD = "customfield_10020";
 const JIRA_BOARD_ID     = Number(process.env.JIRA_BOARD_ID ?? 68);

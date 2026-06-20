@@ -53,7 +53,7 @@ export const TECNICI_IMPLEMENTATION = {
     "Cruscotto su PRJ_DASHBOARD_PORT (default :3998) — health /api/health"
   , "PRJ_NAME=AdminDashBoard e PRODUCT_REPO_PATH nel .env"
   , "Per test Jira: credenziali Atlassian in .env"
-  , "Per script HOME: api-portal su :3990 (--skip-home per saltare)"
+  , "Per script HOME: api-documentation su :3990 (--skip-home per saltare)"
   , "Cursor API: blocked in catalogo — usare npm run test:cursor-api da CLI"
   ]
 , architecture  : [

@@ -36,7 +36,7 @@ if (!branch93 || !branch93.includes("ADMIN-93")) {
 
 const dryClose = execFileSync(
   process.execPath
-, ["JiraCORE/close-story.mjs", "--key", "ADMIN-93", "--dry-run"]
+, ["admin.portal.JiraCORE/jiraCORE.close.story.mjs", "--key", "ADMIN-93", "--dry-run"]
 , { cwd: ROOT, encoding: "utf8" }
 );
 

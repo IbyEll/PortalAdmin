@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 03:36
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 21:32
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 03:36   by: IbyEll
- * modificato il: 2026-06-18 03:36   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -31,11 +31,11 @@
  *   - key, branch, dryRun — parametri ensureRepoImplementationSignal e funzioni correlate
  *
  * Consumatori:
- *   - JiraCORE/close-story.mjs — ensureRepoImplementationSignal, commitCatalogUpdate
- *   - JiraCORE/sync-repo-catalog.mjs — signalKeyExistsInFile, listAllTicketBranchKeys
+ *   - admin.portal.JiraCORE/jiraCORE.close.story.mjs — ensureRepoImplementationSignal, commitCatalogUpdate
+ *   - admin.portal.JiraCORE/sync-repo-catalog.mjs — signalKeyExistsInFile, listAllTicketBranchKeys
  *   - cruscotto.jira.backlog.insights.mjs — isMeaningfulCitationPath
- *   - scripts/confluence.pillar.matrix.generate.mjs — resolveTicketGitEvidence
- *   - jira/JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — REPO_IMPLEMENTATION_SIGNALS (re-export via insights)
+ *   - admin.script.standalone/confluence.pillar.matrix.generate.mjs — resolveTicketGitEvidence
+ *   - admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — via cruscotto.jira.backlog.insights
  *
  * Export principali:
  *   - ensureRepoImplementationSignal / ensureRepoImplementationSignalByKey — voce catalogo
@@ -1290,7 +1290,7 @@ export function ensureRepoImplementationSignal(key, branch, opts = {}) {
 
 /**
  * Esegue git add + commit sui file catalogo segnali modificati.
- * Usato da close-story.mjs (JiraCORE) dopo aggiornamento PRODUCT_REPO_SIGNALS / PORTAL_ADMIN_REPO_SIGNALS.
+ * Usato da admin.portal.JiraCORE/jiraCORE.close.story.mjs dopo aggiornamento PRODUCT_REPO_SIGNALS / PORTAL_ADMIN_REPO_SIGNALS.
  *
  * @param {string} key
  * @returns {string | null} short-hash del commit, oppure null se nessuna modifica

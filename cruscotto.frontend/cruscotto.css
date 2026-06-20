@@ -2609,6 +2609,8 @@ button.action.primary.is-run-selected:not(.is-running) {
 
   min-width: 0;
 
+  white-space: pre-line;
+
 }
 
 
@@ -3540,7 +3542,7 @@ body.ttecnici-modal-open {
   color: #7dd3fc;
 }
 
-.process-console-pkg-api-portal {
+.process-console-pkg-api-documentation {
   color: #67e8f9;
 }
 

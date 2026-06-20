@@ -31,7 +31,7 @@
  * Consumatori:
  *   - cruscotto.jira.backlog.insights.mjs — inspect repo vs ticket
  *   - cruscotto.jira.backlog.related.tickets.mjs — JIRA_PROJECT_KEYS per regex IssueKEY
- *   - jira/JiraCORE/JiraCORE.signals.catalog.implementation.mjs — catalogo segnali implementazione
+ *   - admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs — catalogo segnali implementazione
  *   - jira.function.repo.refs.mjs — scan citazioni key nel product repo
  *   - scripts/smoke-portal-config.mjs — smoke config PortalAdmin
  *

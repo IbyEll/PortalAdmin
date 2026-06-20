@@ -22,7 +22,7 @@ Sostituisci `{…}` con valori reali da Leggi Jira + Analizza repo. Rimuovi sezi
 ## Regole veve
 
 - Checkbox AC/DoD: default `[ ]`; promuovi a `[x]` con regole **B** poi **A** (vedi sotto).
-- Stato repo da `JiraCORE/jira.repo.analysis..analyze.keys.mjs` + ispezione mirata.
+- Stato repo da `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` + ispezione mirata.
 - **ok chiudi** / **chiudi parent:** `.cursor/templates/workflow/`.
 
 ### Checkbox AC/DoD

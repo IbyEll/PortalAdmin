@@ -1,28 +1,77 @@
 #!/usr/bin/env node
 /**
- * Serve API Portal su http://localhost:4080
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** APPLICATION MODULE ** -- commentato il: 2026-06-18 20:15
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 20:15   by: IbyEll
+ * modificato il: 2026-06-18 20:15   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Statiche: PortalAdmin/api-portal/
- * Config:   GET /config.json da PRODUCT_REPO_PATH (product.manifest → api + auth)
+ * ************************************************************************************************************************
+ *                    Server HTTP API Documentation — statiche OpenAPI e GET /config.json su :4080
+ * ************************************************************************************************************************
  *
- * Uso:
- *   node runner/serve-api-portal.mjs
+ * Descrizione funzionale:
  *
- * Env:
- *   PRODUCT_REPO_PATH  — monorepo JustLastOne
- *   API_PORTAL_PORT    — porta (default 4080)
+ *   Perché esiste:
+ *   - servire UI API Documentation e config runtime senza il cruscotto completo né build frontend
+ *   - separare navigazione OpenAPI dev (porta 4080) dallo stack auth/api/web del product
+ *
+ *   A cosa serve:
+ *   - GET /config.json da buildApiDocumentationConfig(PRODUCT_REPO_PATH)
+ *   - file statici da cruscotto.frontend/ (index + portal.js alias companion)
+ *
+ * Generalizzazione:
+ *   Si — servizi e label da product.manifest del repo attivo; porta da env API_DOCUMENTATION_PORT.
+ *
+ * Input:
+ *   - PRODUCT_REPO_PATH — root monorepo product per buildApiDocumentationConfig
+ *   - API_DOCUMENTATION_PORT, PORTAL_PORT — porta listener (default 4080)
+ *   - req.url — path statico o /config.json
+ *
+ * Route o endpoint:
+ *   - GET  /config.json — payload servizi OpenAPI (JSON)
+ *   - GET  /* — cruscotto.api.documentation.index.html, portal.js → companion .js
+ *
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.process.start.api.documentation.mjs — spawn processo dev
+ *   - lib/discovery.services.repo.mjs — id api-documentation nel piano Process cruscotto
+ *   - cruscotto.frontend/cruscotto.api.documentation.js — fetch /config.json e spec servizi
+ *
+ * Dipendenze:
+ *   - cruscotto.api.documentation.config.mjs — buildApiDocumentationConfig
+ *   - lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath
+ *
+ * Variabili d'ambiente:
+ *   - PRODUCT_REPO_PATH, API_DOCUMENTATION_PORT, PORTAL_PORT
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { createServer } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { buildApiPortalConfig } from "./cruscotto.api.documentation.config.mjs";
-import { getProductRepoPath, getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { buildApiDocumentationConfig } from "./cruscotto.api.documentation.config.mjs";
+import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
-const portalRoot = getPortalRoot();
-const portalDir  = join(portalRoot, "api-portal");
-const port       = Number(process.env.API_PORTAL_PORT ?? process.env.PORTAL_PORT ?? 4080);
+// --- path statici (sorgenti in cruscotto.frontend/, non cartella api-documentation/) ---
+const SERVER_DIR   = dirname(fileURLToPath(import.meta.url));
+const staticRoot   = SERVER_DIR;
+const port         = Number(
+  process.env.API_DOCUMENTATION_PORT
+  ?? process.env.API_PORTAL_PORT
+  ?? process.env.PORTAL_PORT
+  ?? 4080
+);
+
+/** Alias URL → file relativo sotto staticRoot (index HTML + portal.js legacy). */
+const STATIC_ALIASES = {
+  "/"           : "cruscotto.api.documentation.index.html"
+, "/index.html" : "cruscotto.api.documentation.index.html"
+, "/portal.js"  : "cruscotto.api.documentation.js"
+};
 
 const MIME = {
   ".html": "text/html; charset=utf-8"
@@ -32,12 +81,11 @@ const MIME = {
 };
 
 /**
- * @param {import("node:http").IncomingMessage} req
  * @param {import("node:http").ServerResponse} res
  */
 function sendConfigJson(res) {
   const productRoot = process.env.PRODUCT_REPO_PATH ?? getProductRepoPath();
-  const config      = buildApiPortalConfig(productRoot);
+  const config      = buildApiDocumentationConfig(productRoot);
   const body        = JSON.stringify(config, null, 2);
 
   res.writeHead(200, {
@@ -49,15 +97,14 @@ function sendConfigJson(res) {
 }
 
 /**
- * @param {import("node:http").IncomingMessage} req
  * @param {import("node:http").ServerResponse} res
  * @param {string} urlPath
  */
 function sendStaticFile(res, urlPath) {
-  const rel  = urlPath === "/" ? "index.html" : urlPath.replace(/^\//, "");
-  const file = join(portalDir, rel);
+  const rel  = STATIC_ALIASES[urlPath] ?? urlPath.replace(/^\//, "");
+  const file = join(staticRoot, rel);
 
-  if (!file.startsWith(portalDir) || !existsSync(file)) {
+  if (!file.startsWith(staticRoot) || !existsSync(file)) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Not found");
     return;
@@ -73,6 +120,7 @@ function sendStaticFile(res, urlPath) {
   res.end(readFileSync(file));
 }
 
+// --- listener HTTP — /config.json o statiche api-documentation ---
 const server = createServer((req, res) => {
   const urlPath = req.url?.split("?")[0] ?? "/";
 
@@ -87,8 +135,8 @@ const server = createServer((req, res) => {
 server.listen(port, () => {
   const productRoot = process.env.PRODUCT_REPO_PATH ?? getProductRepoPath();
 
-  console.log(`API Portal  http://localhost:${port}/`);
-  console.log(`Statiche:  ${portalDir}`);
+  console.log(`API Documentation  http://localhost:${port}/`);
+  console.log(`Statiche:  ${staticRoot}`);
   console.log(`Product:   ${productRoot}`);
-  console.log("Richiede auth :4001 e api :4000 per l'indice path completo.");
+  console.log("Per indice path completo avvia prima API Auth (:4001) e API Project (:4000).");
 });

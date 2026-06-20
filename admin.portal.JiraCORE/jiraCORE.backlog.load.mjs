@@ -1,20 +1,42 @@
 /**
- * Carica backlog Jira dalla cache SQLite cruscotto (ADMIN-144).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 21:32
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 21:32   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
+ * ticket refirement: ADMIN-144 cache backlog SQLite cruscotto
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *                 Carica backlog Jira da cache SQLite cruscotto.database — shape fetchJiraBacklog.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - fetchJiraBacklog su API è lento — lettura ultimo sync senza chiamate Jira
+ *   - fetchJiraBacklog live su API Jira è lento — tab backlog e working plan devono leggere cache locale.
+ *   - Evita chiamate Atlassian ripetute ad ogni refresh pagina cruscotto quando db:sync è recente.
  *
  *   A cosa serve:
- *   - restituisce lo stesso shape di fetchJiraBacklog o null se cache assente
+ *   - Legge ultimo SyncRun success con issue da cruscotto.db e restituisce payload allineato a fetchJiraBacklog.
+ *   - Include sprint, workingPlan keys e metadati syncRunId per UI e smoke test.
+ *
+ * Generalizzazione:
+ *   Si — path DB da CRUSCOTTO_DB_PATH; schema Prisma condiviso tra overlay PortalAdmin.
+ *
+ * Input:
+ *   - CRUSCOTTO_DB_PATH — override path SQLite; default da cruscotto.database/index.mjs
+ *   - Ultimo syncRun status success con issueCount > 0 in cruscotto.db
  *
  * Consumatori:
  *   - cruscotto.frontend/cruscotto.jira.backlog.mjs — loadJiraBacklog({ forceApi: false })
- *   - scripts/smoke-cruscotto-db.mjs
+ *   - scripts/smoke-cruscotto-db.mjs — verifica fallback cache
+ *   - test.smoke/smoke-cruscotto-db.mjs — smoke ADMIN-99
  *
  * Export principali:
- *   - loadJiraBacklogFromDb — ultimo SyncRun success + issue/sprint/plan keys
+ *   - loadJiraBacklogFromDb — ultimo SyncRun + issue/sprint/plan keys o null se cache assente
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { normalizeSprintLabel } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";

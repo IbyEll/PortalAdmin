@@ -28,7 +28,7 @@
  *   - cruscotto.jira.backlog.mjs — applyDevOrder su fetchJiraBacklog
  *   - cruscotto.jira.backlog.insights.mjs, working.insights.mjs — boardKeysForWorkingPlanBlock
  *   - cruscotto.jira.working.plan.mjs, project.tree.plan.mjs — piano UI
- *   - JiraCORE/create-jlo-sprints.mjs, sync-repo-catalog.mjs — tooling sprint e catalogo
+ *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/sync-repo-catalog.mjs — tooling sprint e catalogo
  *   - cruscotto.database/load-backlog.mjs — normalizeSprintLabel
  *
  * Export principali:

@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 03:36
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 21:32
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 03:36   by: IbyEll
- * modificato il: 2026-06-18 03:36   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -30,7 +30,7 @@
  *   - opts.jiraStatusByKey — stati Jira per allineamento Fatto vs codice
  *
  * Consumatori:
- *   - JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs — CLI --parent / --keys
+ *   - admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs — CLI --parent / --keys
  *   - jira.function.repo.refs.mjs — scanRepoJiraReferences (re-export)
  *   - Regole/skills jlo-analizza-repo, ADMIN-AnalizzaRepo, veve step 2
  *

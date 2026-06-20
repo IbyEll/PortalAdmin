@@ -1,32 +1,41 @@
 /**
- * ** LIBRARY MODULE ** -- commentato il: 2026-06-17
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-18 20:15
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-17   by: IbyEll
+ * modificato il: 2026-06-18 20:15   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Config dinamica API Portal — servizi OpenAPI dal product repo (product.manifest).
+ * ************************************************************************************************************************
+ *         Config dinamica API Documentation — servizi OpenAPI dal product.manifest (PRODUCT_REPO_PATH)
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - l'API Portal (:4080) non deve hardcodare porte, path e label in HTML o negli runner
- *   - la fonte unica dei servizi dev è product.manifest.json del product repo
+ *   - l'API Documentation (:4080) non deve hardcodare porte, path e label in HTML o negli runner
+ *   - la fonte unica dei servizi dev è product.manifest.json del product repo attivo
  *
  *   A cosa serve:
  *   - trasforma product.manifest + package.json in payload JSON per card Swagger (specUrl, docsUrl)
  *
  * Generalizzazione:
- *   Si — legge manifest e package dal product repo attivo con fallback manifest bundled in PortalAdmin.
+ *   Si — legge manifest e package dal product repo con fallback PRJ_PRODUCT_MANIFEST in PortalAdmin.
  *
  * Input:
  *   - PRODUCT_REPO_PATH — root repo product (getProductRepoPath)
  *   - PRJ_PRODUCT_MANIFEST — path manifest fallback in PortalAdmin (getProjectConfig)
- *   - productRoot — argomento opzionale di buildApiPortalConfig
+ *   - productRoot — argomento opzionale di buildApiDocumentationConfig
  *
  * Consumatori:
- *   - runner/cruscotto.api.documentation.server.mjs — GET /config.json a runtime
- *   - runner/cruscotto.process.start.api.documentation.mjs — anteprima config in avvio
- *   - cruscotto.frontend/cruscotto.api.documentation.js — UI documentazione OpenAPI
+ *   - cruscotto.frontend/cruscotto.api.documentation.server.mjs — GET /config.json a runtime
+ *   - cruscotto.frontend/cruscotto.process.start.api.documentation.mjs — anteprima config in avvio
+ *   - cruscotto.frontend/cruscotto.api.documentation.js — UI documentazione OpenAPI nel browser
  *
  * Export principali:
- *   - buildApiPortalConfig — manifest → projectName, services[], generatedAt
+ *   - buildApiDocumentationConfig — manifest → projectName, services[], generatedAt
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -144,11 +153,11 @@ function hasOpenApiDocs(svc) {
   const docs = svc.docs;
 
   // Esclude placeholder del portal stesso — non è uno spec OpenAPI esterno
-  return typeof docs === "string" && docs.length > 0 && docs !== "docs/api-portal";
+  return typeof docs === "string" && docs.length > 0  ;
 }
 
 /**
- * Costruisce il payload config per API Portal a partire dal product repo.
+ * Costruisce il payload config per API Documentation a partire dal product repo.
  *
  * @param {string} [productRoot]
  * @returns {{
@@ -159,7 +168,7 @@ function hasOpenApiDocs(svc) {
  * , generatedAt: string
  * }}
  */
-export function buildApiPortalConfig(productRoot = getProductRepoPath()) {
+export function buildApiDocumentationConfig(productRoot = getProductRepoPath()) {
   // 1. Manifest servizi dev + metadati progetto (nome/label) da package.json
   const manifest     = resolveManifest(productRoot);
   const pkg          = tryReadJson(join(productRoot, "package.json"));
@@ -173,10 +182,10 @@ export function buildApiPortalConfig(productRoot = getProductRepoPath()) {
   /** @type {Array<Record<string, unknown>>} */
   const rawServices = Array.isArray(manifest?.services) ? manifest.services : [];
 
-  // 2. Filtra: OpenAPI reale, no api-portal/dashboard, porta obbligatoria
+  // 2. Filtra: OpenAPI reale, no api-documentation/dashboard, porta obbligatoria
   const services = rawServices
     .filter((svc) => typeof svc.id === "string" && hasOpenApiDocs(svc))
-    .filter((svc) => svc.id !== "api-portal" && svc.id !== "dashboard")
+    .filter((svc) => svc.id !== "api-documentation" && svc.id !== "dashboard")
     .filter((svc) => typeof svc.port === "number")
     .map((svc) => {
       const id      = String(svc.id);
@@ -193,7 +202,7 @@ export function buildApiPortalConfig(productRoot = getProductRepoPath()) {
         ? svc.apiBasePath
         : inferBasePath(typeof svc.healthUrl === "string" ? svc.healthUrl : undefined);
 
-      // 3. Campi card per api-portal/index.html (badge, specUrl, docsUrl, basePath)
+      // 3. Campi card per api-documentation/index.html (badge, specUrl, docsUrl, basePath)
       return {
         id
       , name     : typeof svc.label === "string" ? svc.label : id

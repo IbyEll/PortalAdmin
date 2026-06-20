@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Visione sviluppo 2026-06-20</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --turquoise: #2ee8d6;
+      --purple: #b794f6;
+      --amber: #f0b429;
+      --ok: #48bb78;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.65rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 2rem 0 0.75rem;
+      font-size: 1.2rem;
+      color: var(--turquoise);
+    }
+
+    h3 {
+      margin: 1.25rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--purple);
+    }
+
+    p { margin: 0.5rem 0; }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    code {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.88em;
+      background: var(--surface);
+      padding: 0.12em 0.4em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) td { background: rgba(26, 35, 50, 0.5); }
+
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: rgba(61, 156, 245, 0.08);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.95rem;
+    }
+
+    ol { padding-left: 1.35rem; }
+    ul { padding-left: 1.25rem; }
+
+    li { margin: 0.35rem 0; }
+
+    a { color: var(--accent); }
+
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+    }
+
+    .toc ul { margin: 0.35rem 0 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>PortalAdmin — Visione sviluppo</h1>
+      <p class="meta">
+        Documento: <code>20260620_PortalAdmin_development.html</code> ·
+        20 giugno 2026 ·
+        repo <a href="https://github.com/IbyEll/PortalAdmin">IbyEll/PortalAdmin</a>
+      </p>
+      <p class="lead">
+        PortalAdmin è un <strong>hub di tooling dev</strong>: cruscotto browser, cache Jira,
+        runner testScript, workflow Cursor. Può puntare a <strong>product repo diversi</strong>
+        tramite overlay <code>PROJECT_{PRJ_NAME}</code> e variabile <code>PRODUCT_REPO_PATH</code>.
+      </p>
+      <nav class="toc" aria-label="Indice">
+        <strong>Indice</strong>
+        <ul>
+          <li><a href="#dual-repo">1. Dual-repo e overlay</a></li>
+          <li><a href="#runtime">2. Runtime — servizi e porte</a></li>
+          <li><a href="#cartelle">3. Mappa cartelle</a></li>
+          <li><a href="#flusso">4. Flusso operativo</a></li>
+          <li><a href="#cruscotto-ui">5. Aree UI cruscotto</a></li>
+          <li><a href="#stack">6. Stack tecnico</a></li>
+          <li><a href="#comandi">7. Comandi rapidi</a></li>
+          <li><a href="#link">8. Documenti correlati</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <h2 id="dual-repo">1. Dual-repo e overlay</h2>
+    <p>
+      Il cruscotto legge config, discovery, testScript e (opzionalmente) Prisma dal
+      <strong>product repo</strong> attivo. La HOME (<code>:3990</code>) istanzia overlay e
+      avvia cruscotto su porta dedicata.
+    </p>
+
+    <div class="mermaid">
+flowchart TB
+  subgraph env[".env"]
+    PRJ_NAME["PRJ_NAME"]
+    PRODUCT_REPO_PATH["PRODUCT_REPO_PATH"]
+  end
+
+  subgraph portal["PortalAdmin repo"]
+    HOME["admin.portal — HOME :3990"]
+    CRUS["cruscotto.frontend — Cruscotto"]
+    LIB["lib/ — config, discovery, test, Jira"]
+    OVERLAY_JLO["PROJECT_JustLastOne/"]
+    OVERLAY_ADM["PROJECT_AdminDashBoard/"]
+    DB["cruscotto.database — cache Jira SQLite"]
+  end
+
+  subgraph product_jlo["Product: JustLastOne sibling"]
+    APPS["apps/web, api, auth"]
+    TST_JLO["testScript/"]
+    PRISMA["packages/database — JLO_DEV.db"]
+  end
+
+  subgraph product_self["Product: PortalAdmin self"]
+    TST_ADM["admin.portal.testscript/"]
+  end
+
+  PRJ_NAME --> OVERLAY_JLO
+  PRJ_NAME --> OVERLAY_ADM
+  PRODUCT_REPO_PATH --> product_jlo
+  PRODUCT_REPO_PATH --> product_self
+
+  OVERLAY_JLO --> CRUS
+  OVERLAY_ADM --> CRUS
+  CRUS --> product_jlo
+  CRUS --> product_self
+  CRUS --> DB
+  HOME --> OVERLAY_JLO
+  HOME --> OVERLAY_ADM
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Overlay</th>
+          <th><code>PRJ_NAME</code></th>
+          <th>Cruscotto</th>
+          <th>Product repo</th>
+          <th>Jira</th>
+          <th>DB product</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>JustLastOne</strong></td>
+          <td><code>JustLastOne</code></td>
+          <td><code>:3999</code></td>
+          <td><code>../JustLastOne</code></td>
+          <td>JLO</td>
+          <td>SQLite Prisma</td>
+        </tr>
+        <tr>
+          <td><strong>AdminDashBoard</strong></td>
+          <td><code>AdminDashBoard</code></td>
+          <td><code>:3998</code></td>
+          <td><code>../PortalAdmin</code> (self)</td>
+          <td>ADMIN</td>
+          <td>Nessuno</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      Layout sibling consigliato:
+      <code>C:/dev/JustLastOne</code> + <code>C:/dev/PortalAdmin</code>.
+      <code>PRODUCT_REPO_PATH</code> default <code>../JustLastOne</code> o il repo stesso per ADMIN overlay.
+    </div>
+
+    <h2 id="runtime">2. Runtime — servizi e porte</h2>
+
+    <div class="mermaid">
+flowchart LR
+  subgraph user["Browser"]
+    U1["HOME :3990"]
+    U2["Cruscotto :3998/3999"]
+    U3["API Docs :4080"]
+  end
+
+  subgraph portaladmin["PortalAdmin processi"]
+    HOME_S["portal.home.server.mjs"]
+    DASH_S["cruscotto.server.mjs"]
+    API_DOC["api.documentation.server.mjs"]
+  end
+
+  subgraph jlo_only["Solo overlay JustLastOne"]
+    WEB["web :3000"]
+    API["api :4000"]
+    AUTH["auth :4001"]
+  end
+
+  U1 --> HOME_S
+  U2 --> DASH_S
+  U3 --> API_DOC
+  DASH_S --> WEB
+  DASH_S --> API
+  DASH_S --> AUTH
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Servizio</th>
+          <th>Porta</th>
+          <th>Entrypoint</th>
+          <th>Tab Process</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Portal HOME</strong></td>
+          <td>3990</td>
+          <td><code>npm run admin:home</code></td>
+          <td>Avvia/Kill per riga</td>
+        </tr>
+        <tr>
+          <td><strong>Cruscotto</strong></td>
+          <td>3998 / 3999</td>
+          <td><code>npm run admin:dashboard</code></td>
+          <td>Riga dashboard (sessione corrente: —)</td>
+        </tr>
+        <tr>
+          <td><strong>API Documentation</strong></td>
+          <td>4080</td>
+          <td><code>cruscotto.process.start.api.documentation.mjs</code></td>
+          <td>Avvia/Kill</td>
+        </tr>
+        <tr>
+          <td><strong>Web / API / Auth</strong></td>
+          <td>3000 / 4000 / 4001</td>
+          <td><code>cruscotto.process.start.all.services.mjs</code></td>
+          <td>Stack product (JLO)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="cartelle">3. Mappa cartelle (repo PortalAdmin)</h2>
+
+    <div class="mermaid">
+mindmap
+  root((PortalAdmin))
+    admin.portal
+      HOME UI + istanze overlay
+      portal.dashboard.launch
+      portal-instances.json
+    cruscotto.frontend
+      SPA cruscotto.home.js
+      Process Avvia/Kill + console
+      Jira backlog e working plan
+      pillar-matrix
+    lib
+      project.config overlay
+      discovery.services.repo
+      test.run.all orchestratore
+      portal.instance
+    PROJECT_JustLastOne
+      project.config
+      discovery.config
+      product.manifest
+    PROJECT_AdminDashBoard
+      project.config
+      discovery.config
+      product.manifest
+    cruscotto.database
+      Prisma cache Jira SQLite
+    admin.portal.testscript
+      test tecnici e funzionali ADMIN
+    admin.portal.JiraCORE
+      sync backlog close-story
+    runner
+      start-dev run-all shim
+    scripts
+      smoke CI close-story
+    </div>
+
+    <h3>Cartelle principali</h3>
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>admin.portal/</code></td>
+          <td>HOME portal, launch cruscotto, istanze multi-overlay, Cursor agent worker</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.frontend/</code></td>
+          <td>Server HTTP cruscotto (<code>cruscotto.server.mjs</code>), SPA, Process manager</td>
+        </tr>
+        <tr>
+          <td><code>lib/</code></td>
+          <td>Config overlay, discovery servizi, catalogo test, reporter, portal paths</td>
+        </tr>
+        <tr>
+          <td><code>PROJECT_*/</code></td>
+          <td>Overlay per product: <code>project.config</code>, <code>discovery.config</code>, manifest</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.database/</code></td>
+          <td>SQLite cache backlog Jira (separata da DB product Prisma)</td>
+        </tr>
+        <tr>
+          <td><code>admin.portal.testscript/</code></td>
+          <td>Suite test quando product = PortalAdmin</td>
+        </tr>
+        <tr>
+          <td><code>admin.portal.JiraCORE/</code></td>
+          <td>Script sync backlog, close-story, gap analysis</td>
+        </tr>
+        <tr>
+          <td><code>runner/</code></td>
+          <td><code>start-dev.mjs</code>, shim <code>run-all.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>server/</code></td>
+          <td>Legacy / compat — in migrazione verso <code>cruscotto.frontend/</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="flusso">4. Flusso operativo tipico</h2>
+
+    <div class="mermaid">
+sequenceDiagram
+  participant U as Utente
+  participant H as HOME :3990
+  participant C as Cruscotto
+  participant P as Tab Process
+  participant R as test.run.all.mjs
+
+  U->>H: Istanzia overlay
+  H->>H: prepare .env + migrate cruscotto DB
+  U->>H: Avvia / Apri cruscotto
+  H->>C: spawn dashboard :3998 o :3999
+  U->>C: Tab Process
+  U->>P: Avvia stack / singolo servizio
+  P->>C: spawn start.all.services o start-one
+  U->>C: Tab Test tecnici
+  C->>R: POST /api/run
+  R->>R: testScript nel product repo
+    </div>
+
+    <h2 id="cruscotto-ui">5. Aree UI cruscotto (SPA)</h2>
+
+    <div class="mermaid">
+block-beta
+  columns 3
+  block:header
+    columns 1
+    h["Cruscotto SPA — app.html"]
+  end
+  block:row1
+    Overview["Overview / health"]
+    Process["Process — Avvia/Kill + console"]
+    TestT["Test tecnici / funzionali"]
+  end
+  block:row2
+    JiraB["Jira backlog"]
+    JiraW["Jira working plan"]
+    Cursor["Cursor Agent"]
+  end
+  block:row3
+    Pillar["Pillar matrix"]
+    Reports["Report JSON/HTML"]
+    space:1
+  end
+    </div>
+
+    <p>
+      Config progetto iniettata in ogni pagina:
+      <code>window.__CRUSCOTTO_PROJECT__</code> da
+      <code>lib/cruscotto.config.overlay.mjs</code> (overlay attivo, porta, Jira prefix, DB opzionale).
+    </p>
+
+    <h2 id="stack">6. Stack tecnico</h2>
+    <table>
+      <thead>
+        <tr><th>Layer</th><th>Tecnologia</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Runtime</td><td>Node.js 20+ ESM</td></tr>
+        <tr><td>Server cruscotto</td><td>HTTP nativo (<code>cruscotto.server.mjs</code>)</td></tr>
+        <tr><td>Frontend</td><td>HTML / CSS / JS vanilla (no bundler SPA)</td></tr>
+        <tr><td>DB cruscotto</td><td>Prisma + SQLite in <code>cruscotto.database/</code></td></tr>
+        <tr><td>DB product</td><td>Solo JLO — Prisma nel monorepo JustLastOne</td></tr>
+        <tr><td>Test</td><td><code>lib/test.run.all.mjs</code> + testScript product</td></tr>
+        <tr><td>Jira</td><td>API Atlassian + <code>admin.portal.JiraCORE/</code></td></tr>
+        <tr><td>Workflow agent</td><td><code>.cursor/rules/</code>, skill JLO/ADMIN</td></tr>
+        <tr><td>CI</td><td><code>.github/workflows/portal-smoke.yml</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="comandi">7. Comandi rapidi</h2>
+    <pre><code>npm install
+cp .env.example .env          # PRJ_NAME, PRODUCT_REPO_PATH, Jira token
+
+npm run admin:home            # HOME :3990 — scelta overlay
+npm run admin:dashboard       # Cruscotto (PRJ_DASHBOARD_PORT)
+
+npm run dev:all               # Stack product JLO (web+api+auth)
+npm run test:portal-api       # Smoke API cruscotto
+npm run test:run-all          # Discovery testScript
+npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
+
+    <h3>Variabili env principali</h3>
+    <table>
+      <thead>
+        <tr><th>Variabile</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>PRJ_NAME</code></td><td>Overlay attivo (<code>JustLastOne</code> | <code>AdminDashBoard</code>)</td></tr>
+        <tr><td><code>PRODUCT_REPO_PATH</code></td><td>Root monorepo product (default sibling)</td></tr>
+        <tr><td><code>DASHBOARD_PORT</code></td><td>Porta cruscotto (3998 / 3999)</td></tr>
+        <tr><td><code>PORTAL_HOME_PORT</code></td><td>Porta HOME (default 3990)</td></tr>
+        <tr><td><code>JIRA_*</code></td><td>Token e cloud per sync backlog</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="link">8. Documenti correlati in <code>docs/</code></h2>
+    <ul>
+      <li><a href="repo-audit-ridondanze-gap.html">Audit ridondanze e gap</a></li>
+      <li><a href="config-runner-overlay-order.html">Ordine config e runner overlay</a></li>
+      <li><a href="implementazione-nuovo-progetto.html">Implementazione nuovo progetto</a></li>
+      <li><a href="db-cruscotto-proposta.html">DB cruscotto — proposta</a></li>
+    </ul>
+
+    <p class="meta" style="margin-top: 2rem;">
+      Generato per snapshot sviluppo PortalAdmin · epic ADMIN-88 ·
+      Epic Jira product JLO collegato via <code>PRODUCT_REPO_PATH</code>.
+    </p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true
+    , theme: "dark"
+    , securityLevel: "loose"
+    });
+  </script>
+</body>
+</html>

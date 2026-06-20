@@ -1,20 +1,53 @@
 #!/usr/bin/env node
 /**
- * Crea i 9 sprint JLO — allineato a cruscotto/jira.project.tree.html
- * e cruscotto/jira-working.html (agg. 10 giu 2026).
- * Issue per sprint: da lib/jira-working-order.mjs (JLO_WORKING_PLAN).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-18 21:32
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 21:32   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Legge .env (JIRA_EMAIL, JIRA_API_TOKEN, JIRA_CLOUD_ID, JIRA_BOARD_ID, …).
+ * ************************************************************************************************************************
+ *              Crea sprint Jira da JLO_WORKING_PLAN — board agile e assegnazione issue + figli.
+ * ************************************************************************************************************************
  *
- * Uso: node JiraCORE/create-jlo-sprints.mjs
- * Dry-run: node JiraCORE/create-jlo-sprints.mjs --dry-run
+ * Descrizione funzionale:
  *
- * Regole:
- * - Nome sprint max 29 caratteri (limite Jira)
- * - Issue duplicate: vince lo sprint con N più alto
- * - Sprint chiusi: non assegnano issue (es. Sprint 1 storico)
- * - pendingCreate: ticket da creare prima in Jira (non blocca lo script)
- * - Story/Bug/Todo + subtask figlie: spostate col parent (salvo key esplicita nel piano)
+ *   Perché esiste:
+ *   - Allinea board Jira Software ai 9 sprint del piano MVP (project tree e working plan cruscotto).
+ *   - Automatizza creazione sprint, chiusura storici e spostamento issue con regole duplicati e figli.
+ *
+ *   A cosa serve:
+ *   - Crea o riusa sprint per nome, assegna issue da JLO_WORKING_PLAN, eredita figli story-like.
+ *   - Supporta dry-run per anteprima senza chiamate API di scrittura.
+ *
+ * Generalizzazione:
+ *   No — board JLO (JIRA_BOARD_ID), metadati SPRINT_META e piano da cruscotto.jira.working.order.mjs.
+ *
+ * Input:
+ *   - JIRA_EMAIL, JIRA_API_TOKEN — Basic auth API Atlassian (obbligatori)
+ *   - JIRA_CLOUD_ID, JIRA_BOARD_ID, JIRA_SITE — target board agile
+ *   - JLO_WORKING_PLAN — issue per sprint da cruscotto.jira.working.order.mjs
+ *   - argv --dry-run — simula creazione e assegnazione
+ *
+ * Uso:
+ *   - node admin.portal.JiraCORE/JiraCORE.sprint.create.mjs
+ *   - node admin.portal.JiraCORE/JiraCORE.sprint.create.mjs --dry-run
+ *
+ * Flag CLI:
+ *   --dry-run   anteprima sprint e assegnazioni senza POST/PUT Jira
+ *
+ * Regole operative:
+ *   - Nome sprint max 29 caratteri (limite Jira)
+ *   - Issue duplicate: vince lo sprint con N più alto
+ *   - Sprint chiusi: non assegnano issue (es. Sprint 1 storico)
+ *   - Story/Bug/Todo + subtask figlie: spostate col parent (salvo key esplicita nel piano)
+ *
+ * Consumatori:
+ *   - Operatore backlog — allineamento board dopo aggiornamento JLO_WORKING_PLAN
+ *   - cruscotto.frontend/cruscotto.jira.working.order.mjs — sorgente issue per sprint
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import "../lib/portal.load.env.mjs";
@@ -484,9 +517,11 @@ function resolveIssueSprintMap(sprintResults, childrenByParent) {
 }
 
 async function main() {
+  // 1. Banner — board URL e modalità dry-run
   console.log(`Board JLO: https://${SITE}/jira/software/projects/JLO/boards/${BOARD_ID}`);
   console.log(DRY_RUN ? "Modalità dry-run\n" : "Creazione sprint…\n");
 
+  // 2. Backlog Jira — albero parent/figli per ereditarietà issue (skip se dry-run)
   const backlog = DRY_RUN
     ? { issues: [] }
     : await fetchJiraBacklog();
@@ -497,6 +532,7 @@ async function main() {
   const existingSprints = await listBoardSprints();
   const existingByName = new Map(existingSprints.map((s) => [s.name, s]));
 
+  // 3. Creazione sprint — loop SPRINT_META + validazione issue esistenti
   for (const def of SPRINTS) {
     const name = sprintName(def);
     const skipped = [];
@@ -538,6 +574,7 @@ async function main() {
     sprintResults.push({ def, sprintId, sprintName: name, validIssues, skipped });
   }
 
+  // 4. Mappa issue → sprint — duplicati: sprint con N più alto; espansione figli
   const issueMap = resolveIssueSprintMap(sprintResults, childrenByParent);
 
   /** @type {Map<number, string[]>} */
@@ -551,6 +588,7 @@ async function main() {
 
   console.log("\nAssegnazione issue + figli (duplicati → sprint con N più alto)…");
 
+  // 5. Assegnazione batch — moveIssuesToSprint per ogni sprint non chiuso
   for (const row of sprintResults) {
     const keys = bySprint.get(row.sprintId) ?? [];
 

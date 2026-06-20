@@ -9,7 +9,7 @@ Il workflow **git** (branch, commit, push, PR) opera **solo** sul **repo del pro
 
 | Ruolo | Path / env |
 | --- | --- |
-| **Host tooling** | Checkout PortalAdmin — cruscotto, regole `.cursor/`, script `JiraCORE/` |
+| **Host tooling** | Checkout PortalAdmin — cruscotto, regole `.cursor/`, script `admin.portal.JiraCORE/` |
 | **Repo workflow** | `PRODUCT_REPO_PATH` del progetto **istanziato** (`PRJ_NAME` in `.env` allineato) |
 | **Default path** | Sibling `../{PRJ_REPO}` da `PROJECT_{PRJ_NAME}/project.config.{overlay}.mjs` |
 
@@ -69,7 +69,7 @@ Aggiornamento `REPO_IMPLEMENTATION_SIGNALS` in chiusura parent — **solo** sul 
 | Elemento | Regola |
 | --- | --- |
 | File catalogo | `PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs` (overlay attivo) |
-| Script | `JiraCORE/close-story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
+| Script | `admin.portal.JiraCORE/jiraCORE.close.story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
 | Scrittura | Commit catalogo nel **repo workflow** se il file segnali vive lì; path da `PRJ_NAME` + implementazione `close-story` |
 
 Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PRJ_NAME`** e `PRJ_JIRA_PREFIX` dell’istanza corrente.
@@ -127,8 +127,8 @@ Nel **repo workflow** (`PRODUCT_REPO_PATH`):
 Eseguire dallo **host PortalAdmin** (path script); git/PR sul **repo workflow** del ticket:
 
 ```bash
-node JiraCORE/close-story.mjs --key {KEY}
-node JiraCORE/close-story.mjs --key {KEY} --dry-run
+node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
+node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run
 ```
 
 **Template Jira:** `.cursor/templates/workflow/chiudi-parent.md` · `ok-chiudi-subtask.md`
@@ -143,7 +143,7 @@ node JiraCORE/close-story.mjs --key {KEY} --dry-run
 Gap analysis sul **repo workflow** del progetto istanziato:
 
 ```bash
-node JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent {KEY} --format md
+node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent {KEY} --format md
 ```
 
 Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`

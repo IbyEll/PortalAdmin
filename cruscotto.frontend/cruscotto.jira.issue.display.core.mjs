@@ -25,7 +25,7 @@
  *
  * Consumatori:
  *   - cruscotto.jira.issue.display.mjs — badge HTML server-side
- *   - JiraCORE/jiraCORE.issuedisplay.client.mjs — .toString() nel bundle browser
+ *   - admin.portal.JiraCORE/jiraCORE.issuedisplay.client.mjs — .toString() nel bundle browser
  *   - cruscotto.jira.issue.display.client.dom.part.js — funzioni DOM nello scope IIFE
  *
  * Export principali:

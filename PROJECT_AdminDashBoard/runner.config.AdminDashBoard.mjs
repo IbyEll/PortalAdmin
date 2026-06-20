@@ -1,5 +1,5 @@
 /**
- * Runner config AdminDashBoard — stack dev PortalAdmin (cruscotto, HOME, API Portal).
+ * Runner config AdminDashBoard — stack dev PortalAdmin (cruscotto, HOME, API Documentation).
  *
  * workspaceBuildOrder vuoto: PortalAdmin non è monorepo npm workspaces; DB via cruscotto.database/migrate.mjs.
  */

@@ -16,7 +16,7 @@ export const PRODUCT_REPO_SIGNALS = [
   , paths : [
       "cruscotto.database/sync-backlog.mjs"
     , "cruscotto.database/load-backlog.mjs"
-    , "JiraCORE/jiraCORE.backlog.sync.mjs"
+    , "admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs"
     ]
   }
 , {

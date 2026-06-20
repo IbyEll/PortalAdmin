@@ -16,7 +16,7 @@
  *   - PortalAdmin è product repo e overlay: stesso checkout per tooling, dashboard :3998 e ticket ADMIN.
  *
  *   A cosa serve:
- *   - Costanti PRJ_* per HOME, cruscotto, testScript, DB SQLite cruscotto.database e workflow ADMIN.
+ *   - Costanti PRJ_* per HOME, cruscotto, testScript e workflow ADMIN (senza database product Prisma).
  *
  * Input:
  *   - .env PRJ_NAME=AdminDashBoard — chiave cartella PROJECT_AdminDashBoard (import dinamico)
@@ -39,12 +39,12 @@ export const PROJECT_CONFIG_VALUES = {
 , PRJ_JIRA_PREFIX      : "ADMIN"
 , PRJ_GITHUB_OWNER     : "IbyEll"
 , PRJ_GITHUB_REPO      : "PortalAdmin"
-, PRJ_DB_FILENAME      : "cruscotto.db"
-, PRJ_DB_PACKAGE       : "cruscotto.database"
-, PRJ_DB_PRISMA_DIR    : "cruscotto.database"
-, PRJ_SEED             : "cruscotto.database/migrate.mjs"
+, PRJ_DB_FILENAME      : ""
+, PRJ_DB_PACKAGE       : ""
+, PRJ_DB_PRISMA_DIR    : ""
+, PRJ_SEED             : ""
 , PRJ_SEED_FUNC        : "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
-, PRJ_DB_NPM_WORKSPACE : "@justlastone/cruscotto-db"
+, PRJ_DB_NPM_WORKSPACE : ""
 , PRJ_AUTH_HEALTH_URL  : "http://localhost:3990/api/health"
 , PRJ_API_HEALTH_URL   : `http://localhost:${DASHBOARD_PORT}/api/health`
 , PRJ_TEST_SCRIPT      : "admin.portal.testscript"

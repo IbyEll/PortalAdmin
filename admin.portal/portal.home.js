@@ -21,6 +21,51 @@ let focusedOverlay = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let pollTimer = null;
 
+/** Ultime righe azioni UI (Avvia/Kill/Apri) — visibili in #prepare-log */
+/** @type {string[]} */
+let uiConsoleLines = [];
+
+/** Tail log prepare (Istanzia) — aggiornato da updatePreparePanel */
+let lastPrepareLogTail = "";
+
+function refreshConsoleDisplay() {
+  /** @type {string[]} */
+  const parts = [];
+
+  if (uiConsoleLines.length > 0) {
+    parts.push("--- azioni HOME (click bottoni) ---", uiConsoleLines.join("\n"));
+  }
+
+  if (lastPrepareLogTail) {
+    parts.push("--- prepare (Istanzia) ---", lastPrepareLogTail);
+  }
+
+  prepareLog.textContent = parts.join("\n\n");
+
+  if (prepareLog.textContent) {
+    prepareLog.scrollTop = prepareLog.scrollHeight;
+  }
+}
+
+/**
+ * @param {string} message
+ */
+function appendUiConsole(message) {
+  const ts = new Date().toLocaleTimeString("it-IT", {
+    hour   : "2-digit"
+  , minute : "2-digit"
+  , second : "2-digit"
+  });
+
+  uiConsoleLines.push(`[${ts}] ${message}`);
+
+  if (uiConsoleLines.length > 100) {
+    uiConsoleLines = uiConsoleLines.slice(-100);
+  }
+
+  refreshConsoleDisplay();
+}
+
 /**
  * @param {string} path
  * @param {RequestInit} [init]
@@ -80,7 +125,13 @@ function renderProjects(projects, instanceMap) {
         <button type="button" class="btn-secondary" data-action="instantiate" data-overlay="${overlay}" ${ready ? "" : "disabled"}>
           Istanzia
         </button>
-        <button type="button" class="btn-primary" data-action="open" data-overlay="${overlay}" data-port="${port}" ${prepared ? "" : "disabled"}>
+        <button type="button" class="btn-primary" data-action="start" data-overlay="${overlay}" data-port="${port}" ${prepared && !running ? "" : "disabled"}>
+          Avvia
+        </button>
+        <button type="button" class="btn-danger" data-action="kill" data-overlay="${overlay}" data-port="${port}" ${running ? "" : "disabled"}>
+          Kill
+        </button>
+        <button type="button" class="btn-secondary" data-action="open" data-overlay="${overlay}" data-port="${port}" ${prepared ? "" : "disabled"}>
           Apri cruscotto
         </button>
       </div>
@@ -88,6 +139,14 @@ function renderProjects(projects, instanceMap) {
 
     card.querySelector('[data-action="instantiate"]')?.addEventListener("click", () => {
       instantiate(overlay);
+    });
+
+    card.querySelector('[data-action="start"]')?.addEventListener("click", () => {
+      startCruscotto(overlay, port);
+    });
+
+    card.querySelector('[data-action="kill"]')?.addEventListener("click", () => {
+      killCruscotto(overlay, port);
     });
 
     card.querySelector('[data-action="open"]')?.addEventListener("click", () => {
@@ -136,7 +195,8 @@ function updatePreparePanel(prepare, reloadRequired, port) {
 
   if (!prepare || prepare.status === "idle") {
     prepareMessage.textContent = CONSOLE_IDLE;
-    prepareLog.textContent     = "";
+    lastPrepareLogTail         = "";
+    refreshConsoleDisplay();
     btnOpen.disabled           = true;
     btnReloadHint.hidden       = true;
     reloadNote.hidden          = true;
@@ -144,11 +204,8 @@ function updatePreparePanel(prepare, reloadRequired, port) {
   }
 
   prepareMessage.textContent = labels[prepare.status] || String(prepare.status);
-  prepareLog.textContent     = String(prepare.logTail || "");
-
-  if (prepareLog.textContent) {
-    prepareLog.scrollTop = prepareLog.scrollHeight;
-  }
+  lastPrepareLogTail         = String(prepare.logTail || "");
+  refreshConsoleDisplay();
 
   btnOpen.disabled     = prepare.status !== "done";
   btnReloadHint.hidden = !reloadRequired;
@@ -187,7 +244,8 @@ async function refreshPrepare() {
 async function instantiate(overlay) {
   focusedOverlay             = overlay;
   prepareMessage.textContent = `Avvio istanziazione ${overlay}…`;
-  prepareLog.textContent     = "";
+  lastPrepareLogTail         = "";
+  appendUiConsole(`click Istanzia — overlay=${overlay}`);
   btnOpen.disabled           = true;
 
   try {
@@ -200,7 +258,9 @@ async function instantiate(overlay) {
     updatePreparePanel(state.prepare, Boolean(state.reloadRequired), Number(state.dashboardPort));
     await load();
   } catch (err) {
-    prepareMessage.textContent = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Istanzia: ${msg}`);
+    prepareMessage.textContent = msg;
   }
 }
 
@@ -277,9 +337,90 @@ async function waitForFullDashboard(port, maxMs = 120000) {
  * @param {string} overlay
  * @param {number} port
  */
+async function startCruscotto(overlay, port) {
+  focusedOverlay             = overlay;
+  prepareMessage.textContent = `Avvio cruscotto ${overlay} su :${port}…`;
+  appendUiConsole(`click Avvia — ${overlay} :${port} → POST /api/portal/start-cruscotto`);
+
+  try {
+    const result = await api("/api/portal/start-cruscotto", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ overlay })
+    });
+
+    if (result.alreadyRunning) {
+      appendUiConsole(`risposta: cruscotto già attivo su :${port}`);
+      prepareMessage.textContent = `Cruscotto ${overlay} già attivo su :${port}.`;
+      await load();
+      return;
+    }
+
+    appendUiConsole(`risposta: starting — log npm in finestra cmd «PortalAdmin ${overlay}» (Windows)`);
+    prepareMessage.textContent = `Attendo cruscotto ${overlay} su :${port}…`;
+
+    const up = await waitForFullDashboard(port);
+
+    if (up) {
+      appendUiConsole(`health OK — http://localhost:${port}/api/scripts`);
+      prepareMessage.textContent = `Cruscotto ${overlay} avviato su :${port}.`;
+      await load();
+      return;
+    }
+
+    appendUiConsole(`timeout — cruscotto non risponde su :${port}`);
+    prepareMessage.textContent = `Timeout — avvia manualmente: DASHBOARD_PORT=${port} PRJ_NAME=${overlay} npm run admin:dashboard`;
+    reloadNote.hidden        = false;
+    await load();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Avvia: ${msg}`);
+    prepareMessage.textContent = msg;
+  }
+}
+
+/**
+ * @param {string} overlay
+ * @param {number} port
+ */
+async function killCruscotto(overlay, port) {
+  focusedOverlay             = overlay;
+  prepareMessage.textContent = `Kill cruscotto ${overlay} su :${port}…`;
+  appendUiConsole(`click Kill — ${overlay} :${port} → POST /api/portal/kill-cruscotto`);
+
+  try {
+    const result = await api("/api/portal/kill-cruscotto", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ overlay })
+    });
+
+    const killed = Array.isArray(result.killed) ? result.killed.length : 0;
+    const failed = Array.isArray(result.failed) ? result.failed.length : 0;
+    appendUiConsole(
+      `risposta: killed=${killed} failed=${failed} running=${Boolean(result.running)}`
+    );
+
+    prepareMessage.textContent = killed > 0
+      ? `Kill :${port} — terminati ${killed} processo/i.`
+      : `Kill :${port} — nessun listener attivo.`;
+
+    await load();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Kill: ${msg}`);
+    prepareMessage.textContent = msg;
+  }
+}
+
+/**
+ * @param {string} overlay
+ * @param {number} port
+ */
 async function openCruscotto(overlay, port) {
   focusedOverlay             = overlay;
   const targetUrl            = `http://localhost:${port}/app.html#overview`;
+  appendUiConsole(`click Apri cruscotto — ${overlay} :${port}`);
 
   if (serverMode !== "home-only") {
     window.location.href = targetUrl;
@@ -297,6 +438,7 @@ async function openCruscotto(overlay, port) {
     });
 
     if (result.alreadyRunning) {
+      appendUiConsole(`già attivo — apertura browser ${targetUrl}`);
       window.open(result.url || targetUrl, "_blank", "noopener");
       prepareMessage.textContent = `Cruscotto ${overlay} già attivo su :${port}.`;
       btnOpen.disabled         = false;
@@ -309,6 +451,7 @@ async function openCruscotto(overlay, port) {
     const up = await waitForFullDashboard(port);
 
     if (up) {
+      appendUiConsole(`browser → ${result.url || targetUrl}`);
       window.open(result.url || targetUrl, "_blank", "noopener");
       prepareMessage.textContent = `Cruscotto ${overlay} pronto su :${port}.`;
       await load();
@@ -320,7 +463,9 @@ async function openCruscotto(overlay, port) {
     reloadNote.textContent   = `Porta dedicata :${port} per ${overlay}.`;
     btnOpen.disabled         = false;
   } catch (err) {
-    prepareMessage.textContent = err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Apri: ${msg}`);
+    prepareMessage.textContent = msg;
     btnOpen.disabled           = false;
   }
 }

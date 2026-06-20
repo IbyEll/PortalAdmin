@@ -1,26 +1,33 @@
 /**
- * ** PAGE SCRIPT ** -- commentato il: 2026-06-17
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** PAGE SCRIPT ** -- commentato il: 2026-06-19 00:51
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-17   by: IbyEll
+ * modificato il: 2026-06-19 00:51   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Cruscotto Dev — companion di cruscotto.home.html (SPA vanilla: sidebar + hash routing).
+ * ************************************************************************************************************************
+ *        Cruscotto Dev — companion cruscotto.home.html (SPA sidebar, hash routing, overlay PROJECT_*).
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - interfaccia unica per sviluppo locale PortalAdmin + product (JustLastOne)
- *   - evita shell manuali per test, servizi, backlog Jira e stack dev
+ *   - Interfaccia unica per sviluppo locale PortalAdmin + product repo (JustLastOne, AdminDashBoard, …).
+ *   - Evita shell manuali per test, servizi, backlog Jira, stack dev e agent Cursor.
  *
  *   A cosa serve:
- *   - tab Overview, Requisiti, Servizi, testScript (custom/tecnici/funzionali), Summary
- *   - tab Process: discovery stack, avvio/kill servizi, console log, DB dev
- *   - iframe Jira (working, project tree, backlog, my-project, pillar matrix)
- *   - run test singolo/suite/all e export report via API cruscotto.server
+ *   - Tab Overview, Requisiti, Servizi, testScript (custom/tecnici/funzionali), Summary, Process, Cursor.
+ *   - Tab Process: discovery stack, avvio/kill servizi, console log, DB dev, export report.
+ *   - Iframe Jira (working, project tree, backlog, my-project, pillar matrix).
+ *   - Run test singolo/suite/all e export report via API cruscotto.server.
  *
  * Generalizzazione:
- *   Si — label, prefisso Jira, path DB e porte da window.CRUSCOTTO_PROJECT (overlay PROJECT_*).
+ *   Si — label, prefisso Jira, path DB, porte e catalogo test da window.CRUSCOTTO_PROJECT (overlay PROJECT_*).
  *
  * Input:
  *   - window.CRUSCOTTO_PROJECT / __CRUSCOTTO_PROJECT__ — config progetto da bootstrap/server
- *   - location.hash — tab attiva (#overview … #process)
+ *   - location.hash — tab attiva (#overview … #process, #cursor)
  *   - risposte API same-origin — payload /api/* usati dal render tab e iframe
  *
  * Pagina HTML:
@@ -38,7 +45,13 @@
  *   - GET  /api/scripts, /api/report, /api/status — catalogo e ultimo run test
  *   - POST /api/run*, /api/report/tecnici-analysis — esecuzione testScript
  *   - GET|POST /api/repo/services/*, /api/repo/database/* — tab Process
- *   - GET  /api/jira/*, /api/my-project/analyze — tab backlog e analisi
+ *   - GET  /api/jira/*, /api/my-project/analyze, /api/cursor/* — backlog Jira e Cursor agent
+ *
+ * Dipendenze runtime:
+ *   - window.CRUSCOTTO_PROJECT — repoName, jiraPrefix, dashboardPort, dbFilename, friendbotLabel
+ *   - elementi #section-* e .sidebar-nav [data-tab] — shell tab da cruscotto.home.html
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 /** @returns {Record<string, unknown>} */
@@ -60,8 +73,28 @@ function cruscottoRepoName() {
   return String(project.repoName ?? project.repoFolder ?? "Product");
 }
 
+/** @returns {boolean} */
+function cruscottoHasProductDatabase() {
+  return getCruscottoProject().hasProductDatabase === true;
+}
+
+/** @returns {string[]} */
+function cruscottoStackStartServiceIds() {
+  const ids = getCruscottoProject().stackStartServiceIds;
+
+  if (Array.isArray(ids) && ids.length > 0) {
+    return ids.map((id) => String(id));
+  }
+
+  return ["web", "api", "auth"];
+}
+
 /** @returns {string} */
 function cruscottoDbFilename() {
+  if (!cruscottoHasProductDatabase()) {
+    return "";
+  }
+
   return String(getCruscottoProject().dbFilename ?? "dev.db");
 }
 
@@ -112,7 +145,7 @@ const PROCESS_CONSOLE_TABS = [
 , { id: "web",        label: "Web" }
 , { id: "api",        label: "API" }
 , { id: "auth",       label: "Auth" }
-, { id: "api-portal", label: "API Portal" }
+, { id: "api-documentation", label: "API Documentation" }
 , { id: "friendbot",  label: "friendBOT" }
 , { id: "dashboard",  label: "Cruscotto" }
 ];
@@ -167,7 +200,7 @@ function classifyProcessLogLine(text) {
   const tabs = new Set(["all"]);
   const trimmed = text.trimStart();
 
-  const prefixMatch = trimmed.match(/^\[(web|api-portal|api|auth|friendbot|dashboard|turbo-dev)\]/);
+  const prefixMatch = trimmed.match(/^\[(web|api-documentation|api|auth|friendbot|dashboard|turbo-dev)\]/);
 
   if (prefixMatch) {
     const id = prefixMatch[1];
@@ -200,7 +233,7 @@ function classifyProcessLogLine(text) {
   }
 
   if (/\bPorta 4080\b|:4080\b/.test(text)) {
-    tabs.add("api-portal");
+    tabs.add("api-documentation");
   }
 
   if (/\bPorta 3999\b|:3999\b/.test(text)) {
@@ -215,21 +248,21 @@ function classifyProcessLogLine(text) {
     tabs.add("friendbot");
   }
 
-  if (/api-portal|serve-api-portal/i.test(text)) {
-    tabs.add("api-portal");
+  if (/api-documentation|serve-api-documentation/i.test(text)) {
+    tabs.add("api-documentation");
   }
 
   if (/\bcruscotto\b|admin:dashboard/i.test(text)) {
     tabs.add("dashboard");
   }
 
-  const killMatch = text.match(/Kill (web|api-portal|api|auth|friendbot|dashboard)/i);
+  const killMatch = text.match(/Kill (web|api-documentation|api|auth|friendbot|dashboard)/i);
 
   if (killMatch) {
     tabs.add(killMatch[1].toLowerCase());
   }
 
-  const svcKillMatch = text.match(/Kill servizio (web|api-portal|api|auth|friendbot|dashboard)/i);
+  const svcKillMatch = text.match(/Kill servizio (web|api-documentation|api|auth|friendbot|dashboard)/i);
 
   if (svcKillMatch) {
     tabs.add(svcKillMatch[1].toLowerCase());
@@ -245,7 +278,7 @@ function classifyProcessLogLine(text) {
     tabs.add("web");
     tabs.add("api");
     tabs.add("auth");
-    tabs.add("api-portal");
+    tabs.add("api-documentation");
     tabs.add("friendbot");
   }
 
@@ -261,7 +294,7 @@ function classifyProcessLogLine(text) {
     tabs.add("web");
   }
 
-  const startMatch = text.match(/Avvio (web|api-portal|api|auth|friendbot|dashboard)/i);
+  const startMatch = text.match(/Avvio (web|api-documentation|api|auth|friendbot|dashboard)/i);
 
   if (startMatch) {
     tabs.add(startMatch[1].toLowerCase());
@@ -1152,7 +1185,7 @@ async function copyCmd(cmd) {
 const PROCESS_JLO_PKG_CLASS = {
   web           : "process-console-pkg-web"
 , api           : "process-console-pkg-api"
-, "api-portal"  : "process-console-pkg-api-portal"
+, "api-documentation"  : "process-console-pkg-api-documentation"
 , auth          : "process-console-pkg-auth"
 , authentication: "process-console-pkg-auth"
 , friendbot     : "process-console-pkg-friendbot"
@@ -1178,7 +1211,7 @@ function formatProcessConsoleLineHtml(text) {
   let html = escapeHtml(text);
 
   html = html.replace(
-    /^(\[(web|api|auth|api-portal|friendbot|dashboard|turbo-dev)\])/
+    /^(\[(web|api|auth|api-documentation|friendbot|dashboard|turbo-dev)\])/
   , (_match, bracket, serviceId) => {
       const cls = processConsolePkgClass(serviceId);
       return `<span class="process-console-pkg ${cls}">${bracket}</span>`;
@@ -5140,11 +5173,14 @@ async function renderProcess(report) {
   const hasReport            = Boolean(report);
   const repoName               = cruscottoRepoName();
   const jiraPrefix             = cruscottoJiraPrefix();
+  const hasProductDatabase   = cruscottoHasProductDatabase();
   const dbFilename             = cruscottoDbFilename();
   const defaultProductSibling  = cruscottoDefaultProductSibling();
   const friendbotLabel         = cruscottoFriendbotLabel();
   const dashboardPort          = cruscottoDashboardPort();
-  const dbDefaultPath          = `${String(getCruscottoProject().dbPrismaRelPath ?? "packages/database/prisma")}/${dbFilename}`;
+  const dbDefaultPath          = hasProductDatabase
+    ? `${String(getCruscottoProject().dbPrismaRelPath ?? "packages/database/prisma")}/${dbFilename}`
+    : "";
 
   root.innerHTML = `
     <section class="panel process-intro-panel test-suite-group" id="process-intro-panel">
@@ -5176,7 +5212,7 @@ async function renderProcess(report) {
           (data/ora sulla prima riga, stato sulla seconda) e i bottoni in <strong>Avvio / Kill</strong>.
           Le righe <em>Database - Prisma — REFRESH</em>, <em>web</em>, <em>api</em> e <em>auth</em> condividono una
           sola cella unificata.
-          <em>API Portal</em> e <em>Admin Dashboard</em> sono servizi <strong>PortalAdmin</strong>
+          <em>API Documentation</em> e <em>Admin Dashboard</em> sono servizi <strong>PortalAdmin</strong>
           (righe separate, config progetto da <code>PRODUCT_REPO_PATH</code>).
         </p>
         <h3>Bottoni nella tabella — script agganciati</h3>
@@ -5200,13 +5236,14 @@ async function renderProcess(report) {
             </tr>
             <tr>
               <td><strong>Avvia</strong> / <strong>Kill</strong></td>
-              <td>API Portal (PortalAdmin)</td>
+              <td>API Documentation (PortalAdmin)</td>
               <td>
                 API <code>start-one</code> / <code>stop-one</code> —
                 <code>node cruscotto.frontend/cruscotto.process.start.api.documentation.mjs</code>
-                (UI in <code>PortalAdmin/api-portal/</code>, config da manifest product)
+                (UI in <code>PortalAdmin/api-documentation/</code>, config da manifest product)
               </td>
             </tr>
+            ${hasProductDatabase ? `
             <tr>
               <td><strong>Delete &amp; create</strong></td>
               <td>Database — Prisma (file)</td>
@@ -5217,6 +5254,7 @@ async function renderProcess(report) {
               <td>Database — Script inizializzazione</td>
               <td><code>node cruscotto.database/product.database.seed.run.call.mjs</code> (<code>npm run db:seed</code>)</td>
             </tr>
+            ` : ""}
             <tr>
               <td><strong>Avvia</strong> / <strong>Kill</strong></td>
               <td>singola riga (es. friendBOT)</td>
@@ -5245,7 +5283,7 @@ async function renderProcess(report) {
             </tr>
             <tr>
               <td><strong>Avvia stack completo</strong></td>
-              <td><code>node cruscotto.frontend/cruscotto.process.start.all.services.mjs</code> + friendBOT + API Portal</td>
+              <td><code>node cruscotto.frontend/cruscotto.process.start.all.services.mjs</code> + friendBOT + API Documentation</td>
             </tr>
             <tr>
               <td><strong>Kill All</strong></td>
@@ -5278,8 +5316,9 @@ async function renderProcess(report) {
             e <strong>User</strong>.
           </li>
           <li>
-            Database file: <strong>Delete &amp; create</strong>; seed: <strong>Inizializza</strong>.
-            Stack product: <strong>Avvia</strong> / <strong>Kill</strong> (include db:push all'avvio).
+            ${hasProductDatabase
+              ? "Database file: <strong>Delete &amp; create</strong>; seed: <strong>Inizializza</strong>. Stack product: <strong>Avvia</strong> / <strong>Kill</strong> (include db:push all'avvio)."
+              : "Stack product (se presente nel manifest): <strong>Avvia</strong> / <strong>Kill</strong> dalla cella unificata o dai bottoni sotto la tabella."}
           </li>
           <li>
             Avvia lo stack dalla cella unificata <strong>Avvia</strong> (product) o dai bottoni
@@ -5312,8 +5351,8 @@ async function renderProcess(report) {
       <p id="process-processes-checked" class="muted" style="margin-top:0.35rem;font-size:0.8rem">—</p>
       <div class="btn-row" style="margin-top:0.75rem">
         <button class="action primary" type="button" id="btn-process-start-core">Avvia product (web, api, auth)</button>
-        <button class="action" type="button" id="btn-process-start-full">Avvia stack completo (+ api-portal PortalAdmin, cruscotto)</button>
-        <button class="action" type="button" id="btn-process-stop-stack" title="Termina web, api, auth, api-portal, friendBOT — non il cruscotto :3999">Kill All</button>
+        <button class="action" type="button" id="btn-process-start-full">Avvia stack completo (+ api-documentation PortalAdmin, cruscotto)</button>
+        <button class="action" type="button" id="btn-process-stop-stack" title="Termina web, api, auth, api-documentation, friendBOT — non il cruscotto :3999">Kill All</button>
         <button class="action" type="button" id="btn-process-refresh-processes">Aggiorna processi</button>
         <button class="action" type="button" id="btn-process-retry-discovery">Riprova discovery</button>
       </div>
@@ -5468,8 +5507,14 @@ async function hydrateProcessStack(root) {
     return;
   }
 
-  const PROCESS_TABLE_COLS = 11;
-  const PRODUCT_REPO_NAME  = repoName;
+  const PROCESS_TABLE_COLS   = 11;
+  const PRODUCT_REPO_NAME    = cruscottoRepoName();
+  const friendbotLabel       = cruscottoFriendbotLabel();
+  const dashboardPort        = cruscottoDashboardPort();
+  const HAS_PRODUCT_DATABASE = cruscottoHasProductDatabase();
+  const dbDefaultPath        = HAS_PRODUCT_DATABASE
+    ? `${String(getCruscottoProject().dbPrismaRelPath ?? "packages/database/prisma")}/${cruscottoDbFilename()}`
+    : "";
   const PROCESS_BLOCK_DB_FILE = 1;
   const PROCESS_BLOCK_DB_SEED = 2;
   const PROCESS_BLOCK_STACK   = 3;
@@ -5505,6 +5550,17 @@ async function hydrateProcessStack(root) {
     ].join(" ");
 
     return classes ? ` class="${classes}"` : "";
+  }
+
+  /** Servizi PortalAdmin con Avvia/Kill per riga (oltre stack product). */
+  const PORTAL_MANAGED_SERVICE_IDS = new Set([
+    "home"
+  , "api-documentation"
+  , "friendbot"
+  ]);
+
+  function isPortalAdminService(svc) {
+    return String(svc.product ?? "") === "PortalAdmin";
   }
 
   /**
@@ -5547,14 +5603,18 @@ async function hydrateProcessStack(root) {
    * @param {Map<string, Record<string, unknown>>} processById
    */
   function isProductStackListening(processById) {
-    return ["web", "api", "auth"].every((id) => isProcessServiceListening(processById, id));
+    return cruscottoStackStartServiceIds().every(
+      (id) => isProcessServiceListening(processById, id)
+    );
   }
 
   /**
    * @param {Map<string, Record<string, unknown>>} processById
    */
   function isAnyProductStackListening(processById) {
-    return ["web", "api", "auth"].some((id) => isProcessServiceListening(processById, id));
+    return cruscottoStackStartServiceIds().some(
+      (id) => isProcessServiceListening(processById, id)
+    );
   }
 
   /**
@@ -5569,10 +5629,34 @@ async function hydrateProcessStack(root) {
 
     return `<td rowspan="${rowSpan}" class="process-actions-cell process-stack-complete-cell" valign="middle">
       <div class="process-actions-stack">
-        <button type="button" class="action primary process-action-btn" data-process-action="stack-start" title="cruscotto.process.start.all.services.mjs — web + api + auth"${startDisabled}>Avvia</button>
-        <button type="button" class="action process-action-btn" data-process-action="stack-kill" title="Termina web, api, auth"${killDisabled}>Kill</button>
+        <button type="button" class="action primary process-action-btn" data-process-action="stack-start" title="cruscotto.process.start.all.services.mjs — stack product da discovery"${startDisabled}>Avvia</button>
+        <button type="button" class="action process-action-btn" data-process-action="stack-kill" title="Termina servizi stack product (es. web/api/auth o HOME/api-documentation)"${killDisabled}>Kill</button>
       </div>
     </td>`;
+  }
+
+  /**
+   * Prima riga gruppo stack senza DB product — equivalente schema REFRESH per overlay PortalAdmin-only.
+   * @param {number} rowSpan
+   * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} stackState
+   */
+  function renderStackHeaderRowNoDb(rowSpan, stackState) {
+    const stackIds = cruscottoStackStartServiceIds().join(", ");
+
+    return `
+      <tr${processTrClassAttr(PROCESS_BLOCK_STACK, "process-stack-header-row")}>
+        ${renderProcessBlockCell(PROCESS_BLOCK_STACK, rowSpan)}
+        <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
+        <td>Stack product<span class="process-svc-suffix"> — AVVIA / KILL</span></td>
+        <td class="process-service-desc muted">Servizi: ${escapeHtml(stackIds)} — <code>cruscotto.process.start.all.services.mjs</code></td>
+        <td><code class="process-service-path">cruscotto.frontend/cruscotto.process.start.all.services.mjs</code></td>
+        <td>—</td>
+        <td><code>—</code></td>
+        <td class="muted">—</td>
+        <td>—</td>
+        <td>—</td>
+        ${renderStackActionsCell(rowSpan, stackState)}
+      </tr>`;
   }
 
   /**
@@ -5591,7 +5675,7 @@ async function hydrateProcessStack(root) {
   }
 
   /**
-   * Bottoni Avvia/Kill per singolo servizio (es. friendBOT, API Portal).
+   * Bottoni Avvia/Kill per singolo servizio (es. friendBOT, API Documentation).
    * @param {string} serviceId
    * @param {boolean} [listening]
    */
@@ -5617,18 +5701,24 @@ async function hydrateProcessStack(root) {
    * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} stackState
    */
   function renderRowActionsCell(svc, index, firstStackIndex, stackRowCount, processById, stackState = {}) {
-    const id = String(svc.id ?? "");
+    const id        = String(svc.id ?? "");
+    const svcPort   = Number(svc.port);
+    const listening = isProcessServiceListening(processById, id);
 
     if (id === "dashboard") {
-      return `<td class="process-actions-cell muted" title="Cruscotto corrente">—</td>`;
+      if (Number.isFinite(svcPort) && svcPort === dashboardPort && listening) {
+        return `<td class="process-actions-cell muted" title="Sessione cruscotto corrente (:${dashboardPort})">—</td>`;
+      }
+
+      return renderServiceActionsCell(id, listening);
     }
 
     if (isStackCompleteService(svc)) {
       return "";
     }
 
-    if (id === "friendbot" || id === "api-portal") {
-      return renderServiceActionsCell(id, isProcessServiceListening(processById, id));
+    if (PORTAL_MANAGED_SERVICE_IDS.has(id)) {
+      return renderServiceActionsCell(id, listening);
     }
 
     return `<td class="process-actions-cell muted">—</td>`;
@@ -5641,6 +5731,10 @@ async function hydrateProcessStack(root) {
    * @param {{ stackAllUp?: boolean, stackAnyUp?: boolean }} stackState
    */
   function renderDatabaseSchemaStackRow(dbStatus, rowSpan, stackState) {
+    if (!HAS_PRODUCT_DATABASE) {
+      return "";
+    }
+
     const exists     = dbStatus.exists === true;
     const scriptPath = "cruscotto.database/product.database.init.mjs --push";
     const sizeLabel  = formatDbSize(Number(dbStatus.sizeBytes ?? 0));
@@ -5766,6 +5860,10 @@ async function hydrateProcessStack(root) {
    * @param {Record<string, unknown>} dbStatus
    */
   function renderDatabaseRows(dbStatus) {
+    if (!HAS_PRODUCT_DATABASE) {
+      return "";
+    }
+
     const exists     = dbStatus.exists === true;
     const dbPath     = escapeHtml(String(dbStatus.path ?? dbDefaultPath));
     const sizeLabel  = formatDbSize(Number(dbStatus.sizeBytes ?? 0));
@@ -5896,7 +5994,7 @@ async function hydrateProcessStack(root) {
    */
   function renderServiceRows(services, processRows = [], dbStatus = {}, nodeRows = []) {
     const checkedAt = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
-    const dbRow     = renderDatabaseRows(dbStatus);
+    const dbRow     = HAS_PRODUCT_DATABASE ? renderDatabaseRows(dbStatus) : "";
 
     if (!services.length) {
       const nodeHtml = renderProcessNodeProcessRows(nodeRows, checkedAt, PROCESS_BLOCK_STACK);
@@ -5918,7 +6016,16 @@ async function hydrateProcessStack(root) {
     const stackAnyUp = isAnyProductStackListening(processById);
     const stackState = { stackAllUp, stackAnyUp };
     const stackGroupRowSpan = stackRowCount > 0 ? stackRowCount + 1 : stackRowCount;
-    let nextBlockNum        = stackGroupRowSpan > 0
+    const productStackHeaderRow = HAS_PRODUCT_DATABASE
+      ? renderDatabaseSchemaStackRow(
+          dbStatus
+        , stackRowCount > 0 ? stackGroupRowSpan : 1
+        , stackState
+        )
+      : stackRowCount > 0
+        ? renderStackHeaderRowNoDb(stackGroupRowSpan, stackState)
+        : "";
+    let nextBlockNum        = stackGroupRowSpan > 0 || productStackHeaderRow
       ? PROCESS_BLOCK_STACK + 1
       : PROCESS_BLOCK_STACK;
 
@@ -5960,9 +6067,6 @@ async function hydrateProcessStack(root) {
       , processById
       , stackState
       );
-      const schemaPrefix = index === firstStackIndex && stackGroupRowSpan > 0
-        ? renderDatabaseSchemaStackRow(dbStatus, stackGroupRowSpan, stackState)
-        : "";
       const isStackSvc  = isStackCompleteService(svc);
       const rowBlockNum = isStackSvc ? PROCESS_BLOCK_STACK : nextBlockNum;
       const blockCell   = isStackSvc
@@ -5974,7 +6078,7 @@ async function hydrateProcessStack(root) {
       );
       const rowClassAttr  = processTrClassAttr(rowBlockNum, boundaryClass);
 
-      return `${schemaPrefix}
+      return `
         <tr${rowClassAttr}>
           ${blockCell}
           <td>${product}</td>
@@ -5992,7 +6096,7 @@ async function hydrateProcessStack(root) {
 
     const nodeHtml = renderProcessNodeProcessRows(nodeRows, checkedAt, nextBlockNum);
 
-    return `${dbRow}${serviceRows}${nodeHtml}`;
+    return `${dbRow}${productStackHeaderRow}${serviceRows}${nodeHtml}`;
   }
 
   /**
@@ -6003,7 +6107,7 @@ async function hydrateProcessStack(root) {
       processRows.map((row) => [String(row.id ?? ""), row])
     );
     const stackAllUp = isProductStackListening(processById);
-    const fullIds    = ["web", "api", "auth", "friendbot", "api-portal"];
+    const fullIds    = ["web", "api", "auth", "friendbot", "api-documentation"];
     const fullAllUp  = fullIds.every((id) => isProcessServiceListening(processById, id));
 
     if (stackAllUp) {
@@ -6051,7 +6155,9 @@ async function hydrateProcessStack(root) {
           coreBtn.removeAttribute("disabled");
           fullBtn.removeAttribute("disabled");
 
-          const dbStatusEarly = await apiGet("/api/repo/database/status", 10_000).catch(() => ({}));
+          const dbStatusEarly = HAS_PRODUCT_DATABASE
+            ? await apiGet("/api/repo/database/status", 10_000).catch(() => ({}))
+            : { enabled: false };
 
           tableEl.innerHTML = renderServiceRows(services, [], dbStatusEarly, []);
 
@@ -6069,7 +6175,9 @@ async function hydrateProcessStack(root) {
       let nodeRows    = [];
       let checkedAt   = null;
 
-      const dbStatus = await apiGet("/api/repo/database/status", 10_000).catch(() => ({}));
+      const dbStatus = HAS_PRODUCT_DATABASE
+        ? await apiGet("/api/repo/database/status", 10_000).catch(() => ({}))
+        : { enabled: false };
       checkedAt      = typeof dbStatus.checkedAt === "string" ? dbStatus.checkedAt : null;
 
       try {
@@ -6327,6 +6435,9 @@ async function hydrateProcessStack(root) {
 
       const pid = body.pid != null ? String(body.pid) : "—";
       statusEl.textContent = `${serviceId} avviato (pid ${pid}). Output nella console.`;
+      if (typeof body.logCursor === "number") {
+        processLogCursor = body.logCursor;
+      }
       startProcessConsolePolling();
       startProcessServicesPolling({
         mode       : "up"
@@ -6408,6 +6519,10 @@ async function hydrateProcessStack(root) {
    * @param {"reset" | "seed" | "push"} mode
    */
   async function triggerDatabaseJob(button, mode) {
+    if (!HAS_PRODUCT_DATABASE) {
+      return;
+    }
+
     const isReset  = mode === "reset";
     const isSeed   = mode === "seed";
     const isPush   = mode === "push";
@@ -6502,9 +6617,12 @@ async function hydrateProcessStack(root) {
   }
 
   async function triggerStackCompleteKill(button) {
+    const stackIds   = cruscottoStackStartServiceIds();
+    const stackLabel = stackIds.join(", ");
+
     const confirmed = await processConfirm({
       title        : "Kill stack"
-    , message      : "Terminare web :3000, api :4000, auth :4001?\n\nAPI Portal, friendBOT e cruscotto restano attivi."
+    , message      : `Terminare lo stack product (${stackLabel})?\n\nCruscotto, API Documentation PortalAdmin e friendBOT restano attivi se non nello stack.`
     , confirmLabel : "Kill stack"
     , danger       : true
     });
@@ -6517,7 +6635,7 @@ async function hydrateProcessStack(root) {
     button.setAttribute("disabled", "true");
     button.textContent = "Kill…";
     statusEl.textContent = "Kill stack in corso…";
-    beginProcessKillConsole("all", "Kill stack (web, api, auth) — richiesta al server…");
+    beginProcessKillConsole("all", `Kill stack (${stackLabel}) — richiesta al server…`);
 
     try {
       const res = await fetch("/api/repo/services/stop", {
@@ -6544,7 +6662,7 @@ async function hydrateProcessStack(root) {
       await loadProcessDiscovery(null, { processesOnly: true });
       startProcessServicesPolling({
         mode       : "down"
-      , serviceIds : ["web", "api", "auth"]
+      , serviceIds : cruscottoStackStartServiceIds()
       });
     } catch (err) {
       statusEl.textContent = err instanceof Error ? err.message : "Kill stack fallito";
@@ -6618,7 +6736,7 @@ async function hydrateProcessStack(root) {
 
     const confirmed = await processConfirm({
       title        : "Kill All"
-    , message      : `Terminare i servizi dev (web :3000, api :4000, auth :4001, api-portal :4080 PortalAdmin, ${friendbotLabel})?\n\nIl cruscotto su :${dashboardPort} resta attivo. L'output sarà mostrato nella console.`
+    , message      : `Terminare i servizi dev (web :3000, api :4000, auth :4001, api-documentation :4080 PortalAdmin, ${friendbotLabel})?\n\nIl cruscotto su :${dashboardPort} resta attivo. L'output sarà mostrato nella console.`
     , confirmLabel : "Kill All"
     , danger       : true
     });
@@ -6961,7 +7079,7 @@ function renderOverview(servicesPayload, report) {
     <div class="panel">
       <h2>Quick links</h2>
       <div class="btn-row">
-        <a href="http://localhost:4080/" target="_blank" rel="noopener">API Portal :4080</a>
+        <a href="http://localhost:4080/" target="_blank" rel="noopener">API Documentation :4080</a>
         <a href="http://localhost:4000/api/v1/docs" target="_blank" rel="noopener">Swagger API</a>
         <a href="http://localhost:4001/api/v1/docs" target="_blank" rel="noopener">Swagger Auth</a>
       </div>
@@ -6981,12 +7099,15 @@ function renderOverview(servicesPayload, report) {
  * Carica requisiti, servizi, catalogo test e report; renderizza tutte le tab statiche.
  */
 async function loadAll() {
+  // 1. Rimuovi indicatore boot — shell HTML pronta
   document.getElementById("boot-loading")?.remove();
 
+  // 2. Requisiti e servizi dev — tab Requisiti/Servizi e Overview
   const requirements = await apiGet("/api/dev/requirements");
   const services     = await loadServizi();
   renderRequisiti(requirements);
 
+  // 3. Catalogo test e meta suite — opzionale se API non pronte
   let report = null;
   let status = null;
   try {
@@ -7015,6 +7136,7 @@ async function loadAll() {
     status = null;
   }
 
+  // 4. Render tab statiche — test, summary, process, cursor, overview per ultimo
   renderTest(report, status, scriptCatalog);
   renderSummary(report, scriptCatalog);
   renderTestTecnici(report, status, scriptCatalog, tecniciMeta);
@@ -7040,12 +7162,12 @@ function initRouter() {
   setActiveTab(TABS.includes(hash) ? hash : DEFAULT_TAB);
 }
 
-// --- init ---
+// --- init pagina ---
 // 1. Router hash e tab sidebar
 initRouter();
 // 2. Modal documentazione testScript (delegazione globale)
 bindScriptDocModalGlobal();
-// 3. Caricamento dati iniziale da API cruscotto
+// 3. Caricamento dati iniziale da API cruscotto — errori in .cruscotto-main
 loadAll().catch((err) => {
   console.error(err);
   const main = document.querySelector(".cruscotto-main");

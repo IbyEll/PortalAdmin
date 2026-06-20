@@ -111,7 +111,7 @@ Esempio entry:
 }
 ```
 
-`JiraCORE/close-story.mjs --key ADMIN-81` e `analyze-repo-keys.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
+`admin.portal.JiraCORE/jiraCORE.close.story.mjs --key ADMIN-81` e `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
 
 ## Workflow Cursor (ADMIN-96)
 
@@ -120,7 +120,7 @@ Regole agent in `.cursor/rules/`:
 | File | Ruolo |
 | --- | --- |
 | `ADMIN-Workflow.mdc` | gogo / procedi / chiudi su ticket ADMIN-xxx |
-| `ADMIN-AnalizzaRepo.mdc` | gap analysis + CLI `analyze-repo-keys` |
+| `ADMIN-AnalizzaRepo.mdc` | gap analysis + CLI `jiraCORE.repo..issuekey.gap.analysis.mjs` |
 | `ADMIN-Veve*.mdc` | grooming Jira read-only |
 | `JLO-Workflow.mdc` | alias → ADMIN-Workflow |
 
@@ -141,7 +141,7 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 | `test:ci` | Sequenza smoke per CI locale (equivale ai job `smoke`) |
 | `test:dashboard` | Smoke HTTP `dashboard-server.mjs` |
 | `test:cruscotto-db` | Smoke path DB + migrate + load fallback |
-| `db:sync` | `node JiraCORE/sync-jira-backlog.mjs` — Jira → `cruscotto.database/cruscotto.db` |
+| `db:sync` | `node admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs` — Jira → `cruscotto.database/cruscotto.db` |
 
 ## Cruscotto DB (ADMIN-81 / ADMIN-99)
 
@@ -172,7 +172,7 @@ Workflow GitHub Actions: [`.github/workflows/portal-smoke.yml`](.github/workflow
 | Trigger | Job | Cosa verifica |
 | --- | --- | --- |
 | PR / push `main` | `smoke` | Checkout dual-repo, `PRODUCT_REPO_PATH`, smoke paths/config/workflow/run-all/dashboard |
-| push `main` (opz.) | `jira-sync` | `analyze-repo-keys` se secrets Jira configurati |
+| push `main` (opz.) | `jira-sync` | `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` se secrets Jira configurati |
 
 Layout CI (sibling virtuale):
 

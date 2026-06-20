@@ -1,19 +1,57 @@
 #!/usr/bin/env node
 /**
- * Push branch ticket + PR aperta su main (idempotente).
- * Usato da workflow JLO «chiudi Story/Bug/Todo» e «chiudi fast» — push, PR, catalogo repo.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-18 21:32
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 21:32   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *           Push branch ticket + PR su main — idempotente per chiudi Story/Bug/Todo e chiudi fast.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Il workflow JLO chiudi/chiudi fast richiede push, PR aperta e catalogo segnali in un solo passo.
+ *   - Evita comandi git/gh separati dall'agente e mantiene idempotenza su branch già pushate.
+ *
+ *   A cosa serve:
+ *   - Risolve branch ticket, aggiorna REPO_IMPLEMENTATION_SIGNALS, push opzionale, apre PR su main.
+ *   - Stampa JSON { ok, branch, prUrl, pushed, commits, catalog?, pillar?, error? } su stdout.
+ *
+ * Generalizzazione:
+ *   Si — key JLO-xxx e ADMIN-xxx; branch STORY/BUG/TODO--- e legacy JLO-n-*; repo PortalAdmin root.
+ *
+ * Input:
+ *   - argv --key, --branch, --dry-run, --pillar — ticket e opzioni chiudi
+ *   - git + gh — branch corrente, push origin, pr create/list
+ *   - PRODUCT_REPO_PATH — scan path catalogo via signals.catalog.implementation
  *
  * Uso:
- *   node JiraCORE/close-story.mjs --key JLO-930
- *   node JiraCORE/close-story.mjs --branch STORY---JLO-930-export-excel-latest-json
- *   node JiraCORE/close-story.mjs          (branch corrente se è una ticket branch)
- *   node JiraCORE/close-story.mjs --dry-run
- *   node JiraCORE/close-story.mjs --key JLO-930 --pillar
+ *   - node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key JLO-930
+ *   - node admin.portal.JiraCORE/jiraCORE.close.story.mjs --branch STORY---JLO-930-export-excel
+ *   - node admin.portal.JiraCORE/jiraCORE.close.story.mjs --dry-run
+ *   - node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key JLO-930 --pillar
  *
- * Output stdout: JSON { ok, branch, prUrl, pushed, createdPr, commits, catalog?, pillar?, error? }
- * catalog: { updated, skipped, reason?, commit? } — REPO_IMPLEMENTATION_SIGNALS
- * pillar: aggiornamento mirato cruscotto/pillar-matrix/ (solo con --pillar; escluso dal chiudi di default)
- * Exit 0 = ok · 1 = errore (working tree sporco, push/gh fallito, branch non trovata)
+ * Flag CLI:
+ *   --key KEY       ticket JLO-xxx o ADMIN-xxx (o posizionale)
+ *   --branch NAME   branch esplicita se più candidate
+ *   --dry-run       anteprima JSON senza git write né push
+ *   --pillar        aggiorna pillar-matrix (opt-in; escluso dal chiudi default)
+ *
+ * Output stdout:
+ *   catalog — { updated, skipped, reason?, commit? } su signals.catalog overlay
+ *   pillar  — solo con --pillar; aggiornamento mirato PARKING_tocheck/pillar-matrix-targeted
+ *   Exit 0 = ok · 1 = errore (working tree sporco, push/gh fallito, branch assente)
+ *
+ * Consumatori:
+ *   - .cursor/rules/JLO-Workflow.mdc — chiudi Story/Bug/Todo dopo subtask Fatto
+ *   - test.smoke/smoke-workflow.mjs — --dry-run ADMIN-93
+ *   - test.smoke/smoke-portal-config.mjs — --dry-run key di prova
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { execFileSync } from "node:child_process";
@@ -306,18 +344,21 @@ async function runPillarPortalUpdate(ticketKey, opts = {}) {
 }
 
 async function main() {
+  // 1. Parse argv — key, branch, dry-run, pillar opt-in
   const { dryRun, withPillar, key, branch: branchArg } = parseArgs(process.argv.slice(2));
   const skipPillar                                     = !withPillar;
   /** @type {{ ok: boolean, branch?: string, prUrl?: string, pushed?: boolean, createdPr?: boolean, commits?: string[], catalog?: object, pillar?: object, error?: string }} */
   const out                                            = { ok: false };
 
   try {
+    // 2. Working tree pulito — stop se modifiche non committate (salvo dry-run)
     const porcelain = run("git", ["status", "--porcelain"], { allowFail: true });
 
     if (porcelain && !dryRun) {
       throw new Error("working tree non pulito — committa o stash manualmente");
     }
 
+    // 3. Branch ticket — da argv, corrente o lista git per key
     const branch    = resolveBranch({ key, branch: branchArg });
     const ticketKey = key ?? branch.match(/(JLO|ADMIN)-\d+/i)?.[0]?.toUpperCase() ?? null;
 
@@ -337,6 +378,7 @@ async function main() {
       return;
     }
 
+    // 4. Checkout branch ticket — fetch origin poi checkout se necessario
     run("git", ["fetch", "origin"]);
 
     const current = run("git", ["branch", "--show-current"], { allowFail: true });
@@ -345,6 +387,7 @@ async function main() {
       run("git", ["checkout", branch]);
     }
 
+    // 5. Catalogo segnali (+ pillar opzionale) — commit catalogo su PortalAdmin
     if (ticketKey) {
       out.catalog = updateImplementationCatalog(ticketKey, branch, false);
       out.pillar  = await runPillarPortalUpdate(ticketKey, { skip: skipPillar });
@@ -356,6 +399,7 @@ async function main() {
       : "1";
     const ahead     = Number(aheadRaw) || 0;
 
+    // 6. Push origin — solo se assente su remote o ahead
     let pushed = false;
 
     if (!hasRemote || ahead > 0) {
@@ -363,6 +407,7 @@ async function main() {
       pushed = true;
     }
 
+    // 7. PR su main — riusa open esistente o gh pr create
     const { prUrl, createdPr } = ensurePr(branch, false);
     const commits                = commitsAheadOfMain(branch);
 

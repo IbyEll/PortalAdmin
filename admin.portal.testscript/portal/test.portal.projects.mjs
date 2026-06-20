@@ -14,7 +14,7 @@
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Smoke API portal: home e cruscotto espongono la stessa lista overlay (es. JustLastOne).
+ *   - Smoke API documentation: home e cruscotto espongono la stessa lista overlay (es. JustLastOne).
  *
  *   A cosa serve:
  *   - Verifica GET /api/portal/projects (array non vuoto, overlay opzionale presente) con exit 0/1.

@@ -1,40 +1,50 @@
 /**
- * ** PAGE SCRIPT ** -- commentato il: 2026-06-17
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** PAGE SCRIPT ** -- commentato il: 2026-06-18 20:15
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-17   by: IbyEll
+ * modificato il: 2026-06-18 20:15   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * API Portal — companion di cruscotto.api.documentation.index.html (indice OpenAPI servizi product).
+ * ************************************************************************************************************************
+ *              API Documentation — companion OpenAPI (card servizi product + indice path aggregato)
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
  *   - la pagina HTML è shell statica; caricamento config, fetch spec OpenAPI e tabella path vivono qui
- *   - evita framework build per navigazione API dev locale su product repo
+ *   - evita framework build per navigazione API dev locale sul product repo attivo
  *
  *   A cosa serve:
- *   - legge /config.json, renderizza header e card servizi, aggrega endpoint da specUrl di ogni servizio
- *   - ordina e mostra tabella metodo/path/tag/summary per tutti i servizi del manifest
+ *   - legge GET /config.json, renderizza header e card servizi, aggrega endpoint da specUrl di ogni voce
+ *   - ordina e mostra tabella metodo, path, tag e summary per tutti i servizi del manifest
  *
  * Generalizzazione:
- *   Si — servizi e label progetto da product.manifest (PRODUCT_REPO_PATH); non hardcoded su un solo stack.
+ *   Si — servizi e label progetto da product.manifest (PRODUCT_REPO_PATH); non hardcoded su uno stack.
  *
  * Input:
  *   - GET /config.json — projectName, projectLabel, productRoot, services[] (specUrl, basePath, badge, …)
- *   - service.specUrl — URL OpenAPI per ogni voce config (fetch diretto dal browser)
+ *   - service.specUrl — documento OpenAPI per ogni servizio (fetch diretto dal browser)
  *
  * Pagina HTML:
- *   - cruscotto.frontend/cruscotto.api.documentation.index.html — script legacy ./portal.js
+ *   - cruscotto.frontend/cruscotto.api.documentation.index.html — companion (script href legacy ./portal.js)
  *
  * Servito da:
- *   - runner/cruscotto.api.documentation.server.mjs — static root api-portal/ o copia index in cruscotto.frontend
- *   - runner/cruscotto.process.start.api.documentation.mjs — avvio processo API Portal (:4080)
+ *   - cruscotto.frontend/cruscotto.api.documentation.server.mjs — statiche e GET /config.json su :4080
+ *   - cruscotto.frontend/cruscotto.process.start.api.documentation.mjs — spawn server API Documentation
  *
  * Asset correlati:
- *   - cruscotto.api.documentation.config.mjs — buildApiPortalConfig lato server per /config.json
+ *   - cruscotto.api.documentation.config.mjs — buildApiDocumentationConfig lato server per /config.json
  *
  * API (fetch same-origin o verso spec servizi):
  *   - GET  /config.json — manifest servizi OpenAPI del product repo attivo
  *   - GET  service.specUrl — documento OpenAPI per indice path (uno per servizio in config)
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
+// --- costanti UI — ordine metodi HTTP nella tabella path ---
 const METHOD_ORDER = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
 
 /** @type {Array<Record<string, unknown>>} */
@@ -170,7 +180,7 @@ function renderHeader(config) {
   const metaEl     = document.getElementById("portal-meta");
 
   if (titleEl) {
-    titleEl.textContent = `API Portal — ${config.projectLabel ?? config.projectName ?? "progetto"}`;
+    titleEl.textContent = `API Documentation — ${config.projectLabel ?? config.projectName ?? "progetto"}`;
   }
 
   if (subtitleEl) {
@@ -181,7 +191,7 @@ function renderHeader(config) {
     metaEl.textContent = `Progetto: ${config.projectName ?? "—"} · ${config.productRoot ?? ""}`;
   }
 
-  document.title = `API Portal — ${config.projectName ?? "PortalAdmin"}`;
+  document.title = `API Documentation — ${config.projectName ?? "PortalAdmin"}`;
 }
 
 /**
@@ -210,6 +220,7 @@ function renderServiceCards(services) {
   }
 }
 
+// --- indice path — fetch parallelo spec OpenAPI e merge righe tabella ---
 async function loadPathIndex() {
   const statusEl = document.getElementById("paths-status");
   /** @type {Array<Record<string, unknown>>} */
@@ -251,6 +262,7 @@ async function loadPathIndex() {
   statusEl.classList.toggle("error", errors.length > 0);
 }
 
+// --- bootstrap — config.json poi card servizi e tabella path ---
 async function bootstrap() {
   const statusEl = document.getElementById("paths-status");
 

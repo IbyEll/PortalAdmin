@@ -8,7 +8,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *                    Server HTTP HOME PortalAdmin — istanzia overlay, API portal e static admin.portal.
+ *                    Server HTTP HOME PortalAdmin — istanzia overlay, API documentation e static admin.portal.
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
@@ -24,7 +24,7 @@
  *   Si — overlay e porte da lib/portal.instance; static da admin.portal e cruscotto.frontend (favicon).
  *
  * Input:
- *   - req.url, req.method, body JSON — API portal/instance e open-cruscotto
+ *   - req.url, req.method, body JSON — API documentation/instance e open-cruscotto
  *   - PORTAL_HOME_PORT — porta listener (default 3990)
  *
  * Route o endpoint:
@@ -33,6 +33,8 @@
  *   - GET  /api/portal/projects, /api/portal/instances, /api/portal/instance
  *   - POST /api/portal/instance — activatePortalInstance
  *   - POST /api/portal/open-cruscotto — spawn admin.portal/portal.dashboard.launch.mjs
+ *   - POST /api/portal/start-cruscotto — avvio cruscotto senza browser
+ *   - POST /api/portal/kill-cruscotto — termina listener sulla porta overlay
  *   - POST /api/portal/open-cruscotto-browser — openSystemBrowser
  *
  * Consumatori:
@@ -68,6 +70,7 @@ import {
 } from "../lib/portal.instance.mjs";
 import {
   isFullDashboardUp
+, killDashboardOnPort
 , openSystemBrowser
 , resolveCruscottoUrl
 , spawnDashboardLauncher
@@ -390,6 +393,106 @@ async function handleApi(req, res, urlPath) {
       , url
       , port
       , overlay
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  // 6b. Avvia cruscotto senza aprire browser
+  if (urlPath === "/api/portal/start-cruscotto" && req.method === "POST") {
+    try {
+      const body    = await readJsonBody(req);
+      const overlay = typeof body.overlay === "string" ? body.overlay.trim() : "";
+
+      if (!overlay) {
+        sendJson(res, 400, { error: "overlay obbligatorio" }, req);
+        return;
+      }
+
+      const instance = readInstanceForOverlay(overlay);
+
+      if (!instance) {
+        sendJson(res, 404, { error: `istanza non trovata per ${overlay} — esegui Istanzia` }, req);
+        return;
+      }
+
+      if (instance.prepare.status !== "done") {
+        sendJson(res, 409, {
+          error  : `prepare non completato per ${overlay}`
+        , status : instance.prepare.status
+        }, req);
+        return;
+      }
+
+      const port = instance.dashboardPort;
+      const url  = resolveCruscottoUrl(port);
+
+      if (await isFullDashboardUp(port)) {
+        sendJson(res, 200, {
+          ok             : true
+        , alreadyRunning : true
+        , url
+        , port
+        , overlay
+        }, req);
+        return;
+      }
+
+      spawnDashboardLauncher({
+        port
+      , overlay
+      , productRepoPath : instance.productRepoPath
+      , openPath        : "/app.html#overview"
+      , openBrowser     : false
+      });
+
+      sendJson(res, 200, {
+        ok       : true
+      , starting : true
+      , url
+      , port
+      , overlay
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  // 6c. Kill cruscotto sulla porta dedicata overlay
+  if (urlPath === "/api/portal/kill-cruscotto" && req.method === "POST") {
+    try {
+      const body    = await readJsonBody(req);
+      const overlay = typeof body.overlay === "string" ? body.overlay.trim() : "";
+
+      if (!overlay) {
+        sendJson(res, 400, { error: "overlay obbligatorio" }, req);
+        return;
+      }
+
+      const instance = readInstanceForOverlay(overlay);
+
+      if (!instance) {
+        sendJson(res, 404, { error: `istanza non trovata per ${overlay}` }, req);
+        return;
+      }
+
+      const port   = instance.dashboardPort;
+      const result = killDashboardOnPort(port);
+
+      sendJson(res, 200, {
+        ok      : true
+      , port
+      , overlay
+      , killed  : result.killed
+      , failed  : result.failed
+      , running : await isFullDashboardUp(port)
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

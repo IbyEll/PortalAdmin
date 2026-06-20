@@ -1,23 +1,38 @@
 #!/usr/bin/env node
 /**
- * ** SCRIPT ENTRYPOINT **
- * CLI gap analysis — confronta Jira key (parent/subtask) con il repo locale.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-18 21:32
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-18 21:32   by: IbyEll
+ * modificato il: 2026-06-18 21:32   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              CLI gap analysis — confronto Jira key con repo product e catalogo segnali PortalAdmin.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Il workflow veve, procedi Step 0 e chiudi gap test richiedono uno Stato repo
- *     ripetibile senza aprire Jira a mano per ogni subtask.
- *   - Centralizza l'invocazione di jira/JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs da terminale e da CI.
+ *   - Veve, procedi Step 0 e chiudi gap test richiedono Stato repo ripetibile senza Jira manuale.
+ *   - Entrypoint CLI per JiraCORE.repo.issuekey.signal.analysis.mjs (terminale, agente, CI).
  *
  *   A cosa serve:
- *   - Espande un parent in figli (backlog Jira), ordina le subtask, ispeziona segnali
- *     nel product repo e in PortalAdmin, restituisce JSON o markdown per agente/umano.
+ *   - Espande parent in subtask, ordina piano tecnico, scan segnali nel product repo attivo.
+ *   - Output JSON strutturato o markdown per veve, chat agente e portal-smoke.yml.
+ *
+ * Generalizzazione:
+ *   Si — key JLO/ADMIN; scan da PRODUCT_REPO_PATH; parent da fetchJiraBacklog live.
+ *
+ * Input:
+ *   - argv --parent, --keys, --key, --format — sorgente key e formato stdout
+ *   - PRODUCT_REPO_PATH — root repo product per analyzeIssueKeys
+ *   - JIRA_EMAIL, JIRA_API_TOKEN, JIRA_CLOUD_ID — fetch backlog con --parent
  *
  * Uso:
- *   - node JiraCORE/jira.repo.analysis..analyze.keys.mjs --parent JLO-507
- *   - node JiraCORE/jira.repo.analysis..analyze.keys.mjs --keys JLO-524,JLO-525
- *   - node JiraCORE/jira.repo.analysis..analyze.keys.mjs --key JLO-507 --format md
+ *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507
+ *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys JLO-524,JLO-525
+ *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --key ADMIN-88 --format md
  *
  * Flag CLI:
  *   --parent KEY   parent Story/Bug/Todo — espande figli dal backlog Jira
@@ -25,17 +40,19 @@
  *   --key KEY      singola key (combinabile con --keys)
  *   --format F     json (default) | md — markdown per veve e chat agente
  *
- * Variabili d'ambiente (solo con --parent, fetch backlog):
- *   JIRA_EMAIL, JIRA_API_TOKEN, JIRA_CLOUD_ID — credenziali API Atlassian
+ * Variabili d'ambiente:
+ *   JIRA_EMAIL, JIRA_API_TOKEN, JIRA_CLOUD_ID — credenziali API (solo --parent)
  *
  * Prerequisiti:
- *   - PRODUCT_REPO_PATH (o default ../JustLastOne) per scan codice JLO
+ *   - PRODUCT_REPO_PATH o default overlay per scan codice
  *   - Con --parent: backlog Jira raggiungibile (stesse env del cruscotto)
  *
  * Consumatori:
  *   - .cursor/skills/jlo-analizza-repo/SKILL.md — gap analysis veve / procedi / chiudi
  *   - .cursor/rules/ADMIN-AnalizzaRepo.mdc — regola canonica analizza repo
  *   - .github/workflows/portal-smoke.yml — smoke --parent ADMIN-88 --format md
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { fetchJiraBacklog, isStoryLikeType } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
@@ -149,7 +166,8 @@ async function main() {
   // 2. Validazione — almeno una sorgente key obbligatoria
   if (!args.parent && args.keys.length === 0 && !args.key) {
     console.error(
-      "Uso: JiraCORE/jira.repo.analysis..analyze.keys.mjs --parent JLO-xxx|ADMIN-xxx | --keys K1,K2 | --key K [--format json|md]"
+      "Uso: admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs"
+      + " --parent JLO-xxx|ADMIN-xxx | --keys K1,K2 | --key K [--format json|md]"
     );
     process.exit(1);
   }

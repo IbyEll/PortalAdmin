@@ -326,6 +326,10 @@ export function resolveCleanPaths(runnerCfg = getRunnerConfig()) {
   // 1. Sostituisce path database hardcoded con PRJ_DB_PACKAGE dall'overlay
   const { PRJ_DB_PACKAGE } = getProjectConfig();
 
+  if (!PRJ_DB_PACKAGE?.trim()) {
+    return [...runnerCfg.cleanPaths];
+  }
+
   return runnerCfg.cleanPaths.map((rel) => (
     rel === "packages/database/dist" ? `${PRJ_DB_PACKAGE}/dist` : rel
   ));
@@ -340,6 +344,10 @@ export function resolveCleanPaths(runnerCfg = getRunnerConfig()) {
 export function resolveEnvFiles(runnerCfg = getRunnerConfig()) {
   // 1. Riscrive path packages/database/* con PRJ_DB_PACKAGE da project.config
   const { PRJ_DB_PACKAGE } = getProjectConfig();
+
+  if (!PRJ_DB_PACKAGE?.trim()) {
+    return [...runnerCfg.envFiles];
+  }
 
   return runnerCfg.envFiles.map((entry) => {
     if (entry.example.startsWith("packages/database/")) {

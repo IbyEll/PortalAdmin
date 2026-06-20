@@ -83,8 +83,8 @@
       }
     }
   , {
-      "id": "api-portal"
-    , "label": "API Portal"
+      "id": "api-documentation"    
+    , "label": "API Documentation"
     , "description": "Navigazione OpenAPI — PortalAdmin, config da product repo"
     , "port": 4080
     , "healthUrl": "http://localhost:4080/"

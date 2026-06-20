@@ -46,8 +46,8 @@ export function matchNodeProcessToServiceId(command) {
     return "friendbot";
   }
 
-  if (/serve-api-portal|api-portal/.test(lower)) {
-    return "api-portal";
+  if (/cruscotto.api.documentation.server.mjs|api-documentation/.test(lower)) {
+    return "api-documentation";
   }
 
   if (/dashboard-server|admin:dashboard/.test(lower)) {

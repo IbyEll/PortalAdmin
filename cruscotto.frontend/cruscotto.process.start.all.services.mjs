@@ -10,6 +10,7 @@ import {
   START_DEV_SERVICE_PS1
 } from "./cruscotto.runner.stack.config.overlay.mjs";
 import { syncDatabase } from "../cruscotto.database/product.database.seed.run.mjs";
+import { projectHasProductDatabase } from "../lib/project.config.mjs";
 import {
   ensureNodeModules
 , ensureProductEnvFiles
@@ -24,7 +25,7 @@ import {
 
 const opts        = parseApiStartArgs(process.argv.slice(2));
 const prepareOnly = process.argv.includes("--prepare-only");
-const skipDb      = process.argv.includes("--no-db");
+const skipDb      = process.argv.includes("--no-db") || !projectHasProductDatabase();
 
 function buildStepCount() {
   let count = 2;
@@ -135,7 +136,7 @@ if (!skipDb) {
   syncDatabase();
 } else {
   step += 1;
-  console.log(`\n[${step}/${totalSteps}] Refresh database saltato (--no-db)`);
+  console.log(`\n[${step}/${totalSteps}] Refresh database saltato${process.argv.includes("--no-db") ? " (--no-db)" : " (overlay senza database product)"}`);
 }
 
 if (!opts.noBuild) {
