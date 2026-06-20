@@ -35,6 +35,8 @@
  *   - POST /api/portal/open-cruscotto — spawn admin.portal/portal.dashboard.launch.mjs
  *   - POST /api/portal/start-cruscotto — avvio cruscotto senza browser
  *   - POST /api/portal/kill-cruscotto — termina listener sulla porta overlay
+ *   - GET  /api/portal/node-processes — elenco processi node product + PortalAdmin
+ *   - POST /api/portal/kill-node-process — termina pid o tutti i processi elencati
  *   - POST /api/portal/open-cruscotto-browser — openSystemBrowser
  *
  * Consumatori:
@@ -75,6 +77,14 @@ import {
 , resolveCruscottoUrl
 , spawnDashboardLauncher
 } from "../lib/portal.launch.dashboard.mjs";
+import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import {
+  formatProjectNodeProcessesText
+, listProjectNodeProcesses
+, matchNodeProcessToServiceId
+, shortenNodeCommand
+} from "./portal.list.project.node.processes.mjs";
+import { killProcessTree } from "../cruscotto.frontend/cruscotto.process.kill.ports.mjs";
 
 // --- path e porta server HOME ---
 const SERVER_DIR           = dirname(fileURLToPath(import.meta.url));
@@ -104,6 +114,48 @@ const HOME_STATIC_FILES = {
 };
 
 const HOME_STATIC = new Set(Object.keys(HOME_STATIC_FILES));
+
+/**
+ * Marker path per ricerca processi node (PortalAdmin + istanze attive).
+ *
+ * @returns {Promise<string[]>}
+ */
+async function resolveNodeProcessMarkers() {
+  /** @type {Set<string>} */
+  const markers = new Set([PORTAL_ROOT]);
+
+  try {
+    const { instances } = await getPortalInstances();
+
+    for (const row of instances) {
+      if (typeof row.productRepoPath === "string" && row.productRepoPath.trim()) {
+        markers.add(row.productRepoPath.trim());
+      }
+    }
+  } catch {
+    // registry assente — solo PortalAdmin
+  }
+
+  const product = resolveProductRepoPath({ required: false });
+
+  if (product) {
+    markers.add(product);
+  }
+
+  return [...markers];
+}
+
+/**
+ * @param {Array<{ pid: number, command: string }>} processes
+ */
+function enrichNodeProcesses(processes) {
+  return processes.map((row) => ({
+    pid           : row.pid
+  , command       : row.command
+  , shortCommand  : shortenNodeCommand(row.command)
+  , serviceId     : matchNodeProcessToServiceId(row.command)
+  }));
+}
 
 const MIME = {
   ".html": "text/html; charset=utf-8"
@@ -493,6 +545,109 @@ async function handleApi(req, res, urlPath) {
       , killed  : result.killed
       , failed  : result.failed
       , running : await isFullDashboardUp(port)
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  // 6d. Elenco processi node legati a PortalAdmin e product repo
+  if (urlPath === "/api/portal/node-processes" && req.method === "GET") {
+    try {
+      const markers   = await resolveNodeProcessMarkers();
+      const processes = listProjectNodeProcesses({
+        markers
+      , excludePids : [process.pid]
+      });
+      const enriched  = enrichNodeProcesses(processes);
+
+      sendJson(res, 200, {
+        ok        : true
+      , markers
+      , processes : enriched
+      , text      : formatProjectNodeProcessesText(processes)
+      , count     : enriched.length
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  // 6e. Kill processo node per pid o tutti quelli elencati
+  if (urlPath === "/api/portal/kill-node-process" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const all  = body.all === true;
+
+      if (all) {
+        const markers   = await resolveNodeProcessMarkers();
+        const processes = listProjectNodeProcesses({
+          markers
+        , excludePids : [process.pid]
+        });
+        /** @type {number[]} */
+        const killed = [];
+        /** @type {Array<{ pid: number, error?: string }>} */
+        const failed = [];
+
+        for (const row of processes) {
+          if (row.pid === process.pid) {
+            continue;
+          }
+
+          const outcome = killProcessTree(row.pid);
+
+          if (outcome.ok) {
+            killed.push(row.pid);
+          } else {
+            failed.push({ pid: row.pid, error: outcome.error });
+          }
+        }
+
+        sendJson(res, 200, {
+          ok      : true
+        , all     : true
+        , killed
+        , failed
+        , count   : processes.length
+        }, req);
+        return;
+      }
+
+      const pid = Number(body.pid);
+
+      if (!Number.isInteger(pid) || pid <= 0) {
+        sendJson(res, 400, { error: "pid obbligatorio (intero > 0) oppure all: true" }, req);
+        return;
+      }
+
+      if (pid === process.pid) {
+        sendJson(res, 400, { error: "rifiutato: non puoi terminare il server HOME corrente" }, req);
+        return;
+      }
+
+      const outcome = killProcessTree(pid);
+
+      if (!outcome.ok) {
+        sendJson(res, 409, {
+          ok    : false
+        , pid
+        , error : outcome.error ?? "kill fallito"
+        }, req);
+        return;
+      }
+
+      sendJson(res, 200, {
+        ok    : true
+      , pid
+      , killed: [pid]
+      , failed: []
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-18 05:06
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-20 06:38
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 05:06   by: IbyEll
- * modificato il: 2026-06-18 05:06   by: IbyEll
+ * modificato il: 2026-06-20 06:38   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -14,7 +14,7 @@
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Un solo comando per preparare e avviare lo stack JustLastOne da terminale o npm run start:dev.
+ *   - Un solo comando per preparare e avviare lo stack product da terminale o npm run start:dev.
  *   - Evita di ricordare l'ordine cleanup → build → db:push → turbo → seed funzionali.
  *
  *   A cosa serve:
@@ -25,7 +25,7 @@
  *   Si — overlay e path product da PRODUCT_REPO_PATH / PRJ_NAME; flag CLI per saltare fasi.
  *
  * Input:
- *   - argv — parseStartDevArgs (runner/cruscotto.runner.stack.mjs)
+ *   - argv — parseStartDevArgs (cruscotto.frontend/cruscotto.runner.stack.mjs)
  *   - PRODUCT_REPO_PATH — root repo product per build e turbo
  *   - PRJ_NAME — overlay runner.config e seed catalog
  *
@@ -48,7 +48,7 @@
  *
  * Variabili d'ambiente:
  *   PRODUCT_REPO_PATH — repo product (portal.load.env)
- *   PRJ_NAME          — overlay PROJECT_* / runner.config
+ *   PRJ_NAME          — overlay PROJECT_NOME / runner.config
  *   NODE_ENV          — production salta daemon opzionali
  *
  * npm (se applicabile):
@@ -64,7 +64,8 @@
  *   - cruscotto.frontend/cruscotto.home.js — hint UI tab Servizi
  *
  * Dipendenze:
- *   - runner/cruscotto.runner.stack.mjs — parseStartDevArgs, prepareProductRepo, startDevStack
+ *   - cruscotto.frontend/cruscotto.runner.stack.mjs — parseStartDevArgs, prepareProductRepo,
+ *     startDevStack
  *   - cruscotto.database/product.database.seed.run.mjs — syncDatabase, runDataSeeds, waitForDevStack
  *
  * ------------------------------------------------------------------------------------------------------------------------
@@ -131,6 +132,7 @@ if (!opts.skipFriendBot) {
 const runSeedsAfterStack = opts.seedIds.length > 0;
 
 if (runSeedsAfterStack && !opts.startBackground) {
+  // Seed func richiede stack in background — exit 1 senza avviare runDataSeeds
   console.error("I seed richiedono --start-background (stack in background) oppure usa product.database.seed.run.call.mjs a parte.");
   process.exit(1);
 }
@@ -140,9 +142,11 @@ startDevStack({ background: opts.startBackground });
 
 if (!runSeedsAfterStack) {
   if (!opts.startBackground) {
+    // Stack in foreground — turbo blocca il processo; exit 0 se turbo termina
     process.exit(0);
   }
 
+  // Stack in background senza seed — esci lasciando turbo in esecuzione
   return;
 }
 
@@ -162,5 +166,6 @@ try {
   await runDataSeeds(opts.seedIds);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
+  // Seed o attesa stack falliti — exit 1
   process.exit(1);
 }

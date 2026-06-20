@@ -87,6 +87,25 @@ export function matchNodeProcessToServiceId(command) {
 }
 
 /**
+ * @param {ProjectNodeProcess[]} processes
+ * @returns {string}
+ */
+export function formatProjectNodeProcessesText(processes) {
+  if (processes.length === 0) {
+    return "Nessun processo node.exe trovato per i marker configurati.";
+  }
+
+  const lines = processes.map((row) => {
+    const service = matchNodeProcessToServiceId(row.command) ?? "—";
+    const short   = shortenNodeCommand(row.command);
+
+    return `PID ${String(row.pid).padStart(6)}  ${service.padEnd(18)}  ${short}`;
+  });
+
+  return ["PID      servizio            comando", "─".repeat(72), ...lines].join("\n");
+}
+
+/**
  * @param {string[]} markers
  * @param {Set<number>} exclude
  * @returns {ProjectNodeProcess[]}
@@ -192,16 +211,19 @@ function listUnixNodeProcesses(markers, exclude) {
 
 /**
  * @param {{
- *   productRoot: string
- *   portalRoot: string
+ *   productRoot?: string
+ *   portalRoot?: string
+ *   markers?: string[]
  *   excludePids?: number[]
  * }} options
  * @returns {ProjectNodeProcess[]}
  */
 export function listProjectNodeProcesses(options) {
-  const { productRoot, portalRoot, excludePids = [] } = options;
+  const { productRoot, portalRoot, markers: markerOverride, excludePids = [] } = options;
   const exclude = new Set(excludePids.filter((pid) => Number.isInteger(pid) && pid > 0));
-  const markers = [productRoot, portalRoot].filter((path) => typeof path === "string" && path.length > 0);
+  const markers = markerOverride?.length
+    ? markerOverride.filter((path) => typeof path === "string" && path.length > 0)
+    : [productRoot, portalRoot].filter((path) => typeof path === "string" && path.length > 0);
 
   if (markers.length === 0) {
     return [];

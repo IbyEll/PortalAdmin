@@ -87,7 +87,7 @@ import {
   listProjectNodeProcesses
 , matchNodeProcessToServiceId
 , shortenNodeCommand
-} from "../runner/list-project-node-processes.mjs";
+} from "../admin.portal/portal.list.project.node.processes.mjs";
 import { spawnShellOption } from "../lib/portal.utils.mjs";
 
 const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();

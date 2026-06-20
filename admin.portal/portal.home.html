@@ -46,13 +46,24 @@
           <h2>Console</h2>
           <p class="muted" id="prepare-message">In attesa — istanzia un progetto o apri il cruscotto.</p>
           <p class="muted portal-home-console-hint">
-            Riga sopra = stato sintetico. Area log sotto = traccia click (<strong>azioni HOME</strong>)
-            e output <strong>Istanzia</strong>. Con <strong>Avvia</strong>, su Windows apre anche una finestra
-            <code>cmd</code> con l’output di <code>npm run admin:dashboard</code>.
+            Riga sopra = stato sintetico. Area log sotto = traccia click (<strong>azioni HOME</strong>),
+            output <strong>Istanzia</strong> e <strong>Processi Node</strong>. Con <strong>Avvia</strong>, su Windows
+            apre anche una finestra <code>cmd</code> con l’output di <code>npm run admin:dashboard</code>.
           </p>
         </div>
         <pre class="portal-home-log" id="prepare-log" aria-live="polite"></pre>
         <div class="portal-home-actions">
+          <button type="button" class="btn-secondary" id="btn-list-node-procs">Processi Node</button>
+          <input
+            type="number"
+            class="portal-home-pid-input"
+            id="node-kill-pid"
+            placeholder="PID"
+            min="1"
+            aria-label="PID processo da terminare"
+          />
+          <button type="button" class="btn-danger" id="btn-kill-node-pid" disabled>Kill PID</button>
+          <button type="button" class="btn-danger" id="btn-kill-node-all" disabled>Kill tutti</button>
           <button type="button" class="btn-primary" id="btn-open-cruscotto" disabled>Apri ultimo istanziato</button>
           <button type="button" class="btn-secondary" id="btn-reload-hint" hidden>Riavvia dashboard-server</button>
         </div>

@@ -1,0 +1,4 @@
+﻿# Esclusioni indexing Cursor (AI / codebase search)
+node_modules/
+.git/
+

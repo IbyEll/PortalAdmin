@@ -308,6 +308,22 @@ button:disabled {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-top: 0.75rem;
+  align-items: center;
+}
+
+.portal-home-pid-input {
+  width: 6.5rem;
+  font: inherit;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0a0f16;
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+}
+
+.portal-home-pid-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
 }
 
 .portal-home-reload-note {

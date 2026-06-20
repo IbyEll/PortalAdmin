@@ -6,6 +6,10 @@ const btnOpen        = document.getElementById("btn-open-cruscotto");
 const btnReloadHint  = document.getElementById("btn-reload-hint");
 const reloadNote     = document.getElementById("reload-note");
 const linkCruscotto  = document.getElementById("link-cruscotto");
+const btnListNode    = document.getElementById("btn-list-node-procs");
+const btnKillNodePid = document.getElementById("btn-kill-node-pid");
+const btnKillNodeAll = document.getElementById("btn-kill-node-all");
+const inputKillPid   = document.getElementById("node-kill-pid");
 
 const CONSOLE_IDLE = "In attesa — istanzia un progetto dalla colonna destra.";
 
@@ -28,6 +32,13 @@ let uiConsoleLines = [];
 /** Tail log prepare (Istanzia) — aggiornato da updatePreparePanel */
 let lastPrepareLogTail = "";
 
+/** Tail elenco processi Node — aggiornato da listNodeProcesses */
+let lastNodeProcsLogTail = "";
+
+/** Ultimi pid restituiti da /api/portal/node-processes */
+/** @type {number[]} */
+let lastNodeProcPids = [];
+
 function refreshConsoleDisplay() {
   /** @type {string[]} */
   const parts = [];
@@ -40,10 +51,28 @@ function refreshConsoleDisplay() {
     parts.push("--- prepare (Istanzia) ---", lastPrepareLogTail);
   }
 
+  if (lastNodeProcsLogTail) {
+    parts.push("--- processi Node (product + PortalAdmin) ---", lastNodeProcsLogTail);
+  }
+
   prepareLog.textContent = parts.join("\n\n");
 
   if (prepareLog.textContent) {
     prepareLog.scrollTop = prepareLog.scrollHeight;
+  }
+}
+
+/**
+ * @param {boolean} hasProcesses
+ */
+function updateNodeKillButtons(hasProcesses) {
+  if (btnKillNodeAll) {
+    btnKillNodeAll.disabled = !hasProcesses;
+  }
+
+  if (btnKillNodePid && inputKillPid) {
+    const pid = Number(inputKillPid.value);
+    btnKillNodePid.disabled = !Number.isInteger(pid) || pid <= 0;
   }
 }
 
@@ -506,6 +535,161 @@ async function detectServerMode() {
 btnReloadHint.addEventListener("click", () => {
   reloadNote.hidden = false;
   reloadNote.scrollIntoView({ behavior: "smooth" });
+});
+
+async function listNodeProcesses() {
+  prepareMessage.textContent = "Scansione processi node.exe…";
+  appendUiConsole("click Processi Node → GET /api/portal/node-processes");
+
+  if (btnListNode) {
+    btnListNode.disabled = true;
+  }
+
+  try {
+    const result = await api("/api/portal/node-processes");
+    const text   = typeof result.text === "string" ? result.text : "";
+    const count  = Number(result.count ?? 0);
+
+    lastNodeProcsLogTail = text;
+    lastNodeProcPids     = Array.isArray(result.processes)
+      ? result.processes
+        .map((row) => Number(row.pid))
+        .filter((pid) => Number.isInteger(pid) && pid > 0)
+      : [];
+
+    refreshConsoleDisplay();
+    updateNodeKillButtons(lastNodeProcPids.length > 0);
+
+    const markers = Array.isArray(result.markers) ? result.markers.length : 0;
+    appendUiConsole(`risposta: ${count} processo/i — marker=${markers}`);
+    prepareMessage.textContent = count > 0
+      ? `Trovati ${count} processi node — vedi console.`
+      : "Nessun processo node trovato per PortalAdmin/product.";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Processi Node: ${msg}`);
+    prepareMessage.textContent = msg;
+    lastNodeProcsLogTail       = "";
+    lastNodeProcPids           = [];
+    updateNodeKillButtons(false);
+    refreshConsoleDisplay();
+  } finally {
+    if (btnListNode) {
+      btnListNode.disabled = false;
+    }
+  }
+}
+
+/**
+ * @param {number} pid
+ */
+async function killNodeProcess(pid) {
+  prepareMessage.textContent = `Kill PID ${pid}…`;
+  appendUiConsole(`click Kill PID — ${pid} → POST /api/portal/kill-node-process`);
+
+  if (btnKillNodePid) {
+    btnKillNodePid.disabled = true;
+  }
+
+  try {
+    const result = await api("/api/portal/kill-node-process", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ pid })
+    });
+
+    const killed = Array.isArray(result.killed) ? result.killed.length : 0;
+    const failed = Array.isArray(result.failed) ? result.failed.length : 0;
+    appendUiConsole(`risposta kill pid: killed=${killed} failed=${failed}`);
+    prepareMessage.textContent = killed > 0
+      ? `PID ${pid} terminato.`
+      : `Kill PID ${pid} — nessun processo terminato.`;
+
+    await listNodeProcesses();
+    await load();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Kill PID: ${msg}`);
+    prepareMessage.textContent = msg;
+  } finally {
+    updateNodeKillButtons(lastNodeProcPids.length > 0);
+  }
+}
+
+async function killAllNodeProcesses() {
+  if (lastNodeProcPids.length === 0) {
+    prepareMessage.textContent = "Esegui prima Processi Node.";
+    return;
+  }
+
+  const ok = window.confirm(
+    `Terminare tutti i ${lastNodeProcPids.length} processi node elencati (escluso server HOME)?`
+  );
+
+  if (!ok) {
+    appendUiConsole("Kill tutti — annullato dall'utente");
+    return;
+  }
+
+  prepareMessage.textContent = "Kill tutti i processi node elencati…";
+  appendUiConsole("click Kill tutti → POST /api/portal/kill-node-process { all: true }");
+
+  if (btnKillNodeAll) {
+    btnKillNodeAll.disabled = true;
+  }
+
+  try {
+    const result = await api("/api/portal/kill-node-process", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ all: true })
+    });
+
+    const killed = Array.isArray(result.killed) ? result.killed.length : 0;
+    const failed = Array.isArray(result.failed) ? result.failed.length : 0;
+    appendUiConsole(`risposta kill all: killed=${killed} failed=${failed}`);
+    prepareMessage.textContent = killed > 0
+      ? `Kill tutti — terminati ${killed} processo/i.`
+      : "Kill tutti — nessun processo terminato.";
+
+    await listNodeProcesses();
+    await load();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    appendUiConsole(`errore Kill tutti: ${msg}`);
+    prepareMessage.textContent = msg;
+  } finally {
+    updateNodeKillButtons(lastNodeProcPids.length > 0);
+  }
+}
+
+btnListNode?.addEventListener("click", () => {
+  listNodeProcesses().catch((err) => {
+    prepareMessage.textContent = err instanceof Error ? err.message : String(err);
+  });
+});
+
+inputKillPid?.addEventListener("input", () => {
+  updateNodeKillButtons(lastNodeProcPids.length > 0);
+});
+
+btnKillNodePid?.addEventListener("click", () => {
+  const pid = Number(inputKillPid?.value);
+
+  if (!Number.isInteger(pid) || pid <= 0) {
+    prepareMessage.textContent = "Inserisci un PID valido.";
+    return;
+  }
+
+  killNodeProcess(pid).catch((err) => {
+    prepareMessage.textContent = err instanceof Error ? err.message : String(err);
+  });
+});
+
+btnKillNodeAll?.addEventListener("click", () => {
+  killAllNodeProcesses().catch((err) => {
+    prepareMessage.textContent = err instanceof Error ? err.message : String(err);
+  });
 });
 
 load().catch((err) => {
