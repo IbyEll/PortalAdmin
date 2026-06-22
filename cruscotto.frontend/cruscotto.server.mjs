@@ -55,7 +55,7 @@
  *
  * Dipendenze:
  *   - lib/test.catalog.mjs, dashboard.project.mjs, test.dipendenze.mjs, reporter.mjs
- *   - server/cruscotto.health.mjs, dev-api.mjs; cruscotto.testscript.manager.mjs
+ *   - cruscotto.frontend/cruscotto.health.mjs, dev-api.mjs; cruscotto.testscript.manager.mjs
  *   - cruscotto.process.services.manager.mjs, cruscotto.jira.*.mjs, portal.instance.mjs
  *   - lib/cruscotto.config.overlay.mjs, discovery.services.repo.mjs, export/export-report.mjs
  *
@@ -65,6 +65,7 @@
 import "../lib/portal.load.env.mjs";
 
 import { createServer } from "node:http";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createReadStream, existsSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
@@ -76,17 +77,17 @@ import {
 , discoverTestScripts
 , REPO_ROOT
 } from "../lib/test.catalog.mjs";
-import { getHealthStatus } from "../server/cruscotto.health.mjs";
-import { getDevRequirements, getDevServicesWithHealth } from "../server/dev-api.mjs";
+import { getHealthStatus } from "../cruscotto.frontend/cruscotto.health.mjs";
+import { getDevRequirements, getDevServicesWithHealth } from "./cruscotto.dev.api.mjs";
 import {
   discoverScriptDescription
 , discoverScriptDocHeader
 , discoverTestCasesForScript
 } from "../lib/test.dipendenze.mjs";
 import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
-//import { buildBacklogPillarTree } from "./cruscotto.jira.backlog.pillars.mjs";
+import { buildBacklogPillarTree } from "./cruscotto.jira.backlog.pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
-import { scanRepoJiraReferences } from "./jira/jira.function.repo.refs.mjs";
+import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWorkingInsights } from "./cruscotto.jira.working.insights.mjs";
 import {
   archiveAndRegenerateWorkingPlan
@@ -149,17 +150,22 @@ import {
 , listAvailableProjects
 } from "../lib/portal.instance.mjs";
 import { buildCruscottoProjectPayload } from "../lib/cruscotto.config.overlay.mjs";
+import {
+  describeCruscottoDbLayout
+, resolveCruscottoDbPath
+} from "../cruscotto.database/cruscotto.db.config.mjs";
+import { runCruscottoMigrateDeploy } from "../cruscotto.database/cruscotto.db.migrate.mjs";
+import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
 
 // --- configurazione server — path cruscotto e porta HTTP ---
 const SERVER_DIR    = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT   = join(SERVER_DIR, "..");
 const CRUSCOTTO_DIR = join(PORTAL_ROOT, "cruscotto.frontend");
-const JIRA_LIB_DIR  = join(CRUSCOTTO_DIR, "jira");
 
-/** Asset insight serviti da cruscotto.frontend/jira (URL brevi in HTML cruscotto). */
+/** Asset insight — URL brevi in HTML cruscotto (file in cruscotto.frontend/). */
 const INSIGHT_STATIC_FILES = {
-  "insight-toolbar.css" : join(JIRA_LIB_DIR, "insight-toolbar.css")
-, "insight-validate.js" : join(JIRA_LIB_DIR, "insight-validate.js")
+  "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.css")
+, "insight-validate.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.validate.js")
 };
 
 /** Alias statici cruscotto.frontend (nomi brevi in HTML legacy). */
@@ -172,6 +178,10 @@ const CRUSCOTTO_STATIC_ALIASES = {
 , "index.html"              : "cruscotto.home.html"
 , "expand-collapse-ui.js"   : "expand.collapse.toolbar.js"
 , "expand-collapse-ui.css"  : "expand.collapse.toolbar.css"
+, "backlog.html"            : "cruscotto.jira.backlog.html"
+, "my-backlog.html"         : "cruscotto.jira.my-backlog.html"
+, "jira-working.html"       : "cruscotto.jira.working.html"
+, "my-project.html"         : "cruscotto.jira.my-project.html"
 };
 
 /** Route URL → file relativo in cruscotto.frontend/. */
@@ -321,6 +331,29 @@ async function preflightRunTarget(options) {
   return { ok: true };
 }
 
+/**
+ * Arricchisce payload backlog con allineamento repo e albero pilastri.
+ *
+ * @param {Awaited<ReturnType<typeof loadJiraBacklog>>} data
+ */
+function enrichBacklogPayload(data) {
+  const repoRefs = scanRepoJiraReferences();
+
+  data.repoAlign  = buildRepoAlignMap(data.issues, repoRefs);
+  data.pillarTree = buildBacklogPillarTree(data.issues);
+
+  return data;
+}
+
+/**
+ * @param {import("node:http").ServerResponse} res
+ * @param {import("node:http").IncomingMessage} req
+ * @param {Awaited<ReturnType<typeof loadJiraBacklog>>} data
+ */
+function sendBacklogJson(res, req, data) {
+  sendJson(res, 200, enrichBacklogPayload(data), req);
+}
+
 // --- static — file da cruscotto.frontend/ e archivi working plan HTML ---
 /**
  * @param {string} rel — path relativo sotto cruscotto.frontend o chiave alias
@@ -329,7 +362,7 @@ async function preflightRunTarget(options) {
 function resolveCruscottoStaticFile(rel) {
   // 1. Risoluzione path — insight jira/, alias brevi o file sotto cruscotto.frontend/
   if (INSIGHT_STATIC_FILES[rel]) {
-    return { file: INSIGHT_STATIC_FILES[rel], rootDir: JIRA_LIB_DIR };
+    return { file: INSIGHT_STATIC_FILES[rel], rootDir: CRUSCOTTO_DIR };
   }
 
   const aliased = CRUSCOTTO_STATIC_ALIASES[rel] ?? rel;
@@ -1177,10 +1210,42 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/jira/backlog" && req.method === "GET") {
     try {
       const data = await loadJiraBacklog();
-      const repoRefs = scanRepoJiraReferences();
-      data.repoAlign = buildRepoAlignMap(data.issues, repoRefs);
-      data.pillarTree = buildBacklogPillarTree(data.issues);
-      sendJson(res, 200, data, req);
+      sendBacklogJson(res, req, data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/my-backlog" && req.method === "GET") {
+    try {
+      const data = await loadJiraBacklog({ dbOnly: true });
+      sendBacklogJson(res, req, data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/my-backlog/sync" && req.method === "POST") {
+    try {
+      // Solo migrate deploy — generate fallirebbe EPERM con Prisma già caricato nel processo server
+      runCruscottoMigrateDeploy({ stdio: "pipe" });
+
+      const result = await syncJiraBacklogFromApi();
+
+      sendJson(res, 200, {
+        ok       : true
+      , syncRunId: result.syncRunId
+      , issueCount: result.issueCount
+      , fetchedAt: result.fetchedAt
+      , dbPath   : resolveCruscottoDbPath()
+      , layout   : describeCruscottoDbLayout()
+      }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -1423,6 +1488,7 @@ async function handleRequest(req, res) {
     , "jiraworkingold"
     , "jiraproject"
     , "backlog"
+    , "mybacklog"
     , "myproject"
     , "pillarmatrix"
     , "process"

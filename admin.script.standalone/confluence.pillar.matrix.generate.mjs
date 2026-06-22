@@ -14,7 +14,7 @@ import {
   GIT_EVIDENCE_COMMIT_LIMIT
 , resolveTicketGitEvidence
 } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
-import { scanRepoJiraReferences } from "../cruscotto.frontend/jira/jira.function.repo.refs.mjs";
+import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { JLO_SPRINT_6_OBSOLETE, resolveIssueSprintName } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

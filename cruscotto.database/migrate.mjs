@@ -12,9 +12,14 @@
  *
  * Uso:
  *   - node cruscotto.database/migrate.mjs
+ *   - node cruscotto.database/migrate.mjs --deploy-only
+ *
+ * Flag CLI:
+ *   --deploy-only — solo migrate deploy (no generate; sync con dashboard attiva)
+ *   --help        — sintassi e esci 0
  *
  * Variabili d'ambiente:
- *   CRUSCOTTO_DB_PATH        override path file .db (via index.mjs)
+ *   CRUSCOTTO_DB_PATH        override path file .db (via cruscotto.db.config.mjs)
  *   CRUSCOTTO_DATABASE_URL   impostata dallo script per Prisma CLI
  *
  * npm:
@@ -24,59 +29,25 @@
  *   npm install in cruscotto.database/ (Prisma in node_modules locale)
  */
 
-import { execFileSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  runCruscottoMigrateDeploy
+, runCruscottoMigrateFull
+} from "./cruscotto.db.migrate.mjs";
+import { resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
 
-import { prepareCruscottoDatabaseUrl, resolveCruscottoDbPath } from "./index.mjs";
+const args = process.argv.slice(2);
 
-const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
-const PRISMA_BIN = join(MODULE_DIR, "node_modules", "prisma", "build", "index.js");
+if (args.includes("--help") || args.includes("-h")) {
+  console.log("Uso: node cruscotto.database/migrate.mjs [--deploy-only]");
+  process.exit(0);
+}
 
-// 1. Assicura directory db e costruisce URL datasource
-const url = prepareCruscottoDatabaseUrl();
+const deployOnly = args.includes("--deploy-only");
 
-// 2. Prisma migrate deploy sullo schema in cruscotto.database/prisma
-execFileSync(
-  process.execPath
-, [
-    PRISMA_BIN
-  , "migrate"
-  , "deploy"
-  , "--schema"
-  , join(MODULE_DIR, "prisma", "schema.prisma")
-  ]
-, {
-    cwd       : MODULE_DIR
-  , encoding  : "utf8"
-  , stdio     : "inherit"
-  , env       : {
-      ...process.env
-    , CRUSCOTTO_DATABASE_URL: url
-    }
-  }
-);
+if (deployOnly) {
+  runCruscottoMigrateDeploy();
+} else {
+  runCruscottoMigrateFull();
+}
 
-// 3. Prisma generate — client locale (PortalAdmin root non ha npm workspaces)
-execFileSync(
-  process.execPath
-, [
-    PRISMA_BIN
-  , "generate"
-  , "--schema"
-  , join(MODULE_DIR, "prisma", "schema.prisma")
-  ]
-, {
-    cwd       : MODULE_DIR
-  , encoding  : "utf8"
-  , stdio     : "inherit"
-  , env       : {
-      ...process.env
-    , CRUSCOTTO_DATABASE_URL: url
-    }
-  }
-);
-
-// 4. Report path per log CI e portal-prepare
-console.log(`Cruscotto DB migrato: ${url}`);
-console.log(`  path: ${resolveCruscottoDbPath()}`);
+console.log(`Cruscotto DB migrato: ${resolveCruscottoDbPath()}`);

@@ -19,7 +19,59 @@
 
 import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 
-import { closeCruscottoDb, openCruscottoDb, resolveCruscottoDbPath } from "./index.mjs";
+import { openCruscottoDb, resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
+
+/**
+ * Unisce sprint board e sprint su singole issue (FK jira_issue_sprint → jira_sprint).
+ *
+ * @param {Awaited<ReturnType<typeof fetchJiraBacklog>>} backlog
+ * @returns {Map<number, { id: number, name: string, state: string, startDate?: string | null, endDate?: string | null }>}
+ */
+function collectSprintsById(backlog) {
+  /** @type {Map<number, { id: number, name: string, state: string, startDate?: string | null, endDate?: string | null }>} */
+  const byId = new Map();
+
+  const add = (sprint) => {
+    const id = Number(sprint?.id);
+
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+
+    const existing = byId.get(id);
+
+    if (!existing) {
+      byId.set(id, {
+        id
+      , name     : String(sprint.name ?? `Sprint ${id}`)
+      , state    : String(sprint.state ?? "closed")
+      , startDate: sprint.startDate ?? null
+      , endDate  : sprint.endDate ?? null
+      });
+      return;
+    }
+
+    if (!existing.name && sprint.name) {
+      existing.name = String(sprint.name);
+    }
+
+    if (!existing.state && sprint.state) {
+      existing.state = String(sprint.state);
+    }
+  };
+
+  for (const sprint of backlog.jiraSprints ?? []) {
+    add(sprint);
+  }
+
+  for (const row of backlog.issues) {
+    for (const sprint of row.jiraSprints ?? []) {
+      add(sprint);
+    }
+  }
+
+  return byId;
+}
 
 /**
  * @param {Awaited<ReturnType<typeof fetchJiraBacklog>>} backlog
@@ -39,8 +91,8 @@ export async function syncJiraBacklogSnapshot(backlog) {
   });
 
   try {
-    // 2. Upsert sprint globali
-    for (const sprint of backlog.jiraSprints ?? []) {
+    // 2. Upsert tutti gli sprint referenziati (board + customfield per issue)
+    for (const sprint of collectSprintsById(backlog).values()) {
       await db.jiraSprint.upsert({
         where  : { id: sprint.id }
       , create : {
@@ -90,16 +142,22 @@ export async function syncJiraBacklogSnapshot(backlog) {
       issueIds.set(row.key, created.id);
 
       for (const sprint of row.jiraSprints ?? []) {
+        const sprintId = Number(sprint.id);
+
+        if (!Number.isFinite(sprintId) || sprintId <= 0) {
+          continue;
+        }
+
         await db.jiraIssueSprint.upsert({
           where: {
             issueId_sprintId: {
               issueId  : created.id
-            , sprintId : sprint.id
+            , sprintId
             },
           }
         , create: {
             issueId  : created.id
-          , sprintId : sprint.id
+          , sprintId
           }
         , update: {},
         });
@@ -134,17 +192,20 @@ export async function syncJiraBacklogSnapshot(backlog) {
     , fetchedAt  : backlog.fetchedAt
     };
   } catch (err) {
-    await db.syncRun.update({
-      where: { id: syncRun.id }
-    , data : {
-        status    : "failed"
-      , finishedAt: new Date()
-      },
-    });
+    try {
+      const failDb = await openCruscottoDb();
+      await failDb.syncRun.update({
+        where: { id: syncRun.id }
+      , data : {
+          status    : "failed"
+        , finishedAt: new Date()
+        },
+      });
+    } catch {
+      // ignore — sync run resta in running se update fallisce
+    }
 
     throw err;
-  } finally {
-    await closeCruscottoDb();
   }
 }
 

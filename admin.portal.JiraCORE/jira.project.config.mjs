@@ -52,10 +52,10 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import "../../lib/portal.load.env.mjs";
+import "../lib/portal.load.env.mjs"; 
 
 const MODULE_DIR  = dirname(fileURLToPath(import.meta.url));
-const PORTAL_ROOT = join(MODULE_DIR, "..", "..");
+const PORTAL_ROOT = join(MODULE_DIR, "..");
 
 /**
  * @typedef {import("../project.config.mjs").ProjectConfig} ProjectConfig

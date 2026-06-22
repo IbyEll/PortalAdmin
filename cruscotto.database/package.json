@@ -3,9 +3,9 @@
   "version"         : "0.1.0",
   "private"         : true,
   "type"            : "module",
-  "main"            : "./index.mjs",
+  "main"            : "./cruscotto.db.config.mjs",
   "exports"         : {
-    "."             : "./index.mjs"
+    "."             : "./cruscotto.db.config.mjs"
   },
   "scripts"         : {
     "db:generate"   : "prisma generate",

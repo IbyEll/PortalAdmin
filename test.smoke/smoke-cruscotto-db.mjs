@@ -14,16 +14,24 @@ import {
   describeCruscottoDbLayout
 , prepareCruscottoDatabaseUrl
 , resolveCruscottoDbPath
-} from "../cruscotto.database/index.mjs";
-import { loadJiraBacklogFromDb } from "../cruscotto.database/jiraCORE.backlog.load.mjs";
+} from "../cruscotto.database/cruscotto.db.config.mjs";
+import { loadJiraBacklogFromDb } from "../admin.portal.JiraCORE/jiraCORE.backlog.load.mjs";
 import { getPortalRoot } from "../lib/portal-paths.mjs";
+import { resolveProjectOverlayName } from "../lib/project.config.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+const overlay     = resolveProjectOverlayName();
 const defaultPath = resolveCruscottoDbPath();
+const expectedRel = `PROJECT_${overlay}/cruscotto_${overlay}.db`;
 
-if (!defaultPath.includes("PortalAdmin") && !defaultPath.startsWith(getPortalRoot())) {
-  console.error("FAIL: CRUSCOTTO_DB_PATH not under portal root by default", defaultPath);
+if (!defaultPath.startsWith(getPortalRoot())) {
+  console.error("FAIL: default cruscotto DB not under portal root", defaultPath);
+  process.exit(1);
+}
+
+if (!defaultPath.replace(/\\/g, "/").endsWith(expectedRel.replace(/\\/g, "/"))) {
+  console.error("FAIL: default path not PROJECT overlay layout", defaultPath, "expected", expectedRel);
   process.exit(1);
 }
 

@@ -16,12 +16,16 @@ cruscotto.database/*
 !cruscotto.database/prisma/**
 !cruscotto.database/script_seed/
 !cruscotto.database/script_seed/**
-!cruscotto.database/index.mjs
+!cruscotto.database/cruscotto.db.config.mjs
 !cruscotto.database/migrate.mjs
 !cruscotto.database/load-backlog.mjs
-!cruscotto.database/sync-backlog.mjs
+!cruscotto.database/Jira.backlog.sync.mjs
 !cruscotto.database/package.json
 !cruscotto.database/package-lock.json
+
+# Cruscotto backlog SQLite per overlay PROJECT_*
+PROJECT_*/cruscotto_*.db
+PROJECT_*/cruscotto_*.db-journal
 
 # Legacy data/ (deprecato — usare cruscotto.database/)
 data/*

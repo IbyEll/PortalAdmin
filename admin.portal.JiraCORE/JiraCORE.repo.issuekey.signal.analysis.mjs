@@ -51,7 +51,7 @@ import {
 , inspectRepoSignal
 , REPO_IMPLEMENTATION_SIGNALS
 } from "../cruscotto.frontend/cruscotto.jira.backlog.insights.mjs";
-import { scanRepoJiraReferences } from "../cruscotto.frontend/jira/jira.function.repo.refs.mjs";
+import { scanRepoJiraReferences } from "./jira.function.repo.refs.mjs";
 
 /** @typedef {"ok" | "partial" | "absent"} RepoEsito */
 

@@ -61,12 +61,12 @@ import {
 , getProjectGithubUrl
 , resolveProjectOverlayName
 } from "../lib/project.config.mjs";
-import { scanRepoJiraReferences } from "../cruscotto.frontend/jira/jira.function.repo.refs.mjs";
+import { scanRepoJiraReferences } from "./jira.function.repo.refs.mjs";
 import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
   GIT_EVIDENCE_COMMIT_LIMIT
 , REPO_SIGNALS_CATALOG_CONFIG
-} from "../cruscotto.frontend/jira/jira.project.config.overlay.mjs";
+} from "./jira.project.config.overlay.mjs";
 
 export { GIT_EVIDENCE_COMMIT_LIMIT };
 

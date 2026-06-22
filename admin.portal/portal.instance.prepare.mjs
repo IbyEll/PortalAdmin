@@ -107,28 +107,23 @@ if (!productRoot || !existsSync(productRoot)) {
 console.log(`[portal-prepare] overlay=${overlay} product=${PROJECT_CONFIG_VALUES.PRJ_NAME}`);
 console.log(`[portal-prepare] repo=${productRoot}`);
 
-// 4. Migrate cruscotto DB PortalAdmin (schema SQLite locale)
-console.log("[portal-prepare] migrate cruscotto DB…");
+// 4. Istanza DB backlog Jira per overlay — PROJECT_{overlay}/cruscotto_{overlay}.db
+console.log("[portal-prepare] istanzia cruscotto backlog DB…");
+
+const { instantiateCruscottoDb } = await import(
+  new URL("../cruscotto.database/cruscotto.db.config.mjs", import.meta.url).href
+);
+
+process.env.PRJ_NAME          = overlay;
+process.env.PRODUCT_REPO_PATH = productRoot;
+
+const dbInstance = await instantiateCruscottoDb();
+
+console.log(
+  `[portal-prepare] cruscotto DB ${dbInstance.created ? "creato" : "caricato"}: ${dbInstance.dbPath}`
+);
 
 const { spawnSync } = await import("node:child_process");
-const migrateScript = join(PORTAL_ROOT, "cruscotto.database", "migrate.mjs");
-
-if (existsSync(migrateScript)) {
-  const migrateRes = spawnSync(process.execPath, [migrateScript], {
-    cwd   : PORTAL_ROOT
-  , env   : {
-      ...process.env
-    , PRJ_NAME          : overlay
-    , PRODUCT_REPO_PATH : productRoot
-    }
-  , stdio : "inherit"
-  });
-
-  if (migrateRes.status !== 0) {
-    console.error(`[portal-prepare] migrate exit ${migrateRes.status}`);
-    process.exit(migrateRes.status ?? 1);
-  }
-}
 
 // 5. Catalogo test overlay (opzionale — policy blocked/excluded; discovery in lib/test.catalog.mjs)
 const catalogPath = join(

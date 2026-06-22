@@ -52,31 +52,53 @@
  * Consumatori:
  *   - package.json — script npm db:sync
  *   - PROJECT_AdminDashBoard/config.project.AdminDashBoard.mjs — PRJ_SEED_FUNC
- *   - cruscotto.database/sync-backlog.mjs — syncJiraBacklogFromApi (persist snapshot)
+ *   - cruscotto.database/Jira.backlog.sync.mjs — syncJiraBacklogFromApi (persist snapshot)
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { execFileSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { describeCruscottoDbLayout, resolveCruscottoDbPath } from "../cruscotto.database/cruscotto.db.config.mjs";
+import { runCruscottoMigrateFull } from "../cruscotto.database/cruscotto.db.migrate.mjs";
+import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
 
-import { describeCruscottoDbLayout, resolveCruscottoDbPath } from "../cruscotto.database/index.mjs";
-import { syncJiraBacklogFromApi } from "../cruscotto.database/sync-backlog.mjs";
+const args    = process.argv.slice(2);
+const jsonOut = args.includes("--json");
 
-const ROOT    = join(dirname(fileURLToPath(import.meta.url)), "..");
-const MIGRATE = join(ROOT, "cruscotto.database", "migrate.mjs");
+if (args.includes("--help") || args.includes("-h")) {
+  console.log("Uso: node admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs [--json]");
+  console.log("  --json  stdout JSON con issueCount, syncRunId, durationMs (DoD ADMIN-82)");
+  process.exit(0);
+}
 
-// 1. Migrate schema — allinea cruscotto.db prima del write
-execFileSync(process.execPath, [MIGRATE], { stdio: "inherit", cwd: ROOT });
+const startedAt = Date.now();
 
-// 2. Fetch Jira + persist — snapshot in SQLite (sync-backlog.mjs)
+// 1. Migrate schema — allinea cruscotto.db prima del write (generate tollera EPERM se dashboard attiva)
+runCruscottoMigrateFull();
+
+// 2. Fetch Jira + persist — snapshot in SQLite (Jira.backlog.sync.mjs)
 const result = await syncJiraBacklogFromApi();
 
+const durationMs = Date.now() - startedAt;
+const layout     = describeCruscottoDbLayout();
+const dbPath     = resolveCruscottoDbPath();
+
 // 3. Report esito — layout, path, conteggi per smoke e operatore
-console.log("OK sync-jira-backlog");
-console.log(`  layout : ${describeCruscottoDbLayout()}`);
-console.log(`  db     : ${resolveCruscottoDbPath()}`);
-console.log(`  issues : ${result.issueCount}`);
-console.log(`  syncRun: ${result.syncRunId}`);
-console.log(`  fetched: ${result.fetchedAt}`);
+if (jsonOut) {
+  console.log(JSON.stringify({
+    ok         : true
+  , issueCount : result.issueCount
+  , syncRunId  : result.syncRunId
+  , durationMs
+  , dbPath
+  , layout
+  , fetchedAt  : result.fetchedAt
+  }));
+} else {
+  console.log("OK sync-jira-backlog");
+  console.log(`  layout : ${layout}`);
+  console.log(`  db     : ${dbPath}`);
+  console.log(`  issues : ${result.issueCount}`);
+  console.log(`  syncRun: ${result.syncRunId}`);
+  console.log(`  fetched: ${result.fetchedAt}`);
+  console.log(`  durationMs: ${durationMs}`);
+}

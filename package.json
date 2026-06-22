@@ -39,6 +39,7 @@
     "stop:all": "node cruscotto.frontend/cruscotto.process.stop.all.services.mjs"
   },
   "dependencies": {
+    "@connectrpc/connect-node": "^1.7.0",
     "@cursor/sdk": "^1.0.19",
     "@prisma/client": "^6.9.0",
     "dotenv": "^16.4.7",

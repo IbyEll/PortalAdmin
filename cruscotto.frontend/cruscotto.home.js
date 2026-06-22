@@ -118,7 +118,7 @@ function cruscottoDashboardPort() {
 }
 
 // --- router — tab, hash e meta pagina ---
-const TABS = ["overview", "requisiti", "servizi", "test", "summary", "testtecnici", "testfunzionali", "jiraworking", "jiraworkingold", "jiraproject", "backlog", "myproject", "pillarmatrix", "process", "cursor"];
+const TABS = ["overview", "requisiti", "servizi", "test", "summary", "testtecnici", "testfunzionali", "jiraworking", "jiraworkingold", "jiraproject", "backlog", "mybacklog", "myproject", "pillarmatrix", "process", "cursor"];
 const DEFAULT_TAB = "overview";
 
 // --- tab Process — console log stack dev e dialogo conferma ---
@@ -594,6 +594,10 @@ const PAGE_META = {
 , backlog: {
     title    : "Backlog"
   , subtitle : "Elenco completo issue Jira — tipo, key, titolo"
+  }
+, mybacklog: {
+    title    : "MyBacklog"
+  , subtitle : "Backlog da cache cruscotto DB — Epic · Sprint · Pilastri"
   }
 , myproject: {
     title    : "My Project"
@@ -7155,6 +7159,14 @@ async function loadAll() {
 function initRouter() {
   document.querySelectorAll(".sidebar-nav [data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.getAttribute("data-tab") ?? DEFAULT_TAB));
+  });
+
+  window.addEventListener("hashchange", () => {
+    const hash = location.hash.replace("#", "");
+
+    if (TABS.includes(hash)) {
+      setActiveTab(hash);
+    }
   });
 
   const rawHash = location.hash.replace("#", "");

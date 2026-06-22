@@ -1,7 +1,7 @@
 <!--
   ** PAGE HTML ** -- commentato il: 2026-06-17
 
-  Backlog JLO — vista Epic · Sprint · Pilastri con insight repo.
+  MyBacklog — copia vista Epic · Sprint · Pilastri (da Jira backlog) con insight repo.
 
   Descrizione funzionale:
 
@@ -18,12 +18,13 @@
 
   Input:
     - window.__CRUSCOTTO_PROJECT__ / data-cruscotto-bind — prefisso Jira e titolo documento
-    - GET /api/jira/backlog — righe backlog (loadJiraBacklog)
+    - GET /api/jira/my-backlog — righe backlog solo da cruscotto DB (no fallback Atlassian)
+    - POST /api/jira/my-backlog/sync — fetch Jira + persist in cruscotto DB
     - GET /api/jira/backlog/insights — snapshot insight repo vs Jira
     - query ?embed=1 — modalità embed in iframe (classe body.is-embed)
 
   Servita da:
-    - runner/cruscotto.server.mjs — URL /backlog.html (file cruscotto.jira.backlog.html)
+    - runner/cruscotto.server.mjs — URL /my-backlog.html (file cruscotto.jira.my-backlog.html)
 
   Asset collegati:
     - jira-issue-display.css — stili issue e tabella condivisi
@@ -47,7 +48,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title data-cruscotto-bind="document.title" data-cruscotto-template="Backlog {jiraPrefix} — Epic · Sprint · Pilastri">Backlog — Epic · Sprint · Pilastri</title>
+  <title data-cruscotto-bind="document.title" data-cruscotto-template="MyBacklog {jiraPrefix} — Epic · Sprint · Pilastri">MyBacklog — Epic · Sprint · Pilastri</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/jira-issue-display.css" />
   <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
@@ -1383,12 +1384,12 @@
 <body>
   <div class="page">
     <header>
-      <h1>Backlog JLO</h1>
+      <h1 data-cruscotto-bind="text" data-cruscotto-template="MyBacklog {jiraPrefix}">MyBacklog</h1>
       <p class="meta">
         Vista Epic · Sprint · Pilastri ·
         <a href="https://myfuturejobsearch.atlassian.net/jira/software/projects/JLO/boards/68">Board</a> ·
         <a href="/backlog.html">Backlog Jira</a> ·
-        <a href="/my-backlog.html">MyBacklog</a> ·
+        <a href="/my-backlog.html"><strong>MyBacklog</strong></a> ·
         <a href="/jira-working.html">Jira Working</a> ·
         <a href="/jira-project-tree.html">Project Tree</a> ·
         <a href="/my-project.html">My Project</a> ·
@@ -1411,13 +1412,19 @@
           <svg class="tree-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7.41 18.59 8.83 20 12 16.83 15.17 20l1.41-1.41L12 14l-4.59 4.59zM7.41 5.41 8.83 4 12 7.17 15.17 4l1.41 1.41L12 10 7.41 5.41z"/></svg>
         </button>
       </span>
-      <button type="button" class="action btn-with-icon btn-jira-reload" id="btn-reload" title="Ricarica backlog da Jira">
+      <button type="button" class="action btn-with-icon btn-jira-sync" id="btn-sync-jira" title="Scarica backlog da Atlassian e salva nel cruscotto DB">
         <svg class="jira-toolbar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <g transform="translate(2 2) scale(0.833333)">
             <path fill="#2684FF" d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.13v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.218 5.218 0 0 0 24 12.487V1.005A1.001 1.001 0 0 0 23.013 0z"/>
           </g>
         </svg>
-        <span>Ricarica Jira</span>
+        <span>Sync Jira Backlog</span>
+      </button>
+      <button type="button" class="action btn-with-icon btn-jira-reload" id="btn-reload" title="Ricarica tabella dalla cache cruscotto DB">
+        <svg class="jira-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        <span>Ricarica DB</span>
       </button>
       <button type="button" class="action btn-with-icon btn-insight-analyze" id="btn-insights" title="Confronta repo e Jira senza ricaricare la tabella">
         <svg class="insight-toolbar-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
@@ -1570,14 +1577,14 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="7" class="state">Caricamento backlog da Jira…</td></tr>
+          <tr><td colspan="7" class="state">Caricamento backlog da cruscotto DB…</td></tr>
         </tbody>
       </table>
     </div>
 
     <footer>
       Vista Epic o Sprint · ordine da <a href="/jira-working.html">Jira Working</a> · check subtask in <code>localStorage</code> ·
-      insight in <code>jlo-backlog-insights-v1</code> · API <code>/api/jira/backlog/insights</code>
+      insight in <code>jlo-my-backlog-insights-v1</code> · API <code>/api/jira/backlog/insights</code>
     </footer>
   </div>
 
@@ -1592,11 +1599,11 @@
 
     const JIRA_BASE = "https://myfuturejobsearch.atlassian.net/browse/";
     const INDENT = 1.1;
-    const STORAGE_KEY = "jlo-backlog-subtask-v1";
-    const VIEW_STORAGE_KEY = "jlo-backlog-view-mode-v1";
-    const INSIGHTS_STORAGE_KEY = "jlo-backlog-insights-v1";
-    const SNAPSHOT_STORAGE_KEY = "jlo-backlog-insights-snapshot-v1";
-    const COL_WIDTHS_STORAGE_KEY = "jlo-backlog-col-widths-v2";
+    const STORAGE_KEY = "jlo-my-backlog-subtask-v1";
+    const VIEW_STORAGE_KEY = "jlo-my-backlog-view-mode-v1";
+    const INSIGHTS_STORAGE_KEY = "jlo-my-backlog-insights-v1";
+    const SNAPSHOT_STORAGE_KEY = "jlo-my-backlog-insights-snapshot-v1";
+    const COL_WIDTHS_STORAGE_KEY = "jlo-my-backlog-col-widths-v2";
     const GOGO_ACTIVE_ROW_KEY = "jlo-backlog-gogo-active-v1";
     const DEV_ORDER_COL_MIN_CH = 11;
     const TABLE_COL_COUNT = 7;
@@ -5268,7 +5275,7 @@
 
     async function loadBacklog() {
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Caricamento backlog da Jira…</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Caricamento backlog da cruscotto DB…</td></tr>`;
       }
 
       if (stats) {
@@ -5287,7 +5294,7 @@
       collapsedByMode.pillar.clear();
 
       try {
-        const res = await fetch("/api/jira/backlog");
+        const res = await fetch("/api/jira/my-backlog");
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -5590,6 +5597,54 @@
       renderInsightLog();
     }
 
+    async function syncJiraBacklog() {
+      const btnSync = document.getElementById("btn-sync-jira");
+
+      if (btnSync) {
+        btnSync.disabled = true;
+      }
+
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Sync Jira Backlog in corso…</td></tr>`;
+      }
+
+      if (stats) {
+        stats.textContent = "Sync Atlassian → DB…";
+      }
+
+      try {
+        const res = await fetch("/api/jira/my-backlog/sync", { method: "POST" });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+
+        const payload = await res.json();
+
+        if (stats) {
+          stats.textContent = `Sync OK — ${payload.issueCount ?? "?"} issue`;
+        }
+
+        await loadBacklog();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state error">Errore sync: ${msg}</td></tr>`;
+        }
+
+        if (stats) {
+          stats.textContent = "Errore sync";
+        }
+      } finally {
+        if (btnSync) {
+          btnSync.disabled = false;
+        }
+      }
+    }
+
+    document.getElementById("btn-sync-jira")?.addEventListener("click", () => syncJiraBacklog());
     document.getElementById("btn-reload")?.addEventListener("click", () => loadBacklog());
     document.getElementById("btn-insights")?.addEventListener("click", () => runRepoInsights());
     document.getElementById("btn-clear-insights")?.addEventListener("click", () => clearInsightLog());
