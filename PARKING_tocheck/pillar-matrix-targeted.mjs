@@ -6,8 +6,8 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { findPillarsForKey, generatePillarMatrixHtml } from "../scripts/generate-confluence-pillar-matrix.mjs";
-import { writePillarMatrixPortalTargeted } from "../cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs";
+import { findPillarsForKey, generatePillarMatrixHtml } from "../admin.script.standalone/confluence.pillar.matrix.generate.mjs";
+import { writePillarMatrixPortalTargeted } from "./cruscotto.jira.pillar.matrix.portal.generate.mjs";
 
 import { getPortalRoot } from "../lib/portal.paths.mjs";
 
