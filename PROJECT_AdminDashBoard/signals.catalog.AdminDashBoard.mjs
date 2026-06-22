@@ -56,4 +56,15 @@ export const PRODUCT_REPO_SIGNALS = [
     , "server"
     ]
   }
+, {
+    key   : "ADMIN-82"
+  , label : "fix portal.paths import in pillar-matrix-targeted"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+      , "admin.portal.testscript"
+    ]
+  }
+
 ];

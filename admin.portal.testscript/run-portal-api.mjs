@@ -33,6 +33,7 @@ const CRUSCOTTO_SCRIPTS = [
 , "repo/test.repo.services.status.mjs"
 , "jira/test.jira.backlog.mjs"
 , "cursor/test.api.cursor.agent.mjs"
+, "cursor/test.cruscotto.backlog.push.mjs"
 ];
 
 const HOME_SCRIPTS = [

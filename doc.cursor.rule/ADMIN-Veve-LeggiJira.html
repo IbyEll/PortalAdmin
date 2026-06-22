@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Veve-LeggiJira — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a> · <a href="ADMIN-Veve.html">ADMIN-Veve</a></p>
+    <header>
+      <h1>ADMIN-Veve — Leggi Jira</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Veve-LeggiJira.mdc</code> ·
+        <span class="tag tag--veve">veve step 1</span>
+      </p>
+      <p class="lead">
+        Lettura read-only del parent ADMIN-xxx e delle subtask collegate — primo passo della sequenza veve.
+      </p>
+    </header>
+
+    <section>
+      <h2>Trigger</h2>
+      <ul>
+        <li><code>leggi jira ADMIN-xxx</code></li>
+        <li><code>veve ADMIN-xxx</code> (step 1 automatico)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Applicazione step-by-step</h2>
+      <ol class="steps">
+        <li><strong>Invoca MCP</strong> — <code>CallMcpTool</code> server <code>user-atlassian</code>,
+          cloudId <code>3caddd74-469e-4ca3-adf8-926f79c98e7c</code>.</li>
+        <li><strong>Leggi parent</strong> — key, issuetype, stato, summary.</li>
+        <li><strong>Elenca subtask</strong> — tabella con key, summary, stato.</li>
+        <li><strong>Segnala anomalie</strong> — subtask orphan (senza parent), key invalide o fuori scope.</li>
+        <li><strong>Output chat</strong> — riepilogo strutturato per step 2 (Analizza repo).</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Output atteso</h2>
+      <table>
+        <thead><tr><th>Elemento</th><th>Contenuto</th></tr></thead>
+        <tbody>
+          <tr><td>Parent</td><td>key, tipo, stato, summary</td></tr>
+          <tr><td>Subtask</td><td>Tabella completa</td></tr>
+          <tr><td>Orphan</td><td>Issue collegate ma non in gerarchia attesa</td></tr>
+          <tr><td>Key invalide</td><td>Prefisso errato o issue inesistenti</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Vietato</h2>
+      <ul>
+        <li class="forbidden"><code>editJiraIssue</code> o qualsiasi modifica Jira</li>
+        <li class="forbidden">Branch, commit, codice</li>
+        <li class="forbidden">Task «Jira Auto» (veve usa MCP diretto)</li>
+      </ul>
+    </section>
+
+    <footer>
+      Prossimo step: <a href="ADMIN-Veve-AnalizzaRepo.html">Analizza repo</a>
+    </footer>
+  </div>
+</body>
+</html>

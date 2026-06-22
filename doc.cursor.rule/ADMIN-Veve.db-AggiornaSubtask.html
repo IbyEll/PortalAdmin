@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Veve.db-AggiornaSubtask — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice</a> · <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></p>
+    <header>
+      <h1>Veve DB — Aggiorna Subtask (WIP)</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Veve.db-AggiornaSubtask.mdc</code> ·
+        <span class="tag tag--db">veve db step 4 / workflow 3.4</span>
+      </p>
+      <p class="lead">
+        Upsert di ogni subtask del parent in <code>jira_issue_wip</code> con testo veve in
+        <code>raw_fields</code>.
+      </p>
+    </header>
+
+    <section>
+      <h2>Trigger</h2>
+      <ul>
+        <li><code>aggiorna subtask db {KEY}</code></li>
+        <li><code>veve db {KEY}</code> step 4 finale</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Template</h2>
+      <p><code>.cursor/templates/veve/veve-subtask.md</code> — Obiettivo, Stato repo, AC/DoD, file, ordine N/M.</p>
+    </section>
+
+    <section>
+      <h2>Applicazione step-by-step</h2>
+      <ol class="steps">
+        <li>Itera subtask del parent (da step 3.1).</li>
+        <li>Riga sorgente da <code>jira_issue</code> o dati Leggi DB.</li>
+        <li>Compila template + gap per ogni subtask.</li>
+        <li><strong>Upsert</strong> <code>jira_issue_wip</code> per ogni <code>jira_key</code> subtask.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Campi upsert subtask</h2>
+      <table>
+        <thead><tr><th>Campo</th><th>Valore</th></tr></thead>
+        <tbody>
+          <tr><td><code>parent_jira_key</code></td><td><code>{KEY}</code> parent</td></tr>
+          <tr><td><code>raw_fields</code></td><td>JSON: <code>veveDescription</code>, <code>files</code>, <code>orderN</code>, <code>orderM</code>, <code>gap</code></td></tr>
+          <tr><td>Altri campi</td><td>Mirror da <code>jira_issue</code> o default Leggi DB</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Vietato</h2>
+      <ul>
+        <li class="forbidden">MCP Jira, branch, commit, Fatto (salvo richiesta)</li>
+      </ul>
+    </section>
+
+    <footer>
+      Orchestratore: <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a> ·
+      Workflow: <a href="ADMIN-Workflow database.html">ADMIN-Workflow database</a>
+    </footer>
+  </div>
+</body>
+</html>

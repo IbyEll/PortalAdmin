@@ -17,6 +17,7 @@ model SyncRun {
   status      String
 
   issues             JiraIssue[]
+  wipIssues          JiraIssueWip[]
   workingPlanSprints WorkingPlanSprintKeys[]
 
   @@map("sync_run")
@@ -55,6 +56,38 @@ model JiraIssue {
   @@index([syncRunId])
   @@index([parentJiraKey])
   @@map("jira_issue")
+}
+
+/// Coda WIP — story + issue da elaborare (stessa struttura di JiraIssue).
+model JiraIssueWip {
+  id                String    @id @default(uuid())
+  jiraKey           String    @unique @map("jira_key")
+  issueType         String    @map("issue_type")
+  summary           String
+  status            String
+  statusCategory    String?   @map("status_category")
+  parentJiraKey     String?   @map("parent_jira_key")
+  jiraUpdatedAt     DateTime? @map("jira_updated_at")
+  tier              String
+  isStoryLike       Boolean   @default(false) @map("is_story_like")
+  isDone            Boolean   @default(false) @map("is_done")
+  depth             Int       @default(0)
+  hasChildren       Boolean   @default(false) @map("has_children")
+  devOrder          String?   @map("dev_order")
+  devSprint         Int?      @map("dev_sprint")
+  devSprintName     String?   @map("dev_sprint_name")
+  devSort           Int?      @map("dev_sort")
+  isSprint6Obsolete Boolean   @default(false) @map("is_sprint6_obsolete")
+  relatedKeys       String?   @map("related_keys")
+  rawFields         String?   @map("raw_fields")
+  syncRunId         String    @map("sync_run_id")
+  syncedAt          DateTime  @default(now()) @map("synced_at")
+
+  syncRun SyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@index([syncRunId])
+  @@index([parentJiraKey])
+  @@map("jira_issue_wip")
 }
 
 model JiraSprint {

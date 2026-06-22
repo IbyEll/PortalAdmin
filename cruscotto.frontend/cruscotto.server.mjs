@@ -42,6 +42,7 @@
  *   - GET  /api/dev/requirements, /api/dev/services
  *   - GET|POST /api/repo/services/*, /api/repo/database/*
  *   - GET  /api/jira/backlog, /api/jira/backlog/insights, /api/jira/working/*
+ *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — step 8 workflow database
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance — istanza overlay attiva
  *   - POST /api/portal/instance — attiva overlay PROJECT_* (PRJ_NAME) e prepare
@@ -89,6 +90,8 @@ import { buildBacklogPillarTree } from "./cruscotto.jira.backlog.pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWorkingInsights } from "./cruscotto.jira.working.insights.mjs";
+import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
+import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
 import {
   archiveAndRegenerateWorkingPlan
 , listWorkingPlanArchives
@@ -115,6 +118,7 @@ import {
 , isCursorAgentActive
 , startCursorAgent
 } from "../admin.portal/portal.cursor.agent.manager.mjs";
+import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import {
   clearRepoServicesLogs
 , getProductDatabaseStatus
@@ -1360,6 +1364,60 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/cursor/config" && req.method === "GET") {
     sendJson(res, 200, getCursorAgentConfigPayload(), req);
+    return;
+  }
+
+  if (urlPath === "/api/workflow/pr-url" && req.method === "GET") {
+    const url = new URL(req.url ?? "", "http://localhost");
+    const key = String(url.searchParams.get("key") ?? "").trim().toUpperCase();
+
+    if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+      sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+      return;
+    }
+
+    sendJson(res, 200, resolvePrUrlForIssueKey(key), req);
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/status" && req.method === "GET") {
+    const url = new URL(req.url ?? "", "http://localhost");
+    const keysParam = String(url.searchParams.get("keys") ?? "").trim();
+    const keys = keysParam
+      ? keysParam.split(/[\s,]+/).map((key) => key.trim()).filter(Boolean)
+      : [];
+
+    try {
+      const data = await fetchWipStatusByKeys(keys);
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/push" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const result = await pushWipStory(key, {
+        dryRun: body.dryRun === true
+      });
+
+      sendJson(res, result.ok ? 200 : 409, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 409, { ok: false, error: message }, req);
+    }
+
     return;
   }
 

@@ -16,4 +16,6 @@ Regola canonica: **`.cursor/rules/ADMIN-Workflow.mdc`**.
 
 Comandi: `gogo JLO-507` · `chiudi fast Story JLO-930` — **stop** se istanza non allineata a JustLastOne.
 
+Pipeline: step 3 **veve** su `JLO-{num}` prima di Step 0 — vedi `ADMIN-Workflow.mdc` § Step 3.
+
 Ticket **ADMIN**: stessa regola con overlay `AdminDashBoard` e repo workflow PortalAdmin.

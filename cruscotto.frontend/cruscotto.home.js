@@ -6841,8 +6841,24 @@ function appendCursorAgentLogLine(outputEl, line) {
     return;
   }
 
+  const stream = line.stream === "assistant"
+    ? "assistant"
+    : line.stream === "workflow"
+      ? "workflow"
+      : line.stream === "stderr"
+        ? "stderr"
+        : "system";
+
+  if (stream === "assistant") {
+    const last = outputEl.lastElementChild;
+
+    if (last instanceof HTMLElement && last.classList.contains("process-console-assistant")) {
+      last.textContent += line.text;
+      return;
+    }
+  }
+
   const row = document.createElement("div");
-  const stream = line.stream === "assistant" ? "assistant" : line.stream === "stderr" ? "stderr" : "system";
   row.className = `process-console-line process-console-${stream}`;
   row.textContent = line.text;
   outputEl.appendChild(row);

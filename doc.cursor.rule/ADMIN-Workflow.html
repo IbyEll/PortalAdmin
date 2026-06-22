@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Workflow — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>ADMIN-Workflow</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Workflow.mdc</code> ·
+        <span class="tag tag--always">alwaysApply: true</span> ·
+        Aggiornato 2026-06-22
+      </p>
+      <p class="lead">
+        Orchestra git, Jira e codice sui ticket del <strong>progetto istanziato</strong>
+        (<code>PRJ_NAME</code> + <code>PRODUCT_REPO_PATH</code>), non sul solo checkout host PortalAdmin.
+      </p>
+      <div class="revision-banner">
+        <strong>Revisione 2026-06-22:</strong> integrato <a href="ADMIN-Veve.html">ADMIN-Veve</a> come
+        <strong>step 3</strong> obbligatorio su <code>procedi</code> / <code>gogo</code>, prima di Step 0.
+      </div>
+    </header>
+
+    <section>
+      <h2>Pipeline — ordine fisso</h2>
+
+      <div class="obsolete-block">
+        <div class="obsolete-label">Prima (superato)</div>
+        <ol class="obsolete">
+          <li>Verifica branch</li>
+          <li>Pre-flight git</li>
+          <li>Step 0 — Task Jira Auto + gap analysis CLI + START</li>
+          <li>Implementazione subtask</li>
+          <li>END-A → chiudi → END-B</li>
+        </ol>
+      </div>
+
+      <div class="revision-block">
+        <div class="revision-label">Adesso</div>
+        <table>
+          <thead><tr><th>Step</th><th>Fase</th><th>Regola / tool</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Verifica branch</td><td>git nel repo workflow</td></tr>
+            <tr><td>2</td><td>Pre-flight git</td><td>tree pulito, branch da <code>main</code></td></tr>
+            <tr><td><strong>3</strong></td><td><strong>Veve</strong></td><td><a href="ADMIN-Veve.html">ADMIN-Veve</a> — grooming Jira silenzioso</td></tr>
+            <tr><td>4</td><td>Step 0 — piano</td><td>Task «Jira Auto» + START (<a href="ADMIN-Silence.html">Silence</a>)</td></tr>
+            <tr><td>5</td><td>Implementazione</td><td>subtask + commit + ok chiudi</td></tr>
+            <tr><td>6</td><td>END-A</td><td>parent ancora Da fare</td></tr>
+            <tr><td>7</td><td>Chiusura</td><td><code>chiudi</code> → <code>close-story.mjs</code> → END-B</td></tr>
+          </tbody>
+        </table>
+        <p><code>gogo</code> / FULL non saltano gli step 1–4. <code>chiudi</code> non riesegue veve.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 3 — Veve (dettaglio)</h2>
+      <p>Eseguito automaticamente su <code>procedi</code> / <code>gogo {KEY}</code> dopo pre-flight, prima di Step 0.</p>
+      <table>
+        <thead><tr><th>Sotto-step</th><th>Regola</th><th>Azione</th></tr></thead>
+        <tbody>
+          <tr><td>3.1</td><td><a href="ADMIN-Veve-LeggiJira.html">Leggi Jira</a></td><td>Parent + subtask (MCP read-only)</td></tr>
+          <tr><td>3.2</td><td><a href="ADMIN-AnalizzaRepo.html">Analizza repo</a></td><td>Gap analysis CLI sul repo workflow</td></tr>
+          <tr><td>3.3</td><td><a href="ADMIN-Veve-AggiornaStory.html">Aggiorna story</a></td><td><code>editJiraIssue</code> parent</td></tr>
+          <tr><td>3.4</td><td><a href="ADMIN-Veve-AggiornaSubtask.html">Aggiorna subtask</a></td><td><code>editJiraIssue</code> ogni subtask</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <thead><tr><th>Vincolo step 3</th><th>Regola</th></tr></thead>
+        <tbody>
+          <tr><td>Chat</td><td>Silenziosa — output veve solo in sessione per Step 0</td></tr>
+          <tr><td>Jira</td><td>MCP <code>user-atlassian</code> (eccezione al divieto MCP in workflow)</td></tr>
+          <tr><td>Git / codice</td><td>Vietati</td></tr>
+          <tr><td>Ripresa</td><td>Veve già fatto in sessione su <code>{KEY}</code> → salta step 3</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Step 0 — Piano (step 4)</h2>
+      <div class="obsolete-block">
+        <div class="obsolete-label">Prima</div>
+        <p class="obsolete">Step 0 eseguiva Task Jira Auto <em>e</em> gap analysis CLI in parallelo al primo avvio.</p>
+      </div>
+      <div class="revision-block">
+        <div class="revision-label">Adesso</div>
+        <ol>
+          <li>Task «Jira Auto» — <code>Step 0 {KEY} plan Jira</code> su Jira già allineato da veve</li>
+          <li>Gap — riusa output step 3.2; non ripetere CLI salvo ripresa senza veve in sessione</li>
+          <li>Filtra subtask Da fare, ordina, estrae AC/DoD</li>
+          <li>Emissione unica <strong>START</strong> in chat</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>Comandi utente</h2>
+      <table>
+        <thead><tr><th>Comando</th><th>Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>gogo {KEY}</code></td><td>Step 1–4 silenziosi → START → subtask silent → END-A</td></tr>
+          <tr><td><code>procedi Story {KEY}</code></td><td>Step 1–4 → implementazione con confirm</td></tr>
+          <tr><td><code>chiudi Story {KEY}</code></td><td>Push + PR + catalogo + gap test + parent → Fatto</td></tr>
+          <tr><td><code>veve {KEY}</code></td><td>Solo grooming (standalone, chat libera) — stessa sequenza dello step 3</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Jira — invocazione</h2>
+      <div class="obsolete-block">
+        <div class="obsolete-label">Prima</div>
+        <p class="obsolete">Solo Task «Jira Auto» in tutto il workflow; veve separato con MCP solo su comando esplicito.</p>
+      </div>
+      <div class="revision-block">
+        <div class="revision-label">Adesso</div>
+        <table>
+          <thead><tr><th>Fase</th><th>Jira</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Step 3 veve</strong></td><td>MCP <code>user-atlassian</code></td></tr>
+            <tr><td>Step 0, ok chiudi, chiudi parent</td><td>Task «Jira Auto»</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Diagramma pipeline</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  A["1 Verifica branch"] --> B["2 Pre-flight git"]
+  B --> C["3 Veve grooming"]
+  C --> C1["3.1 Leggi Jira"]
+  C1 --> C2["3.2 Gap repo"]
+  C2 --> C3["3.3 Aggiorna story"]
+  C3 --> C4["3.4 Aggiorna subtask"]
+  C4 --> D["4 Step 0 + START"]
+  D --> E["5 Subtask + commit"]
+  E --> F{"Altre subtask?"}
+  F -->|sì| E
+  F -->|no| G["6 END-A"]
+  G --> H["7 chiudi → END-B"]
+        </pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>Prerequisito — istanziazione</h2>
+      <table>
+        <thead><tr><th>Controllo</th><th>Stop se</th></tr></thead>
+        <tbody>
+          <tr><td><code>PRJ_NAME</code></td><td>Non corrisponde all'overlay del ticket</td></tr>
+          <tr><td><code>PRODUCT_REPO_PATH</code></td><td>Assente o non allineato</td></tr>
+          <tr><td>Prefisso ticket</td><td><code>{KEY}</code> ≠ <code>PRJ_JIRA_PREFIX</code></td></tr>
+          <tr><td>Cwd git</td><td>≠ root repo workflow</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="summary-box">
+      <strong>In sintesi:</strong> ogni <code>procedi</code> / <code>gogo</code> allinea Jira al repo (veve step 3)
+      prima del piano e dell'implementazione; Step 0 legge ticket già aggiornati.
+    </div>
+
+    <footer>
+      <a href="ADMIN-Veve.html">ADMIN-Veve</a> ·
+      <a href="JLO-Workflow.html">JLO-Workflow</a> ·
+      <a href="ADMIN-Silence.html">ADMIN-Silence</a>
+    </footer>
+  </div>
+  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
+</body>
+</html>

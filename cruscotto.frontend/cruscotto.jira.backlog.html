@@ -608,7 +608,18 @@
       gap: 0.25rem;
       min-width: 0;
       max-width: 100%;
-      overflow: hidden;
+      overflow: visible;
+      white-space: nowrap;
+    }
+
+    .key-cell .key-stack {
+      display: inline-flex;
+      align-items: center;
+      flex: 1 1 auto;
+      gap: 0.35rem;
+      min-width: 0;
+      max-width: 100%;
+      flex-wrap: nowrap;
       white-space: nowrap;
     }
 
@@ -682,6 +693,120 @@
       background: rgba(61, 156, 245, 0.18);
       opacity: 1;
       font-weight: 700;
+    }
+
+    .push-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .btn-push-row {
+      flex-shrink: 0;
+      padding: 0.1rem 0.38rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+      border-radius: 3px;
+      border-color: var(--warn, #e6a817);
+      color: var(--warn, #e6a817);
+      opacity: 0.92;
+    }
+
+    .btn-push-row:hover,
+    .push-wrap:hover .btn-push-row,
+    .push-wrap:focus-within .btn-push-row {
+      opacity: 1;
+    }
+
+    .btn-push-row.is-running {
+      opacity: 1;
+      cursor: wait;
+      min-width: 3.4rem;
+    }
+
+    .btn-push-row.is-error {
+      border-color: var(--fail);
+      color: var(--fail);
+    }
+
+    .push-tooltip {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 4px);
+      z-index: 50;
+      min-width: 14rem;
+      max-width: 22rem;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.68rem;
+      font-weight: 400;
+      line-height: 1.35;
+      text-align: left;
+      white-space: normal;
+      color: var(--text, #e8eaed);
+      background: var(--panel, #1e2228);
+      border: 1px solid var(--border, #3a4048);
+      border-radius: 4px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    .push-wrap:hover .push-tooltip,
+    .push-wrap:focus-within .push-tooltip {
+      display: block;
+    }
+
+    .push-tooltip-heading {
+      margin-top: 0.35rem;
+      font-weight: 700;
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted, #9aa0a6);
+    }
+
+    .push-tooltip-heading:first-child {
+      margin-top: 0;
+    }
+
+    .push-tooltip-line {
+      margin-top: 0.15rem;
+      padding-left: 0.1rem;
+    }
+
+    .push-tooltip-line.is-done {
+      color: var(--pass, #3dd68c);
+    }
+
+    .push-tooltip-empty {
+      color: var(--muted, #9aa0a6);
+      font-style: italic;
+    }
+
+    tr.is-gogo-active .btn-push-row.is-active {
+      border-color: var(--warn, #e6a817);
+      color: var(--warn, #e6a817);
+      background: rgba(230, 168, 23, 0.14);
+      opacity: 1;
+    }
+
+    .link-gogo-pr {
+      flex-shrink: 0;
+      padding: 0.1rem 0.38rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      border-radius: 3px;
+      text-decoration: none;
+      border: 1px solid var(--pass);
+      color: var(--pass);
+    }
+
+    .link-gogo-pr:hover {
+      opacity: 1;
+      text-decoration: none;
     }
 
     .key-stack {
@@ -1624,6 +1749,9 @@
     /** @type {{ fetchedAt: string, total: number, epics?: number, jiraSprints?: Array<{ id: number, name: string, state: string }>, jiraSprintsByName?: Record<string, { id: number, name: string, state: string }>, issues: Array<{ key: string, type: string, tier?: string, isStoryLike?: boolean, summary: string, status: string, parentKey?: string|null, depth: number, hasChildren?: boolean, devOrder?: string|null, devSprint?: number|null, devSprintName?: string|null, devSort?: number|null, jiraSprintState?: string|null, epicKey?: string|null, epicSummary?: string|null, jiraParentKey?: string|null, isSynthetic?: boolean, relatedKeys?: string[], isSprint6Obsolete?: boolean, isRelatedCarryover?: boolean, relatedCarryoverSources?: string[] }> } | null} */
     let backlog = null;
 
+    /** @type {Record<string, { awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }>} */
+    let wipStatusMap = {};
+
     /**
      * @returns {Map<string, string>}
      */
@@ -2072,6 +2200,30 @@
     }
 
     /**
+     * Story/Bug/Todo già chiusa in Jira — niente gogo (PUSH se awaitingPush in WIP).
+     *
+     * @param {{ status?: string }} row
+     * @returns {boolean}
+     */
+    function isJiraRowDone(row) {
+      return /^(fatto|completato|done|closed|resolved)$/i.test(String(row?.status ?? "").trim());
+    }
+
+    /**
+     * gogo / PUSH / PR — story-like in vista epic, sprint o pillar.
+     *
+     * @param {{ tier?: string, key?: string, isStoryLike?: boolean, type?: string }} row
+     * @returns {boolean}
+     */
+    function shouldShowWorkflowButton(row) {
+      if (row.tier !== "task" || !row.key || !isStoryLikeRow(row)) {
+        return false;
+      }
+
+      return viewMode === "sprint" || viewMode === "epic" || viewMode === "pillar";
+    }
+
+    /**
      * Issue key della riga gogo attiva (persiste fino al prossimo gogo).
      *
      * @returns {string}
@@ -2193,12 +2345,13 @@
      *
      * @param {HTMLButtonElement} btn
      * @param {string} issueKey
+     * @param {string} [commandOverride]
      */
-    function watchGogoAgentUntilDone(btn, issueKey) {
+    function watchGogoAgentUntilDone(btn, issueKey, commandOverride) {
       stopGogoAgentPoll();
       setGogoButtonRunningState(btn, true);
 
-      const cmd = buildGogoCommand(issueKey);
+      const cmd = commandOverride ?? buildGogoCommand(issueKey);
 
       const tick = async () => {
         const status = await fetchCursorAgentStatus();
@@ -2325,6 +2478,271 @@
         const message = err instanceof Error ? err.message : String(err);
         return { ok: false, mode: "api", error: message };
       }
+    }
+
+    /**
+     * Comando workflow PUSH (step 8) per prompt Cursor Agent.
+     *
+     * @param {string} issueKey
+     * @returns {string}
+     */
+    function buildPushCommand(issueKey) {
+      return `PUSH ${String(issueKey).trim()}`;
+    }
+
+    /**
+     * @param {string} issueKey
+     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null } | undefined}
+     */
+    function getWipStatus(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      return wipStatusMap[key];
+    }
+
+    /**
+     * Carica stato WIP (awaitingPush, AC/DoD) per le story-like del backlog.
+     *
+     * @param {Array<{ key?: string, tier?: string, isStoryLike?: boolean }>} issues
+     */
+    async function refreshWipStatusMap(issues) {
+      const keys = (issues ?? [])
+        .filter((row) => row.tier === "task" && isStoryLikeRow(row) && row.key)
+        .map((row) => row.key);
+
+      if (keys.length === 0) {
+        wipStatusMap = {};
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `/api/jira/wip/status?keys=${encodeURIComponent(keys.join(","))}`
+        );
+
+        if (!res.ok) {
+          wipStatusMap = {};
+          return;
+        }
+
+        const data = await res.json();
+        wipStatusMap = data.byKey && typeof data.byKey === "object" ? data.byKey : {};
+      } catch {
+        wipStatusMap = {};
+      }
+    }
+
+    /**
+     * @param {HTMLElement} tooltip
+     * @param {{ ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }} wip
+     */
+    function populatePushTooltip(tooltip, wip) {
+      tooltip.replaceChildren();
+
+      const ac = Array.isArray(wip.ac) ? wip.ac : [];
+      const dod = Array.isArray(wip.dod) ? wip.dod : [];
+
+      if (ac.length === 0 && dod.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "push-tooltip-empty";
+        empty.textContent = "Nessun AC/DoD in WIP — esegui veve db";
+        tooltip.appendChild(empty);
+        return;
+      }
+
+      /**
+       * @param {string} label
+       * @param {Array<{ checked: boolean, text: string }>} items
+       * @param {string | null | undefined} summary
+       */
+      function appendSection(label, items, summary) {
+        if (items.length === 0) {
+          return;
+        }
+
+        const heading = document.createElement("div");
+        heading.className = "push-tooltip-heading";
+        heading.textContent = summary ? `${label} (${summary})` : label;
+        tooltip.appendChild(heading);
+
+        for (const item of items) {
+          const line = document.createElement("div");
+          line.className = "push-tooltip-line";
+
+          if (item.checked) {
+            line.classList.add("is-done");
+          }
+
+          line.textContent = `${item.checked ? "✓" : "☐"} ${item.text}`;
+          tooltip.appendChild(line);
+        }
+      }
+
+      appendSection("AC", ac, wip.acSummary);
+      appendSection("DoD", dod, wip.dodSummary);
+    }
+
+    /**
+     * Step 8 PUSH — sync Jira da WIP + close-story via API cruscotto.
+     *
+     * @param {string} issueKey
+     * @returns {Promise<{ ok: boolean, mode: "push", prUrl?: string | null, error?: string }>}
+     */
+    async function launchWipPush(issueKey) {
+      try {
+        const res = await fetch("/api/jira/wip/push", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok === true) {
+          return {
+            ok    : true
+          , mode  : "push"
+          , prUrl : typeof data.prUrl === "string" ? data.prUrl : null
+          };
+        }
+
+        return {
+          ok    : false
+        , mode  : "push"
+        , error : typeof data.error === "string"
+            ? data.error
+            : `HTTP ${res.status}`
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { ok: false, mode: "push", error: message };
+      }
+    }
+
+    /**
+     * Bottone PUSH con tooltip AC/DoD — step 8 workflow database.
+     *
+     * @param {string} issueKey
+     * @param {{ ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }} wip
+     * @returns {HTMLDivElement}
+     */
+    function createPushRowButton(issueKey, wip) {
+      const cmd = buildPushCommand(issueKey);
+      const wrap = document.createElement("div");
+      wrap.className = "push-wrap";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "action btn-push-row";
+      btn.textContent = "PUSH";
+      btn.setAttribute("aria-label", cmd);
+
+      const tooltip = document.createElement("div");
+      tooltip.className = "push-tooltip";
+      tooltip.setAttribute("role", "tooltip");
+      populatePushTooltip(tooltip, wip);
+
+      const acLabel = wip.acSummary ? `AC ${wip.acSummary}` : "AC —";
+      const dodLabel = wip.dodSummary ? `DoD ${wip.dodSummary}` : "DoD —";
+      btn.title = `${cmd} · ${acLabel} · ${dodLabel}`;
+
+      btn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (btn.disabled) {
+          return;
+        }
+
+        const prev = btn.textContent;
+        btn.disabled = true;
+        btn.classList.add("is-running");
+        btn.textContent = "…";
+
+        const result = await launchWipPush(issueKey);
+
+        btn.classList.remove("is-running");
+
+        if (result.ok && result.mode === "push") {
+          highlightGogoRow(issueKey);
+          await refreshWipStatusMap(backlog?.issues ?? []);
+          applyFilters();
+          return;
+        }
+
+        btn.disabled = false;
+
+        btn.textContent = "!";
+        btn.classList.add("is-error");
+        btn.title = result.error ?? "Avvio PUSH fallito";
+
+        window.setTimeout(() => {
+          btn.textContent = prev;
+          btn.classList.remove("is-error");
+          btn.title = `${cmd} · ${acLabel} · ${dodLabel}`;
+        }, 2200);
+      });
+
+      if (issueKey === loadGogoActiveIssueKey()) {
+        btn.classList.add("is-active");
+      }
+
+      wrap.appendChild(btn);
+      wrap.appendChild(tooltip);
+
+      return wrap;
+    }
+
+    /**
+     * Link PR dopo PUSH completato (WIP prUrl o cache locale).
+     *
+     * @param {string} issueKey
+     * @param {string} prUrl
+     * @returns {HTMLAnchorElement}
+     */
+    function createGogoPrLink(issueKey, prUrl) {
+      const link = document.createElement("a");
+
+      link.className = "action link-gogo-pr";
+      link.href = prUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "PR";
+      link.title = `Pull request · ${issueKey}`;
+      link.setAttribute("aria-label", `PR ${issueKey}`);
+
+      if (issueKey === loadGogoActiveIssueKey()) {
+        link.classList.add("is-active");
+      }
+
+      return link;
+    }
+
+    /**
+     * gogo, PUSH o link PR — vista sprint, story-like.
+     *
+     * @param {HTMLElement} keyCell
+     * @param {string} issueKey
+     * @param {{ status?: string }} row
+     */
+    function appendRowWorkflowControl(keyCell, issueKey, row) {
+      const wip = getWipStatus(issueKey);
+      const prUrl = wip?.prUrl ?? null;
+
+      if (prUrl) {
+        keyCell.appendChild(createGogoPrLink(issueKey, prUrl));
+        return;
+      }
+
+      if (wip?.awaitingPush) {
+        keyCell.appendChild(createPushRowButton(issueKey, wip));
+        return;
+      }
+
+      if (isJiraRowDone(row)) {
+        return;
+      }
+
+      keyCell.appendChild(createGogoRowButton(issueKey));
     }
 
     /**
@@ -4855,15 +5273,13 @@
           keyMain.appendChild(obsoleteLabel);
         }
 
-        keyCell.appendChild(keyMain);
+        const keyStack = document.createElement("div");
+        keyStack.className = "key-stack";
+        keyStack.appendChild(keyMain);
+        keyCell.appendChild(keyStack);
 
-        if (
-          viewMode === "sprint"
-          && row.tier === "task"
-          && isStoryLikeRow(row)
-          && row.key
-        ) {
-          keyCell.appendChild(createGogoRowButton(row.key));
+        if (shouldShowWorkflowButton(row)) {
+          appendRowWorkflowControl(keyStack, row.key, row);
         }
 
         keyTd.appendChild(keyCell);
@@ -5309,6 +5725,12 @@
         seedDefaultCollapsed();
 
         applyFilters();
+
+        void refreshWipStatusMap(backlog.issues).then(() => {
+          if (backlog) {
+            applyFilters();
+          }
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
 

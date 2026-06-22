@@ -99,8 +99,9 @@ export function isStoryLikeRow(row) {
  * @returns {boolean}
  */
 export function shouldShowGogoButton(viewMode, row) {
-  return viewMode === "sprint"
-    && row.tier === "task"
-    && isStoryLikeRow(row)
-    && !!row.key;
+  if (row.tier !== "task" || !row.key || !isStoryLikeRow(row)) {
+    return false;
+  }
+
+  return viewMode === "sprint" || viewMode === "epic" || viewMode === "pillar";
 }

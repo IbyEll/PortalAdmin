@@ -3530,6 +3530,18 @@ body.ttecnici-modal-open {
 
 }
 
+.process-console-workflow {
+  color: #fde68a;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.65rem;
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .process-console-pkg {
   font-weight: 600;
 }

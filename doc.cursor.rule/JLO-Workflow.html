@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JLO-Workflow — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>JLO-Workflow</h1>
+      <p class="meta">
+        <code>.cursor/rules/JLO-Workflow.mdc</code> ·
+        <span class="tag tag--always">alwaysApply: true</span> ·
+        Alias overlay JustLastOne
+      </p>
+      <p class="lead">
+        Regola <strong>alias</strong> della canonica
+        <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> per JustLastOne / <code>JLO</code>.
+        Include <strong>step 3 veve</strong> su ogni <code>procedi</code> / <code>gogo JLO-xxx</code>.
+      </p>
+      <div class="revision-banner">Aggiornato 2026-06-22 — veve in pipeline workflow step 3.</div>
+    </header>
+
+    <section>
+      <h2>Scopo</h2>
+      <p>Applica lo stesso protocollo di ADMIN-Workflow quando l'istanza portal ha:</p>
+      <table>
+        <thead><tr><th>Parametro</th><th>Valore JLO</th></tr></thead>
+        <tbody>
+          <tr><td><code>PRJ_NAME</code></td><td><code>JustLastOne</code></td></tr>
+          <tr><td><code>PRODUCT_REPO_PATH</code></td><td>Checkout <strong>JustLastOne</strong> (non solo PortalAdmin host)</td></tr>
+          <tr><td><code>JIRA_KEY</code> / <code>PRJ_JIRA_PREFIX</code></td><td><code>JLO</code></td></tr>
+          <tr><td>Branch</td><td><code>STORY---JLO-{num}-{slug}</code> (idem BUG/TODO)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Trigger</h2>
+      <table>
+        <thead><tr><th>Comando esempio</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><code>gogo JLO-507</code></td><td>Stop se istanza non allineata a JustLastOne</td></tr>
+          <tr><td><code>procedi Story JLO-930</code></td><td>Prefisso deve coincidere con <code>PRJ_JIRA_PREFIX</code></td></tr>
+          <tr><td><code>chiudi fast Story JLO-930</code></td><td>Chiusura senza gap test</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Applicazione step-by-step</h2>
+      <ol class="steps">
+        <li><strong>Verifica istanza</strong> — <code>PRJ_NAME=JustLastOne</code> e <code>PRODUCT_REPO_PATH</code> punta al repo JustLastOne.</li>
+        <li><strong>Segui ADMIN-Workflow</strong> — step 1 branch, 2 pre-flight, <strong>3 veve</strong>, 4 Step 0, 5 implementazione, 7 chiudi.</li>
+        <li><strong>Aree gap analysis</strong> — <code>apps/</code>, <code>packages/</code>, <code>testScript/</code> nel product repo.</li>
+        <li><strong>Output END</strong> — link repo da <code>PRJ_GITHUB_OWNER</code> / <code>PRJ_GITHUB_REPO</code> overlay JustLastOne.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Ticket ADMIN nello stesso host</h2>
+      <p>Per ticket <code>ADMIN-xxx</code> vale la stessa regola canonica con overlay <code>AdminDashBoard</code>
+      e repo workflow PortalAdmin (product = stesso repo dell'host).</p>
+    </section>
+
+    <section>
+      <h2>Vietato</h2>
+      <ul>
+        <li class="forbidden"><code>gogo JLO-xxx</code> con solo overlay AdminDashBoard e product non puntato a JustLastOne</li>
+        <li class="forbidden">Assumere che il repo workflow sia sempre PortalAdmin</li>
+      </ul>
+    </section>
+
+    <div class="summary-box">
+      <strong>In sintesi:</strong> JLO-Workflow non duplica la logica — è un puntatore contestuale
+      a ADMIN-Workflow con parametri JustLastOne/JLO.
+    </div>
+
+    <footer>
+      Canonica: <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> ·
+      <a href="../docs/JLO-Workflow-overview.html">Panoramica estesa (docs/)</a>
+    </footer>
+  </div>
+</body>
+</html>

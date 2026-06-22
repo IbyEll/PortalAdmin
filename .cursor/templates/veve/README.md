@@ -36,5 +36,6 @@ Non azzerare `[x]` già presenti se B o A li confermano.
 
 ## Regole Cursor
 
-- `ADMIN-Veve-AggiornaStory.mdc`, `ADMIN-Veve-AggiornaSubtask.mdc`
+- `ADMIN-Veve-AggiornaStory.mdc`, `ADMIN-Veve-AggiornaSubtask.mdc` — veve MCP (Jira live)
+- `ADMIN-Veve.db-AggiornaStory.mdc`, `ADMIN-Veve.db-AggiornaSubtask.mdc` — veve DB (`jira_issue_wip`)
 - JLO (product): `JustLastOne/.cursor/templates/veve/` — stesso schema

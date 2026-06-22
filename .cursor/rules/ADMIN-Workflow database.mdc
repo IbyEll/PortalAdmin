@@ -1,0 +1,346 @@
+---
+description: Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)
+alwaysApply: false
+---
+
+# Workflow — progetto istanziato + `{JIRA_KEY}`
+
+Il workflow **git** (branch, commit, push, PR) opera **solo** sul **repo del progetto istanziato**, non sul checkout PortalAdmin in sé.
+
+| Ruolo | Path / env |
+| --- | --- |
+| **Host tooling** | Checkout PortalAdmin — cruscotto, regole `.cursor/`, script `admin.portal.JiraCORE/` |
+| **Repo workflow** | `PRODUCT_REPO_PATH` del progetto **istanziato** (`PRJ_NAME` in `.env` allineato) |
+| **Default path** | Sibling `../{PRJ_REPO}` da `PROJECT_{PRJ_NAME}/project.config.{overlay}.mjs` |
+
+Esempi: overlay `JustLastOne` → repo workflow `…/JustLastOne` · overlay `AdminDashBoard` → `…/PortalAdmin` (product = stesso repo).
+
+---
+
+## Prerequisito — istanziazione
+
+Prima di `procedi` / `gogo` / `chiudi` su `{KEY}`:
+
+| Controllo | Stop se |
+| --- | --- |
+| `PRJ_NAME` | Assente o non corrisponde all'overlay del ticket |
+| `PRODUCT_REPO_PATH` | Assente, path inesistente o non allineato all'istanza portal |
+| `JIRA_KEY` del ticket | Diverso da `PRJ_JIRA_PREFIX` del progetto istanziato |
+| **Cwd git** | Non è la root del **repo workflow** (`git rev-parse --show-toplevel` ≠ `PRODUCT_REPO_PATH`) |
+
+Istanza portal: `activatePortalInstance` / HOME `POST /api/portal/instance` · stato in `.env` (`PRJ_NAME`, `PRODUCT_REPO_PATH`).
+
+**Non** avviare workflow su ticket il cui prefisso Jira non appartiene al progetto attualmente istanziato (es. `JLO-507` con solo overlay `AdminDashBoard` e product non puntato a JustLastOne).
+
+---
+
+## Parametri
+
+| Simbolo | Significato | Fonte |
+| --- | --- | --- |
+| **`PRJ_NAME`** | Overlay attivo | `.env` / istanza portal |
+| **`JIRA_KEY`** | Prefisso Jira = `PRJ_JIRA_PREFIX` overlay | `project.config.{overlay}.mjs` |
+| **`{KEY}`** | Ticket completo | `JLO-507` · `ADMIN-96` |
+| **`{num}`** | Numero issue | `507` · `96` |
+| **`{TIPO}`** | Branch tipo | `STORY` · `BUG` · `TODO` |
+| **`{slug}`** | Branch slug kebab-case | `export-excel-latest-json` |
+
+**Ticket parent** = Story, Bug o Todo **`{JIRA_KEY}-{num}`**. Nei testi «story» include **Bug** e **Todo** salvo dove escluso.
+
+### Determinazione `JIRA_KEY`
+
+| Fonte | Regola |
+| --- | --- |
+| Progetto istanziato | **`PRJ_JIRA_PREFIX`** dell'overlay `PRJ_NAME` (autoritativo per repo workflow) |
+| Comando utente | Key esplicita — deve **coincidere** con `PRJ_JIRA_PREFIX` istanza |
+| `gogo JLO-507` / `procedi ADMIN-96` | Prefisso dalla key; **stop** se ≠ `PRJ_JIRA_PREFIX` |
+| Step 0 ambiguo | `issuetype` Jira + verifica allineamento overlay |
+
+### Branch
+
+**Pattern:** `{TIPO}---{JIRA_KEY}-{num}-{slug}` — tre trattini `---`, `TIPO` maiuscolo.
+
+**Legacy (solo ripresa):** `{JIRA_KEY}-{num}-*` senza prefisso tipo — non crearne di nuove.
+
+### Catalogo segnali (chiudi)
+
+Aggiornamento `REPO_IMPLEMENTATION_SIGNALS` in chiusura parent — **solo** sul progetto istanziato:
+
+| Elemento | Regola |
+| --- | --- |
+| File catalogo | `PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs` (overlay attivo) |
+| Script | `admin.portal.JiraCORE/jiraCORE.close.story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
+| Scrittura | Commit catalogo nel **repo workflow** se il file segnali vive lì; path da `PRJ_NAME` + implementazione `close-story` |
+
+Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PRJ_NAME`** e `PRJ_JIRA_PREFIX` dell’istanza corrente.
+
+---
+
+## Comandi
+
+`{KEY}` = `{JIRA_KEY}-{num}`. Case-insensitive sulla key.
+
+| Comando | Effetto |
+| --- | --- |
+| **`gogo {KEY}`** | Step 1–6 — START → subtask → ok chiudi WIP → END-A |
+| `procedi Story {KEY}` | Piano → implementazione → confirm |
+| `chiudi Story {KEY}` | **Step 7** — parent WIP + gap test → END-B → backlog |
+| **`chiudi fast Story {KEY}`** | **Step 7** — parent WIP (no gap test) → END-B-FAST → backlog |
+| **`PUSH {KEY}`** (cruscotto) | **Step 8** — sync Jira da WIP + PR — solo post step 7 |
+
+Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output correlate.
+
+**Cruscotto:** al termine step 7 la riga backlog si aggiorna — pulsante **GOGO** → **PUSH**; PUSH invoca step 8.
+
+---
+
+## Pipeline — ordine fisso
+
+| Step | Fase | Regola |
+| --- | --- | --- |
+| 1 | Verifica branch | § sotto |
+| 2 | Pre-flight git | § sotto |
+| 3 | **Veve DB** | `ADMIN-Veve.db.mdc` |
+| 4 | Step 0 — piano | Leggi `jira_issue_wip` + START |
+| 5 | Implementazione | subtask + commit + **ok chiudi → WIP** |
+| 6 | END-A | parent ancora Da fare in WIP |
+| 7 | Chiusura locale | `chiudi` → **parent WIP** → END-B → **backlog** |
+| 8 | **PUSH** (cruscotto) | Sync **Jira** da WIP + `close-story.mjs` (PR) |
+
+Step **1–7** = agente chat (`gogo` / `procedi` / `chiudi`). Step **8** = **solo** da cruscotto (PUSH post step 7).
+
+`FULL` / `gogo` cambiano solo confirm vs silent su step 5 — **non** saltano step 1–4.
+
+---
+
+## Verifica branch (step 1)
+
+Eseguire nel **repo workflow** (`cd` su `PRODUCT_REPO_PATH`):
+
+```bash
+git rev-parse --show-toplevel   # deve coincidere con PRODUCT_REPO_PATH
+git branch --show-current
+git branch --list 'STORY---{JIRA_KEY}-{num}-*'
+git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
+# Idem BUG--- / TODO---
+```
+
+| Situazione | Azione |
+| --- | --- |
+| Non sul repo workflow | **Stop** — `cd` su `PRODUCT_REPO_PATH` o istanzia overlay |
+| Sei sulla branch del ticket | **Ripresa** |
+| Branch esiste, sei altrove (stesso repo) | **Stop** — `git checkout {branch}` e ripeti `procedi` |
+| Nessuna branch | Pre-flight → nuova branch da `main` |
+
+---
+
+## Pre-flight git (step 2)
+
+Nel **repo workflow** (`PRODUCT_REPO_PATH`):
+
+1. `git status --porcelain` — vuoto (no stash automatico agente)
+2. `git fetch origin` · `main` allineato a `origin/main`
+3. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}`
+
+---
+
+## Step 3 — Veve DB (grooming → `jira_issue_wip`)
+
+**Obbligatorio** su `procedi` / `gogo` su `{KEY}` — dopo pre-flight git, **prima** di Step 0.
+
+Esegui regola `ADMIN-Veve.db.mdc` (e sotto-regole `ADMIN-Veve.db-*.mdc`) su `{KEY}`:
+
+| Sotto-step | Regola |
+| --- | --- |
+| 3.1 | `ADMIN-Veve.db-LeggiJira.mdc` — leggi parent + subtask da `jira_issue` |
+| 3.2 | `ADMIN-AnalizzaRepo.mdc` — gap analysis repo workflow |
+| 3.3 | `ADMIN-Veve.db-AggiornaStory.mdc` — upsert parent in `jira_issue_wip` |
+| 3.4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` — upsert ogni subtask in `jira_issue_wip` |
+
+| Aspetto | Regola |
+| --- | --- |
+| Chat | **Silenzioso** — `ADMIN-Silence.mdc`; output veve solo in sessione per Step 0 |
+| Jira | **Vietato MCP** — lettura cache DB; scrittura solo `jira_issue_wip` |
+| Git / codice | **Vietato** — no commit, no branch, no implementazione |
+| Prerequisito | `jira_issue` popolata (`npm run db:sync`) per `{KEY}` |
+| Standalone | `veve db {KEY}` — chat libera, stessa sequenza |
+| Veve MCP | `ADMIN-Veve.mdc` — percorso alternativo se DB non disponibile |
+
+**Ripresa:** se veve db già eseguito nella stessa sessione su `{KEY}` → salta step 3.
+
+---
+
+## Step 0 — Piano (step 4)
+
+Dopo veve db, **prima** dell'implementazione — **legge DB**, non Jira live:
+
+1. **Leggi WIP** — `jira_issue_wip` parent `{KEY}` + subtask (`parent_jira_key = {KEY}`) via `openCruscottoDb()` / Prisma `jiraIssueWip`
+2. **Piano** — estrae da `raw_fields` JSON (`veveDescription`, `gapSummary`, AC/DoD compilati in step 3.3–3.4); **non** Task «Jira Auto» · **non** MCP
+3. **Gap** — riusa output step 3.2; **non** ripetere CLI gap salvo ripresa senza veve db in sessione
+4. Filtra subtask **Da fare** (`is_done`, `status` da righe WIP), ordina (schema → API → web → test → manuale)
+5. Compila template **START** da WIP + gap (mai description Jira grezza)
+
+**Output chat unico:** blocco START (`ADMIN-Silence.mdc`).
+
+**Stop se:** parent assente in `jira_issue_wip` → rieseguire step 3 veve db.
+
+---
+
+## Step 5 — Implementazione + ok chiudi (WIP)
+
+Una subtask alla volta. Sequenza obbligatoria a fine subtask `{subkey}`:
+
+1. **Codice** — implementazione nel repo workflow
+2. **Commit** — `git add` + commit messaggio `{subkey} …` (repo workflow)
+3. **Ok chiudi** — chiusura subtask su **`jira_issue_wip`**, **non** Task «Jira Auto» · **non** MCP Jira
+
+### Ok chiudi — update `jira_issue_wip`
+
+Upsert/update riga `jira_key = {subkey}`:
+
+| Campo | Valore |
+| --- | --- |
+| `is_done` | `true` |
+| `status` | `Fatto` (o equivalente chiuso) |
+| `raw_fields` | Merge JSON: `statoRepo`, `doD`, `commitHash`, `closedAt` (ISO), aggiorna `veveDescription` se serve |
+| `synced_at` | now |
+
+Prisma: `db.jiraIssueWip.update({ where: { jiraKey: subkey }, data: { … } })`.
+
+Template testo chiusura (opzionale in `raw_fields`): `.cursor/templates/workflow/ok-chiudi-subtask.md` — compilato da gap post-commit, **senza** `editJiraIssue`.
+
+| Modalità | Dopo implementazione |
+| --- | --- |
+| **Confirm** (default `procedi`) | Silenzio fino a «ok chiudi», poi update WIP |
+| **Silent** (`gogo`, FULL silent) | Update WIP subito dopo commit |
+
+**Stop se:** subtask assente in `jira_issue_wip` → stop flusso, END parziale con `Errori:`.
+
+Push **non** automatico dopo ok chiudi — push/PR solo in **step 8 PUSH**.
+
+---
+
+## Step 7 — Chiusura locale (solo WIP)
+
+Su `chiudi Story {KEY}` / `chiudi fast` — **dopo** END-A, tutte le subtask **Fatto** in WIP:
+
+1. **Verifica WIP** — ogni subtask `{subkey}`: `is_done = true`; stop altrimenti
+2. **Gap test** (solo `chiudi` completo, non `chiudi fast`) — `ADMIN-AnalizzaRepo.mdc`
+3. **Chiudi parent WIP** — update riga `jira_key = {KEY}`:
+
+| Campo | Valore |
+| --- | --- |
+| `is_done` | `true` |
+| `status` | `Fatto` |
+| `raw_fields` | Merge JSON: `chiudiParent`, `gapTest` (se applicabile), `wipClosedAt` (ISO), **`awaitingPush: true`** |
+| `synced_at` | now |
+
+**Niente** push git · **niente** PR · **niente** Jira live · **niente** `close-story.mjs`.
+
+4. **END-B / END-B-FAST** — template workflow; **PR: —** (PR allo step 8)
+5. **Ritorno backlog cruscotto** — aggiorna riga `{KEY}`: stato WIP chiuso, pulsante **GOGO** → **PUSH**
+
+Template testo locale (in `raw_fields`): `.cursor/templates/workflow/chiudi-parent.md` — senza `prUrl`.
+
+---
+
+## Step 8 — PUSH (Jira da WIP + PR)
+
+**Solo cruscotto** — invocato dal pulsante **PUSH** sulla riga backlog **dopo** step 7 completato.
+
+**Prerequisito:** parent `{KEY}` in `jira_issue_wip` con `is_done = true` e `raw_fields.awaitingPush = true`.
+
+1. **Leggi WIP** — parent + tutte le subtask `{KEY}` / `parent_jira_key = {KEY}`
+2. **Sync Jira live** — da `raw_fields` WIP verso Atlassian:
+   - Subtask: `editJiraIssue` description + transizione **Fatto** (template `ok-chiudi-subtask.md`)
+   - Parent: `editJiraIssue` + transizione **Fatto** (template `chiudi-parent.md`)
+   - Invocazione: **Task «Jira Auto»** o MCP `user-atlassian` — **solo** in step 8
+3. **Git / PR / catalogo** — host PortalAdmin:
+   ```bash
+   node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
+   ```
+   Push branch, catalogo segnali, apertura PR su `main`
+4. **Update WIP post-push** — merge `raw_fields`: `prUrl`, `jiraSyncedAt`, **`awaitingPush: false`**, `pushedAt` (ISO)
+
+| Trigger UI | Effetto |
+| --- | --- |
+| Pulsante **PUSH** backlog | Avvia step 8 per `{KEY}` |
+| GOGO / procedi / chiudi | **Non** esegue step 8 |
+
+**Output cruscotto:** riga aggiornata con PR URL; parent Jira + WIP allineati.
+
+---
+
+## Script chiudi / PUSH (step 8)
+
+`jiraCORE.close.story.mjs` — **solo step 8 PUSH**, non step 7:
+
+```bash
+node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
+node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run
+```
+
+- Key: `{JIRA_KEY}-xxx` coerente con progetto istanziato
+- Pillar matrix: `--pillar` (opt-in)
+- Precede o segue sync Jira step 8 secondo implementazione cruscotto; Jira parent/subtask **Fatto** da WIP prima o insieme al push
+
+---
+
+## Analizza repo
+
+Gap analysis sul **repo workflow** del progetto istanziato:
+
+```bash
+node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent {KEY} --format md
+```
+
+Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
+
+**Aree** da `PRJ_NAME` / overlay — es. JustLastOne: `apps/`, `packages/`, `testScript/` · AdminDashBoard: `lib/`, `cruscotto/`, `admin.portal.testscript/`
+
+---
+
+## Jira — invocazione
+
+| Fase workflow | Jira / DB |
+| --- | --- |
+| Step 3 veve db | `jira_issue` read · `jira_issue_wip` write |
+| Step 0 piano | `jira_issue_wip` read |
+| Ok chiudi subtask | `jira_issue_wip` update subtask |
+| **Step 7 chiudi** | **`jira_issue_wip` update parent** — no Jira · no PR |
+| **Step 8 PUSH** | **Jira sync da WIP** + `close-story.mjs` (PR) |
+
+| Fase | Invocazione |
+| --- | --- |
+| Step 0–7 | Solo DB WIP — nessun Jira Auto / MCP |
+| Step 8 PUSH | Leggi WIP → Jira Auto / MCP (subtask + parent Fatto) → `close-story.mjs` |
+
+---
+
+## Output chat (procedi / gogo)
+
+| Fase | Contenuto |
+| --- | --- |
+| **START** | AC, DoD, STATO, BRANCH, subtask, Macrostep |
+| **PROGRESS** | Tabella Macrostep |
+| **END-A** | Implementazione WIP completata; parent `awaitingPush` false |
+| **END-B / END-B-FAST** | Step 7 — WIP chiuso; **PR: —**; backlog mostra **PUSH** |
+| **Post PUSH (step 8)** | END con PR URL + Jira allineato |
+
+Formato END step 7 — repo = **progetto istanziato** (PR vuoto fino a PUSH):
+
+```text
+PR: {url}
+Jira: https://myfuturejobsearch.atlassian.net/browse/{KEY}
+Repo: [{PRJ_GITHUB_REPO}](https://github.com/{owner}/{repo}) · branch `{branch}` · commit `{hash}`
+```
+
+`owner`/`repo` da `PRJ_GITHUB_OWNER` / `PRJ_GITHUB_REPO` dell'overlay attivo — **non** assumere sempre PortalAdmin.
+
+---
+
+## Commit
+
+Messaggio: `{subkey} …` nel **repo workflow**.
+
+Un commit per subtask; **push/PR solo step 8 PUSH** (cruscotto).

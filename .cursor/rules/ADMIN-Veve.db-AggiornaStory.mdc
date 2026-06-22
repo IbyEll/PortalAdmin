@@ -1,0 +1,37 @@
+---
+description: Veve db step 3 — upsert parent {KEY} in jira_issue_wip
+alwaysApply: false
+---
+
+# Veve DB — Aggiorna Story (WIP)
+
+## Trigger
+
+`aggiorna story db {KEY}` · dopo Leggi DB + Analizza repo · `veve db {KEY}` step 3
+
+## Obiettivo
+
+Upsert riga parent `{KEY}` in **`jira_issue_wip`** — non `editJiraIssue`.
+
+## Template
+
+`.cursor/templates/veve/veve-story-parent.md` — compila da Leggi DB + gap analysis.
+
+Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaStory.mdc`.
+
+## Scrittura DB
+
+1. Leggi riga sorgente parent da `jira_issue` (stesso `syncRunId` della sessione).
+2. Compila `veveDescription` dal template.
+3. **Upsert** `jira_issue_wip` per `jira_key = {KEY}`:
+
+| Campo | Valore |
+| --- | --- |
+| Colonne mirror | Copia da `jira_issue` (issueType, summary, status, tier, …) |
+| `sync_run_id` | `syncRunId` del sync corrente |
+| `raw_fields` | JSON `{ "veveDescription": "…", "gapSummary": "…", "updatedAt": "ISO" }` |
+| `synced_at` | now |
+
+Prisma: `db.jiraIssueWip.upsert({ where: { jiraKey }, create, update })`.
+
+**Vietato:** edit subtask WIP, MCP Jira, branch, commit, Fatto parent.
