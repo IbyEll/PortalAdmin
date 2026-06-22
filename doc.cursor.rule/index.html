@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cursor Rules — Documentazione PortalAdmin</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Cursor Rules — Documentazione</h1>
+      <p class="meta">
+        Regole in <code>.cursor/rules/</code> · Aggiornato 2026-06-22 ·
+        Una pagina HTML per regola con spiegazione e applicazione step-by-step
+      </p>
+      <p class="lead">
+        Queste pagine descrivono come l'agente Cursor applica ogni regola del progetto PortalAdmin.
+        <strong>Revisione 2026-06-22:</strong> veve integrato come step 3 di ADMIN-Workflow;
+        variante DB (<code>jira_issue_wip</code>) documentata sotto Veve DB.
+      </p>
+    </header>
+
+    <section>
+      <h2>Workflow implementazione (git + Jira)</h2>
+      <div class="card-grid">
+        <a class="card" href="ADMIN-Workflow.html">
+          <h3>ADMIN-Workflow</h3>
+          <p><span class="tag tag--always">alwaysApply</span>
+            <span class="tag tag--workflow">canonica</span></p>
+          <p>procedi / gogo / chiudi — branch, commit, PR; <strong>step 3 veve</strong> obbligatorio.</p>
+        </a>
+        <a class="card" href="JLO-Workflow.html">
+          <h3>JLO-Workflow</h3>
+          <p><span class="tag tag--always">alwaysApply</span>
+            <span class="tag tag--workflow">alias JLO</span></p>
+          <p>Stessa regola canonica con overlay JustLastOne e prefisso JLO.</p>
+        </a>
+        <a class="card" href="ADMIN-Silence.html">
+          <h3>ADMIN-Silence</h3>
+          <p><span class="tag tag--always">alwaysApply</span></p>
+          <p>Protocollo chat START → silenzio → END durante procedi/gogo/chiudi.</p>
+        </a>
+        <a class="card" href="ADMIN-Workflow database.html">
+          <h3>ADMIN-Workflow database</h3>
+          <p><span class="tag tag--db">database</span>
+            <span class="tag tag--workflow">veve db step 3</span></p>
+          <p>WIP step 1–7 · step 8 <strong>PUSH</strong> cruscotto (Jira + PR).</p>
+        </a>
+        <a class="card" href="ADMIN-AnalizzaRepo.html">
+          <h3>ADMIN-AnalizzaRepo</h3>
+          <p><span class="tag tag--always">alwaysApply</span></p>
+          <p>Gap analysis Jira vs codice — CLI, aree repo, simboli esito.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Veve — grooming backlog Jira</h2>
+      <div class="card-grid">
+        <a class="card" href="ADMIN-Veve.html">
+          <h3>ADMIN-Veve</h3>
+          <p><span class="tag tag--always">alwaysApply</span>
+            <span class="tag tag--veve">orchestratore</span></p>
+          <p>Grooming Jira — anche <strong>step 3</strong> automatico su procedi/gogo.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve-LeggiJira.html">
+          <h3>ADMIN-Veve-LeggiJira</h3>
+          <p><span class="tag tag--veve">step 1</span></p>
+          <p>Lettura read-only parent e subtask via MCP Atlassian.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve-AnalizzaRepo.html">
+          <h3>ADMIN-Veve-AnalizzaRepo</h3>
+          <p><span class="tag tag--veve">step 2</span></p>
+          <p>Adattatore veve per gap analysis — tabella Subtask vs repo.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve-AggiornaStory.html">
+          <h3>ADMIN-Veve-AggiornaStory</h3>
+          <p><span class="tag tag--veve">step 3</span></p>
+          <p>Aggiorna description parent con template veve-story-parent.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve-AggiornaSubtask.html">
+          <h3>ADMIN-Veve-AggiornaSubtask</h3>
+          <p><span class="tag tag--veve">step 4</span></p>
+          <p>Aggiorna ogni subtask con template veve-subtask e gap analysis.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Veve DB — grooming → <code>jira_issue_wip</code></h2>
+      <div class="card-grid">
+        <a class="card" href="ADMIN-Veve.db.html">
+          <h3>ADMIN-Veve.db</h3>
+          <p><span class="tag tag--db">orchestratore</span></p>
+          <p>Leggi <code>jira_issue</code> → gap → upsert WIP; step 3 workflow database.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve.db-LeggiJira.html">
+          <h3>ADMIN-Veve.db-LeggiJira</h3>
+          <p><span class="tag tag--db">step 1</span></p>
+          <p>Parent + subtask da cache cruscotto SQLite.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve.db-AnalizzaRepo.html">
+          <h3>ADMIN-Veve.db-AnalizzaRepo</h3>
+          <p><span class="tag tag--db">step 2</span></p>
+          <p>Gap analysis repo (identica a veve MCP).</p>
+        </a>
+        <a class="card" href="ADMIN-Veve.db-AggiornaStory.html">
+          <h3>ADMIN-Veve.db-AggiornaStory</h3>
+          <p><span class="tag tag--db">step 3</span></p>
+          <p>Upsert parent in <code>jira_issue_wip</code>.</p>
+        </a>
+        <a class="card" href="ADMIN-Veve.db-AggiornaSubtask.html">
+          <h3>ADMIN-Veve.db-AggiornaSubtask</h3>
+          <p><span class="tag tag--db">step 4</span></p>
+          <p>Upsert ogni subtask in <code>jira_issue_wip</code>.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Commenti codice</h2>
+      <div class="card-grid">
+        <a class="card" href="ADMIN-Comcom.html">
+          <h3>ADMIN-Comcom</h3>
+          <p><span class="tag tag--always">alwaysApply</span></p>
+          <p>comcom nomefile — testata uniforme, template, validazione V1–V14, solo commenti.</p>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Diagramma relazioni</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TB
+  subgraph wf["Workflow"]
+    AW["ADMIN-Workflow"]
+    AWDB["ADMIN-Workflow database"]
+    JLO["JLO-Workflow"]
+    AS["ADMIN-Silence"]
+    AR["ADMIN-AnalizzaRepo"]
+  end
+  subgraph veveMCP["Veve MCP"]
+    V["ADMIN-Veve"]
+    V1["LeggiJira MCP"]
+  end
+  subgraph veveDB["Veve DB"]
+    VD["ADMIN-Veve.db"]
+    VD1["Leggi jira_issue"]
+    WIP["jira_issue_wip"]
+  end
+  CC["ADMIN-Comcom"]
+  AW -->|"step 3"| V
+  AWDB -->|"step 3"| VD
+  V --> V1
+  VD --> VD1 --> WIP
+  VD --> AR
+  AW --> JLO
+  AW --> AS
+  CC -.-> AW
+        </pre>
+      </div>
+    </section>
+
+    <footer>
+      Fonte regole: <code>.cursor/rules/*.mdc</code> ·
+      <a href="../docs/JLO-Workflow-overview.html">Panoramica JLO legacy (docs/)</a>
+    </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });
+  </script>
+</body>
+</html>

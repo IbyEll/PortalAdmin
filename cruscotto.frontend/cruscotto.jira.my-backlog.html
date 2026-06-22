@@ -1,0 +1,6253 @@
+<!--
+  ** PAGE HTML ** -- commentato il: 2026-06-17
+
+  MyBacklog — copia vista Epic · Sprint · Pilastri (da Jira backlog) con insight repo.
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - esporre l’intero backlog Jira in tabella filtrabile con viste per epic, sprint e pilastro
+    - confrontare stato Jira e implementazione repo senza uscire dal cruscotto locale
+
+    A cosa serve:
+    - toolbar filtri, toggle vista, reload Jira, analisi insight e export
+    - monolite HTML+JS inline: render tabella e fetch API dal browser
+
+  Generalizzazione:
+    Si — titolo da data-cruscotto-bind jiraPrefix; bootstrap progetto iniettato dal server.
+
+  Input:
+    - window.__CRUSCOTTO_PROJECT__ / data-cruscotto-bind — prefisso Jira e titolo documento
+    - GET /api/jira/my-backlog — righe backlog solo da cruscotto DB (no fallback Atlassian)
+    - POST /api/jira/my-backlog/sync — fetch Jira + persist in cruscotto DB
+    - GET /api/jira/backlog/insights — snapshot insight repo vs Jira
+    - query ?embed=1 — modalità embed in iframe (classe body.is-embed)
+
+  Servita da:
+    - runner/cruscotto.server.mjs — URL /my-backlog.html (file cruscotto.jira.my-backlog.html)
+
+  Asset collegati:
+    - jira-issue-display.css — stili issue e tabella condivisi
+    - expand-collapse-toolbar.css, insight-toolbar.css — toolbar tree e insight
+    - jira-issue-display.js, insight-validate.js — display issue e validazione insight lato client
+    - CSS inline in head — layout pagina backlog
+
+  Sezioni DOM principali:
+    - header — titolo e link cross-navigazione Jira
+    - .toolbar — #view-epic/sprint/pillar, #filter, #btn-reload, #btn-insights, #stats
+    - #insight-notes-general — appunti insight generali
+    - #tbody — corpo tabella backlog (render client)
+
+  Note:
+    - nessun marker GENERATED tipo Working: dati tabella da API runtime, non rigenerazione HTML Node
+    - logica fetch/render nello script inline in coda al file
+-->
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-cruscotto-bind="document.title" data-cruscotto-template="MyBacklog {jiraPrefix} — Epic · Sprint · Pilastri">MyBacklog — Epic · Sprint · Pilastri</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/jira-issue-display.css" />
+  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
+  <link rel="stylesheet" href="/insight-toolbar.css" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #152030;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --pillar-title: #AC4B7B;
+      --pass: #34d399;
+      --skip: #fbbf24;
+      --purple: #b794f6;
+      --turquoise: #2ee8d6;
+      --lime: #d4ff4d;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    .page {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100vh;
+      max-width: none;
+      overflow-x: hidden;
+      padding: 1rem 0.75rem 1.5rem;
+      box-sizing: border-box;
+    }
+
+    header {
+      margin-bottom: 1rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 { margin: 0 0 0.25rem; font-size: 1.35rem; }
+
+    .meta { color: var(--muted); font-size: 0.84rem; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem 0.75rem;
+      margin: 0.85rem 0;
+    }
+
+    .toolbar input[type="search"] {
+      flex: 1 1 8rem;
+      min-width: 0;
+      max-width: 100%;
+      padding: 0.4rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.86rem;
+    }
+
+    button.action {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      padding: 0.38rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    button.action:hover { border-color: var(--accent); color: var(--accent); }
+    button.action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    button.action.btn-with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    button.action.btn-jira-reload {
+      color: #5b9cff;
+      border-color: rgba(38, 132, 255, 0.45);
+      background: rgba(38, 132, 255, 0.08);
+    }
+
+    button.action.btn-jira-reload:hover:not(:disabled) {
+      color: #2684ff;
+      border-color: #2684ff;
+      background: rgba(38, 132, 255, 0.16);
+    }
+
+    button.action.btn-jira-reload .jira-toolbar-icon {
+      flex-shrink: 0;
+      display: block;
+      width: 16px;
+      height: 16px;
+    }
+
+    button.action.btn-download {
+      color: #5f9595;
+      border-color: rgba(95, 149, 149, 0.52);
+      background: transparent;
+    }
+
+    button.action.btn-download .download-toolbar-icon {
+      flex-shrink: 0;
+      display: block;
+      width: 16px;
+      height: 16px;
+      color: #5f9595;
+    }
+
+    button.action.btn-download:hover:not(:disabled) {
+      color: #7ab3b3;
+      border-color: #5f9595;
+      background: transparent;
+    }
+
+    button.action.btn-download:hover:not(:disabled) .download-toolbar-icon {
+      color: #7ab3b3;
+    }
+
+    .download-menu-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .download-menu-panel {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 20;
+      min-width: 7rem;
+      padding: 0.25rem 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .download-menu-panel[hidden] { display: none; }
+
+    .download-menu-item {
+      display: block;
+      width: 100%;
+      padding: 0.4rem 0.85rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .download-menu-item:hover {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .stats {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .table-wrap {
+      flex: 1;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+      table-layout: fixed;
+    }
+
+    th, td {
+      padding: 0.4rem 0.45rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface-2);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+
+    tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+    tr.row-hidden { display: none; }
+
+    tr.tier-epic td { font-weight: 600; }
+    tr.tier-sprint td { font-weight: 600; }
+    tr.tier-pillar td { font-weight: 600; }
+    tr.tier-sprint .col-key,
+    tr.tier-sprint .col-status { color: var(--muted); font-weight: 400; }
+    tr.tier-pillar .col-key,
+    tr.tier-pillar .col-status { color: var(--muted); font-weight: 400; }
+    tr.tier-pillar .col-key .key-main { color: var(--pillar-title); }
+
+    tr.tier-pillar .col-title a {
+      color: var(--pillar-title);
+    }
+
+    tr.tier-pillar.is-pillar-orphans .col-title a {
+      color: var(--warn, #c77800);
+    }
+
+    .pillar-issue-count {
+      color     : var(--muted);
+      font-size : 0.88em;
+      font-weight: 400;
+    }
+
+    /* Sprint completato o chiuso in Jira — blocco «spento» */
+    tr.is-sprint-complete td {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    tr.is-sprint-complete .col-key { color: var(--muted); }
+    tr.is-sprint-complete .col-key,
+    tr.is-sprint-complete .col-status,
+    tr.is-sprint-complete .col-dev-order,
+    tr.is-sprint-complete .col-sprint,
+    tr.is-sprint-complete .col-title,
+    tr.is-sprint-complete .col-related,
+    tr.is-sprint-complete .col-related-sprint { color: var(--muted); }
+
+    tr.is-sprint-complete .jira-link,
+    tr.is-sprint-complete .epic-affiliation a {
+      color: var(--muted);
+    }
+
+    tr.is-sprint-complete .related-ticket-summary {
+      color: var(--muted);
+      opacity: 0.85;
+    }
+
+    tr.is-sprint-complete .jira-done-mark,
+    tr.is-sprint-complete .subtask-mark {
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    tr.is-sprint-complete:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Issue obsoleta Sprint 6 / [Obsoleto] */
+    tr.is-obsolete td {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    tr.is-obsolete .col-key,
+    tr.is-obsolete .col-status,
+    tr.is-obsolete .col-dev-order,
+    tr.is-obsolete .col-sprint,
+    tr.is-obsolete .col-title,
+    tr.is-obsolete .col-related,
+    tr.is-obsolete .col-related-sprint {
+      color: var(--muted);
+    }
+
+    tr.is-obsolete .jira-link,
+    tr.is-obsolete .epic-affiliation a {
+      color: var(--muted);
+    }
+
+    tr.is-obsolete .related-ticket-summary {
+      color: var(--muted);
+      opacity: 0.85;
+    }
+
+    tr.is-obsolete .jira-done-mark,
+    tr.is-obsolete .subtask-mark {
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    tr.is-obsolete:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tr.tier-obsolete-group td {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tr.tier-obsolete-group .col-key,
+    tr.tier-obsolete-group .col-title {
+      color: var(--muted);
+    }
+
+    tr.tier-related-carryover-group td {
+      color: var(--skip);
+      font-weight: 600;
+    }
+
+    tr.tier-related-carryover-group .col-key,
+    tr.tier-related-carryover-group .col-title {
+      color: var(--skip);
+    }
+
+    .key-related-carryover-group-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--skip);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .key-obsolete-group-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .key-obsolete-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.9;
+      line-height: 1;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    tr.tier-sprint.is-sprint-active td {
+      background: rgba(46, 232, 214, 0.1);
+      border-top: 1px solid rgba(46, 232, 214, 0.28);
+      border-bottom: 1px solid rgba(46, 232, 214, 0.28);
+    }
+
+    tr.tier-sprint.is-sprint-active td:first-child {
+      box-shadow: inset 3px 0 0 var(--turquoise);
+    }
+
+    tr.tier-sprint.is-sprint-active:hover td {
+      background: rgba(46, 232, 214, 0.16);
+    }
+
+    tr.tier-sprint.is-sprint-active .col-key,
+    tr.tier-sprint.is-sprint-active .col-title,
+    tr.tier-sprint.is-sprint-active .col-sprint,
+    tr.tier-sprint.is-sprint-active .col-dev-order {
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr.tier-sprint.is-sprint-active .col-status {
+      color: var(--turquoise);
+      font-weight: 600;
+    }
+
+    tr.tier-sprint.is-sprint-future .col-status {
+      color: var(--skip);
+      font-weight: 600;
+    }
+
+    tr.tier-subtask .col-key { font-size: 0.8rem; }
+
+    .tier-subtask .tree-cell,
+    .tier-task .tree-cell,
+    .tier-epic .tree-cell {
+      align-items: center;
+    }
+
+    .jira-done-mark {
+      color: var(--pass);
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .repo-jira-aligned {
+      flex-shrink: 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--pass);
+    }
+
+    .repo-jira-gap {
+      flex-shrink: 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #f87171;
+    }
+
+    .insight-key-mark,
+    .insight-note-star {
+      display: inline-block;
+      flex-shrink: 0;
+      margin-left: 0.28rem;
+      color: var(--turquoise);
+      font-size: 0.88rem;
+      line-height: 1;
+      vertical-align: middle;
+      text-shadow: 0 0 10px rgba(46, 232, 214, 0.35);
+      cursor: help;
+    }
+
+    .insight-note-star {
+      margin-left: 0;
+      margin-right: 0.22rem;
+    }
+
+    .sprint-related-open-mark {
+      display: inline-block;
+      flex-shrink: 0;
+      margin-left: 0.35rem;
+      color: var(--skip);
+      font-size: 0.88rem;
+      line-height: 1;
+      vertical-align: middle;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+      cursor: help;
+    }
+
+    .related-carryover-mark {
+      display: inline-block;
+      flex-shrink: 0;
+      margin-left: 0.28rem;
+      color: var(--skip);
+      font-size: 0.88rem;
+      line-height: 1;
+      vertical-align: middle;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+      cursor: help;
+    }
+
+    tr.has-related-carryover > td {
+      background: rgba(251, 191, 36, 0.04);
+    }
+
+    tr.is-sprint-complete.tier-sprint .sprint-related-open-mark {
+      color: var(--skip);
+      opacity: 1;
+    }
+
+    tr.has-insight-key > td {
+      background: rgba(46, 232, 214, 0.05);
+    }
+
+    .subtask-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin: 0;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .subtask-check input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .subtask-mark {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      color: transparent;
+      transition: color 0.15s ease;
+    }
+
+    .subtask-mark::before {
+      content: "✓";
+    }
+
+    .subtask-check input:checked + .subtask-mark {
+      color: var(--pass);
+    }
+
+    .subtask-check:hover .subtask-mark {
+      color: rgba(52, 211, 153, 0.45);
+    }
+
+    .subtask-check input:checked:hover + .subtask-mark {
+      color: var(--pass);
+    }
+
+    tr.tier-subtask.is-done td {
+      color: var(--muted);
+    }
+
+    tr.tier-subtask.is-done .col-key a,
+    tr.tier-subtask.is-done .col-title {
+      text-decoration: line-through;
+    }
+
+    .col-key {
+      width: 17%;
+      max-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      overflow-wrap: normal;
+      word-break: keep-all;
+    }
+
+    .key-cell {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 0.25rem;
+      min-width: 0;
+      max-width: 100%;
+      overflow: visible;
+      white-space: nowrap;
+    }
+
+    .key-cell .key-stack {
+      display: inline-flex;
+      align-items: center;
+      flex: 1 1 auto;
+      gap: 0.35rem;
+      min-width: 0;
+      max-width: 100%;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .key-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .key-main .jira-link,
+    .key-obsolete-label,
+    .key-obsolete-group-label,
+    .key-main .issue-type {
+      white-space: nowrap;
+      flex-shrink: 0;
+      overflow-wrap: normal;
+      word-break: keep-all;
+    }
+
+    .btn-gogo-row {
+      flex-shrink: 0;
+      padding: 0.1rem 0.38rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      border-radius: 3px;
+      opacity: 0.88;
+    }
+
+    .btn-gogo-row:hover {
+      opacity: 1;
+    }
+
+    .btn-gogo-row.is-copied,
+    .btn-gogo-row.is-started {
+      border-color: var(--pass);
+      color: var(--pass);
+    }
+
+    .btn-gogo-row.is-running {
+      opacity: 1;
+      cursor: wait;
+      min-width: 3.4rem;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-gogo-row.is-error {
+      border-color: var(--fail);
+      color: var(--fail);
+    }
+
+    tr.is-sprint-complete .btn-gogo-row {
+      opacity: 0.42;
+    }
+
+    .link-gogo-pr {
+      flex-shrink: 0;
+      padding: 0.1rem 0.38rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      border-radius: 3px;
+      text-decoration: none;
+      opacity: 0.92;
+      border: 1px solid var(--pass);
+      color: var(--pass);
+    }
+
+    .link-gogo-pr:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    tr.is-gogo-active {
+      background: rgba(61, 156, 245, 0.14);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    tr.is-gogo-active .btn-gogo-row.is-active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 156, 245, 0.18);
+      opacity: 1;
+      font-weight: 700;
+    }
+
+    tr.is-gogo-active .link-gogo-pr.is-active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(61, 156, 245, 0.18);
+      opacity: 1;
+      font-weight: 700;
+    }
+
+    .push-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .btn-push-row {
+      flex-shrink: 0;
+      padding: 0.1rem 0.38rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+      border-radius: 3px;
+      border-color: var(--warn, #e6a817);
+      color: var(--warn, #e6a817);
+      opacity: 0.92;
+    }
+
+    .btn-push-row:hover,
+    .push-wrap:hover .btn-push-row,
+    .push-wrap:focus-within .btn-push-row {
+      opacity: 1;
+    }
+
+    .btn-push-row.is-running {
+      opacity: 1;
+      cursor: wait;
+      min-width: 3.4rem;
+    }
+
+    .btn-push-row.is-error {
+      border-color: var(--fail);
+      color: var(--fail);
+    }
+
+    .push-tooltip {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 4px);
+      z-index: 50;
+      min-width: 14rem;
+      max-width: 22rem;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.68rem;
+      font-weight: 400;
+      line-height: 1.35;
+      text-align: left;
+      white-space: normal;
+      color: var(--text, #e8eaed);
+      background: var(--panel, #1e2228);
+      border: 1px solid var(--border, #3a4048);
+      border-radius: 4px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    .push-wrap:hover .push-tooltip,
+    .push-wrap:focus-within .push-tooltip {
+      display: block;
+    }
+
+    .push-tooltip-heading {
+      margin-top: 0.35rem;
+      font-weight: 700;
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted, #9aa0a6);
+    }
+
+    .push-tooltip-heading:first-child {
+      margin-top: 0;
+    }
+
+    .push-tooltip-line {
+      margin-top: 0.15rem;
+      padding-left: 0.1rem;
+    }
+
+    .push-tooltip-line.is-done {
+      color: var(--pass, #3dd68c);
+    }
+
+    .push-tooltip-empty {
+      color: var(--muted, #9aa0a6);
+      font-style: italic;
+    }
+
+    tr.is-gogo-active .btn-push-row.is-active {
+      border-color: var(--warn, #e6a817);
+      color: var(--warn, #e6a817);
+      background: rgba(230, 168, 23, 0.14);
+      opacity: 1;
+    }
+
+    .key-stack {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .related-ticket-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      align-items: flex-start;
+    }
+
+    .related-ticket-item {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      max-width: 100%;
+      line-height: 1.25;
+    }
+
+    .related-ticket-item .issue-type,
+    .related-ticket-item .jira-link {
+      white-space: nowrap;
+      flex-shrink: 0;
+      overflow-wrap: normal;
+      word-break: keep-all;
+    }
+
+    .related-ticket-summary {
+      color: var(--muted);
+      min-width: 0;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .col-title {
+      width: 28%;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .col-related {
+      width: 14%;
+      font-size: 0.76rem;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+
+    .col-related.is-empty {
+      color: var(--muted);
+    }
+
+    .col-related-sprint {
+      width: 14%;
+      font-size: 0.76rem;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      color: var(--lime);
+    }
+
+    .col-related-sprint.is-empty {
+      color: var(--muted);
+    }
+
+    .related-sprint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .related-sprint-item {
+      display: block;
+      line-height: 1.25;
+    }
+
+    .related-sprint-item.is-empty {
+      color: var(--muted);
+    }
+
+    .col-dev-order {
+      width: 13%;
+      min-width: 11ch;
+      white-space: nowrap;
+      font-size: 0.76rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--turquoise);
+      text-align: right;
+      overflow: visible;
+    }
+
+    th.col-dev-order,
+    td.col-dev-order {
+      overflow: visible;
+    }
+
+    th.col-filter-head.col-dev-order {
+      text-align: right;
+    }
+
+    th.col-filter-head.col-dev-order .col-filter-trigger {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .col-dev-order.is-inherited {
+      color: var(--muted);
+    }
+
+    .col-sprint {
+      width: 22%;
+      white-space: nowrap;
+      font-size: 0.78rem;
+      color: var(--lime);
+      text-overflow: ellipsis;
+    }
+
+    .col-sprint.is-empty {
+      color: var(--muted);
+    }
+
+    .col-status {
+      width: 13%;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-overflow: ellipsis;
+    }
+
+    .tree-cell {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .tree-indent { flex-shrink: 0; display: inline-block; }
+
+    .tree-toggle {
+      flex-shrink: 0;
+      width: 1.1rem;
+      height: 1.1rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.65rem;
+      line-height: 1.1rem;
+    }
+
+    .tree-toggle:hover { color: var(--turquoise); }
+    .tree-toggle.is-leaf { visibility: hidden; }
+
+    a.jira-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a.jira-link:hover { text-decoration: underline; }
+
+    .state {
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .state.error { color: var(--skip); }
+
+    footer {
+      margin-top: 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    th.col-filter-head {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      padding-right: 0.55rem;
+    }
+
+    .col-resize-handle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 4;
+      width: 8px;
+      height: 100%;
+      cursor: col-resize;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .col-resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 18%;
+      bottom: 18%;
+      left: 3px;
+      width: 2px;
+      border-radius: 1px;
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .col-resize-handle:hover::after,
+    .col-resize-handle.is-dragging::after {
+      background: var(--accent);
+    }
+
+    body.is-col-resizing {
+      cursor: col-resize;
+      user-select: none;
+    }
+
+    body.is-col-resizing .col-resize-handle {
+      cursor: col-resize;
+    }
+
+    .col-filter {
+      position: relative;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .col-filter-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .col-filter-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    th.col-related .col-filter-label {
+      color: var(--purple);
+    }
+
+    th.col-related-sprint .col-filter-label {
+      color: var(--lime);
+    }
+
+    .col-filter-trigger:hover,
+    .col-filter.is-open .col-filter-trigger {
+      color: var(--accent);
+    }
+
+    .col-filter-trigger.is-active {
+      color: var(--turquoise);
+    }
+
+    .col-filter-caret {
+      font-size: 0.62rem;
+      opacity: 0.75;
+    }
+
+    .col-filter-badge {
+      display: none;
+      max-width: 7rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--turquoise);
+      background: rgba(46, 232, 214, 0.12);
+      border-radius: 4px;
+      padding: 0.05rem 0.3rem;
+    }
+
+    .col-filter-trigger.is-active .col-filter-badge {
+      display: inline;
+    }
+
+    .col-filter-panel {
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 0;
+      z-index: 5;
+      min-width: 14rem;
+      max-width: 22rem;
+      padding: 0.45rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .col-filter-panel[hidden] {
+      display: none;
+    }
+
+    .col-filter-panel input[type="search"] {
+      width: 100%;
+      padding: 0.38rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.8rem;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .col-filter-panel input[type="search"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .col-filter-suggestions {
+      margin: 0.4rem 0 0;
+      padding: 0;
+      list-style: none;
+      max-height: 11rem;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+    }
+
+    .col-filter-suggestions:empty {
+      display: none;
+    }
+
+    .col-filter-suggestions li button {
+      display: block;
+      width: 100%;
+      padding: 0.35rem 0.5rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.78rem;
+      text-align: left;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.3;
+    }
+
+    .col-filter-suggestions li button:hover,
+    .col-filter-suggestions li button:focus {
+      background: rgba(61, 156, 245, 0.15);
+      color: var(--accent);
+      outline: none;
+    }
+
+    .col-filter-suggestions .no-match {
+      padding: 0.45rem 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .col-filter-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      margin-top: 0.4rem;
+    }
+
+    .col-filter-actions button {
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 0.28rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .col-filter-actions button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .col-filter[data-mode="select"] .col-filter-suggestions,
+    .col-filter[data-mode="select"] .col-filter-apply {
+      display: none;
+    }
+
+    .col-filter[data-mode="search"] .col-filter-options {
+      display: none;
+    }
+
+    .col-filter-options {
+      margin: 0.4rem 0 0;
+      max-height: 11rem;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      padding: 0.25rem 0;
+    }
+
+    .col-filter-option {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.78rem;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+      line-height: 1.3;
+    }
+
+    .col-filter-option:hover {
+      background: rgba(61, 156, 245, 0.12);
+    }
+
+    .col-filter-option input {
+      flex-shrink: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .col-filter-options .no-match {
+      padding: 0.45rem 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .view-toggle button {
+      border: none;
+      background: var(--surface);
+      color: var(--muted);
+      padding: 0.38rem 0.7rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    .view-toggle button + button {
+      border-left: 1px solid var(--border);
+    }
+
+    .view-toggle button.is-active {
+      background: rgba(61, 156, 245, 0.18);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .view-toggle button:hover:not(.is-active) {
+      color: var(--text);
+    }
+
+    .epic-affiliation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 0.2rem;
+      margin-top: 0.15rem;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--purple);
+      line-height: 1.25;
+    }
+
+    .epic-affiliation .issue-type,
+    .epic-affiliation .jira-link {
+      white-space: nowrap;
+      flex-shrink: 0;
+      overflow-wrap: normal;
+      word-break: keep-all;
+    }
+
+    .epic-affiliation .issue-summary {
+      min-width: 0;
+    }
+
+    .epic-affiliation a {
+      color: var(--purple);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .epic-affiliation a:hover {
+      text-decoration: underline;
+    }
+
+    .insights-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .insight-notes {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .insight-notes-general {
+      margin: 0 0 0.65rem;
+      max-height: 14rem;
+      overflow-y: auto;
+      padding-right: 0.15rem;
+    }
+
+    .insight-notes:empty {
+      display: none;
+    }
+
+    tr.insight-notes-row td {
+      padding: 0.25rem 0.55rem 0.45rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.14);
+    }
+
+    .insight-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem 0.5rem;
+      padding: 0.38rem 0.45rem;
+      margin: 0.2rem 0;
+      border-radius: 6px;
+      border-left: 3px solid var(--border);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .insight-kind-label {
+      flex-shrink: 0;
+      box-sizing: border-box;
+      width: 5.85rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-align: center;
+      text-transform: uppercase;
+      line-height: 1.25;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .insight-item.kind-ok .insight-kind-label {
+      color: var(--pass);
+      background: rgba(52, 211, 153, 0.12);
+    }
+
+    .insight-item.kind-suggestion .insight-kind-label {
+      color: var(--accent);
+      background: rgba(61, 156, 245, 0.14);
+    }
+
+    .insight-item.kind-warning .insight-kind-label {
+      color: var(--skip);
+      background: rgba(251, 191, 36, 0.14);
+    }
+
+    .insight-item.kind-comment .insight-kind-label {
+      color: var(--purple);
+      background: rgba(183, 148, 246, 0.12);
+    }
+
+    .insight-item.kind-info .insight-kind-label {
+      color: var(--turquoise);
+      background: rgba(46, 232, 214, 0.1);
+    }
+
+    .insight-item.kind-ok {
+      border-left-color: var(--pass);
+      background: rgba(52, 211, 153, 0.08);
+    }
+
+    .insight-item.kind-suggestion {
+      border-left-color: var(--accent);
+      background: rgba(61, 156, 245, 0.1);
+    }
+
+    .insight-item.kind-warning {
+      border-left-color: var(--skip);
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    .insight-item.kind-comment {
+      border-left-color: var(--purple);
+      background: rgba(183, 148, 246, 0.08);
+    }
+
+    .insight-item.kind-info {
+      border-left-color: var(--turquoise);
+      background: rgba(46, 232, 214, 0.06);
+    }
+
+    .insight-at {
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .insight-key {
+      flex-shrink: 0;
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    .insight-key a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .insight-key a:hover { text-decoration: underline; }
+
+    .insight-item.kind-ok .insight-key { color: var(--pass); }
+    .insight-item.kind-suggestion .insight-key { color: var(--accent); }
+    .insight-item.kind-warning .insight-key { color: var(--skip); }
+    .insight-item.kind-comment .insight-key { color: var(--purple); }
+    .insight-item.kind-info .insight-key { color: var(--turquoise); }
+
+    .insight-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+    .insight-item.is-stale,
+    .insight-item.is-stale .insight-text,
+    .insight-item.is-stale .insight-kind-label,
+    .insight-item.is-stale .insight-key,
+    .insight-item.is-stale .insight-key a,
+    .insight-item.is-stale .insight-at {
+      text-decoration: line-through;
+      opacity: 0.55;
+    }
+
+    button.action.is-loading {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    body.is-embed {
+      overflow: auto;
+    }
+
+    body.is-embed header,
+    body.is-embed footer {
+      display: none;
+    }
+
+    body.is-embed .page {
+      min-height: auto;
+      padding: 0.35rem 0.5rem 0.75rem;
+    }
+
+    body.is-embed .table-wrap {
+      flex: none;
+      min-height: 58vh;
+      max-height: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1 data-cruscotto-bind="text" data-cruscotto-template="MyBacklog {jiraPrefix}">MyBacklog</h1>
+      <p class="meta">
+        Vista Epic · Sprint · Pilastri ·
+        <a href="https://myfuturejobsearch.atlassian.net/jira/software/projects/JLO/boards/68">Board</a> ·
+        <a href="/backlog.html">Backlog Jira</a> ·
+        <a href="/my-backlog.html"><strong>MyBacklog</strong></a> ·
+        <a href="/jira-working.html">Jira Working</a> ·
+        <a href="/jira-project-tree.html">Project Tree</a> ·
+        <a href="/my-project.html">My Project</a> ·
+        <a href="/pillar-matrix/cruscotto.pillar.index.html">Matrice pilastri</a>
+      </p>
+    </header>
+
+    <div class="toolbar">
+      <div class="view-toggle" role="group" aria-label="Modalità visualizzazione">
+        <button type="button" class="is-active" id="view-epic" aria-pressed="true">Per Epic</button>
+        <button type="button" id="view-sprint" aria-pressed="false">Per Sprint</button>
+        <button type="button" id="view-pillar" aria-pressed="false">Per Pilastro</button>
+      </div>
+      <input type="search" id="filter" placeholder="Filtra per tipo, key, titolo, stato, epic…" disabled />
+      <span class="tree-bulk-toggle" role="group" aria-label="Espandi o collassa tutto">
+        <button type="button" class="action btn-tree-icon" id="btn-expand" title="Espandi tutto" aria-label="Espandi tutto">
+          <svg class="tree-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 5.83 15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/></svg>
+        </button>
+        <button type="button" class="action btn-tree-icon" id="btn-collapse" title="Collassa tutto" aria-label="Collassa tutto">
+          <svg class="tree-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7.41 18.59 8.83 20 12 16.83 15.17 20l1.41-1.41L12 14l-4.59 4.59zM7.41 5.41 8.83 4 12 7.17 15.17 4l1.41 1.41L12 10 7.41 5.41z"/></svg>
+        </button>
+      </span>
+      <button type="button" class="action btn-with-icon btn-jira-sync" id="btn-sync-jira" title="Scarica backlog da Atlassian e salva nel cruscotto DB">
+        <svg class="jira-toolbar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <g transform="translate(2 2) scale(0.833333)">
+            <path fill="#2684FF" d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.13v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.218 5.218 0 0 0 24 12.487V1.005A1.001 1.001 0 0 0 23.013 0z"/>
+          </g>
+        </svg>
+        <span>Sync Jira Backlog</span>
+      </button>
+      <button type="button" class="action btn-with-icon btn-jira-reload" id="btn-reload" title="Ricarica tabella dalla cache cruscotto DB">
+        <svg class="jira-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        <span>Ricarica DB</span>
+      </button>
+      <button type="button" class="action btn-with-icon btn-insight-analyze" id="btn-insights" title="Confronta repo e Jira senza ricaricare la tabella">
+        <svg class="insight-toolbar-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        <span>Analizza repo</span>
+      </button>
+      <button type="button" class="action btn-with-icon btn-insight-clear" id="btn-clear-insights">
+        <svg class="insight-toolbar-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        </svg>
+        <span>Cancella insight</span>
+      </button>
+      <span class="download-menu-wrap" id="download-menu-wrap">
+        <button
+          type = "button"
+          class = "action btn-with-icon btn-download"
+          id = "btn-download"
+          disabled
+          aria-haspopup = "menu"
+          aria-expanded = "false"
+          aria-controls = "download-menu-panel"
+        >
+          <svg class="download-toolbar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+          </svg>
+          <span>Scarica</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="download-menu-panel" id="download-menu-panel" role="menu" hidden>
+          <button type="button" class="download-menu-item" role="menuitem" data-download="csv">CSV</button>
+          <button type="button" class="download-menu-item" role="menuitem" data-download="json">JSON</button>
+        </div>
+      </span>
+      <span class="insights-meta" id="insights-meta">—</span>
+      <span class="stats" id="stats">Caricamento…</span>
+    </div>
+
+    <div class="insight-notes insight-notes-general" id="insight-notes-general" aria-label="Appunti insight backlog"></div>
+
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col class="col-key" />
+          <col class="col-title" />
+          <col class="col-sprint" />
+          <col class="col-status" />
+          <col class="col-related" />
+          <col class="col-related-sprint" />
+          <col class="col-dev-order" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="col-filter-head col-key">
+              <div class="col-filter" data-col="key" data-mode="search">
+                <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
+                  <span class="col-filter-label">Identificativo</span>
+                  <span class="col-filter-badge"></span>
+                  <span class="col-filter-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="col-filter-panel" hidden>
+                  <input type="search" class="col-filter-search" placeholder="Cerca key…" autocomplete="off" spellcheck="false" />
+                  <div class="col-filter-options" role="listbox"></div>
+                  <ul class="col-filter-suggestions" role="listbox"></ul>
+                  <div class="col-filter-actions">
+                    <button type="button" class="col-filter-apply">Applica</button>
+                    <button type="button" class="col-filter-clear">Cancella</button>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th class="col-filter-head">
+              <div class="col-filter" data-col="title" data-mode="search">
+                <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
+                  <span class="col-filter-label">Titolo</span>
+                  <span class="col-filter-badge"></span>
+                  <span class="col-filter-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="col-filter-panel" hidden>
+                  <input type="search" class="col-filter-search" placeholder="Cerca nel titolo…" autocomplete="off" spellcheck="false" />
+                  <div class="col-filter-options" role="listbox"></div>
+                  <ul class="col-filter-suggestions" role="listbox"></ul>
+                  <div class="col-filter-actions">
+                    <button type="button" class="col-filter-apply">Applica</button>
+                    <button type="button" class="col-filter-clear">Cancella</button>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th class="col-filter-head col-sprint">
+              <div class="col-filter" data-col="sprint" data-mode="select">
+                <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
+                  <span class="col-filter-label">Sprint</span>
+                  <span class="col-filter-badge"></span>
+                  <span class="col-filter-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="col-filter-panel" hidden>
+                  <input type="search" class="col-filter-search" placeholder="Cerca sprint…" autocomplete="off" spellcheck="false" />
+                  <div class="col-filter-options" role="listbox"></div>
+                  <ul class="col-filter-suggestions" role="listbox"></ul>
+                  <div class="col-filter-actions">
+                    <button type="button" class="col-filter-apply">Applica</button>
+                    <button type="button" class="col-filter-clear">Cancella</button>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th class="col-filter-head col-status">
+              <div class="col-filter" data-col="status" data-mode="select">
+                <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
+                  <span class="col-filter-label">Stato</span>
+                  <span class="col-filter-badge"></span>
+                  <span class="col-filter-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="col-filter-panel" hidden>
+                  <input type="search" class="col-filter-search" placeholder="Cerca stato…" autocomplete="off" spellcheck="false" />
+                  <div class="col-filter-options" role="listbox"></div>
+                  <ul class="col-filter-suggestions" role="listbox"></ul>
+                  <div class="col-filter-actions">
+                    <button type="button" class="col-filter-apply">Applica</button>
+                    <button type="button" class="col-filter-clear">Cancella</button>
+                  </div>
+                </div>
+              </div>
+            </th>
+            <th class="col-filter-head col-related">
+              <span class="col-filter-label">Ticket correlati</span>
+            </th>
+            <th class="col-filter-head col-related-sprint">
+              <span class="col-filter-label">Sprint correlati</span>
+            </th>
+            <th class="col-filter-head col-dev-order">
+              <div class="col-filter" data-col="devOrder" data-mode="select">
+                <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
+                  <span class="col-filter-label">Ordine Sviluppo</span>
+                  <span class="col-filter-badge"></span>
+                  <span class="col-filter-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="col-filter-panel" hidden>
+                  <input type="search" class="col-filter-search" placeholder="Cerca ordine…" autocomplete="off" spellcheck="false" />
+                  <div class="col-filter-options" role="listbox"></div>
+                  <ul class="col-filter-suggestions" role="listbox"></ul>
+                  <div class="col-filter-actions">
+                    <button type="button" class="col-filter-apply">Applica</button>
+                    <button type="button" class="col-filter-clear">Cancella</button>
+                  </div>
+                </div>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="7" class="state">Caricamento backlog da cruscotto DB…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      Vista Epic o Sprint · ordine da <a href="/jira-working.html">Jira Working</a> · check subtask in <code>localStorage</code> ·
+      insight in <code>jlo-my-backlog-insights-v1</code> · API <code>/api/jira/backlog/insights</code>
+    </footer>
+  </div>
+
+  <script src="/jira-issue-display.js"></script>
+  <script src="/insight-validate.js"></script>
+  <script>
+    const URL_EMBED = new URLSearchParams(globalThis.location.search).get("embed") === "1";
+
+    if (URL_EMBED) {
+      document.body.classList.add("is-embed");
+    }
+
+    const JIRA_BASE = "https://myfuturejobsearch.atlassian.net/browse/";
+    const INDENT = 1.1;
+    const STORAGE_KEY = "jlo-my-backlog-subtask-v1";
+    const VIEW_STORAGE_KEY = "jlo-my-backlog-view-mode-v1";
+    const INSIGHTS_STORAGE_KEY = "jlo-my-backlog-insights-v1";
+    const SNAPSHOT_STORAGE_KEY = "jlo-my-backlog-insights-snapshot-v1";
+    const COL_WIDTHS_STORAGE_KEY = "jlo-my-backlog-col-widths-v2";
+    const GOGO_ACTIVE_ROW_KEY = "jlo-backlog-gogo-active-v1";
+    const GOGO_PR_STORAGE_KEY = "jlo-mybacklog-gogo-pr-v1";
+    const DEV_ORDER_COL_MIN_CH = 11;
+    const TABLE_COL_COUNT = 7;
+    const COL_ORDER = ["key", "title", "sprint", "status", "related", "relatedSprint", "devOrder"];
+
+    /** @type {Record<string, number>} */
+    const DEFAULT_COL_WIDTHS = {
+      key           : 14
+    , title         : 23
+    , sprint        : 15
+    , related       : 12
+    , relatedSprint : 12
+    , status        : 11
+    , devOrder      : 13
+    };
+
+    const MIN_COL_WIDTH_PCT = 4;
+    const SPRINT_HEADER_PREFIX = "__sprint__";
+    const OBSOLETE_GROUP_PREFIX = "__obsolete__";
+    const RELATED_CARRYOVER_GROUP_PREFIX = "__related__";
+
+    /** @type {"epic" | "sprint" | "pillar"} */
+    let viewMode = loadViewMode();
+
+    /** @type {{ fetchedAt: string, total: number, epics?: number, jiraSprints?: Array<{ id: number, name: string, state: string }>, jiraSprintsByName?: Record<string, { id: number, name: string, state: string }>, issues: Array<{ key: string, type: string, tier?: string, isStoryLike?: boolean, summary: string, status: string, parentKey?: string|null, depth: number, hasChildren?: boolean, devOrder?: string|null, devSprint?: number|null, devSprintName?: string|null, devSort?: number|null, jiraSprintState?: string|null, epicKey?: string|null, epicSummary?: string|null, jiraParentKey?: string|null, isSynthetic?: boolean, relatedKeys?: string[], isSprint6Obsolete?: boolean, isRelatedCarryover?: boolean, relatedCarryoverSources?: string[] }> } | null} */
+    let backlog = null;
+
+    /** @type {Record<string, { awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }>} */
+    let wipStatusMap = {};
+
+    /**
+     * @returns {Map<string, string>}
+     */
+    function backlogIssueTypeMap() {
+      return new Map((backlog?.issues ?? []).map((row) => [row.key, row.type]));
+    }
+
+    /**
+     * @param {string} key
+     * @returns {string | undefined}
+     */
+    function issueTypeForKey(key) {
+      return backlog?.issues?.find((row) => row.key === key)?.type;
+    }
+
+    /**
+     * @returns {Map<string, typeof backlog.issues[number]>}
+     */
+    function backlogIssueByKey() {
+      return new Map((backlog?.issues ?? []).map((row) => [row.key, row]));
+    }
+
+    /**
+     * @param {typeof backlog.issues[number] | undefined} row
+     * @returns {string | null}
+     */
+    function sprintLabelForBacklogRow(row) {
+      if (!row) {
+        return null;
+      }
+
+      if (row.tier === "sprint" && row.devSprintName) {
+        return row.devSprintName;
+      }
+
+      const fromBoard = resolveTaskSprintGroupName(row);
+
+      if (fromBoard) {
+        return fromBoard;
+      }
+
+      return row.devSprintName ?? null;
+    }
+
+    /**
+     * @param {string} key
+     * @returns {string | null}
+     */
+    function sprintLabelForKey(key) {
+      return sprintLabelForBacklogRow(backlogIssueByKey().get(key));
+    }
+
+    /**
+     * Issue nel blocco sprint indicato (board Jira o piano Working).
+     *
+     * @param {typeof backlog.issues[number] | undefined} row
+     * @param {string} groupName
+     * @returns {boolean}
+     */
+    function issueBelongsToSprintGroup(row, groupName) {
+      if (!row || !groupName) {
+        return false;
+      }
+
+      const target = normalizeSprintLabel(groupName);
+      const board  = resolveTaskSprintGroupName(row);
+
+      if (board && normalizeSprintLabel(board) === target) {
+        return true;
+      }
+
+      if (row.devSprintName && normalizeSprintLabel(row.devSprintName) === target) {
+        return true;
+      }
+
+      for (const sprint of row.jiraSprints ?? []) {
+        if (normalizeSprintLabel(sprint.name ?? "") === target) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    /**
+     * @param {string} key
+     * @param {typeof backlog.issues[number]} activeHeader
+     * @returns {boolean}
+     */
+    function isRelatedTicketFromPriorOrFutureSprint(key, activeHeader, activeKeys) {
+      if (activeKeys.has(key)) {
+        return false;
+      }
+
+      const row = backlogIssueByKey().get(key);
+
+      if (!row || isRelatedTicketDone(key)) {
+        return false;
+      }
+
+      const activeGroup = activeHeader.devSprintName ?? activeHeader.summary ?? "";
+
+      return !issueBelongsToSprintGroup(row, activeGroup);
+    }
+
+    /**
+     * Blocco sprint da cui leggere citazioni «Ticket correlati» (≠ attuale).
+     *
+     * @param {typeof backlog.issues[number]} header
+     * @param {number} index
+     * @param {number} activeIndex
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isNonActiveSprintBlockForCarryoverScan(header, index, activeIndex, sprintComplete) {
+      if (header.key === `${SPRINT_HEADER_PREFIX}unplanned`) {
+        return false;
+      }
+
+      if (index < activeIndex) {
+        return true;
+      }
+
+      if (index > activeIndex) {
+        return isSprintRowFuture(header, sprintComplete);
+      }
+
+      return false;
+    }
+
+    /**
+     * @param {string} key
+     * @returns {{ summary: string, epic: { key: string, summary: string } | null }}
+     */
+    function relatedTicketDisplayInfo(key) {
+      const row = backlogIssueByKey().get(key);
+      const summary = row?.summary ?? "";
+      const issues = backlog?.issues ?? [];
+      let epic = issues.length ? findEpicInfo(issues, key) : null;
+
+      if (!epic && row?.tier === "epic") {
+        epic = { key: row.key, summary: row.summary };
+      }
+
+      return { summary, epic };
+    }
+
+    /**
+     * @param {string} key
+     * @returns {string}
+     */
+    function relatedTicketEpicTooltip(key) {
+      const { epic } = relatedTicketDisplayInfo(key);
+
+      if (epic) {
+        return `Epic: ${epic.key} — ${epic.summary}`;
+      }
+
+      return "Epic: —";
+    }
+
+    /**
+     * @param {string} key
+     * @returns {boolean}
+     */
+    function isRelatedTicketDone(key) {
+      const row = backlogIssueByKey().get(key);
+
+      if (!row) {
+        return false;
+      }
+
+      return row.status.toLowerCase() === "fatto";
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @returns {boolean}
+     */
+    function isObsoleteRow(row) {
+      if (row.isSprint6Obsolete) {
+        return true;
+      }
+
+      return /\[Obsoleto\]/i.test(row.summary ?? "");
+    }
+
+    /** @type {Record<string, "aligned" | "gap">} */
+    let repoAlign = {};
+
+    /** @type {Record<string, { id: number, name: string, state: string }>} */
+    let jiraSprintCatalog = {};
+
+    /** @type {typeof backlog.issues | null} */
+    let sprintRows = null;
+
+    /** @type {typeof backlog.issues | null} */
+    let pillarRows = null;
+
+    /** @type {{ epic: Set<string>, sprint: Set<string>, pillar: Set<string> }} */
+    const collapsedByMode = {
+      epic   : new Set()
+    , sprint : new Set()
+    , pillar : new Set()
+    };
+
+    /** @type {Set<string>} */
+    let doneSet = loadDoneSet();
+
+    const SELECT_COLUMNS = new Set(["type", "status", "devOrder", "sprint"]);
+    const SEARCH_COLUMNS = new Set(["key", "title"]);
+    const COLUMN_LABELS = {
+      type: "tipo",
+      key: "key",
+      devOrder: "ordine",
+      sprint: "sprint",
+      title: "titolo",
+      status: "stato",
+    };
+
+    const DEV_ORDER_LABELS = {
+      1: "1 — Sprint 1 Completato",
+      2: "2 — Sprint 2 Fase 0",
+      3: "3 — Sprint 3 Admin MVP",
+      4: "4 — Sprint 4 Notifiche",
+      5: "5 — Sprint 5 Tornei",
+      6: "6 — Sprint 6 Chat & Gamebook",
+      7: "7 — Sprint 7 Sblocco",
+      8: "8 — Sprint 8 Release",
+      9: "9 — Sprint 9 Plus",
+      "—": "— Fuori piano",
+    };
+
+    /** Nomi sprint dal piano JLO_WORKING_PLAN (allineato a jira-working-order.mjs). */
+    const SPRINT_PLAN = [
+      { sprint: 1, name: "Sprint 1 — Completato" },
+      { sprint: 2, name: "Sprint 2 — Fase 0" },
+      { sprint: 3, name: "Sprint 3 — Admin MVP" },
+      { sprint: 4, name: "Sprint 4 — Notifiche" },
+      { sprint: 5, name: "Sprint 5 — Tornei" },
+      { sprint: 6, name: "Sprint 6 — Chat & Gamebook" },
+      { sprint: 7, name: "Sprint 7 — Sblocco" },
+      { sprint: 8, name: "Sprint 8 — Release" },
+      { sprint: 9, name: "Sprint 9 — Plus" },
+    ];
+
+    /**
+     * @param {string} name
+     */
+    function normalizeSprintLabel(name) {
+      return String(name)
+        .toLowerCase()
+        .replace(/[—–]/g, "-")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    /**
+     * Nome sprint canonico dalla board Jira (catalogo API).
+     *
+     * @param {string} name
+     * @returns {string}
+     */
+    function canonicalSprintName(name) {
+      const key = normalizeSprintLabel(name);
+
+      if (jiraSprintCatalog[key]) {
+        return jiraSprintCatalog[key].name;
+      }
+
+      for (const [catalogKey, sprint] of Object.entries(jiraSprintCatalog)) {
+        if (catalogKey === key || catalogKey.includes(key) || key.includes(catalogKey)) {
+          return sprint.name;
+        }
+      }
+
+      return name;
+    }
+
+    /**
+     * Sprint Jira per raggruppamento vista — preferisce lo sprint **active** sulla board.
+     *
+     * @param {Array<{ id: number, name: string, state: string }>} jiraSprints
+     * @returns {{ id: number, name: string, state: string } | null}
+     */
+    function pickIssueJiraSprintForView(jiraSprints) {
+      if (!Array.isArray(jiraSprints) || jiraSprints.length === 0) {
+        return null;
+      }
+
+      const active = jiraSprints.find((sprint) => sprint.state === "active");
+
+      if (active) {
+        return active;
+      }
+
+      const future = jiraSprints.find((sprint) => sprint.state === "future");
+
+      if (future) {
+        return future;
+      }
+
+      return [...jiraSprints].sort((a, b) => Number(b.id) - Number(a.id))[0] ?? null;
+    }
+
+    /**
+     * Blocco vista Per Sprint: Jira board vince sul piano Working se l'issue ha sprint field.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @returns {string | null}
+     */
+    function resolveTaskSprintGroupName(row) {
+      const picked = pickIssueJiraSprintForView(row.jiraSprints ?? []);
+
+      if (picked?.name) {
+        return canonicalSprintName(picked.name);
+      }
+
+      return row.devSprintName ?? null;
+    }
+
+    /**
+     * Story nel piano Working per questo blocco sprint (devSprintName = nome gruppo).
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {string} groupName
+     * @returns {boolean}
+     */
+    function storyMatchesSprintGroupPlan(row, groupName) {
+      if (!row.devSprintName) {
+        return false;
+      }
+
+      return normalizeSprintLabel(row.devSprintName) === normalizeSprintLabel(groupName);
+    }
+
+    /**
+     * Ordine storie nel blocco: prima le issue del piano per quel sprint, poi le altre
+     * (es. storie Sprint 1 su board Sprint 3). Ordine Sviluppo resta quello del piano.
+     *
+     * @param {typeof backlog.issues[number]} a
+     * @param {typeof backlog.issues[number]} b
+     * @param {string} groupName
+     */
+    function compareStoriesInSprintGroup(a, b, groupName) {
+      const aInPlan = storyMatchesSprintGroupPlan(a, groupName);
+      const bInPlan = storyMatchesSprintGroupPlan(b, groupName);
+
+      if (aInPlan !== bInPlan) {
+        return aInPlan ? -1 : 1;
+      }
+
+      const sortA = a.devSort ?? Number.MAX_SAFE_INTEGER;
+      const sortB = b.devSort ?? Number.MAX_SAFE_INTEGER;
+
+      if (sortA !== sortB) {
+        return sortA - sortB;
+      }
+
+      return a.key.localeCompare(b.key, undefined, { numeric: true });
+    }
+
+    /**
+     * Numero sprint del blocco dal nome (piano Working), non dalla prima story nel gruppo.
+     *
+     * @param {string} groupName
+     * @param {typeof backlog.issues} stories
+     * @returns {number | null}
+     */
+    function resolveSprintNumForGroup(groupName, stories) {
+      const fromPlan = SPRINT_PLAN.find(
+        (block) => normalizeSprintLabel(block.name) === normalizeSprintLabel(groupName)
+      );
+
+      if (fromPlan) {
+        return fromPlan.sprint;
+      }
+
+      const matching = stories.filter((row) => storyMatchesSprintGroupPlan(row, groupName));
+
+      if (matching.length) {
+        return matching[0].devSprint ?? null;
+      }
+
+      return stories[0]?.devSprint ?? null;
+    }
+
+    /**
+     * Chiave ordinamento blocco sprint: usa il numero dal piano, non il min devSort
+     * di issue «ospitate» da altri sprint (es. 1.1 dentro blocco Sprint 3).
+     *
+     * @param {string} groupName
+     * @param {typeof backlog.issues} stories
+     */
+    function sprintBlockSortKey(groupName, stories) {
+      const sprintNum = resolveSprintNumForGroup(groupName, stories);
+
+      if (sprintNum != null) {
+        return sprintNum * 1_000_000;
+      }
+
+      return stories.reduce((min, row) => {
+        const sort = row.devSort ?? Number.MAX_SAFE_INTEGER;
+        return sort < min ? sort : min;
+      }, Number.MAX_SAFE_INTEGER);
+    }
+
+    /**
+     * Story, Bug, Todo (incl. "To Do") — allineato a lib/jira-backlog.mjs
+     *
+     * @param {string} type
+     * @returns {boolean}
+     */
+    function isStoryLikeType(type) {
+      const t = type.toLowerCase().trim();
+
+      if (t.includes("epic")) {
+        return false;
+      }
+
+      if (t.includes("sub-task") || t.includes("subtask")) {
+        return false;
+      }
+
+      if (t.includes("sub") && !(t.includes("story") || t.includes("bug") || t.includes("todo") || t.includes("to do"))) {
+        return false;
+      }
+
+      return t.includes("story")
+        || t.includes("bug")
+        || t.includes("todo")
+        || t.includes("to do");
+    }
+
+    /**
+     * @param {{ tier?: string, type?: string, isStoryLike?: boolean }} row
+     * @returns {boolean}
+     */
+    function isStoryLikeRow(row) {
+      if (row.isStoryLike != null) {
+        return row.isStoryLike;
+      }
+
+      return row.tier === "task" && isStoryLikeType(row.type ?? "");
+    }
+
+    /**
+     * gogo / PUSH / PR — story-like in vista epic, sprint o pillar.
+     *
+     * @param {{ tier?: string, key?: string, isStoryLike?: boolean, type?: string }} row
+     * @returns {boolean}
+     */
+    function shouldShowWorkflowButton(row) {
+      if (row.tier !== "task" || !row.key || !isStoryLikeRow(row)) {
+        return false;
+      }
+
+      return viewMode === "sprint" || viewMode === "epic" || viewMode === "pillar";
+    }
+
+    /**
+     * Story/Bug/Todo già chiusa in Jira — niente gogo.
+     *
+     * @param {{ status?: string }} row
+     * @returns {boolean}
+     */
+    function isJiraRowDone(row) {
+      return /^(fatto|completato|done|closed|resolved)$/i.test(String(row?.status ?? "").trim());
+    }
+
+    /**
+     * @returns {Record<string, string>}
+     */
+    function loadGogoPrMap() {
+      try {
+        const raw = localStorage.getItem(GOGO_PR_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     * @returns {string | null}
+     */
+    function loadGogoPrUrl(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const url = loadGogoPrMap()[key];
+
+      return typeof url === "string" && url.startsWith("http") ? url : null;
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {string} prUrl
+     */
+    function saveGogoPrUrl(issueKey, prUrl) {
+      try {
+        const key = String(issueKey ?? "").trim().toUpperCase();
+        const map = loadGogoPrMap();
+
+        map[key] = prUrl;
+        localStorage.setItem(GOGO_PR_STORAGE_KEY, JSON.stringify(map));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     * @returns {Promise<string | null>}
+     */
+    async function fetchPrUrlForIssue(issueKey) {
+      try {
+        const res = await fetch(
+          `/api/workflow/pr-url?key=${encodeURIComponent(String(issueKey).trim())}`
+        );
+
+        if (!res.ok) {
+          return null;
+        }
+
+        const data = await res.json();
+
+        return typeof data.prUrl === "string" && data.prUrl.startsWith("http")
+          ? data.prUrl
+          : null;
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * Issue key della riga gogo attiva (persiste fino al prossimo gogo).
+     *
+     * @returns {string}
+     */
+    function loadGogoActiveIssueKey() {
+      try {
+        return sessionStorage.getItem(GOGO_ACTIVE_ROW_KEY) ?? "";
+      } catch {
+        return "";
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     */
+    function saveGogoActiveIssueKey(issueKey) {
+      try {
+        if (issueKey) {
+          sessionStorage.setItem(GOGO_ACTIVE_ROW_KEY, issueKey);
+        } else {
+          sessionStorage.removeItem(GOGO_ACTIVE_ROW_KEY);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function clearGogoRowHighlight() {
+      document.querySelectorAll("tr.is-gogo-active").forEach((tr) => {
+        tr.classList.remove("is-gogo-active");
+      });
+      document.querySelectorAll(".btn-gogo-row.is-active").forEach((btn) => {
+        btn.classList.remove("is-active");
+      });
+      document.querySelectorAll(".link-gogo-pr.is-active").forEach((link) => {
+        link.classList.remove("is-active");
+      });
+    }
+
+    /**
+     * Evidenzia riga gogo — una sola attiva per sessione tab.
+     *
+     * @param {string} issueKey
+     */
+    function highlightGogoRow(issueKey) {
+      const key = String(issueKey ?? "").trim();
+
+      if (!key) {
+        return;
+      }
+
+      clearGogoRowHighlight();
+      saveGogoActiveIssueKey(key);
+
+      const tr = document.querySelector(`tr[data-gogo-key="${CSS.escape(key)}"]`);
+
+      if (!tr) {
+        return;
+      }
+
+      tr.classList.add("is-gogo-active");
+      tr.querySelector(".btn-gogo-row")?.classList.add("is-active");
+      tr.querySelector(".link-gogo-pr")?.classList.add("is-active");
+    }
+
+    /** Apre tab Cursor Agent nel cruscotto padre (backlog è in iframe). */
+    function openCursorAgentTab() {
+      const topWin = window.top ?? window;
+
+      try {
+        topWin.location.hash = "cursor";
+      } catch {
+        window.open("/app.html#cursor", "_blank", "noopener");
+      }
+    }
+
+    /** @type {number | null} */
+    let gogoAgentPollTimer = null;
+
+    /**
+     * @returns {Promise<{ running?: boolean, status?: string, prompt?: string | null, error?: string | null }>}
+     */
+    async function fetchCursorAgentStatus() {
+      try {
+        const res = await fetch("/api/cursor/agent/status");
+
+        return await res.json();
+      } catch {
+        return {};
+      }
+    }
+
+    function stopGogoAgentPoll() {
+      if (gogoAgentPollTimer != null) {
+        window.clearInterval(gogoAgentPollTimer);
+        gogoAgentPollTimer = null;
+      }
+    }
+
+    /**
+     * @param {HTMLButtonElement} btn
+     * @param {boolean} running
+     */
+    function setGogoButtonRunningState(btn, running) {
+      const cmd = btn.getAttribute("aria-label") ?? "gogo";
+
+      if (running) {
+        btn.disabled = true;
+        btn.classList.add("is-running");
+        btn.textContent = "running";
+        btn.title = `${cmd} — agent in esecuzione…`;
+        return;
+      }
+
+      btn.disabled = false;
+      btn.classList.remove("is-running");
+      btn.textContent = "gogo";
+      btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
+    }
+
+    /**
+     * Poll status agent fino a fine run — bottone resta «running».
+     *
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     * @param {string} [commandOverride]
+     */
+    function watchGogoAgentUntilDone(btn, issueKey, commandOverride) {
+      stopGogoAgentPoll();
+      setGogoButtonRunningState(btn, true);
+
+      const cmd = commandOverride ?? buildGogoCommand(issueKey);
+
+      const tick = async () => {
+        const status = await fetchCursorAgentStatus();
+        const prompt = String(status.prompt ?? "");
+        const forThisRun = !prompt || prompt.includes(issueKey) || prompt === cmd;
+        const stillRunning = Boolean(status.running) || status.status === "running";
+
+        if (stillRunning && forThisRun) {
+          return;
+        }
+
+        stopGogoAgentPoll();
+        setGogoButtonRunningState(btn, false);
+
+        if (status.status === "error") {
+          btn.classList.add("is-error");
+          btn.title = status.error ?? "Agent terminato con errore";
+
+          window.setTimeout(() => {
+            btn.classList.remove("is-error");
+          }, 2200);
+        } else {
+          void tryShowPrAfterGogo(btn, issueKey);
+        }
+      };
+
+      void tick();
+      gogoAgentPollTimer = window.setInterval(() => {
+        void tick();
+      }, 1500);
+    }
+
+    /** Ripristina «running» su riga gogo attiva se agent ancora in corso (refresh tabella). */
+    async function syncGogoButtonWithAgentStatus() {
+      const activeKey = loadGogoActiveIssueKey();
+
+      if (!activeKey) {
+        return;
+      }
+
+      const btn = document.querySelector(
+        `tr[data-gogo-key="${CSS.escape(activeKey)}"] .btn-gogo-row`
+      );
+
+      if (!(btn instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const status = await fetchCursorAgentStatus();
+      const prompt = String(status.prompt ?? "");
+      const cmd = buildGogoCommand(activeKey);
+      const stillRunning = Boolean(status.running) || status.status === "running";
+      const forThis = !prompt || prompt.includes(activeKey) || prompt === cmd;
+
+      if (stillRunning && forThis) {
+        watchGogoAgentUntilDone(btn, activeKey);
+      }
+    }
+
+    /**
+     * Comando workflow gogo per prompt Cursor Agent.
+     *
+     * @param {string} issueKey
+     * @returns {string}
+     */
+    function buildGogoCommand(issueKey) {
+      return `gogo ${String(issueKey).trim()}`;
+    }
+
+    /**
+     * Comando workflow PUSH (step 8) per prompt Cursor Agent.
+     *
+     * @param {string} issueKey
+     * @returns {string}
+     */
+    function buildPushCommand(issueKey) {
+      return `PUSH ${String(issueKey).trim()}`;
+    }
+
+    /**
+     * @param {string} issueKey
+     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null } | undefined}
+     */
+    function getWipStatus(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      return wipStatusMap[key];
+    }
+
+    /**
+     * Carica stato WIP per le story-like del backlog.
+     *
+     * @param {Array<{ key?: string, tier?: string, isStoryLike?: boolean }>} issues
+     */
+    async function refreshWipStatusMap(issues) {
+      const keys = (issues ?? [])
+        .filter((row) => row.tier === "task" && isStoryLikeRow(row) && row.key)
+        .map((row) => row.key);
+
+      if (keys.length === 0) {
+        wipStatusMap = {};
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `/api/jira/wip/status?keys=${encodeURIComponent(keys.join(","))}`
+        );
+
+        if (!res.ok) {
+          wipStatusMap = {};
+          return;
+        }
+
+        const data = await res.json();
+        wipStatusMap = data.byKey && typeof data.byKey === "object" ? data.byKey : {};
+      } catch {
+        wipStatusMap = {};
+      }
+    }
+
+    /**
+     * @param {HTMLElement} tooltip
+     * @param {{ ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }} wip
+     */
+    function populatePushTooltip(tooltip, wip) {
+      tooltip.replaceChildren();
+
+      const ac = Array.isArray(wip.ac) ? wip.ac : [];
+      const dod = Array.isArray(wip.dod) ? wip.dod : [];
+
+      if (ac.length === 0 && dod.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "push-tooltip-empty";
+        empty.textContent = "Nessun AC/DoD in WIP — esegui veve db";
+        tooltip.appendChild(empty);
+        return;
+      }
+
+      /**
+       * @param {string} label
+       * @param {Array<{ checked: boolean, text: string }>} items
+       * @param {string | null | undefined} summary
+       */
+      function appendSection(label, items, summary) {
+        if (items.length === 0) {
+          return;
+        }
+
+        const heading = document.createElement("div");
+        heading.className = "push-tooltip-heading";
+        heading.textContent = summary ? `${label} (${summary})` : label;
+        tooltip.appendChild(heading);
+
+        for (const item of items) {
+          const line = document.createElement("div");
+          line.className = "push-tooltip-line";
+
+          if (item.checked) {
+            line.classList.add("is-done");
+          }
+
+          line.textContent = `${item.checked ? "✓" : "☐"} ${item.text}`;
+          tooltip.appendChild(line);
+        }
+      }
+
+      appendSection("AC", ac, wip.acSummary);
+      appendSection("DoD", dod, wip.dodSummary);
+    }
+
+    /**
+     * Step 8 PUSH — sync Jira da WIP + close-story via API cruscotto.
+     *
+     * @param {string} issueKey
+     * @returns {Promise<{ ok: boolean, mode: "push", prUrl?: string | null, error?: string }>}
+     */
+    async function launchWipPush(issueKey) {
+      try {
+        const res = await fetch("/api/jira/wip/push", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok === true) {
+          return {
+            ok    : true
+          , mode  : "push"
+          , prUrl : typeof data.prUrl === "string" ? data.prUrl : null
+          };
+        }
+
+        return {
+          ok    : false
+        , mode  : "push"
+        , error : typeof data.error === "string"
+            ? data.error
+            : `HTTP ${res.status}`
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { ok: false, mode: "push", error: message };
+      }
+    }
+
+    /**
+     * Bottone PUSH con tooltip AC/DoD.
+     *
+     * @param {string} issueKey
+     * @param {{ ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }} wip
+     * @returns {HTMLDivElement}
+     */
+    function createPushRowButton(issueKey, wip) {
+      const cmd = buildPushCommand(issueKey);
+      const wrap = document.createElement("div");
+      wrap.className = "push-wrap";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "action btn-push-row";
+      btn.textContent = "PUSH";
+      btn.setAttribute("aria-label", cmd);
+
+      const tooltip = document.createElement("div");
+      tooltip.className = "push-tooltip";
+      tooltip.setAttribute("role", "tooltip");
+      populatePushTooltip(tooltip, wip);
+
+      const acLabel = wip.acSummary ? `AC ${wip.acSummary}` : "AC —";
+      const dodLabel = wip.dodSummary ? `DoD ${wip.dodSummary}` : "DoD —";
+      btn.title = `${cmd} · ${acLabel} · ${dodLabel}`;
+
+      btn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (btn.disabled) {
+          return;
+        }
+
+        const prev = btn.textContent;
+        btn.disabled = true;
+        btn.classList.add("is-running");
+        btn.textContent = "…";
+
+        const result = await launchWipPush(issueKey);
+
+        btn.classList.remove("is-running");
+
+        if (result.ok && result.mode === "push") {
+          highlightGogoRow(issueKey);
+
+          if (result.prUrl) {
+            saveGogoPrUrl(issueKey, result.prUrl);
+          }
+
+          await refreshWipStatusMap(backlog?.issues ?? []);
+          applyFilters();
+          return;
+        }
+
+        btn.disabled = false;
+
+        btn.textContent = "!";
+        btn.classList.add("is-error");
+        btn.title = result.error ?? "Avvio PUSH fallito";
+
+        window.setTimeout(() => {
+          btn.textContent = prev;
+          btn.classList.remove("is-error");
+          btn.title = `${cmd} · ${acLabel} · ${dodLabel}`;
+        }, 2200);
+      });
+
+      if (issueKey === loadGogoActiveIssueKey()) {
+        btn.classList.add("is-active");
+      }
+
+      wrap.appendChild(btn);
+      wrap.appendChild(tooltip);
+
+      return wrap;
+    }
+
+    /**
+     * Fallback — copia comando in clipboard se Cursor Agent non configurato.
+     *
+     * @param {string} issueKey
+     * @returns {Promise<boolean>}
+     */
+    async function copyGogoCmd(issueKey) {
+      const cmd = buildGogoCommand(issueKey);
+
+      try {
+        await navigator.clipboard.writeText(cmd);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    /**
+     * Avvia Cursor Agent interno (POST /api/cursor/agent) con prompt gogo.
+     *
+     * @param {string} issueKey
+     * @returns {Promise<{ ok: boolean, mode: "agent" | "clipboard" | "api", error?: string }>}
+     */
+    async function launchGogoAgent(issueKey) {
+      const prompt = buildGogoCommand(issueKey);
+
+      try {
+        const res = await fetch("/api/cursor/agent", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({
+            prompt
+          , runtime : "local"
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 503) {
+          const copied = await copyGogoCmd(issueKey);
+          return {
+            ok    : copied
+          , mode  : "clipboard"
+          , error : typeof data.error === "string" ? data.error : "CURSOR_API_KEY non configurata"
+          };
+        }
+
+        if (!res.ok) {
+          return {
+            ok    : false
+          , mode  : "api"
+          , error : typeof data.error === "string" ? data.error : `HTTP ${res.status}`
+          };
+        }
+
+        return { ok: true, mode: "agent" };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { ok: false, mode: "api", error: message };
+      }
+    }
+
+    /**
+     * Bottone gogo — solo vista sprint, righe story-like.
+     *
+     * @param {string} issueKey
+     * @returns {HTMLButtonElement}
+     */
+    function createGogoRowButton(issueKey) {
+      const cmd = buildGogoCommand(issueKey);
+      const btn = document.createElement("button");
+
+      btn.type = "button";
+      btn.className = "action btn-gogo-row";
+      btn.textContent = "gogo";
+      btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
+      btn.setAttribute("aria-label", cmd);
+
+      btn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (btn.disabled) {
+          return;
+        }
+
+        const prev = btn.textContent;
+        btn.disabled = true;
+        btn.classList.add("is-running");
+        btn.textContent = "…";
+
+        const result = await launchGogoAgent(issueKey);
+
+        btn.classList.remove("is-running");
+
+        if (result.ok && result.mode === "agent") {
+          highlightGogoRow(issueKey);
+          btn.classList.add("is-active");
+          openCursorAgentTab();
+          watchGogoAgentUntilDone(btn, issueKey);
+          return;
+        }
+
+        btn.disabled = false;
+
+        if (result.ok && result.mode === "clipboard") {
+          highlightGogoRow(issueKey);
+          btn.classList.add("is-active");
+          btn.textContent = prev;
+          btn.title = `${cmd} — copiato · incolla in Cursor (o configura CURSOR_API_KEY)`;
+          return;
+        }
+
+        btn.textContent = "!";
+        btn.classList.add("is-error");
+        btn.title = result.error ?? "Avvio agent fallito";
+
+        window.setTimeout(() => {
+          btn.textContent = prev;
+          btn.classList.remove("is-error");
+          btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
+        }, 2200);
+      });
+
+      if (issueKey === loadGogoActiveIssueKey()) {
+        btn.classList.add("is-active");
+      }
+
+      return btn;
+    }
+
+    /**
+     * Link PR al posto del bottone gogo dopo workflow completato.
+     *
+     * @param {string} issueKey
+     * @param {string} prUrl
+     * @returns {HTMLAnchorElement}
+     */
+    function createGogoPrLink(issueKey, prUrl) {
+      const link = document.createElement("a");
+
+      link.className = "action link-gogo-pr";
+      link.href = prUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "PR";
+      link.title = `Pull request · ${issueKey}`;
+      link.setAttribute("aria-label", `PR ${issueKey}`);
+
+      if (issueKey === loadGogoActiveIssueKey()) {
+        link.classList.add("is-active");
+      }
+
+      return link;
+    }
+
+    /**
+     * @param {HTMLElement} control
+     * @param {string} issueKey
+     * @param {string} prUrl
+     */
+    function replaceGogoControlWithPr(control, issueKey, prUrl) {
+      control.replaceWith(createGogoPrLink(issueKey, prUrl));
+    }
+
+    /**
+     * Dopo fine agent — cerca PR su GitHub e sostituisce il bottone.
+     *
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     */
+    async function tryShowPrAfterGogo(btn, issueKey) {
+      const prUrl = await fetchPrUrlForIssue(issueKey);
+
+      if (prUrl) {
+        saveGogoPrUrl(issueKey, prUrl);
+        replaceGogoControlWithPr(btn, issueKey, prUrl);
+      }
+    }
+
+    /**
+     * Bottone gogo o link PR — sprint, story aperte.
+     *
+     * @param {HTMLElement} keyCell
+     * @param {string} issueKey
+     * @param {{ status?: string }} row
+     */
+    function appendGogoRowControl(keyCell, issueKey, row) {
+      const wip = getWipStatus(issueKey);
+      const prUrl = wip?.prUrl ?? loadGogoPrUrl(issueKey);
+
+      if (prUrl) {
+        keyCell.appendChild(createGogoPrLink(issueKey, prUrl));
+        return;
+      }
+
+      if (wip?.awaitingPush) {
+        keyCell.appendChild(createPushRowButton(issueKey, wip));
+        return;
+      }
+
+      if (isJiraRowDone(row)) {
+        return;
+      }
+
+      keyCell.appendChild(createGogoRowButton(issueKey));
+    }
+
+    /**
+     * @returns {"epic" | "sprint" | "pillar"}
+     */
+    function loadViewMode() {
+      try {
+        const raw = localStorage.getItem(VIEW_STORAGE_KEY);
+
+        if (raw === "sprint" || raw === "epic" || raw === "pillar") {
+          return raw;
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return "epic";
+    }
+
+    /**
+     * @param {"epic" | "sprint" | "pillar"} mode
+     */
+    function saveViewMode(mode) {
+      try {
+        localStorage.setItem(VIEW_STORAGE_KEY, mode);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    /**
+     * @returns {Set<string>}
+     */
+    function activeCollapsed() {
+      return collapsedByMode[viewMode];
+    }
+
+    /**
+     * @returns {typeof backlog.issues}
+     */
+    function getDisplayRows() {
+      if (!backlog) {
+        return [];
+      }
+
+      if (viewMode === "pillar") {
+        return pillarRows ?? [];
+      }
+
+      return viewMode === "epic" ? backlog.issues : (sprintRows ?? []);
+    }
+
+    /**
+     * Chiave albero — in vista pilastro la stessa issue Jira può comparire più volte.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @returns {string}
+     */
+    function rowTreeKey(row) {
+      if (viewMode === "pillar") {
+        if (row.treeKey) {
+          return row.treeKey;
+        }
+
+        if (row.pillarId && row.key && !String(row.key).startsWith("__pillar__")) {
+          return `${row.key}@pillar:${row.pillarId}`;
+        }
+      }
+
+      return row.key;
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     * @returns {Map<string, typeof backlog.issues[number]>}
+     */
+    function rowsMapByTreeKey(rows) {
+      /** @type {Map<string, typeof backlog.issues[number]>} */
+      const map = new Map();
+
+      for (const row of rows) {
+        map.set(rowTreeKey(row), row);
+
+        if (viewMode === "pillar" && row.key && row.key !== rowTreeKey(row)) {
+          map.set(row.key, row);
+        }
+      }
+
+      return map;
+    }
+
+    /**
+     * @param {Set<string>} matchSet
+     * @param {typeof backlog.issues[number]} row
+     * @returns {boolean}
+     */
+    function rowMatchesFilter(matchSet, row) {
+      if (!matchSet) {
+        return true;
+      }
+
+      return matchSet.has(row.key) || matchSet.has(rowTreeKey(row));
+    }
+
+    /** @type {Record<'type'|'key'|'devOrder'|'sprint'|'title'|'status', { selected: Set<string>, text: string }>} */
+    const columnFilters = {
+      type: { selected: new Set(), text: "" },
+      key: { selected: new Set(), text: "" },
+      devOrder: { selected: new Set(), text: "" },
+      sprint: { selected: new Set(), text: "" },
+      title: { selected: new Set(), text: "" },
+      status: { selected: new Set(), text: "" },
+    };
+
+    /**
+     * @param {typeof backlog.issues} issues
+     * @param {string} key
+     * @returns {{ key: string, summary: string } | null}
+     */
+    function findEpicInfo(issues, key) {
+      const byKey = new Map(issues.map((row) => [row.key, row]));
+      let current = byKey.get(key);
+
+      while (current) {
+        if (current.tier === "epic") {
+          return { key: current.key, summary: current.summary };
+        }
+
+        const parentKey = current.jiraParentKey ?? current.parentKey;
+        current = parentKey ? byKey.get(parentKey) ?? null : null;
+      }
+
+      return null;
+    }
+
+    /**
+     * @param {number} sprint
+     * @param {typeof backlog.issues} issues
+     * @returns {string}
+     */
+    function sprintNameFor(sprint, issues) {
+      const fromPlan = SPRINT_PLAN.find((block) => block.sprint === sprint);
+
+      if (fromPlan) {
+        return fromPlan.name;
+      }
+
+      for (const row of issues) {
+        if (row.devSprint === sprint && row.devSprintName) {
+          return row.devSprintName;
+        }
+      }
+
+      return `Sprint ${sprint}`;
+    }
+
+    /**
+     * @param {typeof backlog.issues} issues
+     * @returns {typeof backlog.issues}
+     */
+    function buildSprintTree(issues) {
+      /** @type {Map<string, typeof issues>} */
+      const subtasksByParent = new Map();
+
+      for (const row of issues) {
+        if (row.tier !== "subtask" || !row.parentKey) {
+          continue;
+        }
+
+        const list = subtasksByParent.get(row.parentKey) ?? [];
+        list.push(row);
+        subtasksByParent.set(row.parentKey, list);
+      }
+
+      /** @type {Map<string, typeof issues>} */
+      const sprintGroups = new Map();
+      /** @type {typeof issues} */
+      const unplanned = [];
+
+      for (const row of issues) {
+        if (row.tier !== "task") {
+          continue;
+        }
+
+        const groupName = resolveTaskSprintGroupName(row);
+
+        if (groupName) {
+          const list = sprintGroups.get(groupName) ?? [];
+          list.push(row);
+          sprintGroups.set(groupName, list);
+        } else {
+          unplanned.push(row);
+        }
+      }
+
+      for (const [groupName, list] of sprintGroups) {
+        list.sort((a, b) => compareStoriesInSprintGroup(a, b, groupName));
+      }
+
+      unplanned.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+
+      /** @type {typeof issues} */
+      const flat = [];
+
+      /**
+       * @param {string} headerName
+       * @param {typeof issues} stories
+       * @param {Map<string, typeof issues>} subtasksByParent
+       * @returns {"active" | "future" | "closed" | null}
+       */
+      function resolveSprintJiraState(headerName, stories, subtasksByParent) {
+        const target = normalizeSprintLabel(headerName);
+        let sawActive = false;
+        let sawFuture = false;
+        let sawClosed = false;
+
+        /**
+         * @param {typeof issues[number]} row
+         */
+        const scan = (row) => {
+          for (const sprint of row.jiraSprints ?? []) {
+            if (normalizeSprintLabel(sprint.name) !== target) {
+              continue;
+            }
+
+            if (sprint.state === "active") {
+              sawActive = true;
+            } else if (sprint.state === "future") {
+              sawFuture = true;
+            } else if (sprint.state === "closed") {
+              sawClosed = true;
+            }
+          }
+        };
+
+        for (const story of stories) {
+          scan(story);
+
+          for (const sub of subtasksByParent.get(story.key) ?? []) {
+            scan(sub);
+          }
+        }
+
+        if (sawActive) {
+          return "active";
+        }
+
+        if (sawFuture) {
+          return "future";
+        }
+
+        if (sawClosed) {
+          return "closed";
+        }
+
+        return null;
+      }
+
+      /**
+       * @param {number | null} sprintNum
+       * @param {string} sprintName
+       * @returns {string}
+       */
+      function sprintBlockBucket(sprintNum, sprintName) {
+        const slug = String(sprintName)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+          .slice(0, 48);
+
+        return sprintNum != null ? `${sprintNum}--${slug}` : slug;
+      }
+
+      /**
+       * @param {typeof issues[number]} story
+       * @param {string} parentKey
+       * @param {number} depth
+       */
+      function appendStoryBranch(story, parentKey, depth) {
+        const epicInfo = findEpicInfo(issues, story.key);
+        const subtasks = [...(subtasksByParent.get(story.key) ?? [])];
+        subtasks.sort((a, b) => {
+          const sortA = a.devSort ?? Number.MAX_SAFE_INTEGER;
+          const sortB = b.devSort ?? Number.MAX_SAFE_INTEGER;
+
+          if (sortA !== sortB) {
+            return sortA - sortB;
+          }
+
+          return a.key.localeCompare(b.key, undefined, { numeric: true });
+        });
+
+        flat.push({
+          key             : story.key
+        , type            : story.type
+        , tier            : "task"
+        , isStoryLike     : isStoryLikeRow(story)
+        , summary         : story.summary
+        , status          : story.status
+        , parentKey
+        , jiraParentKey   : story.parentKey
+        , depth
+        , hasChildren     : subtasks.length > 0
+        , devOrder        : story.devOrder ?? null
+        , devSprint       : story.devSprint ?? null
+        , devSprintName   : story.devSprintName ?? null
+        , devSort         : story.devSort ?? null
+        , jiraSprints     : story.jiraSprints ?? []
+        , relatedKeys     : story.relatedKeys ?? []
+        , isSprint6Obsolete: story.isSprint6Obsolete ?? false
+        , epicKey         : epicInfo?.key ?? null
+        , epicSummary     : epicInfo?.summary ?? null
+        });
+
+        for (const sub of subtasks) {
+          flat.push({
+            key             : sub.key
+          , type            : sub.type
+          , tier            : "subtask"
+          , summary         : sub.summary
+          , status          : sub.status
+          , parentKey       : story.key
+          , jiraParentKey   : sub.parentKey
+          , depth           : depth + 1
+          , hasChildren     : false
+          , devOrder        : sub.devOrder ?? null
+          , devSprint       : sub.devSprint ?? story.devSprint ?? null
+          , devSprintName   : sub.devSprintName ?? story.devSprintName ?? null
+          , devSort         : sub.devSort ?? null
+          , jiraSprints     : sub.jiraSprints ?? []
+          , relatedKeys     : sub.relatedKeys ?? []
+          , isSprint6Obsolete: sub.isSprint6Obsolete ?? false
+          , epicKey         : epicInfo?.key ?? null
+          , epicSummary     : epicInfo?.summary ?? null
+          });
+        }
+      }
+
+      /**
+       * @param {string | "unplanned"} bucket
+       * @param {string} headerName
+       * @param {typeof issues} stories
+       * @param {number | null} [sprintNum]
+       */
+      function appendSprintBlock(bucket, headerName, stories, sprintNum = null) {
+        if (!stories.length) {
+          return;
+        }
+
+        const headerKey = bucket === "unplanned"
+          ? `${SPRINT_HEADER_PREFIX}unplanned`
+          : `${SPRINT_HEADER_PREFIX}${bucket}`;
+        const resolvedNum = bucket === "unplanned" ? null : sprintNum;
+        const blockSort = sprintBlockSortKey(headerName, stories);
+        const jiraSprintState = resolveSprintJiraState(headerName, stories, subtasksByParent);
+
+        flat.push({
+          key             : headerKey,
+          type            : "Sprint",
+          tier            : "sprint",
+          summary         : headerName,
+          status          : "—",
+          parentKey       : null,
+          jiraParentKey   : null,
+          depth           : 0,
+          hasChildren     : true,
+          devOrder        : resolvedNum != null ? String(resolvedNum) : "—",
+          devSprint       : resolvedNum,
+          devSprintName   : headerName,
+          devSort         : blockSort,
+          jiraSprintState : jiraSprintState,
+          isSynthetic     : true,
+        });
+
+        /** @type {typeof stories} */
+        const activeStories   = [];
+        /** @type {typeof stories} */
+        const obsoleteStories = [];
+
+        for (const story of stories) {
+          if (isObsoleteRow(story)) {
+            obsoleteStories.push(story);
+          } else {
+            activeStories.push(story);
+          }
+        }
+
+        activeStories.sort((a, b) => compareStoriesInSprintGroup(a, b, headerName));
+        obsoleteStories.sort((a, b) => compareStoriesInSprintGroup(a, b, headerName));
+
+        for (const story of activeStories) {
+          appendStoryBranch(story, headerKey, 1);
+        }
+
+        if (obsoleteStories.length) {
+          const obsoleteGroupKey = `${OBSOLETE_GROUP_PREFIX}${headerKey}`;
+
+          flat.push({
+            key             : obsoleteGroupKey
+          , type            : "Group"
+          , tier            : "obsolete-group"
+          , summary         : "OBSOLETE"
+          , status          : "—"
+          , parentKey       : headerKey
+          , jiraParentKey   : null
+          , depth           : 1
+          , hasChildren     : true
+          , devOrder        : null
+          , devSprint       : resolvedNum
+          , devSprintName   : headerName
+          , devSort         : null
+          , isSynthetic     : true
+          , isObsoleteGroup : true
+          });
+
+          for (const story of obsoleteStories) {
+            appendStoryBranch(story, obsoleteGroupKey, 2);
+          }
+        }
+      }
+
+      const sprintBlocks = [...sprintGroups.entries()].sort((a, b) => {
+        const sortA = sprintBlockSortKey(a[0], a[1]);
+        const sortB = sprintBlockSortKey(b[0], b[1]);
+
+        if (sortA !== sortB) {
+          return sortA - sortB;
+        }
+
+        return a[0].localeCompare(b[0], "it");
+      });
+
+      for (const [sprintName, stories] of sprintBlocks) {
+        const sprintNum = resolveSprintNumForGroup(sprintName, stories);
+        appendSprintBlock(
+          sprintBlockBucket(sprintNum, sprintName)
+        , sprintName
+        , stories
+        , sprintNum
+        );
+      }
+
+      appendSprintBlock("unplanned", "— Fuori piano", unplanned);
+
+      return flat;
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     * @param {Set<string>} sprintComplete
+     * @returns {number}
+     */
+    function findActiveSprintBlockIndex(rows, sprintComplete) {
+      return rows.findIndex((row) => isSprintRowActive(row, sprintComplete));
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     * @param {number} headerIndex
+     * @returns {{ headerKey: string, start: number, end: number } | null}
+     */
+    function sprintBlockRange(rows, headerIndex) {
+      if (headerIndex < 0 || rows[headerIndex]?.tier !== "sprint") {
+        return null;
+      }
+
+      const headerKey = rows[headerIndex].key;
+      let end           = headerIndex + 1;
+
+      while (end < rows.length && rows[end].tier !== "sprint") {
+        end += 1;
+      }
+
+      return { headerKey, start: headerIndex, end };
+    }
+
+    /**
+     * Correlati aperti citati in sprint ≠ attuale: precedenti spenti + futuri.
+     *
+     * @param {typeof backlog.issues} rows
+     * @param {Set<string>} sprintComplete
+     * @param {number} activeIndex
+     * @returns {Map<string, { sources: string[] }>}
+     */
+    function collectNonActiveSprintOpenRelated(rows, sprintComplete, activeIndex) {
+      const rowByKey    = new Map(rows.map((row) => [row.key, row]));
+      const descendants = buildDescendantsMap(rows);
+      /** @type {Map<string, Set<string>>} */
+      const byRelated   = new Map();
+
+      for (let index = 0; index < rows.length; index += 1) {
+        if (index === activeIndex) {
+          continue;
+        }
+
+        const header = rows[index];
+
+        if (header.tier !== "sprint") {
+          continue;
+        }
+
+        if (!isNonActiveSprintBlockForCarryoverScan(header, index, activeIndex, sprintComplete)) {
+          continue;
+        }
+
+        for (const key of descendants.get(header.key) ?? []) {
+          const item = rowByKey.get(key);
+
+          if (!item || (item.tier !== "task" && item.tier !== "subtask")) {
+            continue;
+          }
+
+          const sourceRow   = backlogIssueByKey().get(item.key) ?? item;
+          const relatedKeys = sourceRow.relatedKeys ?? item.relatedKeys ?? [];
+
+          for (const relatedKey of relatedKeys) {
+            if (isRelatedTicketDone(relatedKey)) {
+              continue;
+            }
+
+            const sources = byRelated.get(relatedKey) ?? new Set();
+            sources.add(item.key);
+            byRelated.set(relatedKey, sources);
+          }
+        }
+      }
+
+      /** @type {Map<string, { sources: string[] }>} */
+      const sorted = new Map();
+
+      for (const [relatedKey, sources] of byRelated) {
+        sorted.set(
+          relatedKey
+        , {
+            sources: [...sources].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+          }
+        );
+      }
+
+      return sorted;
+    }
+
+    /**
+     * @param {typeof backlog.issues} blockRows
+     * @returns {{ activeRows: typeof backlog.issues, relatedTail: typeof backlog.issues, obsoleteTail: typeof backlog.issues }}
+     */
+    function splitSprintBlockSections(blockRows) {
+      const relatedStart  = blockRows.findIndex((row) => row.tier === "related-carryover-group");
+      const obsoleteStart = blockRows.findIndex((row) => row.tier === "obsolete-group");
+      let activeEnd       = blockRows.length;
+
+      if (relatedStart >= 0) {
+        activeEnd = Math.min(activeEnd, relatedStart);
+      }
+
+      if (obsoleteStart >= 0) {
+        activeEnd = Math.min(activeEnd, obsoleteStart);
+      }
+
+      const activeRows = blockRows.slice(0, activeEnd);
+      const relatedTail = relatedStart >= 0
+        ? blockRows.slice(
+            relatedStart
+          , obsoleteStart >= 0 && obsoleteStart > relatedStart ? obsoleteStart : blockRows.length
+          )
+        : [];
+      const obsoleteTail = obsoleteStart >= 0 ? blockRows.slice(obsoleteStart) : [];
+
+      return { activeRows, relatedTail, obsoleteTail };
+    }
+
+    /**
+     * @param {typeof backlog.issues} blockRows
+     * @returns {Array<{ story: typeof backlog.issues[number], subtasks: typeof backlog.issues }>}
+     */
+    function sprintBlockStoryUnits(blockRows) {
+      /** @type {Array<{ story: typeof backlog.issues[number], subtasks: typeof backlog.issues }>} */
+      const units = [];
+      let index     = 0;
+
+      while (index < blockRows.length) {
+        const row = blockRows[index];
+
+        if (row.tier !== "task") {
+          index += 1;
+          continue;
+        }
+
+        /** @type {typeof backlog.issues} */
+        const subtasks = [];
+        index += 1;
+
+        while (index < blockRows.length && blockRows[index].tier === "subtask") {
+          subtasks.push(blockRows[index]);
+          index += 1;
+        }
+
+        units.push({ story: row, subtasks });
+      }
+
+      return units;
+    }
+
+    /**
+     * @param {string} relatedKey
+     * @param {typeof backlog.issues[number]} src
+     * @param {string} parentKey
+     * @param {string[]} sources
+     * @param {typeof backlog.issues} issues
+     * @param {number} [storyDepth]
+     * @returns {{ story: typeof backlog.issues[number], subtasks: typeof backlog.issues }}
+     */
+    function buildRelatedCarryoverUnit(relatedKey, src, parentKey, sources, issues, storyDepth = 2) {
+      const epicInfo = findEpicInfo(issues, relatedKey);
+      const story    = {
+        key                     : relatedKey
+      , type                    : src.type
+      , tier                    : "task"
+      , isStoryLike             : isStoryLikeRow(src)
+      , summary                 : src.summary
+      , status                  : src.status
+      , parentKey
+      , jiraParentKey           : src.parentKey ?? null
+      , depth                   : storyDepth
+      , hasChildren             : false
+      , devOrder                : src.devOrder ?? null
+      , devSprint               : src.devSprint ?? null
+      , devSprintName           : src.devSprintName ?? null
+      , devSort                 : src.devSort ?? null
+      , jiraSprints             : src.jiraSprints ?? []
+      , relatedKeys             : src.relatedKeys ?? []
+      , isSprint6Obsolete       : src.isSprint6Obsolete ?? false
+      , epicKey                 : epicInfo?.key ?? null
+      , epicSummary             : epicInfo?.summary ?? null
+      , isRelatedCarryover      : true
+      , relatedCarryoverSources : sources
+      , isSynthetic             : false
+      };
+
+      /** @type {typeof backlog.issues} */
+      const subtasks = issues
+        .filter((row) => row.tier === "subtask" && row.parentKey === relatedKey)
+        .sort((a, b) => {
+          const sortA = a.devSort ?? Number.MAX_SAFE_INTEGER;
+          const sortB = b.devSort ?? Number.MAX_SAFE_INTEGER;
+
+          if (sortA !== sortB) {
+            return sortA - sortB;
+          }
+
+          return a.key.localeCompare(b.key, undefined, { numeric: true });
+        })
+        .map((sub) => ({
+          key          : sub.key
+        , type         : sub.type
+        , tier         : "subtask"
+        , summary      : sub.summary
+        , status       : sub.status
+        , parentKey    : relatedKey
+        , jiraParentKey: sub.parentKey
+        , depth        : storyDepth + 1
+        , hasChildren  : false
+        , devOrder     : sub.devOrder ?? null
+        , devSprint    : sub.devSprint ?? src.devSprint ?? null
+        , devSprintName: sub.devSprintName ?? src.devSprintName ?? null
+        , devSort      : sub.devSort ?? null
+        , jiraSprints  : sub.jiraSprints ?? []
+        , relatedKeys  : sub.relatedKeys ?? []
+        , isSprint6Obsolete: sub.isSprint6Obsolete ?? false
+        , epicKey      : epicInfo?.key ?? null
+        , epicSummary  : epicInfo?.summary ?? null
+        }));
+
+      story.hasChildren = subtasks.length > 0;
+
+      return { story, subtasks };
+    }
+
+    /**
+     * Sprint IN CORSO — ticket correlati aperti da sprint precedenti/futuri (non dal blocco attuale).
+     *
+     * @param {typeof backlog.issues} flat
+     * @returns {typeof backlog.issues}
+     */
+    function appendActiveSprintRelatedCarryover(flat) {
+      const sprintComplete = buildSprintCompleteSet(flat);
+      const activeIndex    = findActiveSprintBlockIndex(flat, sprintComplete);
+
+      if (activeIndex < 0) {
+        return flat;
+      }
+
+      const range = sprintBlockRange(flat, activeIndex);
+
+      if (!range) {
+        return flat;
+      }
+
+      /** @type {Set<string>} */
+      const activeKeys = new Set();
+
+      for (let index = range.start + 1; index < range.end; index += 1) {
+        activeKeys.add(flat[index].key);
+      }
+
+      const openRelated = collectNonActiveSprintOpenRelated(flat, sprintComplete, activeIndex);
+      const issues      = backlog?.issues ?? [];
+      const issueByKey  = backlogIssueByKey();
+      const header      = flat[range.start];
+      const groupName   = header.devSprintName ?? header.summary ?? "";
+      const blockRows   = flat.slice(range.start + 1, range.end);
+      const split       = splitSprintBlockSections(blockRows);
+      /** @type {Array<{ story: typeof backlog.issues[number], subtasks: typeof backlog.issues }>} */
+      const units           = sprintBlockStoryUnits(split.activeRows);
+      /** @type {Array<{ story: typeof backlog.issues[number], subtasks: typeof backlog.issues }>} */
+      const carryoverUnits  = [];
+
+      for (const [relatedKey, { sources }] of openRelated) {
+        if (activeKeys.has(relatedKey)) {
+          continue;
+        }
+
+        if (!isRelatedTicketFromPriorOrFutureSprint(relatedKey, header, activeKeys)) {
+          continue;
+        }
+
+        const src = issueByKey.get(relatedKey);
+
+        if (!src) {
+          continue;
+        }
+
+        carryoverUnits.push(
+          buildRelatedCarryoverUnit(
+            relatedKey
+          , src
+          , `${RELATED_CARRYOVER_GROUP_PREFIX}${range.headerKey}`
+          , sources
+          , issues
+          , 2
+          )
+        );
+      }
+
+      if (!carryoverUnits.length) {
+        return flat;
+      }
+
+      carryoverUnits.sort((a, b) => compareStoriesInSprintGroup(a.story, b.story, groupName));
+
+      /** @type {typeof flat} */
+      const mergedBlock = [];
+
+      for (const unit of units) {
+        mergedBlock.push(unit.story, ...unit.subtasks);
+      }
+
+      const correlatiGroupKey = `${RELATED_CARRYOVER_GROUP_PREFIX}${range.headerKey}`;
+
+      mergedBlock.push({
+        key             : correlatiGroupKey
+      , type            : "Group"
+      , tier            : "related-carryover-group"
+      , summary         : "Correlati"
+      , status          : "—"
+      , parentKey       : range.headerKey
+      , jiraParentKey   : null
+      , depth           : 1
+      , hasChildren     : true
+      , devOrder        : null
+      , devSprint       : header.devSprint ?? null
+      , devSprintName   : groupName
+      , devSort         : null
+      , isSynthetic     : true
+      });
+
+      for (const unit of carryoverUnits) {
+        mergedBlock.push(unit.story, ...unit.subtasks);
+      }
+
+      mergedBlock.push(...split.obsoleteTail);
+
+      return [
+        ...flat.slice(0, range.start + 1)
+      , ...mergedBlock
+      , ...flat.slice(range.end)
+      ];
+    }
+
+    /**
+     * @param {typeof backlog.issues} issues
+     */
+    function rebuildSprintRows(issues) {
+      sprintRows = appendActiveSprintRelatedCarryover(buildSprintTree(issues));
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     */
+    function rowSearchText(row) {
+      return [
+        row.key,
+        row.type,
+        row.summary,
+        row.status,
+        row.devOrder ?? "",
+        row.devSprintName ?? "",
+        row.parentKey ?? "",
+        row.jiraParentKey ?? "",
+        row.epicKey ?? "",
+        row.epicSummary ?? "",
+        ...(row.relatedCarryoverSources ?? []),
+      ].join(" ").toLowerCase();
+    }
+
+    /**
+     * @returns {Set<string>}
+     */
+    function loadDoneSet() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+
+        if (raw) {
+          return new Set(JSON.parse(raw));
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return new Set();
+    }
+
+    function saveDoneSet() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...doneSet]));
+    }
+
+    /**
+     * @param {string} key
+     * @param {string} status
+     */
+    function isSubtaskDone(key, status) {
+      if (doneSet.has(key)) {
+        return true;
+      }
+
+      return status.toLowerCase() === "fatto";
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     */
+    function seedDoneFromJira(rows) {
+      let changed = false;
+
+      for (const row of rows) {
+        if (row.tier !== "subtask") {
+          continue;
+        }
+
+        if (row.status.toLowerCase() === "fatto" && !doneSet.has(row.key)) {
+          doneSet.add(row.key);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        saveDoneSet();
+      }
+    }
+
+    const tbody = document.getElementById("tbody");
+    const stats = document.getElementById("stats");
+    const filterEl = document.getElementById("filter");
+    const btnDownload = document.getElementById("btn-download");
+    const downloadMenuWrap = document.getElementById("download-menu-wrap");
+    const downloadMenuPanel = document.getElementById("download-menu-panel");
+
+    /**
+     * @param {string} key
+     */
+    function tierOf(key) {
+      const row = getDisplayRows().find((r) => r.key === key);
+      return row?.tier ?? "task";
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     */
+    function buildDescendantsMap(rows) {
+      /** @type {Map<string, string[]>} */
+      const map = new Map();
+
+      for (const row of rows) {
+        if (!row.parentKey) {
+          continue;
+        }
+
+        const list = map.get(row.parentKey) ?? [];
+        list.push(row.key);
+        map.set(row.parentKey, list);
+      }
+
+      /**
+       * @param {string} key
+       * @returns {string[]}
+       */
+      function collect(key) {
+        const direct = map.get(key) ?? [];
+        /** @type {string[]} */
+        const all = [];
+
+        for (const child of direct) {
+          all.push(child, ...collect(child));
+        }
+
+        return all;
+      }
+
+      /** @type {Map<string, string[]>} */
+      const descendants = new Map();
+
+      for (const row of rows) {
+        if (row.hasChildren) {
+          descendants.set(row.key, collect(row.key));
+        }
+      }
+
+      return descendants;
+    }
+
+    /**
+     * Collasso per catena parentKey — evita che la stessa issue key in rami diversi
+     * (es. carryover sotto Correlati vs story nativa in Sprint 7) venga nascosta insieme.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {Set<string>} collapsed
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @returns {boolean}
+     */
+    function isRowHiddenByCollapse(row, collapsed, rowByKey) {
+      const selfKey   = rowTreeKey(row);
+      let parentKey   = row.parentKey;
+
+      while (parentKey && parentKey !== selfKey) {
+        if (collapsed.has(parentKey)) {
+          return true;
+        }
+
+        const parent = rowByKey.get(parentKey);
+
+        if (!parent) {
+          return false;
+        }
+
+        parentKey = parent.parentKey ?? null;
+      }
+
+      return false;
+    }
+
+    /**
+     * @param {string} query
+     * @param {(row: typeof backlog.issues[number]) => boolean} predicate
+     * @returns {Set<string>}
+     */
+    function matchingKeysBy(query, predicate) {
+      const q = query.trim().toLowerCase();
+      /** @type {Set<string>} */
+      const matches = new Set();
+      const rows = getDisplayRows();
+
+      if (!backlog || !q) {
+        return matches;
+      }
+
+      const byKey = rowsMapByTreeKey(rows);
+
+      for (const row of rows) {
+        if (!predicate(row, q)) {
+          continue;
+        }
+
+        matches.add(row.key);
+        matches.add(rowTreeKey(row));
+
+        let parent = row.parentKey;
+
+        while (parent) {
+          matches.add(parent);
+          parent = byKey.get(parent)?.parentKey ?? null;
+        }
+      }
+
+      return matches;
+    }
+
+    /**
+     * @param {string} query
+     * @returns {Set<string>}
+     */
+    function matchingKeys(query) {
+      return matchingKeysBy(query, (row, q) => rowSearchText(row).includes(q));
+    }
+
+    /**
+     * @param {Set<string>} a
+     * @param {Set<string>} b
+     * @returns {Set<string>}
+     */
+    function intersectSets(a, b) {
+      const out = new Set();
+
+      for (const key of a) {
+        if (b.has(key)) {
+          out.add(key);
+        }
+      }
+
+      return out;
+    }
+
+    /**
+     * @param {"type"|"status"} field
+     * @param {Set<string>} selected
+     * @returns {Set<string>}
+     */
+    function matchingKeysBySelect(field, selected) {
+      /** @type {Set<string>} */
+      const matches = new Set();
+      const rows = getDisplayRows();
+
+      if (!backlog || !selected.size) {
+        return matches;
+      }
+
+      const byKey = rowsMapByTreeKey(rows);
+
+      for (const row of rows) {
+        if (!selected.has(row[field])) {
+          continue;
+        }
+
+        matches.add(row.key);
+        matches.add(rowTreeKey(row));
+
+        let parent = row.parentKey;
+
+        while (parent) {
+          matches.add(parent);
+          parent = byKey.get(parent)?.parentKey ?? null;
+        }
+      }
+
+      return matches;
+    }
+
+    /**
+     * @param {Set<string>} selected
+     * @returns {Set<string>}
+     */
+    function matchingKeysByDevOrder(selected) {
+      /** @type {Set<string>} */
+      const matches = new Set();
+      const rows = getDisplayRows();
+
+      if (!backlog || !selected.size) {
+        return matches;
+      }
+
+      const byKey = rowsMapByTreeKey(rows);
+
+      for (const row of rows) {
+        let hit = false;
+
+        for (const sel of selected) {
+          if (sel === "—") {
+            if (!row.devOrder) {
+              hit = true;
+            }
+          } else if (/^\d+$/.test(sel) && (
+            row.devOrder === sel
+            || row.devOrder?.startsWith(`${sel}.`)
+          )) {
+            hit = true;
+          } else if (row.devOrder === sel) {
+            hit = true;
+          }
+        }
+
+        if (!hit) {
+          continue;
+        }
+
+        matches.add(row.key);
+        matches.add(rowTreeKey(row));
+
+        let parent = row.parentKey;
+
+        while (parent) {
+          matches.add(parent);
+          parent = byKey.get(parent)?.parentKey ?? null;
+        }
+      }
+
+      return matches;
+    }
+
+    /**
+     * @param {Set<string>} selected
+     * @returns {Set<string>}
+     */
+    function matchingKeysBySprint(selected) {
+      /** @type {Set<string>} */
+      const matches = new Set();
+      const rows = getDisplayRows();
+
+      if (!backlog || !selected.size) {
+        return matches;
+      }
+
+      const byKey = rowsMapByTreeKey(rows);
+
+      for (const row of rows) {
+        const name = row.devSprintName ?? "—";
+        let hit = false;
+
+        for (const sel of selected) {
+          if (sel === "—") {
+            if (!row.devSprintName) {
+              hit = true;
+            }
+          } else if (name === sel) {
+            hit = true;
+          }
+        }
+
+        if (!hit) {
+          continue;
+        }
+
+        matches.add(row.key);
+        matches.add(rowTreeKey(row));
+
+        let parent = row.parentKey;
+
+        while (parent) {
+          matches.add(parent);
+          parent = byKey.get(parent)?.parentKey ?? null;
+        }
+      }
+
+      return matches;
+    }
+
+    /**
+     * @param {"type"|"key"|"devOrder"|"sprint"|"title"|"status"} col
+     * @returns {Set<string> | null}
+     */
+    function matchingKeysForColumn(col) {
+      const state = columnFilters[col];
+
+      if (SELECT_COLUMNS.has(col)) {
+        if (!state.selected.size) {
+          return null;
+        }
+
+        if (col === "devOrder") {
+          return matchingKeysByDevOrder(state.selected);
+        }
+
+        if (col === "sprint") {
+          return matchingKeysBySprint(state.selected);
+        }
+
+        const field = col === "type" ? "type" : "status";
+        return matchingKeysBySelect(field, state.selected);
+      }
+
+      const q = state.text.trim();
+
+      if (!q) {
+        return null;
+      }
+
+      if (col === "key") {
+        return matchingKeysBy(q, (row, query) => row.key.toLowerCase().includes(query));
+      }
+
+      return matchingKeysBy(q, (row, query) => row.summary.toLowerCase().includes(query));
+    }
+
+    /**
+     * @param {string} [globalQuery]
+     * @returns {Set<string> | null}
+     */
+    function matchingKeysAll(globalQuery = "") {
+      /** @type {Set<string>[]} */
+      const sets = [];
+
+      if (globalQuery.trim()) {
+        sets.push(matchingKeys(globalQuery));
+      }
+
+      for (const col of ["type", "key", "devOrder", "sprint", "title", "status"]) {
+        const set = matchingKeysForColumn(col);
+
+        if (set) {
+          sets.push(set);
+        }
+      }
+
+      if (!sets.length) {
+        return null;
+      }
+
+      return sets.reduce((acc, set) => intersectSets(acc, set));
+    }
+
+    /**
+     * @param {string} [globalQuery]
+     */
+    function isAnyFilterActive(globalQuery = "") {
+      if (globalQuery.trim()) {
+        return true;
+      }
+
+      for (const col of Object.keys(columnFilters)) {
+        const state = columnFilters[col];
+
+        if (SELECT_COLUMNS.has(col) && state.selected.size) {
+          return true;
+        }
+
+        if (SEARCH_COLUMNS.has(col) && state.text.trim()) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    /** Ultimo seq nel piano MVP per sprint (allineato a jira-working-order.mjs). */
+    const PLAN_MAX_SEQ = {
+      1: 7,
+      2: 5,
+      3: 5,
+      4: 9,
+      5: 6,
+      6: 32,
+      7: 4,
+      8: 6,
+    };
+
+    /**
+     * @param {number | null | undefined} sprint
+     * @returns {number | null}
+     */
+    function maxPlanSeqHint(sprint) {
+      if (!sprint) {
+        return null;
+      }
+      return PLAN_MAX_SEQ[sprint] ?? null;
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @returns {string}
+     */
+    function devOrderCellLabel(row) {
+      if (isObsoleteRow(row)) {
+        return "—";
+      }
+
+      return row.devOrder ?? "—";
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @returns {string}
+     */
+    function devOrderCellTitle(row) {
+      if (isObsoleteRow(row)) {
+        return "Issue obsoleta — fuori ordine esecuzione";
+      }
+
+      return row.devSprint
+        ? `Sprint ${row.devSprint} — epic ${row.devOrder?.split(".")[0] ?? "—"} · piano Jira Working`
+        : "Fuori dal piano Jira Working";
+    }
+
+    /**
+     * @param {string} query
+     * @returns {string[]}
+     */
+    function devOrderFilterOptions(query = "") {
+      const base = ["1", "2", "3", "4", "5", "6", "7", "8", "—"];
+      const q = query.trim().toLowerCase();
+
+      return base.filter((value) => !q || value.toLowerCase().includes(q));
+    }
+
+    /**
+     * @param {string} query
+     * @returns {string[]}
+     */
+    function uniqueSprintNames(query = "") {
+      if (!backlog) {
+        return [];
+      }
+
+      const q = query.trim().toLowerCase();
+      const names = new Set();
+
+      for (const row of getDisplayRows()) {
+        if (row.devSprintName) {
+          names.add(row.devSprintName);
+        }
+      }
+
+      return [...names]
+        .filter((value) => !q || value.toLowerCase().includes(q))
+        .sort((a, b) => a.localeCompare(b, "it"));
+    }
+
+    /**
+     * @param {"type"|"status"} field
+     * @param {string} query
+     * @returns {string[]}
+     */
+    function uniqueFieldValues(field, query = "") {
+      if (!backlog) {
+        return [];
+      }
+
+      const q = query.trim().toLowerCase();
+
+      return [...new Set(getDisplayRows().map((row) => row[field]))]
+        .filter((value) => !q || value.toLowerCase().includes(q))
+        .sort((a, b) => a.localeCompare(b, "it"));
+    }
+
+    /**
+     * @param {HTMLElement} root
+     */
+    function syncColumnFilterUi(root) {
+      const col = root.dataset.col;
+
+      if (!col || !(col in columnFilters)) {
+        return;
+      }
+
+      const state = columnFilters[col];
+      const trigger = root.querySelector(".col-filter-trigger");
+      const badge = root.querySelector(".col-filter-badge");
+      const isSelect = root.dataset.mode === "select";
+      const active = isSelect ? state.selected.size > 0 : Boolean(state.text.trim());
+      let badgeText = "";
+
+      if (isSelect) {
+        badgeText = [...state.selected].sort((a, b) => a.localeCompare(b, "it")).join(", ");
+      } else {
+        badgeText = state.text.trim();
+      }
+
+      trigger?.classList.toggle("is-active", active);
+      trigger?.setAttribute("aria-expanded", root.classList.contains("is-open") ? "true" : "false");
+
+      if (badge) {
+        badge.textContent = badgeText;
+      }
+    }
+
+    function syncAllColumnFilterUi() {
+      document.querySelectorAll(".col-filter[data-col]").forEach((root) => {
+        if (root instanceof HTMLElement) {
+          syncColumnFilterUi(root);
+        }
+      });
+    }
+
+    function closeAllColumnFilters() {
+      document.querySelectorAll(".col-filter[data-col].is-open").forEach((root) => {
+        if (!(root instanceof HTMLElement)) {
+          return;
+        }
+
+        const panel = root.querySelector(".col-filter-panel");
+        const trigger = root.querySelector(".col-filter-trigger");
+
+        if (panel instanceof HTMLElement) {
+          panel.hidden = true;
+        }
+
+        root.classList.remove("is-open");
+        trigger?.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    /**
+     * @param {HTMLElement} root
+     * @param {"type"|"status"|"devOrder"|"sprint"} col
+     */
+    function renderSelectOptions(root, col) {
+      const optionsEl = root.querySelector(".col-filter-options");
+      const searchEl = root.querySelector(".col-filter-search");
+
+      if (!(optionsEl instanceof HTMLElement)) {
+        return;
+      }
+
+      const q = searchEl instanceof HTMLInputElement ? searchEl.value : "";
+      const values = col === "devOrder"
+        ? devOrderFilterOptions(q)
+        : col === "sprint"
+          ? uniqueSprintNames(q)
+          : uniqueFieldValues(col === "type" ? "type" : "status", q);
+      const state = columnFilters[col];
+
+      optionsEl.replaceChildren();
+
+      if (values.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "no-match";
+        empty.textContent = q.trim() ? "Nessun valore corrispondente" : "Nessun valore";
+        optionsEl.appendChild(empty);
+        return;
+      }
+
+      for (const value of values) {
+        const label = document.createElement("label");
+        label.className = "col-filter-option";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = value;
+        checkbox.checked = state.selected.has(value);
+
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            state.selected.add(value);
+          } else {
+            state.selected.delete(value);
+          }
+
+          syncColumnFilterUi(root);
+          applyFilters();
+        });
+
+        const optionText = col === "devOrder"
+          ? (DEV_ORDER_LABELS[value] ?? value)
+          : value;
+        label.append(checkbox, document.createTextNode(optionText));
+        optionsEl.appendChild(label);
+      }
+    }
+
+    /**
+     * @param {HTMLElement} root
+     * @param {"key"|"title"} col
+     */
+    function renderSearchSuggestions(root, col) {
+      const suggestionsEl = root.querySelector(".col-filter-suggestions");
+      const searchEl = root.querySelector(".col-filter-search");
+
+      if (!(suggestionsEl instanceof HTMLElement) || !backlog) {
+        return;
+      }
+
+      const field = col === "key" ? "key" : "summary";
+      const q = searchEl instanceof HTMLInputElement ? searchEl.value.trim().toLowerCase() : "";
+      const values = [...new Set(getDisplayRows().map((row) => row[field]))];
+      const matches = q
+        ? values.filter((value) => value.toLowerCase().includes(q))
+        : values;
+
+      suggestionsEl.replaceChildren();
+
+      const limited = matches.slice(0, 25);
+
+      if (limited.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "no-match";
+        empty.textContent = q ? "Nessun risultato" : "Nessun valore";
+        suggestionsEl.appendChild(empty);
+        return;
+      }
+
+      for (const value of limited) {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = value;
+        btn.addEventListener("click", () => {
+          columnFilters[col].text = value;
+
+          if (searchEl instanceof HTMLInputElement) {
+            searchEl.value = value;
+          }
+
+          closeAllColumnFilters();
+          applyFilters();
+        });
+        li.appendChild(btn);
+        suggestionsEl.appendChild(li);
+      }
+    }
+
+    /**
+     * @param {HTMLElement} root
+     */
+    function openColumnFilter(root) {
+      const col = root.dataset.col;
+      const mode = root.dataset.mode;
+      const panel = root.querySelector(".col-filter-panel");
+      const searchEl = root.querySelector(".col-filter-search");
+
+      if (!col || !(col in columnFilters) || !(panel instanceof HTMLElement)) {
+        return;
+      }
+
+      panel.hidden = false;
+      root.classList.add("is-open");
+      root.querySelector(".col-filter-trigger")?.setAttribute("aria-expanded", "true");
+
+      if (searchEl instanceof HTMLInputElement) {
+        searchEl.value = columnFilters[col].text;
+      }
+
+      if (mode === "select") {
+        renderSelectOptions(root, col);
+      } else {
+        renderSearchSuggestions(root, col);
+
+        if (searchEl instanceof HTMLInputElement) {
+          searchEl.focus();
+          searchEl.select();
+        }
+      }
+    }
+
+    /**
+     * @param {HTMLElement} root
+     */
+    function clearColumnFilter(root) {
+      const col = root.dataset.col;
+
+      if (!col || !(col in columnFilters)) {
+        return;
+      }
+
+      columnFilters[col].selected.clear();
+      columnFilters[col].text = "";
+
+      const searchEl = root.querySelector(".col-filter-search");
+      const optionsEl = root.querySelector(".col-filter-options");
+      const suggestionsEl = root.querySelector(".col-filter-suggestions");
+
+      if (searchEl instanceof HTMLInputElement) {
+        searchEl.value = "";
+      }
+
+      if (optionsEl instanceof HTMLElement) {
+        optionsEl.replaceChildren();
+      }
+
+      if (suggestionsEl instanceof HTMLElement) {
+        suggestionsEl.replaceChildren();
+      }
+
+      syncColumnFilterUi(root);
+      closeAllColumnFilters();
+      applyFilters();
+    }
+
+    /**
+     * @param {HTMLElement} root
+     */
+    function applyColumnFilterFromPanel(root) {
+      const col = root.dataset.col;
+      const searchEl = root.querySelector(".col-filter-search");
+
+      if (!col || !(col in columnFilters) || root.dataset.mode !== "search") {
+        return;
+      }
+
+      if (searchEl instanceof HTMLInputElement) {
+        columnFilters[col].text = searchEl.value.trim();
+      }
+
+      closeAllColumnFilters();
+      applyFilters();
+    }
+
+    function setColumnFiltersEnabled(enabled) {
+      document.querySelectorAll(".col-filter-trigger").forEach((trigger) => {
+        if (trigger instanceof HTMLButtonElement) {
+          trigger.disabled = !enabled;
+        }
+      });
+    }
+
+    /** @returns {Record<string, number>} */
+    function loadColWidths() {
+      try {
+        const raw = localStorage.getItem(COL_WIDTHS_STORAGE_KEY);
+
+        if (!raw) {
+          return { ...DEFAULT_COL_WIDTHS };
+        }
+
+        const parsed = JSON.parse(raw);
+
+        if (!parsed || typeof parsed !== "object") {
+          return { ...DEFAULT_COL_WIDTHS };
+        }
+
+        /** @type {Record<string, number>} */
+        const widths = { ...DEFAULT_COL_WIDTHS };
+
+        for (const key of COL_ORDER) {
+          const value = Number(parsed[key]);
+
+          if (Number.isFinite(value) && value >= MIN_COL_WIDTH_PCT) {
+            widths[key] = value;
+          }
+        }
+
+        return normalizeColWidths(widths);
+      } catch {
+        return { ...DEFAULT_COL_WIDTHS };
+      }
+    }
+
+    /** @param {Record<string, number>} widths */
+    function saveColWidths(widths) {
+      try {
+        localStorage.setItem(COL_WIDTHS_STORAGE_KEY, JSON.stringify(widths));
+      } catch {
+        /* quota / private mode */
+      }
+    }
+
+    /** @param {Record<string, number>} widths */
+    function normalizeColWidths(widths) {
+      const sum = COL_ORDER.reduce((total, key) => total + (widths[key] || 0), 0);
+
+      if (sum <= 0) {
+        return { ...DEFAULT_COL_WIDTHS };
+      }
+
+      /** @type {Record<string, number>} */
+      const normalized = {};
+
+      for (const key of COL_ORDER) {
+        normalized[key] = ((widths[key] || 0) / sum) * 100;
+      }
+
+      return normalized;
+    }
+
+    /** @param {string} colClass */
+    function colClassToWidthKey(colClass) {
+      if (colClass === "col-dev-order") {
+        return "devOrder";
+      }
+
+      if (colClass === "col-related-sprint") {
+        return "relatedSprint";
+      }
+
+      if (colClass.startsWith("col-")) {
+        return colClass.slice(4);
+      }
+
+      return "";
+    }
+
+    /** @param {Record<string, number>} [widths] */
+    function applyColWidths(widths) {
+      const resolved = normalizeColWidths(widths || loadColWidths());
+
+      document.querySelectorAll(".table-wrap col").forEach((colEl) => {
+        if (!(colEl instanceof HTMLTableColElement)) {
+          return;
+        }
+
+        const colClass = [...colEl.classList].find((name) => name.startsWith("col-"));
+
+        if (!colClass) {
+          return;
+        }
+
+        const key = colClassToWidthKey(colClass);
+
+        if (key && key in resolved) {
+          if (key === "devOrder") {
+            colEl.style.width = `max(${DEV_ORDER_COL_MIN_CH}ch, ${resolved[key].toFixed(2)}%)`;
+          } else {
+            colEl.style.width = `${resolved[key].toFixed(2)}%`;
+          }
+        }
+      });
+    }
+
+    function initColumnResizers() {
+      applyColWidths(loadColWidths());
+
+      const headers = [...document.querySelectorAll("thead th.col-filter-head")];
+
+      headers.forEach((th, index) => {
+        if (!(th instanceof HTMLElement) || index >= COL_ORDER.length - 1) {
+          return;
+        }
+
+        const leftKey = COL_ORDER[index];
+        const rightKey = COL_ORDER[index + 1];
+        const handle = document.createElement("span");
+
+        handle.className = "col-resize-handle";
+        handle.setAttribute("role", "separator");
+        handle.setAttribute("aria-orientation", "vertical");
+        handle.setAttribute("aria-label", `Ridimensiona colonna ${leftKey}`);
+        handle.title = "Trascina per ridimensionare · doppio clic per ripristinare";
+
+        handle.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const table = th.closest("table");
+
+          if (!(table instanceof HTMLTableElement)) {
+            return;
+          }
+
+          const tableWidth = table.getBoundingClientRect().width || 1;
+          const startX = event.clientX;
+          const widths = loadColWidths();
+          const startLeft = widths[leftKey];
+          const startRight = widths[rightKey];
+
+          handle.classList.add("is-dragging");
+          document.body.classList.add("is-col-resizing");
+
+          /** @param {MouseEvent} ev */
+          const onMove = (ev) => {
+            const deltaPct = ((ev.clientX - startX) / tableWidth) * 100;
+            let newLeft = startLeft + deltaPct;
+            let newRight = startRight - deltaPct;
+
+            if (newLeft < MIN_COL_WIDTH_PCT) {
+              const shift = MIN_COL_WIDTH_PCT - newLeft;
+              newLeft = MIN_COL_WIDTH_PCT;
+              newRight -= shift;
+            }
+
+            if (newRight < MIN_COL_WIDTH_PCT) {
+              const shift = MIN_COL_WIDTH_PCT - newRight;
+              newRight = MIN_COL_WIDTH_PCT;
+              newLeft -= shift;
+            }
+
+            if (newLeft < MIN_COL_WIDTH_PCT) {
+              newLeft = MIN_COL_WIDTH_PCT;
+            }
+
+            widths[leftKey] = newLeft;
+            widths[rightKey] = newRight;
+            applyColWidths(widths);
+          };
+
+          const onUp = () => {
+            handle.classList.remove("is-dragging");
+            document.body.classList.remove("is-col-resizing");
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            saveColWidths(normalizeColWidths(widths));
+          };
+
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+        });
+
+        handle.addEventListener("dblclick", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const defaults = { ...DEFAULT_COL_WIDTHS };
+          applyColWidths(defaults);
+          saveColWidths(defaults);
+        });
+
+        th.appendChild(handle);
+      });
+    }
+
+    function initColumnFilters() {
+      document.querySelectorAll(".col-filter[data-col]").forEach((root) => {
+        if (!(root instanceof HTMLElement)) {
+          return;
+        }
+
+        const col = root.dataset.col;
+        const mode = root.dataset.mode;
+        const trigger = root.querySelector(".col-filter-trigger");
+        const searchEl = root.querySelector(".col-filter-search");
+        const clearBtn = root.querySelector(".col-filter-clear");
+        const applyBtn = root.querySelector(".col-filter-apply");
+
+        trigger?.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const panel = root.querySelector(".col-filter-panel");
+          const isOpen = panel instanceof HTMLElement && !panel.hidden;
+          closeAllColumnFilters();
+
+          if (!isOpen) {
+            openColumnFilter(root);
+          }
+        });
+
+        searchEl?.addEventListener("input", () => {
+          if (!col || !(col in columnFilters)) {
+            return;
+          }
+
+          if (searchEl instanceof HTMLInputElement) {
+            columnFilters[col].text = searchEl.value;
+          }
+
+          if (mode === "select") {
+            renderSelectOptions(root, col);
+          } else {
+            renderSearchSuggestions(root, col);
+          }
+        });
+
+        searchEl?.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            applyColumnFilterFromPanel(root);
+          }
+
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeAllColumnFilters();
+          }
+        });
+
+        applyBtn?.addEventListener("click", () => applyColumnFilterFromPanel(root));
+        clearBtn?.addEventListener("click", () => clearColumnFilter(root));
+      });
+
+      document.addEventListener("click", (event) => {
+        const openRoot = document.querySelector(".col-filter[data-col].is-open");
+
+        if (!openRoot || !(openRoot instanceof HTMLElement)) {
+          return;
+        }
+
+        const target = event.target;
+
+        if (target instanceof Node && openRoot.contains(target)) {
+          return;
+        }
+
+        closeAllColumnFilters();
+      });
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @returns {string | null}
+     */
+    function resolveSprintHeaderKey(row, rowByKey) {
+      if (row.tier === "sprint") {
+        return row.key;
+      }
+
+      if (row.parentKey?.startsWith(SPRINT_HEADER_PREFIX)) {
+        return row.parentKey;
+      }
+
+      if (row.parentKey?.startsWith(OBSOLETE_GROUP_PREFIX)) {
+        const group = rowByKey.get(row.parentKey);
+
+        if (group?.parentKey?.startsWith(SPRINT_HEADER_PREFIX)) {
+          return group.parentKey;
+        }
+      }
+
+      if (row.parentKey?.startsWith(RELATED_CARRYOVER_GROUP_PREFIX)) {
+        const group = rowByKey.get(row.parentKey);
+
+        if (group?.parentKey?.startsWith(SPRINT_HEADER_PREFIX)) {
+          return group.parentKey;
+        }
+      }
+
+      if (row.parentKey) {
+        const parent = rowByKey.get(row.parentKey);
+
+        if (parent?.parentKey?.startsWith(SPRINT_HEADER_PREFIX)) {
+          return parent.parentKey;
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * Sprint completato = ogni story e subtask del blocco è Fatto.
+     *
+     * @param {typeof backlog.issues} rows
+     * @returns {Set<string>}
+     */
+    function buildSprintCompleteSet(rows) {
+      const rowByKey = new Map(rows.map((row) => [row.key, row]));
+      const descendants = buildDescendantsMap(rows);
+      /** @type {Set<string>} */
+      const complete = new Set();
+
+      for (const row of rows) {
+        if (row.tier !== "sprint") {
+          continue;
+        }
+
+        const desc = descendants.get(row.key) ?? [];
+        /** @type {typeof rows} */
+        const work = [];
+
+        for (const key of desc) {
+          const item = rowByKey.get(key);
+
+          if (item && (item.tier === "task" || item.tier === "subtask")) {
+            work.push(item);
+          }
+        }
+
+        if (!work.length) {
+          continue;
+        }
+
+        const allDone = work.every((item) => {
+          if (item.tier === "subtask") {
+            return isSubtaskDone(item.key, item.status);
+          }
+
+          return item.status.toLowerCase() === "fatto";
+        });
+
+        if (allDone) {
+          complete.add(row.key);
+        }
+      }
+
+      return complete;
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @returns {{ id?: number, name: string, state: string } | null}
+     */
+    function resolveJiraBoardSprint(row) {
+      const sprintName = row.devSprintName ?? row.summary ?? "";
+      const key = normalizeSprintLabel(sprintName);
+
+      if (jiraSprintCatalog[key]) {
+        return jiraSprintCatalog[key];
+      }
+
+      for (const [catalogKey, sprint] of Object.entries(jiraSprintCatalog)) {
+        if (catalogKey === key || catalogKey.includes(key) || key.includes(catalogKey)) {
+          return sprint;
+        }
+      }
+
+      if (row.jiraSprintState) {
+        return {
+          name  : sprintName
+        , state : row.jiraSprintState
+        };
+      }
+
+      return null;
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {Set<string>} sprintComplete
+     * @returns {string}
+     */
+    function sprintRowStatusLabel(row, sprintComplete) {
+      if (row.tier !== "sprint") {
+        return row.status;
+      }
+
+      const boardSprint = resolveJiraBoardSprint(row);
+      const jiraState = boardSprint?.state ?? null;
+
+      if (jiraState === "active") {
+        return "IN CORSO";
+      }
+
+      if (jiraState === "future") {
+        return "FUTURO";
+      }
+
+      if (jiraState === "closed") {
+        if (sprintComplete.has(row.key)) {
+          return "COMPLETATO";
+        }
+
+        return "CHIUSO";
+      }
+
+      if (sprintComplete.has(row.key)) {
+        return "COMPLETATO";
+      }
+
+      if (row.jiraSprintState === "active") {
+        return "IN CORSO";
+      }
+
+      if (row.jiraSprintState === "future") {
+        return "FUTURO";
+      }
+
+      if (row.jiraSprintState === "closed") {
+        return "CHIUSO";
+      }
+
+      return "—";
+    }
+
+    /**
+     * Blocco sprint «spento»: tutto Fatto (COMPLETATO) oppure chiuso in Jira (CHIUSO).
+     *
+     * @param {string} headerKey
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isSprintBlockSpent(headerKey, rowByKey, sprintComplete) {
+      if (sprintComplete.has(headerKey)) {
+        return true;
+      }
+
+      const header = rowByKey.get(headerKey);
+
+      if (!header || header.tier !== "sprint") {
+        return false;
+      }
+
+      return sprintRowStatusLabel(header, sprintComplete) === "CHIUSO";
+    }
+
+    /**
+     * Ticket correlati ancora aperti per blocco sprint chiuso/completato.
+     *
+     * @param {typeof backlog.issues} rows
+     * @param {Set<string>} sprintComplete
+     * @returns {Map<string, string[]>}
+     */
+    function buildSprintOpenRelatedByHeader(rows, sprintComplete) {
+      const rowByKey = new Map(rows.map((row) => [row.key, row]));
+      const descendants = buildDescendantsMap(rows);
+      /** @type {Map<string, string[]>} */
+      const byHeader = new Map();
+
+      for (const row of rows) {
+        if (row.tier !== "sprint") {
+          continue;
+        }
+
+        if (!isSprintBlockSpent(row.key, rowByKey, sprintComplete)) {
+          continue;
+        }
+
+        /** @type {Set<string>} */
+        const openRelated = new Set();
+        const desc = descendants.get(row.key) ?? [];
+
+        for (const key of desc) {
+          const item = rowByKey.get(key);
+
+          if (!item || (item.tier !== "task" && item.tier !== "subtask")) {
+            continue;
+          }
+
+          for (const relatedKey of item.relatedKeys ?? []) {
+            if (!isRelatedTicketDone(relatedKey)) {
+              openRelated.add(relatedKey);
+            }
+          }
+        }
+
+        if (openRelated.size) {
+          byHeader.set(
+            row.key
+          , [...openRelated].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+          );
+        }
+      }
+
+      return byHeader;
+    }
+
+    /**
+     * @param {string[]} openRelatedKeys
+     * @returns {HTMLSpanElement}
+     */
+    function createSprintRelatedOpenMark(openRelatedKeys) {
+      const mark = document.createElement("span");
+
+      mark.className = "sprint-related-open-mark";
+      mark.title = `Ticket correlati ancora da fare: ${openRelatedKeys.join(", ")}`;
+      mark.setAttribute("aria-label", mark.title);
+      mark.textContent = "★";
+
+      return mark;
+    }
+
+    /**
+     * @param {string[]} sourceKeys
+     * @returns {HTMLSpanElement}
+     */
+    function createRelatedCarryoverMark(sourceKeys) {
+      const mark = document.createElement("span");
+
+      mark.className = "related-carryover-mark";
+      mark.title = `Ticket correlato ancora aperto — citato da: ${sourceKeys.join(", ")}`;
+      mark.setAttribute("aria-label", mark.title);
+      mark.textContent = "★";
+
+      return mark;
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isSprintRowActive(row, sprintComplete) {
+      return row.tier === "sprint" && sprintRowStatusLabel(row, sprintComplete) === "IN CORSO";
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isSprintRowFuture(row, sprintComplete) {
+      return row.tier === "sprint" && sprintRowStatusLabel(row, sprintComplete) === "FUTURO";
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {HTMLElement} keyMain
+     */
+    function appendRepoAlignMark(row, keyMain) {
+      if (row.tier === "sprint" || row.tier === "pillar" || row.isSynthetic || row.tier === "epic") {
+        return;
+      }
+
+      const state = repoAlign[row.key];
+
+      if (!state) {
+        return;
+      }
+
+      const mark = document.createElement("span");
+
+      if (state === "aligned") {
+        mark.className = "repo-jira-aligned";
+        mark.textContent = "⧖";
+        mark.title = "Repo e Jira allineati (Fatto)";
+        mark.setAttribute("aria-label", "Repo e Jira allineati");
+      } else {
+        mark.className = "repo-jira-gap";
+        mark.textContent = "⚠";
+        mark.title = "Jira Fatto — repo incompleto o senza citazioni";
+        mark.setAttribute("aria-label", "Jira Fatto ma repo incompleto");
+      }
+
+      keyMain.appendChild(mark);
+    }
+
+    /**
+     * @returns {Set<string>}
+     */
+    function insightKeysSet() {
+      /** @type {Set<string>} */
+      const keys = new Set();
+
+      for (const item of insightLog) {
+        if (item.key) {
+          keys.add(item.key);
+        }
+      }
+
+      return keys;
+    }
+
+    /**
+     * @param {string} [title]
+     * @returns {HTMLSpanElement}
+     */
+    function createInsightMark(title = "Insight") {
+      const mark = document.createElement("span");
+
+      mark.className = "insight-key-mark";
+      mark.title = title;
+      mark.setAttribute("aria-label", title);
+      mark.textContent = "★";
+
+      return mark;
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @param {HTMLElement} keyMain
+     */
+    function appendInsightKeyMark(row, keyMain) {
+      if (row.tier === "sprint" || row.tier === "pillar" || row.isSynthetic || row.tier === "epic") {
+        return;
+      }
+
+      if (!insightKeysSet().has(row.key)) {
+        return;
+      }
+
+      keyMain.appendChild(createInsightMark(`Insight: ${row.key}`));
+    }
+
+    /**
+     * @param {typeof backlog.issues} rows
+     */
+    function renderRows(rows) {
+      if (!tbody) {
+        return;
+      }
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Nessun risultato.</td></tr>`;
+        return;
+      }
+
+      const globalQ = filterEl?.value ?? "";
+      const filterActive = isAnyFilterActive(globalQ);
+      const matchSet = filterActive ? matchingKeysAll(globalQ) : null;
+      const collapsed = activeCollapsed();
+      const rowByKey = rowsMapByTreeKey(rows);
+      const sprintComplete = viewMode === "sprint" ? buildSprintCompleteSet(rows) : new Set();
+      const sprintOpenRelated = viewMode === "sprint"
+        ? buildSprintOpenRelatedByHeader(rows, sprintComplete)
+        : new Map();
+
+      tbody.replaceChildren();
+
+      for (const row of rows) {
+        if (filterActive && matchSet && !rowMatchesFilter(matchSet, row)) {
+          continue;
+        }
+
+        if (isRowHiddenByCollapse(row, collapsed, rowByKey)) {
+          continue;
+        }
+
+        const tr = document.createElement("tr");
+        tr.className = `tier-${row.tier ?? "task"}`;
+
+        if (row.key) {
+          tr.dataset.gogoKey = row.key;
+        }
+
+        if (row.key && row.key === loadGogoActiveIssueKey()) {
+          tr.classList.add("is-gogo-active");
+        }
+
+        if (row.tier === "pillar" && row.pillarId === "orfani") {
+          tr.classList.add("is-pillar-orphans");
+        }
+
+        if (row.key && insightKeysSet().has(row.key)) {
+          tr.classList.add("has-insight-key");
+        }
+
+        if (row.isRelatedCarryover) {
+          tr.classList.add("has-related-carryover");
+        }
+
+        if (isObsoleteRow(row) || row.tier === "obsolete-group") {
+          tr.classList.add("is-obsolete");
+        }
+
+        if (isStoryLikeRow(row)) {
+          tr.classList.add("type-story-like");
+        }
+
+        if (row.tier === "subtask" && isSubtaskDone(row.key, row.status)) {
+          tr.classList.add("is-done");
+        }
+
+        if (rowByKey) {
+          const sprintHeader = resolveSprintHeaderKey(row, rowByKey);
+
+          if (sprintHeader && isSprintBlockSpent(sprintHeader, rowByKey, sprintComplete)) {
+            tr.classList.add("is-sprint-complete");
+          }
+        }
+
+        if (isSprintRowActive(row, sprintComplete)) {
+          tr.classList.add("is-sprint-active");
+        }
+
+        if (isSprintRowFuture(row, sprintComplete)) {
+          tr.classList.add("is-sprint-future");
+        }
+
+        tr.dataset.key = rowTreeKey(row);
+        tr.dataset.jiraKey = row.key;
+        tr.dataset.depth = String(row.depth);
+
+        const keyTd = document.createElement("td");
+        keyTd.className = "col-key";
+
+        const keyCell = document.createElement("div");
+        keyCell.className = "key-cell";
+
+        const treeWrap = document.createElement("div");
+        treeWrap.className = "tree-cell";
+        const indent = document.createElement("span");
+        indent.className = "tree-indent";
+        indent.style.width = `${row.depth * INDENT}rem`;
+        treeWrap.appendChild(indent);
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = `tree-toggle${row.hasChildren ? "" : " is-leaf"}`;
+        toggle.setAttribute("aria-label", row.hasChildren ? "Espandi/collassa" : "");
+        toggle.textContent = row.hasChildren
+          ? (collapsed.has(rowTreeKey(row)) ? "▶" : "▼")
+          : "·";
+
+        if (row.hasChildren) {
+          toggle.addEventListener("click", () => {
+            const treeId = rowTreeKey(row);
+
+            if (collapsed.has(treeId)) {
+              collapsed.delete(treeId);
+            } else {
+              collapsed.add(treeId);
+            }
+
+            applyFilters();
+          });
+        }
+
+        treeWrap.appendChild(toggle);
+
+        if (row.tier === "subtask") {
+          const checkWrap = document.createElement("label");
+          checkWrap.className = "subtask-check";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = isSubtaskDone(row.key, row.status);
+          checkbox.setAttribute("aria-label", `Fatto: ${row.key}`);
+
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+              doneSet.add(row.key);
+              tr.classList.add("is-done");
+            } else {
+              doneSet.delete(row.key);
+              tr.classList.remove("is-done");
+            }
+
+            saveDoneSet();
+          });
+
+          const mark = document.createElement("span");
+          mark.className = "subtask-mark";
+          mark.setAttribute("aria-hidden", "true");
+
+          checkWrap.append(checkbox, mark);
+          treeWrap.appendChild(checkWrap);
+        } else if (
+          row.status.toLowerCase() === "fatto"
+          && (row.tier === "epic" || isStoryLikeRow(row))
+        ) {
+          const mark = document.createElement("span");
+          mark.className = "jira-done-mark";
+          mark.textContent = "✓";
+          mark.setAttribute("aria-label", "Fatto in Jira");
+          treeWrap.appendChild(mark);
+        }
+
+        keyCell.appendChild(treeWrap);
+
+        const keyMain = document.createElement("span");
+        keyMain.className = "key-main";
+
+        if (row.tier === "sprint") {
+          keyMain.textContent = row.devSprint ? `Sprint ${row.devSprint}` : "—";
+
+          const openRelated = sprintOpenRelated.get(row.key);
+
+          if (openRelated?.length) {
+            keyMain.appendChild(createSprintRelatedOpenMark(openRelated));
+          }
+        } else if (row.tier === "pillar") {
+          keyMain.textContent = row.devOrder ? `#${row.devOrder}` : "Pilastro";
+          keyMain.title = `${row.summary ?? "Pilastro"} · ${row.pillarIssueCount ?? 0} issue`;
+          keyMain.setAttribute("aria-label", keyMain.title);
+        } else if (row.tier === "obsolete-group") {
+          keyMain.classList.add("key-obsolete-group-label");
+          keyMain.textContent = "OBSOLETE";
+          keyMain.title = "Issue obsolete — fuori ordine esecuzione";
+          keyMain.setAttribute("aria-label", keyMain.title);
+        } else if (row.tier === "related-carryover-group") {
+          keyMain.classList.add("key-related-carryover-group-label");
+          keyMain.textContent = "Correlati";
+          keyMain.title = "Ticket correlati aperti citati in sprint precedenti o futuri";
+          keyMain.setAttribute("aria-label", keyMain.title);
+        } else {
+          const badge = JiraIssueDisplay?.createIssueTypeBadge?.(row.type);
+
+          if (badge) {
+            keyMain.appendChild(badge);
+          }
+
+          const link = document.createElement("a");
+          link.className = "jira-link";
+          link.href = `${JIRA_BASE}${row.key}`;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = row.key;
+          keyMain.appendChild(link);
+
+          if (row.isRelatedCarryover) {
+            keyMain.appendChild(createRelatedCarryoverMark(row.relatedCarryoverSources ?? []));
+          }
+
+          appendRepoAlignMark(row, keyMain);
+          appendInsightKeyMark(row, keyMain);
+        }
+
+        if (
+          isObsoleteRow(row)
+          && row.tier !== "sprint"
+          && row.tier !== "obsolete-group"
+          && viewMode === "epic"
+        ) {
+          const obsoleteLabel = document.createElement("span");
+          obsoleteLabel.className = "key-obsolete-label";
+          obsoleteLabel.textContent = "OBSOLETE";
+          obsoleteLabel.title = "Issue obsoleta — fuori ordine esecuzione";
+          obsoleteLabel.setAttribute("aria-label", obsoleteLabel.title);
+          keyMain.appendChild(obsoleteLabel);
+        }
+
+        const keyStack = document.createElement("div");
+        keyStack.className = "key-stack";
+        keyStack.appendChild(keyMain);
+        keyCell.appendChild(keyStack);
+
+        if (shouldShowWorkflowButton(row)) {
+          appendGogoRowControl(keyStack, row.key, row);
+        }
+
+        keyTd.appendChild(keyCell);
+
+        const devTd = document.createElement("td");
+        devTd.className = "col-dev-order";
+
+        if (row.tier === "epic") {
+          devTd.textContent = "—";
+          devTd.classList.add("is-empty");
+          devTd.title = row.devSprint
+            ? `Epic in sprint ${row.devSprint} — vedi colonna Sprint`
+            : "Fuori dal piano Jira Working";
+        } else if (row.tier === "sprint") {
+          devTd.textContent = devOrderCellLabel(row);
+          devTd.title = "Numero sprint · piano Jira Working";
+        } else if (row.tier === "pillar") {
+          devTd.textContent = "—";
+          devTd.classList.add("is-empty");
+          devTd.title = "Pilastro prodotto · ordine matrice";
+        } else if (row.tier === "obsolete-group") {
+          devTd.textContent = "—";
+          devTd.classList.add("is-empty");
+          devTd.title = "Gruppo issue obsolete";
+        } else if (row.tier === "related-carryover-group") {
+          devTd.textContent = "—";
+          devTd.classList.add("is-empty");
+          devTd.title = "Ticket correlati da altri sprint";
+        } else {
+          const devLabel = devOrderCellLabel(row);
+          devTd.textContent = devLabel;
+
+          if (isObsoleteRow(row)) {
+            devTd.classList.add("is-empty");
+          } else if (row.tier === "subtask") {
+            devTd.classList.add("is-inherited");
+          } else if (row.tier === "task" && row.devOrder?.includes(".")) {
+            const parentForOrder = viewMode === "sprint" || viewMode === "pillar"
+              ? row.jiraParentKey
+              : row.parentKey;
+            const parts = row.devOrder.split(".");
+
+            if (parentForOrder && parts.length === 2) {
+              const base = maxPlanSeqHint(row.devSprint);
+
+              if (base && Number(parts[1]) > base) {
+                devTd.classList.add("is-inherited");
+              }
+            }
+          }
+
+          devTd.title = devOrderCellTitle(row);
+        }
+
+        const sprintTd = document.createElement("td");
+        sprintTd.className = "col-sprint";
+
+        if (row.tier === "sprint" && row.devSprintName) {
+          sprintTd.textContent = row.devSprintName;
+          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano Jira Working`;
+        } else if (row.tier === "pillar") {
+          sprintTd.textContent = "—";
+          sprintTd.classList.add("is-empty");
+          sprintTd.title = "Raggruppamento per pilastro prodotto";
+        } else if (row.tier === "task" && row.devSprintName) {
+          sprintTd.textContent = row.devSprintName;
+          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano Jira Working`;
+        } else {
+          sprintTd.textContent = "—";
+          sprintTd.classList.add("is-empty");
+        }
+
+        const sumTd = document.createElement("td");
+        sumTd.className = "col-title";
+
+        if (row.tier === "pillar") {
+          const portalLink = document.createElement("a");
+          portalLink.href = row.pillarPortalUrl ?? `/pillar-matrix/cruscotto.pillar.${row.pillarId ?? "index"}.html`;
+          portalLink.textContent = row.summary ?? "Pilastro";
+          portalLink.title = "Apri pagina matrice pilastro";
+          sumTd.appendChild(portalLink);
+
+          const countLabel = document.createElement("span");
+          countLabel.className = "pillar-issue-count";
+          countLabel.textContent = ` · ${row.pillarIssueCount ?? 0} issue`;
+          countLabel.title = "Issue nel pilastro (inclusi subtask)";
+          sumTd.appendChild(countLabel);
+        } else {
+          sumTd.textContent = row.summary;
+        }
+
+        if ((viewMode === "sprint" || viewMode === "pillar") && row.tier === "task" && row.epicKey) {
+          const epicLine = document.createElement("span");
+          epicLine.className = "epic-affiliation";
+          epicLine.append(document.createTextNode("Epic: "));
+          JiraIssueDisplay?.appendIssueKey?.(
+            epicLine
+          , row.epicKey
+          , issueTypeForKey(row.epicKey) ?? "Epic"
+          , JIRA_BASE
+          );
+
+          if (row.epicSummary) {
+            const epicSummary = document.createElement("span");
+            epicSummary.className = "issue-summary";
+            epicSummary.textContent = ` — ${row.epicSummary}`;
+            epicLine.appendChild(epicSummary);
+          }
+
+          sumTd.appendChild(epicLine);
+        }
+
+        const relatedTd = document.createElement("td");
+        relatedTd.className = "col-related";
+        const relatedKeys = row.relatedKeys ?? [];
+
+        if (relatedKeys.length === 0) {
+          relatedTd.textContent = "—";
+          relatedTd.classList.add("is-empty");
+        } else {
+          const list = document.createElement("div");
+          list.className = "related-ticket-list";
+
+          for (const relatedKey of relatedKeys) {
+            const item = document.createElement("span");
+            item.className = "related-ticket-item";
+            const { summary } = relatedTicketDisplayInfo(relatedKey);
+
+            item.title = relatedTicketEpicTooltip(relatedKey);
+
+            if (isRelatedTicketDone(relatedKey)) {
+              const doneMark = document.createElement("span");
+              doneMark.className = "jira-done-mark";
+              doneMark.textContent = "✓";
+              doneMark.setAttribute("aria-label", "Fatto in Jira");
+              item.appendChild(doneMark);
+            }
+
+            JiraIssueDisplay?.appendIssueKey?.(
+              item
+            , relatedKey
+            , issueTypeForKey(relatedKey)
+            , JIRA_BASE
+            );
+
+            if (summary) {
+              const summarySpan = document.createElement("span");
+              summarySpan.className = "related-ticket-summary";
+              summarySpan.textContent = ` — ${summary}`;
+              item.appendChild(summarySpan);
+            }
+
+            list.appendChild(item);
+          }
+
+          relatedTd.appendChild(list);
+        }
+
+        const relatedSprintTd = document.createElement("td");
+        relatedSprintTd.className = "col-related-sprint";
+
+        if (relatedKeys.length === 0) {
+          relatedSprintTd.textContent = "—";
+          relatedSprintTd.classList.add("is-empty");
+        } else {
+          const sprintList = document.createElement("div");
+          sprintList.className = "related-sprint-list";
+          /** @type {string[]} */
+          const sprintTitles = [];
+
+          for (const relatedKey of relatedKeys) {
+            const sprintLabel = sprintLabelForKey(relatedKey);
+            const item = document.createElement("span");
+            item.className = "related-sprint-item";
+
+            if (sprintLabel) {
+              item.textContent = sprintLabel;
+              sprintTitles.push(`${relatedKey}: ${sprintLabel}`);
+            } else {
+              item.textContent = "—";
+              item.classList.add("is-empty");
+              sprintTitles.push(`${relatedKey}: —`);
+            }
+
+            sprintList.appendChild(item);
+          }
+
+          relatedSprintTd.appendChild(sprintList);
+          relatedSprintTd.title = sprintTitles.join("\n");
+        }
+
+        const statusTd = document.createElement("td");
+        statusTd.className = "col-status";
+
+        statusTd.textContent = sprintRowStatusLabel(row, sprintComplete);
+
+        tr.append(keyTd, sumTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
+        tbody.appendChild(tr);
+      }
+
+      void syncGogoButtonWithAgentStatus();
+    }
+
+    function formatViewLabel() {
+      if (viewMode === "pillar") {
+        return "Pilastro";
+      }
+
+      return viewMode === "epic" ? "Epic" : "Sprint";
+    }
+
+    function syncViewToggleUi() {
+      const epicBtn   = document.getElementById("view-epic");
+      const sprintBtn = document.getElementById("view-sprint");
+      const pillarBtn = document.getElementById("view-pillar");
+
+      epicBtn?.classList.toggle("is-active", viewMode === "epic");
+      sprintBtn?.classList.toggle("is-active", viewMode === "sprint");
+      pillarBtn?.classList.toggle("is-active", viewMode === "pillar");
+      epicBtn?.setAttribute("aria-pressed", viewMode === "epic" ? "true" : "false");
+      sprintBtn?.setAttribute("aria-pressed", viewMode === "sprint" ? "true" : "false");
+      pillarBtn?.setAttribute("aria-pressed", viewMode === "pillar" ? "true" : "false");
+    }
+
+    function seedDefaultCollapsed() {
+      collapsedByMode.epic.clear();
+      collapsedByMode.sprint.clear();
+      collapsedByMode.pillar.clear();
+
+      if (!backlog) {
+        return;
+      }
+
+      for (const row of backlog.issues) {
+        if (row.hasChildren && row.tier === "epic") {
+          collapsedByMode.epic.add(row.key);
+        }
+      }
+
+      for (const row of sprintRows ?? []) {
+        if (row.tier === "obsolete-group" && row.hasChildren) {
+          collapsedByMode.sprint.add(row.key);
+        }
+      }
+
+      const sprintComplete = buildSprintCompleteSet(sprintRows ?? []);
+
+      for (const row of sprintRows ?? []) {
+        if (row.tier === "sprint" && row.hasChildren && !isSprintRowActive(row, sprintComplete)) {
+          collapsedByMode.sprint.add(row.key);
+        }
+      }
+
+      for (const row of pillarRows ?? []) {
+        if (row.tier === "pillar" && row.hasChildren && row.pillarId === "orfani") {
+          collapsedByMode.pillar.add(rowTreeKey(row));
+        }
+      }
+    }
+
+    /**
+     * @param {"epic" | "sprint" | "pillar"} mode
+     */
+    function setViewMode(mode) {
+      if (viewMode === mode) {
+        return;
+      }
+
+      viewMode = mode;
+      saveViewMode(mode);
+      syncViewToggleUi();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      if (!backlog) {
+        return;
+      }
+
+      syncAllColumnFilterUi();
+
+      const displayRows = getDisplayRows();
+      const globalQ = filterEl?.value ?? "";
+      const filterActive = isAnyFilterActive(globalQ);
+      const viewSuffix = ` · vista ${formatViewLabel()}`;
+
+      if (!filterActive) {
+        renderRows(displayRows);
+        stats.textContent = `${backlog.total} issue · ${backlog.epics ?? "—"} epic${viewSuffix} · ${new Date(backlog.fetchedAt).toLocaleString("it-IT")}`;
+        return;
+      }
+
+      const matchSet = matchingKeysAll(globalQ);
+      const visible = displayRows.filter((row) => rowMatchesFilter(matchSet, row));
+      renderRows(displayRows);
+
+      /** @type {string[]} */
+      const parts = [];
+
+      if (globalQ.trim()) {
+        parts.push("globale");
+      }
+
+      for (const col of ["type", "key", "devOrder", "sprint", "title", "status"]) {
+        const state = columnFilters[col];
+        const active = SELECT_COLUMNS.has(col)
+          ? state.selected.size > 0
+          : Boolean(state.text.trim());
+
+        if (active) {
+          parts.push(COLUMN_LABELS[col]);
+        }
+      }
+
+      stats.textContent = `${visible.length} / ${displayRows.length}${viewSuffix} · filtro ${parts.join(" + ")}`;
+    }
+
+    function expandAll() {
+      activeCollapsed().clear();
+      applyFilters();
+    }
+
+    function collapseAll() {
+      const collapsed = activeCollapsed();
+      collapsed.clear();
+
+      if (!backlog) {
+        return;
+      }
+
+      for (const row of getDisplayRows()) {
+        if (row.hasChildren) {
+          collapsed.add(rowTreeKey(row));
+        }
+      }
+
+      applyFilters();
+    }
+
+    function downloadText(filename, mime, text) {
+      const blob = new Blob([text], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadCsv() {
+      if (!backlog) {
+        return;
+      }
+
+      const lines = [
+        "Livello,Tipo,Identificativo,Titolo,Sprint,Ticket correlati,Sprint correlati,Parent,Epic,Stato,Ordine Sviluppo"
+      ];
+
+      for (const row of getDisplayRows()) {
+        const esc = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+        const devOrderExport = row.tier === "epic" || row.tier === "sprint" || row.tier === "pillar"
+          ? (row.tier === "sprint" ? devOrderCellLabel(row) : (row.tier === "pillar" ? `#${row.devOrder ?? ""}` : ""))
+          : devOrderCellLabel(row);
+        const sprintExport = row.devSprintName ?? "";
+        const relatedKeys = row.relatedKeys ?? [];
+        const relatedExport = relatedKeys.join("; ");
+        const relatedSprintExport = relatedKeys
+          .map((key) => sprintLabelForKey(key) ?? "—")
+          .join("; ");
+        const parentExport = row.jiraParentKey ?? row.parentKey ?? "";
+        const epicExport = row.epicKey ?? "";
+        lines.push([
+          esc(row.depth),
+          esc(row.type),
+          esc(row.tier === "sprint" ? (row.devSprint ? `Sprint ${row.devSprint}` : "—") : row.key),
+          esc(row.summary),
+          esc(sprintExport),
+          esc(relatedExport),
+          esc(relatedSprintExport),
+          esc(parentExport),
+          esc(epicExport),
+          esc(row.status),
+          esc(devOrderExport),
+        ].join(","));
+      }
+
+      const stamp = backlog.fetchedAt.slice(0, 10);
+      const viewSlug = viewMode === "sprint"
+        ? "sprint"
+        : (viewMode === "pillar" ? "pillar" : "epic");
+      downloadText(`jlo-backlog-${viewSlug}-${stamp}.csv`, "text/csv;charset=utf-8", `\uFEFF${lines.join("\n")}`);
+    }
+
+    function downloadJson() {
+      if (!backlog) {
+        return;
+      }
+
+      const stamp = backlog.fetchedAt.slice(0, 10);
+      downloadText(`jlo-backlog-tree-${stamp}.json`, "application/json", JSON.stringify(backlog, null, 2));
+    }
+
+    async function loadBacklog() {
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Caricamento backlog da cruscotto DB…</td></tr>`;
+      }
+
+      if (stats) {
+        stats.textContent = "Caricamento…";
+      }
+
+      filterEl.disabled = true;
+      setColumnFiltersEnabled(false);
+      if (btnDownload) {
+        btnDownload.disabled = true;
+      }
+
+      closeDownloadMenu();
+      collapsedByMode.epic.clear();
+      collapsedByMode.sprint.clear();
+      collapsedByMode.pillar.clear();
+
+      try {
+        const res = await fetch("/api/jira/my-backlog");
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+
+        backlog = await res.json();
+        JiraIssueDisplay?.setIssueTypeMap?.(backlogIssueTypeMap());
+        repoAlign = backlog.repoAlign ?? {};
+        jiraSprintCatalog = backlog.jiraSprintsByName ?? {};
+        rebuildSprintRows(backlog.issues);
+        pillarRows = backlog.pillarTree ?? [];
+        seedDoneFromJira(backlog.issues);
+        filterEl.disabled = false;
+        setColumnFiltersEnabled(true);
+        if (btnDownload) {
+          btnDownload.disabled = false;
+        }
+        seedDefaultCollapsed();
+
+        applyFilters();
+
+        void refreshWipStatusMap(backlog.issues).then(() => {
+          if (backlog) {
+            applyFilters();
+          }
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state error">Errore: ${msg}</td></tr>`;
+        }
+
+        if (stats) {
+          stats.textContent = "Errore caricamento";
+        }
+      }
+    }
+
+    /** @type {Array<{ at: string, kind: string, key?: string, text: string, block?: string, stale?: boolean }>} */
+    let insightLog = loadInsightLog();
+
+    /**
+     * @param {string} [kind]
+     */
+    function insightKindLabel(kind) {
+      /** @type {Record<string, string>} */
+      const labels = {
+        ok         : "OK"
+      , suggestion : "SUGGESTION"
+      , warning    : "WARNING"
+      , comment    : "COMMENT"
+      , info       : "INFO"
+      };
+
+      return labels[String(kind ?? "").toLowerCase()] ?? String(kind ?? "INFO").toUpperCase();
+    }
+
+    /**
+     * @param {{ at: string, kind: string, key?: string, text: string }} item
+     * @returns {HTMLElement}
+     */
+    function createInsightNote(item) {
+      const note = document.createElement("div");
+      note.className = `insight-item kind-${item.kind}${item.stale ? " is-stale" : ""}`;
+
+      note.appendChild(createInsightMark("Insight"));
+
+      const at = document.createElement("time");
+      at.className = "insight-at";
+      at.dateTime = item.at;
+      at.textContent = formatInsightAt(item.at);
+      note.appendChild(at);
+
+      const kindLabel = document.createElement("span");
+      kindLabel.className = "insight-kind-label";
+      kindLabel.textContent = insightKindLabel(item.kind);
+      note.appendChild(kindLabel);
+
+      if (item.key) {
+        const keyEl = document.createElement("span");
+        keyEl.className = "insight-key";
+        JiraIssueDisplay?.appendIssueKey?.(
+          keyEl
+        , item.key
+        , item.type ?? issueTypeForKey(item.key)
+        , JIRA_BASE
+        );
+        note.appendChild(keyEl);
+      }
+
+      const text = document.createElement("span");
+      text.className = "insight-text";
+      text.textContent = item.text;
+      note.appendChild(text);
+
+      return note;
+    }
+
+    /**
+     * @returns {typeof insightLog}
+     */
+    function insightLogForToolbar() {
+      const general = insightLog.filter((entry) => !entry.key);
+      const keyed   = insightLog
+        .filter((entry) => entry.key)
+        .sort((a, b) => String(a.key).localeCompare(String(b.key), undefined, { numeric: true }));
+
+      return [...general, ...keyed];
+    }
+
+    /**
+     * @returns {string}
+     */
+    function formatInsightMetaText() {
+      if (!insightLog.length) {
+        return "Nessun appunto";
+      }
+
+      const general = insightLog.filter((entry) => !entry.key).length;
+      const keyed   = insightLog.length - general;
+
+      if (keyed > 0 && general > 0) {
+        return `${insightLog.length} appunti · ${general} generali · ${keyed} su issue`;
+      }
+
+      if (keyed > 0) {
+        return `${insightLog.length} appunti su issue`;
+      }
+
+      return `${insightLog.length} appunti`;
+    }
+
+    function renderToolbarInsightNotes() {
+      const host = document.getElementById("insight-notes-general");
+
+      if (!(host instanceof HTMLElement)) {
+        return;
+      }
+
+      host.replaceChildren();
+
+      for (const item of insightLogForToolbar()) {
+        host.appendChild(createInsightNote(item));
+      }
+
+      JiraIssueDisplay?.decorateJiraLinks?.(host, backlogIssueTypeMap());
+    }
+
+    /**
+     * @returns {typeof insightLog}
+     */
+    function loadInsightLog() {
+      try {
+        const raw = localStorage.getItem(INSIGHTS_STORAGE_KEY);
+
+        if (raw) {
+          const parsed = JSON.parse(raw);
+
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return [];
+    }
+
+    function saveInsightLog() {
+      localStorage.setItem(INSIGHTS_STORAGE_KEY, JSON.stringify(insightLog));
+    }
+
+    /**
+     * @returns {Record<string, unknown> | null}
+     */
+    function loadInsightSnapshot() {
+      try {
+        const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+
+        if (raw) {
+          return JSON.parse(raw);
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return null;
+    }
+
+    /**
+     * @param {Record<string, unknown>} snapshot
+     */
+    function saveInsightSnapshot(snapshot) {
+      localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+    }
+
+    /**
+     * @param {Record<string, unknown> | null} snapshot
+     */
+    function refreshStaleFlags(snapshot) {
+      if (!snapshot || !globalThis.JloInsightValidate) {
+        return;
+      }
+
+      globalThis.JloInsightValidate.applyStaleFlags(insightLog, snapshot);
+    }
+
+    /**
+     * @param {string} iso
+     */
+    function formatInsightAt(iso) {
+      try {
+        return new Date(iso).toLocaleString("it-IT", {
+          day    : "2-digit",
+          month  : "2-digit",
+          hour   : "2-digit",
+          minute : "2-digit",
+        });
+      } catch {
+        return iso;
+      }
+    }
+
+    function renderInsightLog() {
+      const metaEl = document.getElementById("insights-meta");
+
+      renderToolbarInsightNotes();
+
+      if (metaEl) {
+        metaEl.textContent = formatInsightMetaText();
+      }
+
+      if (backlog) {
+        applyFilters();
+      }
+    }
+
+    async function runRepoInsights() {
+      const btn = document.getElementById("btn-insights");
+      const metaEl = document.getElementById("insights-meta");
+
+      if (btn instanceof HTMLButtonElement) {
+        btn.disabled = true;
+        btn.classList.add("is-loading");
+      }
+
+      if (metaEl) {
+        metaEl.textContent = "Analisi in corso…";
+      }
+
+      try {
+        const res = await fetch("/api/jira/backlog/insights");
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const batch = Array.isArray(data.insights) ? data.insights : [];
+
+        if (data.snapshot) {
+          saveInsightSnapshot(data.snapshot);
+          refreshStaleFlags(data.snapshot);
+          repoAlign = data.snapshot.repoAlign ?? repoAlign;
+        }
+
+        const added = JloInsightValidate.filterNewInsights(insightLog, batch);
+
+        insightLog.push(...added);
+
+        saveInsightLog();
+        renderInsightLog();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const added   = JloInsightValidate.filterNewInsights(insightLog, [
+          {
+            at   : new Date().toISOString(),
+            kind : "warning",
+            text : `Analisi fallita: ${message}`,
+          },
+        ]);
+
+        insightLog.push(...added);
+        saveInsightLog();
+        renderInsightLog();
+      } finally {
+        if (btn instanceof HTMLButtonElement) {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+        }
+      }
+    }
+
+    function clearInsightLog() {
+      if (insightLog.length > 0 && !confirm("Cancellare tutti gli insight salvati?")) {
+        return;
+      }
+
+      insightLog = [];
+      localStorage.removeItem(SNAPSHOT_STORAGE_KEY);
+      saveInsightLog();
+      renderInsightLog();
+    }
+
+    async function syncJiraBacklog() {
+      const btnSync = document.getElementById("btn-sync-jira");
+
+      if (btnSync) {
+        btnSync.disabled = true;
+      }
+
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Sync Jira Backlog in corso…</td></tr>`;
+      }
+
+      if (stats) {
+        stats.textContent = "Sync Atlassian → DB…";
+      }
+
+      try {
+        const res = await fetch("/api/jira/my-backlog/sync", { method: "POST" });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+
+        const payload = await res.json();
+
+        if (stats) {
+          stats.textContent = `Sync OK — ${payload.issueCount ?? "?"} issue`;
+        }
+
+        await loadBacklog();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+
+        if (tbody) {
+          tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state error">Errore sync: ${msg}</td></tr>`;
+        }
+
+        if (stats) {
+          stats.textContent = "Errore sync";
+        }
+      } finally {
+        if (btnSync) {
+          btnSync.disabled = false;
+        }
+      }
+    }
+
+    document.getElementById("btn-sync-jira")?.addEventListener("click", () => syncJiraBacklog());
+    document.getElementById("btn-reload")?.addEventListener("click", () => loadBacklog());
+    document.getElementById("btn-insights")?.addEventListener("click", () => runRepoInsights());
+    document.getElementById("btn-clear-insights")?.addEventListener("click", () => clearInsightLog());
+    document.getElementById("btn-expand")?.addEventListener("click", expandAll);
+    document.getElementById("btn-collapse")?.addEventListener("click", collapseAll);
+    document.getElementById("view-epic")?.addEventListener("click", () => setViewMode("epic"));
+    document.getElementById("view-sprint")?.addEventListener("click", () => setViewMode("sprint"));
+    document.getElementById("view-pillar")?.addEventListener("click", () => setViewMode("pillar"));
+    filterEl?.addEventListener("input", () => applyFilters());
+    /**
+     * @returns {void}
+     */
+    function openDownloadMenu() {
+      if (!btnDownload || btnDownload.disabled || !downloadMenuPanel) {
+        return;
+      }
+
+      downloadMenuPanel.hidden = false;
+      btnDownload.setAttribute("aria-expanded", "true");
+    }
+
+    /**
+     * @returns {void}
+     */
+    function closeDownloadMenu() {
+      if (!downloadMenuPanel || !btnDownload) {
+        return;
+      }
+
+      downloadMenuPanel.hidden = true;
+      btnDownload.setAttribute("aria-expanded", "false");
+    }
+
+    btnDownload?.addEventListener("click", (event) => {
+      event.stopPropagation();
+
+      if (downloadMenuPanel?.hidden) {
+        openDownloadMenu();
+      } else {
+        closeDownloadMenu();
+      }
+    });
+
+    downloadMenuPanel?.querySelectorAll("[data-download]").forEach((item) => {
+      item.addEventListener("click", () => {
+        const format = item.getAttribute("data-download");
+
+        if (format === "csv") {
+          downloadCsv();
+        } else if (format === "json") {
+          downloadJson();
+        }
+
+        closeDownloadMenu();
+      });
+    });
+
+    downloadMenuWrap?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      closeDownloadMenu();
+    });
+
+    initColumnFilters();
+    initColumnResizers();
+    syncViewToggleUi();
+    refreshStaleFlags(loadInsightSnapshot());
+    renderInsightLog();
+    loadBacklog();
+  </script>
+</body>
+</html>

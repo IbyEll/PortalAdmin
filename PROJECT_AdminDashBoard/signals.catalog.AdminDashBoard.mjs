@@ -7,14 +7,14 @@ export const PRODUCT_REPO_SIGNALS = [
   , label : "Schema SQLite cruscotto"
   , paths : [
       "cruscotto.database/prisma/schema.prisma"
-    , "cruscotto.database/index.mjs"
+    , "cruscotto.database/cruscotto.db.config.mjs"
     ]
   }
 , {
     key   : "ADMIN-99"
   , label : "Cruscotto DB sync + loadJiraBacklog"
   , paths : [
-      "cruscotto.database/sync-backlog.mjs"
+      "cruscotto.database/Jira.backlog.sync.mjs"
     , "cruscotto.database/load-backlog.mjs"
     , "admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs"
     ]
@@ -56,4 +56,15 @@ export const PRODUCT_REPO_SIGNALS = [
     , "server"
     ]
   }
+, {
+    key   : "ADMIN-82"
+  , label : "fix portal.paths import in pillar-matrix-targeted"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+      , "admin.portal.testscript"
+    ]
+  }
+
 ];

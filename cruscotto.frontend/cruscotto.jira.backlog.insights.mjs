@@ -40,9 +40,9 @@ import { join } from "node:path";
 
 import { REPO_ROOT } from "../lib/test.catalog.mjs";
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone, isStoryLikeType } from "./cruscotto.jira.backlog.mjs";
-  import { JLO_WORKING_PLAN, boardKeysForWorkingPlanBlock, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
-  import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
-import { scanRepoJiraReferences, truncateIssueSummary } from "./jira/jira.function.repo.refs.mjs";
+import { JLO_WORKING_PLAN, boardKeysForWorkingPlanBlock, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
+import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
+import { scanRepoJiraReferences, truncateIssueSummary } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { LATEST_JSON } from "../lib/reporter.mjs";
 
 /**
@@ -62,7 +62,7 @@ import { LATEST_JSON } from "../lib/reporter.mjs";
 import {
   JIRA_PROJECT_KEYS
 , REPO_IMPLEMENTATION_SIGNALS
-} from "./jira/jira.project.config.overlay.mjs";
+} from "../admin.portal.JiraCORE/jira.project.config.overlay.mjs";
 
 export {
   JIRA_PROJECT_KEYS

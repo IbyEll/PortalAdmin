@@ -1,18 +1,30 @@
 ---
-description: Veve grooming ADMIN-xxx — leggi Jira, analizza repo, aggiorna story/subtask (read-only Jira via MCP diretto)
+description: Veve grooming {KEY} — leggi Jira, analizza repo, aggiorna story/subtask; anche step 3 di ADMIN-Workflow
 alwaysApply: true
 ---
 
-# ADMIN — `veve ADMIN-xxx`
+# Veve — `veve {KEY}` e workflow step 3
 
 Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggiorna Subtask**.
 
-| Step | Regola |
+| Step veve | Regola |
 | --- | --- |
 | 1 | `ADMIN-Veve-LeggiJira.mdc` |
 | 2 | `ADMIN-AnalizzaRepo.mdc` |
 | 3 | `ADMIN-Veve-AggiornaStory.mdc` · `.cursor/templates/veve/veve-story-parent.md` |
 | 4 | `ADMIN-Veve-AggiornaSubtask.mdc` · `.cursor/templates/veve/veve-subtask.md` |
+
+## Trigger
+
+| Contesto | Comportamento |
+| --- | --- |
+| `veve {KEY}` | Standalone — chat libera, sequenza completa |
+| `procedi` / `gogo {KEY}` | **Step 3** di `ADMIN-Workflow.mdc` — silenzioso (`ADMIN-Silence.mdc`) |
+| `chiudi` | **Non** esegue veve |
+
+`{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).
+
+Variante **DB** (cache + WIP): `ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 di `ADMIN-Workflow database.mdc`.
 
 **MCP veve:** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
 

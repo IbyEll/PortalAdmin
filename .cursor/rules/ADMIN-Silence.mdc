@@ -21,8 +21,9 @@ alwaysApply: true
 
 ## Jira nel workflow
 
-- **procedi/gogo/chiudi:** solo Task «Jira Auto» — mai `CallMcpTool` Jira dal agente principale
-- **veve / leggi jira:** `CallMcpTool` `user-atlassian` ammesso
+- **Step 3 veve** (`procedi`/`gogo`): `CallMcpTool` `user-atlassian` ammesso — silenzioso in chat
+- **Step 0, ok chiudi, chiudi:** solo Task «Jira Auto» — mai MCP diretto
+- **`veve {KEY}` standalone:** MCP ammesso — chat libera (non è workflow)
 
 ## Blocker
 

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Veve.db-AggiornaStory — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice</a> · <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></p>
+    <header>
+      <h1>Veve DB — Aggiorna Story (WIP)</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Veve.db-AggiornaStory.mdc</code> ·
+        <span class="tag tag--db">veve db step 3 / workflow 3.3</span>
+      </p>
+      <p class="lead">
+        Upsert del parent <code>{KEY}</code> in <code>jira_issue_wip</code> — al posto di
+        <code>editJiraIssue</code> su Jira live.
+      </p>
+    </header>
+
+    <section>
+      <h2>Trigger</h2>
+      <ul>
+        <li><code>aggiorna story db {KEY}</code></li>
+        <li>Dopo Leggi DB + Analizza repo</li>
+        <li><code>veve db {KEY}</code> step 3</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Template</h2>
+      <p><code>.cursor/templates/veve/veve-story-parent.md</code> — stesso di veve MCP.
+      Checkbox AC/DoD (B poi A): come <a href="ADMIN-Veve-AggiornaStory.html">ADMIN-Veve-AggiornaStory</a>.</p>
+    </section>
+
+    <section>
+      <h2>Applicazione step-by-step</h2>
+      <ol class="steps">
+        <li>Leggi riga parent da <code>jira_issue</code> (<code>syncRunId</code> sessione).</li>
+        <li>Compila <code>veveDescription</code> dal template + gap analysis.</li>
+        <li><strong>Upsert</strong> <code>jira_issue_wip</code> per <code>jira_key = {KEY}</code>:
+          <pre>db.jiraIssueWip.upsert({ where: { jiraKey }, create, update })</pre>
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Campi upsert</h2>
+      <table>
+        <thead><tr><th>Campo</th><th>Valore</th></tr></thead>
+        <tbody>
+          <tr><td>Colonne mirror</td><td>Copia da <code>jira_issue</code> (issueType, summary, status, tier, …)</td></tr>
+          <tr><td><code>sync_run_id</code></td><td><code>syncRunId</code> corrente</td></tr>
+          <tr><td><code>raw_fields</code></td><td>JSON <code>veveDescription</code>, <code>gapSummary</code>, <code>updatedAt</code></td></tr>
+          <tr><td><code>synced_at</code></td><td>Timestamp now</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Confronto MCP</h2>
+      <table>
+        <thead><tr><th>Veve MCP</th><th>Veve DB</th></tr></thead>
+        <tbody>
+          <tr><td><code>editJiraIssue</code> description parent</td><td>Upsert <code>jira_issue_wip</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Vietato</h2>
+      <ul>
+        <li class="forbidden">Upsert subtask in questo step</li>
+        <li class="forbidden">MCP Jira, branch, commit, Fatto parent</li>
+      </ul>
+    </section>
+
+    <footer>
+      Precedente: <a href="ADMIN-Veve.db-AnalizzaRepo.html">Analizza repo</a> ·
+      Successivo: <a href="ADMIN-Veve.db-AggiornaSubtask.html">Aggiorna subtask WIP</a>
+    </footer>
+  </div>
+</body>
+</html>

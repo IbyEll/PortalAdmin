@@ -25,7 +25,7 @@
  *
  * Consumatori:
  *   - runner/cruscotto.server.mjs — fetchJiraBacklog, loadJiraBacklog, fetchJiraIssueStatus
- *   - cruscotto.database/sync-backlog.mjs, load-backlog.mjs — persistenza e lettura cache
+ *   - cruscotto.database/Jira.backlog.sync.mjs, jiraCORE.backlog.load.mjs — persistenza e lettura cache
  *   - cruscotto.jira.backlog.insights.mjs, working.plan.mjs, project.tree.plan.mjs — piano e insight
  *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — tooling batch
  *
@@ -36,6 +36,7 @@
  */
 
 import "../lib/portal.load.env.mjs";
+import { getProjectConfig } from "../lib/project.config.mjs";
 import {
   applyDevOrder
 , applyEpicLegacySprintPins
@@ -45,7 +46,10 @@ import {
 , JLO_WORKING_PLAN
 , normalizeSprintLabel
 } from "./cruscotto.jira.working.order.mjs";
-import { extractIssueKeysFromText } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
+import {
+  extractIssueKeysFromText
+, resolveRelatedTicketKeys
+} from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 
 const JIRA_SPRINT_FIELD = "customfield_10020";
 const JIRA_BOARD_ID     = Number(process.env.JIRA_BOARD_ID ?? 68);
@@ -57,8 +61,8 @@ const API_BASE = `https://api.atlassian.com/ex/jira/${CLOUD_ID}`;
  * @returns {string}
  */
 function authHeader() {
-  const email = process.env.JIRA_EMAIL;
-  const token = process.env.JIRA_API_TOKEN;
+  const email = process.env.JIRA_EMAIL?.trim();
+  const token = process.env.JIRA_API_TOKEN?.trim();
 
   if (!email || !token) {
     throw new Error("Mancano JIRA_EMAIL e/o JIRA_API_TOKEN in .env");
@@ -97,6 +101,16 @@ async function jiraFetch(path, init = {}) {
       : typeof body === "object" && body?.message
         ? body.message
         : text || res.statusText;
+
+    if (res.status === 401) {
+      throw new Error(
+        `${init.method ?? "GET"} ${path} → 401: credenziali Jira non valide. `
+        + "Verifica JIRA_EMAIL (account Atlassian) e JIRA_API_TOKEN in .env "
+        + "(nuovo token: https://id.atlassian.com/manage-profile/security/api-tokens), "
+        + "poi riavvia la dashboard."
+      );
+    }
+
     throw new Error(`${init.method ?? "GET"} ${path} → ${res.status}: ${msg}`);
   }
 
@@ -439,7 +453,8 @@ export async function fetchWorkingPlanBoardSprintKeys(jiraSprints) {
 export async function fetchJiraBacklog() {
   /** @type {Omit<JiraBacklogRow, "depth" | "hasChildren" | "tier">[]} */
   const raw = [];
-  const jql = "project = JLO ORDER BY rank ASC";
+  const jiraProject = getProjectConfig().PRJ_JIRA_PREFIX;
+  const jql = `project = ${jiraProject} ORDER BY rank ASC`;
   const fields = ["summary", "issuetype", "status", "parent", "description", "issuelinks", JIRA_SPRINT_FIELD];
   let nextPageToken = null;
 
@@ -510,16 +525,23 @@ export async function fetchJiraBacklog() {
 /**
  * Load backlog from cruscotto.db when populated; otherwise fetch live Jira API.
  *
- * @param {{ forceApi?: boolean }} [opts]
+ * @param {{ forceApi?: boolean, dbOnly?: boolean }} [opts]
  * @returns {Promise<Awaited<ReturnType<typeof fetchJiraBacklog>> & { source?: string, syncRunId?: string }>}
  */
 export async function loadJiraBacklog(opts = {}) {
+  const { loadJiraBacklogFromDb } = await import("../admin.portal.JiraCORE/jiraCORE.backlog.load.mjs");
+
   if (!opts.forceApi) {
-    const { loadJiraBacklogFromDb } = await import("../cruscotto.database/jiraCORE.backlog.load.mjs");
     const cached = await loadJiraBacklogFromDb();
 
     if (cached) {
       return cached;
+    }
+
+    if (opts.dbOnly) {
+      throw new Error(
+        "Cache backlog assente nel cruscotto DB — usa Sync Jira Backlog per scaricare da Atlassian."
+      );
     }
   }
 

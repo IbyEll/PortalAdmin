@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../cruscotto.frontend/jira/jira.project.config.overlay.mjs";
+import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../admin.portal.JiraCORE/jira.project.config.overlay.mjs";
 import {
   getProjectConfig
 , portalProductManifestExists

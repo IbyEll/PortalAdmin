@@ -110,9 +110,9 @@ async function main() {
     const bugRow   = { tier: "task", type: "Bug", key: "JLO-102" };
 
     assert(shouldShowGogoButton("sprint", storyRow), "story in sprint");
+    assert(shouldShowGogoButton("epic", storyRow), "story in epic");
     assert(shouldShowGogoButton("sprint", bugRow), "bug in sprint");
-    assert(!shouldShowGogoButton("epic", storyRow), "no in epic");
-    assert(!shouldShowGogoButton("sprint", subRow), "no su subtask");
+    assert(!shouldShowGogoButton("epic", subRow), "no su subtask");
     assert(!shouldShowGogoButton("sprint", { tier: "sprint", key: "__sprint__1" }), "no su header sprint");
   }, results);
 
@@ -129,7 +129,7 @@ async function main() {
     assert(html.includes("launchGogoAgent"), "avvio Cursor Agent interno");
     assert(html.includes("/api/cursor/agent"), "endpoint agent cruscotto");
     assert(html.includes("copyGogoCmd"), "fallback clipboard");
-    assert(html.includes('viewMode === "sprint"'), "vincolo vista sprint");
+    assert(html.includes("shouldShowWorkflowButton"), "helper visibilità workflow");
     assert(html.includes("isStoryLikeRow(row)"), "vincolo story-like");
   }, results);
 

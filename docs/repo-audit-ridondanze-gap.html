@@ -181,10 +181,11 @@
         Il repository è in <strong>migrazione attiva</strong> verso
         <code>cruscotto.frontend/</code>, <code>admin.portal/</code> e
         <code>admin.portal.JiraCORE/</code>, ma convivono ancora path legacy
-        (<code>server/</code>, <code>runner/</code>, copia <code>cruscotto.frontend/jira/JiraCORE/</code>).
+        (<code>server/</code> ridotto, <code>runner/</code> residuo, doppioni
+        <code>jira.*</code> in <code>cruscotto.frontend/jira/</code>).
       </p>
       <div class="verification-banner">
-        <strong>Verifica repo</strong> — 2026-06-20 05:52 (filesystem, grep import, <code>package.json</code>, CI).
+        <strong>Verifica repo</strong> — 2026-06-20 07:03 (filesystem, grep import, <code>package.json</code>, CI).
         Tabella sintesi sotto; voci risolte barrate con commento.
       </div>
       <table>
@@ -192,23 +193,23 @@
           <tr><th>Voce audit</th><th>Esito verifica</th></tr>
         </thead>
         <tbody>
-          <tr><td>Tripla JiraCORE + <code>* - Copia.mjs</code></td><td class="sev-medium">Parziale — root eliminata; resta <code>cruscotto.frontend/jira/JiraCORE/</code></td></tr>
-          <tr><td>Smoke <code>scripts/</code> vs <code>test.smoke/</code></td><td class="sev-medium">Parziale — solo <code>test.smoke/</code>, ma <code>package.json</code> ancora su <code>scripts/</code></td></tr>
-          <tr><td><code>server/</code> legacy</td><td class="sev-high">Aperto</td></tr>
-          <tr><td><code>portal-paths</code> alias</td><td class="sev-medium">Aperto (~15 consumer)</td></tr>
+          <tr><td>Tripla JiraCORE + <code>* - Copia.mjs</code></td><td class="sev-low">Quasi risolto — restano 3 moduli <code>jira.*</code> duplicati (byte-identici) in <code>admin.portal.JiraCORE/</code> e <code>cruscotto.frontend/jira/</code></td></tr>
+          <tr><td>Smoke <code>scripts/</code> vs <code>test.smoke/</code></td><td class="sev-medium">Parziale — solo <code>test.smoke/</code> (8 file), ma <code>package.json</code> e <code>smoke-ci.mjs</code> ancora su <code>scripts/</code></td></tr>
+          <tr><td><code>server/</code> legacy</td><td class="sev-medium">Parziale — <code>dashboard-server.mjs</code> eliminato; restano <code>dev-api.mjs</code> e <code>cruscotto.health.mjs</code> + citazioni obsolete</td></tr>
+          <tr><td><code>portal-paths</code> alias</td><td class="sev-medium">Aperto (~14 consumer)</td></tr>
           <tr><td>Overlay <code>PROJECT_*</code></td><td class="sev-medium">Aperto</td></tr>
           <tr><td>Shim import gap (5 path)</td><td class="sev-high">Aperto (1/6 risolto: API doc discovery)</td></tr>
           <tr><td>Discovery API documentation</td><td class="sev-low">Risolto in overlay <code>PROJECT_*</code></td></tr>
-          <tr><td>CI / <code>admin:home</code></td><td class="sev-high">Aperto</td></tr>
-          <tr><td>Debito minore</td><td class="sev-medium">Aperto</td></tr>
+          <tr><td>CI / <code>admin:home</code></td><td class="sev-high">Aperto — CI solo JustLastOne; <code>test:ci</code> rotto su path <code>scripts/</code></td></tr>
+          <tr><td>Debito minore</td><td class="sev-medium">Aperto — path fantasma <code>JustLastOne___*</code>, <code>PARKING_tocheck/</code></td></tr>
         </tbody>
       </table>
     </header>
 
     <h2>Ridondanze</h2>
 
-    <h3>1. Tripla copia JiraCORE — <span class="sev-high">alta</span></h3>
-    <p>Stesso dominio (backlog, gap analysis, close-story, signals) in tre alberi:</p>
+    <h3>1. JiraCORE e moduli <code>jira.*</code> — <span class="sev-low">bassa (quasi risolto)</span></h3>
+    <p>Dominio backlog/gap/close-story/signals — stato attuale:</p>
     <table>
       <thead>
         <tr><th>Path</th><th>Ruolo attuale</th></tr>
@@ -216,7 +217,7 @@
       <tbody>
         <tr>
           <td><code>admin.portal.JiraCORE/</code></td>
-          <td>Usato da <code>package.json</code> (<code>db:sync</code>, <code>sync:jira-issue-display</code>)</td>
+          <td>Canonico — 13 moduli (<code>jiraCORE.*</code>, gap analysis, close-story, sync); include copia locale dei 3 <code>jira.*</code></td>
         </tr>
         <tr>
           <td><del class="resolved"><code>JiraCORE/</code> (root)</del></td>
@@ -226,17 +227,29 @@
           </td>
         </tr>
         <tr>
-          <td><code>cruscotto.frontend/jira/JiraCORE/</code></td>
-          <td>Copia ampia, include smoke e script standalone duplicati</td>
+          <td><del class="resolved"><code>cruscotto.frontend/jira/JiraCORE/</code></del></td>
+          <td>
+            <del class="resolved">Copia ampia con smoke e script standalone duplicati</del>
+            <span class="audit-resolution">✅ 2026-06-20 07:03 — Albero <code>JiraCORE/</code> sotto <code>cruscotto.frontend/jira/</code> eliminato; nessun file <code>* - Copia.mjs</code> nel repo.</span>
+          </td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.frontend/jira/jira.*.mjs</code> (3 file)</td>
+          <td>
+            Duplicato byte-identico di <code>admin.portal.JiraCORE/jira.*.mjs</code>; ~8 import attivi
+            (smoke, gap analysis, pillar matrix) puntano ancora qui
+          </td>
         </tr>
       </tbody>
     </table>
-    <div class="callout callout-danger">
-      <strong>Rischio:</strong> fix in un posto, regressioni negli altri. In
-      <code>cruscotto.frontend/jira/JiraCORE/admin.script.standalone/</code> compaiono file
-      <code>* - Copia.mjs</code>.
+    <div class="callout">
+      <strong>Residuo:</strong> non più tripla copia JiraCORE, ma doppione dei 3 moduli config/scan
+      (<code>jira.project.config.mjs</code>, <code>jira.project.config.overlay.mjs</code>,
+      <code>jira.function.repo.refs.mjs</code>). Alcuni file in <code>admin.portal.JiraCORE/</code>
+      importano ancora da <code>cruscotto.frontend/jira/</code>.
     </div>
-    <p><strong>Raccomandazione:</strong> un solo canonico (<code>admin.portal.JiraCORE/</code>), shim sottili o aggiornamento massivo dei riferimenti; eliminare le copie parallele.</p>
+    <p><strong>Raccomandazione:</strong> un solo albero (<code>admin.portal.JiraCORE/</code>), shim sottili
+    in <code>cruscotto.frontend/jira/</code> o aggiornamento import; eliminare i duplicati fisici.</p>
 
     <h3>2. Smoke test duplicati — <span class="sev-medium">media (parziale)</span></h3>
     <p>
@@ -247,20 +260,25 @@
       </del>
       <span class="audit-resolution">✅ 2026-06-20 05:52 — Cartella <code>scripts/</code> rimossa; canonico <code>test.smoke/smoke-*.mjs</code> (8 file). Duplicato filesystem eliminato.</span>
     </p>
-    <p><strong>Ancora da fare:</strong> aggiornare <code>package.json</code> (<code>test:paths</code> … <code>test:ci</code>) e <code>test.smoke/smoke-ci.mjs</code> da <code>scripts/</code> a <code>test.smoke/</code>; poi aggiungere shim import (vedi gap).</p>
+    <p><strong>Ancora da fare:</strong> aggiornare <code>package.json</code> (<code>test:paths</code> … <code>test:ci</code>) e
+    <code>test.smoke/smoke-ci.mjs</code> (array <code>STEPS</code>) da <code>scripts/</code> a
+    <code>test.smoke/</code>; senza fix, <code>npm run test:ci</code> e job CI che lo invocano falliscono.</p>
 
-    <h3>3. <code>server/</code> vs <code>cruscotto.frontend/</code> — <span class="sev-medium">media</span></h3>
+    <h3>3. <code>server/</code> vs <code>cruscotto.frontend/</code> — <span class="sev-medium">media (parziale)</span></h3>
     <ul>
-      <li><code>server/dashboard-server.mjs</code> → alias verso <code>cruscotto.server.mjs</code> (OK)</li>
+      <li>
+        <del class="resolved"><code>server/dashboard-server.mjs</code> → alias verso <code>cruscotto.server.mjs</code></del>
+        <span class="audit-resolution">✅ 2026-06-20 07:03 — File eliminato; <code>npm run admin:dashboard</code> punta a <code>cruscotto.frontend/cruscotto.server.mjs</code>.</span>
+      </li>
       <li><code>server/dev-api.mjs</code> e <code>server/cruscotto.health.mjs</code> ancora importati da <code>cruscotto.server.mjs</code></li>
-      <li>README e UI citano ancora <code>node server/dashboard-server.mjs</code></li>
+      <li>README, <code>cruscotto.home.js</code> e commenti (~15 occorrenze) citano ancora <code>node server/dashboard-server.mjs</code></li>
     </ul>
-    <p><strong>Raccomandazione:</strong> spostare health/dev-api in <code>cruscotto.frontend/</code> o <code>lib/</code>, deprecare <code>server/</code>.</p>
+    <p><strong>Raccomandazione:</strong> spostare health/dev-api in <code>cruscotto.frontend/</code> o <code>lib/</code>, aggiornare citazioni UI/docs, eliminare cartella <code>server/</code>.</p>
 
     <h3>4. <code>portal-paths</code> vs <code>portal.paths.resolver</code> — <span class="sev-low">bassa</span></h3>
     <p>
       <code>lib/portal-paths.mjs</code> è alias <code>@deprecated</code> del resolver;
-      ~15 consumer usano ancora il vecchio path.
+      ~14 consumer usano ancora il vecchio path (smoke, <code>cruscotto.runner.stack.base</code>, agent portal).
     </p>
 
     <h3>5. Overlay <code>PROJECT_*</code> — <span class="sev-low">bassa (pattern intenzionale)</span></h3>
@@ -301,8 +319,8 @@
         </tr>
         <tr>
           <td><code>lib/function.repo.jira.refs.mjs</code></td>
-          <td><strong>assente</strong> — impl in <code>cruscotto.frontend/jira/jira.function.repo.refs.mjs</code></td>
-          <td>smoke config/paths, <code>page.my-project.analysis</code></td>
+          <td><strong>assente</strong> — impl in <code>cruscotto.frontend/jira/jira.function.repo.refs.mjs</code> (e duplicato in <code>admin.portal.JiraCORE/</code>)</td>
+          <td>smoke paths/config, <code>page.my-project.analysis</code></td>
         </tr>
         <tr>
           <td><code>lib/repo.implementation.signals.catalog.mjs</code></td>
@@ -311,8 +329,8 @@
         </tr>
         <tr>
           <td><code>portal.config.mjs</code></td>
-          <td><strong>assente</strong> — sostituito da <code>cruscotto.frontend/jira/jira.project.config.overlay.mjs</code></td>
-          <td>README, regole, gap analysis</td>
+          <td><strong>assente</strong> — sostituito da <code>cruscotto.frontend/jira/jira.project.config.overlay.mjs</code> (smoke-config OK); README/regole ancora su vecchio path</td>
+          <td>README, regole, gap analysis catalog paths</td>
         </tr>
         <tr>
           <td><code>cruscotto.database/load-backlog.mjs</code></td>
@@ -342,17 +360,16 @@ flowchart LR
     LIB[lib]
   end
   subgraph legacy [Legacy / duplicati]
-    SRV[server]
-    RUN[runner]
-    JC1[JiraCORE root]
-    JC2[jira/JiraCORE]
+    SRV[server residuo]
+    RUN[runner 2 file]
+    Jdup[jira.* duplicati]
     TS[test.smoke]
   end
   CF --> SRV
   CF --> RUN
-  AJ -.-> JC1
-  AJ -.-> JC2
-  scripts --> TS
+  AJ -.-> Jdup
+  Jdup -.-> AJ
+  PKG[package.json scripts/] -.-> TS
     </div>
 
     <table>
@@ -362,8 +379,11 @@ flowchart LR
       <tbody>
         <tr>
           <td>Dashboard HTTP</td>
-          <td><code>cruscotto.frontend/cruscotto.server.mjs</code></td>
-          <td><code>server/dashboard-server.mjs</code></td>
+          <td><code>cruscotto.frontend/cruscotto.server.mjs</code> (<code>npm run admin:dashboard</code>)</td>
+          <td>
+            <del class="resolved"><code>server/dashboard-server.mjs</code></del>
+            <span class="audit-resolution">✅ 2026-06-20 07:03 — Entrypoint rimosso; citazioni UI/README ancora da aggiornare.</span>
+          </td>
         </tr>
         <tr>
           <td>HOME</td>
@@ -408,7 +428,7 @@ flowchart LR
         </tr>
         <tr>
           <td><code>admin.portal.testscript/</code></td>
-          <td>~24 script; <code>test:portal-api</code> non in smoke CI standard</td>
+          <td>23 script; <code>test:portal-api</code> non in smoke CI standard</td>
         </tr>
         <tr>
           <td>Overlay <strong>AdminDashBoard</strong></td>
@@ -416,30 +436,38 @@ flowchart LR
         </tr>
         <tr>
           <td><code>admin:home</code></td>
-          <td>Senza smoke in CI</td>
+          <td>Senza smoke in CI; entrypoint <code>admin.portal/portal.home.server.mjs</code> presente in <code>package.json</code></td>
+        </tr>
+        <tr>
+          <td><code>npm run test:ci</code></td>
+          <td>
+            <span class="audit-open">⚠️ <code>smoke-ci.mjs</code> invoca ancora <code>scripts/smoke-*.mjs</code> — cartella assente, comando rotto.</span>
+          </td>
         </tr>
       </tbody>
     </table>
 
     <h2>Debito tecnico minore</h2>
     <ul>
-      <li><strong>Naming JLO:</strong> regola <code>JustLastOne___</code> applicata solo a <code>runner/JustLastOne___kill-product-stack.mjs</code>; signals citano path <code>lib/JustLastOne___*</code> inesistenti.</li>
+      <li><strong>Naming JLO:</strong> nessun file <code>runner/JustLastOne___*</code> sul disco; signals, README e <code>page.my-project.analysis</code> citano ancora path <code>lib/JustLastOne___*</code> / <code>runner/JustLastOne___run-all.mjs</code> inesistenti.</li>
       <li><strong><code>PRJ_NAME</code>:</strong> env <code>AdminDashBoard</code> vs display <code>AdminDashboard</code> — eccezione solo in <code>smoke-portal-config.mjs</code>.</li>
-      <li><strong><code>PARKING_tocheck/</code>:</strong> codice pillar/project-tree non integrato nel flusso principale.</li>
-      <li><strong><code>PROJECT_JustLastOne/Untitled</code>:</strong> file spurio.</li>
+      <li><strong><code>PARKING_tocheck/</code>:</strong> 8 file pillar/project-tree non integrati nel flusso principale.</li>
+      <li><strong><code>PROJECT_JustLastOne/Untitled</code>:</strong> file spurio ancora presente.</li>
+      <li><strong><code>runner/</code>:</strong> residuo 2 file (<code>start-dev.mjs</code>, <code>list-project-node-processes.mjs</code>) fuori da <code>cruscotto.frontend/</code>.</li>
     </ul>
 
     <h2>Priorità consigliate</h2>
     <ol>
+      <li><strong>Allineare smoke path</strong> (basso sforzo, blocco CI): <code>package.json</code> <code>test:*</code> e <code>smoke-ci.mjs</code> → <code>test.smoke/</code>.</li>
       <li><strong>Shim import</strong> (basso sforzo, alto impatto): re-export in <code>cruscotto.database/jiraCORE.backlog.load.mjs</code>, <code>lib/function.repo.jira.refs.mjs</code>, <code>lib/repo.implementation.signals.catalog.mjs</code> verso le impl reali.</li>
       <li><del class="resolved"><strong>Unificare JiraCORE</strong> in <code>admin.portal.JiraCORE/</code> e aggiornare CI/README/workflow.</del>
-        <span class="audit-resolution">✅ 2026-06-20 06:10 — Root <code>JiraCORE/</code> eliminata; citazioni allineate. Resta copia <code>cruscotto.frontend/jira/JiraCORE/</code>.</span>
+        <span class="audit-resolution">✅ 2026-06-20 07:03 — Root <code>JiraCORE/</code> e albero <code>cruscotto.frontend/jira/JiraCORE/</code> eliminati; restano 3 moduli <code>jira.*</code> duplicati e import incrociati.</span>
       </li>
       <li><del class="resolved"><strong>Eliminare duplicato smoke</strong> (<code>scripts/</code> vs <code>test.smoke/</code>).</del>
-        <span class="audit-resolution">✅ 2026-06-20 05:52 — Solo <code>test.smoke/</code> sul disco; resta allineare <code>package.json</code> e shim import.</span>
+        <span class="audit-resolution">✅ 2026-06-20 05:52 — Solo <code>test.smoke/</code> sul disco; resta allineare <code>package.json</code> e <code>smoke-ci.mjs</code>.</span>
       </li>
       <li><strong>Completare overlay AdminDashBoard</strong> (<code>page.my-project.analysis</code> se serve parità con JLO).</li>
-      <li><strong>Pulizia</strong> <code>server/</code>, copie <code>* - Copia.mjs</code>, <code>PARKING_tocheck/</code> quando non più necessari.</li>
+      <li><strong>Pulizia</strong> <code>server/</code> (2 file residui), doppioni <code>jira.*</code>, <code>PARKING_tocheck/</code>, citazioni <code>JustLastOne___</code> quando non più necessari.</li>
     </ol>
 
     <h2>Nota metodologica</h2>
@@ -448,7 +476,10 @@ flowchart LR
       al layout attuale — trattati come migrazione incompleta.
     </p>
     <p class="meta">
-      Ultima verifica: 2026-06-20 06:10 — root <code>JiraCORE/</code> e citazioni CI/README risolte; shim <code>lib/</code> e copia <code>cruscotto.frontend/jira/JiraCORE/</code> ancora aperti; <code>PROJECT_JustLastOne/Untitled</code> ancora presente.
+      Ultima verifica: 2026-06-20 07:03 — eliminati <code>JiraCORE/</code> root,
+      <code>cruscotto.frontend/jira/JiraCORE/</code>, <code>server/dashboard-server.mjs</code> e
+      <code>scripts/</code>; aperti shim <code>lib/</code>, path smoke in <code>package.json</code>,
+      doppioni <code>jira.*</code>, <code>PROJECT_JustLastOne/Untitled</code>.
     </p>
   </div>
 

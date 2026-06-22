@@ -57,8 +57,12 @@
       document.title = titles.cruscotto;
     }
 
-    if (titles?.backlog && /Backlog/i.test(document.title)) {
+    if (titles?.backlog && /Backlog/i.test(document.title) && !/MyBacklog/i.test(document.title)) {
       document.title = titles.backlog;
+    }
+
+    if (titles?.myBacklog && /MyBacklog/i.test(document.title)) {
+      document.title = titles.myBacklog;
     }
 
     if (titles?.working && /Jira Working/i.test(document.title)) {

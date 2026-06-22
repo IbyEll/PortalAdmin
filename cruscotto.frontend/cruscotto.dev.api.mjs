@@ -22,7 +22,7 @@
  *
  * Generalizzazione:
  *   Si — servizi e requirements da product.manifest (overlay PRJ_NAME / PRODUCT_REPO_PATH).
- *
+ *  
  * Input:
  *   - product.manifest.json — loadProductManifest (lib/product.manifest.mjs)
  *   - svc.healthUrl, svc.processScript — probe HTTP o fragment processo per servizio

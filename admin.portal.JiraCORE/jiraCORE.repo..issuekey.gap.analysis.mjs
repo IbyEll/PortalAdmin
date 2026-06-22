@@ -56,6 +56,8 @@
  */
 
 import { fetchJiraBacklog, isStoryLikeType } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import {
   analyzeIssueKeys
 , formatRepoAnalysisMarkdown
@@ -122,7 +124,7 @@ function parseArgs(argv) {
  *
  * @param {string} parentKey
  */
-async function keysForParent(parentKey) {
+export async function loadParentBacklogContext(parentKey) {
   const backlog = await fetchJiraBacklog();
   const issues  = backlog.issues ?? [];
   const parent  = issues.find((row) => row.key === parentKey);
@@ -149,6 +151,8 @@ async function keysForParent(parentKey) {
     keys
   , jiraStatusByKey
   , subtaskOrder
+  , parentSummary: parent.summary ?? ""
+  , parentStatus : parent.status ?? "—"
   , subtasks: children.map((row) => ({
       key     : row.key
     , summary : row.summary
@@ -188,7 +192,7 @@ async function main() {
 
   // 3. Espansione parent — backlog Jira, stati, ordine subtask
   if (args.parent) {
-    const parentCtx = await keysForParent(args.parent);
+    const parentCtx = await loadParentBacklogContext(args.parent);
     keys              = parentCtx.keys;
     jiraStatusByKey   = parentCtx.jiraStatusByKey;
     subtaskOrder      = parentCtx.subtaskOrder;
@@ -214,7 +218,30 @@ async function main() {
   }, null, 2));
 }
 
-main().catch((err) => {
-  console.error(err.message ?? err);
-  process.exit(1);
-});
+/**
+ * Gap analysis parent per workflow portal (Step 0).
+ *
+ * @param {string} parentKey
+ */
+export async function analyzeParentForWorkflow(parentKey) {
+  const normalized = normalizeIssueKey(parentKey);
+  const parentCtx  = await loadParentBacklogContext(normalized);
+  const report     = analyzeIssueKeys(parentCtx.keys, { jiraStatusByKey: parentCtx.jiraStatusByKey });
+
+  return {
+    parentKey : normalized
+  , ...parentCtx
+  , report
+  };
+}
+
+// CLI — solo se eseguito come entrypoint
+const isGapAnalysisCli = process.argv[1]
+  && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+
+if (isGapAnalysisCli) {
+  main().catch((err) => {
+    console.error(err.message ?? err);
+    process.exit(1);
+  });
+}

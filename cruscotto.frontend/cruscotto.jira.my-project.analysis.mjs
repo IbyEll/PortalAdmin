@@ -43,7 +43,7 @@ import {
 , isJiraStatusDone
 , isStoryLikeType
 } from "./cruscotto.jira.backlog.mjs";
-import { scanRepoJiraReferences, walkRepoTextFiles } from "./jira/jira.function.repo.refs.mjs";
+import { scanRepoJiraReferences, walkRepoTextFiles } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
 
 const JIRA_SITE   = "https://myfuturejobsearch.atlassian.net/browse/";

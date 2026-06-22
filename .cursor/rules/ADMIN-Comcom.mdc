@@ -311,4 +311,4 @@ Su `comcom` e su script in scope (`runner/`, `scripts/`, `cruscotto.database/scr
 
 - Scelta tipo: `.cursor/templates/comments/README.md`
 - Template: `testscript.mjs` · `script-entrypoint.mjs` · `lib-module.mjs` · `app-module.mjs` · `page-html.html` · `page-html.mjs` · `cursor-rule.mdc` · **`template_default.mjs`**
-- Esempio reale: `cruscotto.database/index.mjs`, `cruscotto.database/script_seed/script_seed-lib.mjs`
+- Esempio reale: `cruscotto.database/cruscotto.db.config.mjs`, `cruscotto.database/script_seed/script_seed-lib.mjs`

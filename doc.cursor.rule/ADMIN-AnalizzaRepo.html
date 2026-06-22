@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-AnalizzaRepo — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>ADMIN-AnalizzaRepo</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-AnalizzaRepo.mdc</code> ·
+        <span class="tag tag--always">alwaysApply: true</span>
+      </p>
+      <p class="lead">
+        Gap analysis tra ticket Jira e codice nel repo workflow.
+      </p>
+      <div class="revision-banner">
+        <strong>Revisione 2026-06-22:</strong> in <code>procedi</code>/<code>gogo</code> la CLI gap gira nello
+        <strong>step 3.2 veve</strong>; Step 0 riusa l'output (non ripete salvo ripresa).
+      </div>
+    </header>
+
+    <section>
+      <h2>Trigger</h2>
+      <div class="obsolete-block">
+        <div class="obsolete-label">Prima</div>
+        <table>
+          <tbody>
+            <tr><td class="obsolete">Step 0 procedi/gogo</td><td class="obsolete">Gap analysis CLI in background (duplicata rispetto a veve)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="revision-block">
+        <div class="revision-label">Adesso</div>
+        <table>
+          <thead><tr><th>Contesto</th><th>Uso</th></tr></thead>
+          <tbody>
+            <tr><td><code>analizza repo {KEY}</code></td><td>Standalone</td></tr>
+            <tr><td><code>veve {KEY}</code> / workflow step <strong>3.2</strong></td><td>Gap durante grooming</td></tr>
+            <tr><td>Step 0 (workflow step 4)</td><td>Riusa output 3.2 — no CLI duplicata</td></tr>
+            <tr><td><code>chiudi</code></td><td>Gap test finale</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Scopo</h2>
+      <p>Confrontare subtask/issue con segnali di implementazione nel repository e produrre esiti
+      ✅ implementato, ⚠️ parziale, ❌ assente.</p>
+    </section>
+
+    <section>
+      <h2>Applicazione step-by-step</h2>
+      <ol class="steps">
+        <li><strong>Identifica parent</strong> — key completa es. <code>ADMIN-88</code> o <code>JLO-507</code>.</li>
+        <li><strong>Esegui CLI</strong> (da host PortalAdmin):
+          <pre>node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-88 --format md
+node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys ADMIN-121,ADMIN-122
+node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507 --format md</pre>
+        </li>
+        <li><strong>Leggi skill</strong> — <code>.cursor/skills/jlo-analizza-repo/SKILL.md</code> per convenzioni.</li>
+        <li><strong>Interpreta aree</strong> — path dipendono da overlay (tabella sotto).</li>
+        <li><strong>Produci output</strong> — tabella Key | Esito | File | Gap per veve o START workflow.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Aree repository</h2>
+      <table>
+        <thead><tr><th>Area</th><th>PortalAdmin</th><th>Product JLO</th></tr></thead>
+        <tbody>
+          <tr><td>Portal / cruscotto</td><td><code>lib/</code>, <code>server/</code>, <code>cruscotto/</code>, <code>scripts/</code></td><td>—</td></tr>
+          <tr><td>Schema / API / Web</td><td>—</td><td><code>packages/</code>, <code>apps/</code></td></tr>
+          <tr><td>Test</td><td>—</td><td><code>testScript/</code></td></tr>
+          <tr><td>Catalogo</td><td><code>portal.config.mjs</code>, catalogo segnali</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Simboli esito</h2>
+      <table>
+        <thead><tr><th>Simbolo</th><th>Significato</th></tr></thead>
+        <tbody>
+          <tr><td>✅</td><td>Implementato e coerente</td></tr>
+          <tr><td>⚠️</td><td>Parziale / stub</td></tr>
+          <tr><td>❌</td><td>Assente</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Moduli</h2>
+      <ul>
+        <li><code>admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs</code> — <code>analyzeIssueKeys</code>, <code>formatRepoAnalysisMarkdown</code></li>
+        <li><code>admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs</code> — CLI</li>
+      </ul>
+    </section>
+
+    <footer>
+      Correlati:
+      <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> ·
+      <a href="ADMIN-Veve-AnalizzaRepo.html">ADMIN-Veve-AnalizzaRepo</a>
+    </footer>
+  </div>
+</body>
+</html>

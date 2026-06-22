@@ -108,7 +108,7 @@ Vedi `ADMIN-Comcom.mdc` (§ Corpo codice): script/server/lib con step numerati; 
 ## Formattazione
 
 - Preferire patch mirate (`StrReplace`); Write intero file con fine riga `\n` (LF).
-- JSDoc compatto come `cruscotto.database/index.mjs`, non “una riga sì una no”.
+- JSDoc compatto come `cruscotto.database/cruscotto.db.config.mjs`, non “una riga sì una no”.
 - Righe `*!` intoccabili.
 
 ## Checklist agente

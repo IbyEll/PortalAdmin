@@ -32,6 +32,7 @@
     "test:cruscotto-startup": "node admin.portal.testscript/cruscotto.setup/test.cruscotto.startup.mjs",
     "test:portal-api": "node admin.portal.testscript/run-portal-api.mjs",
     "test:backlog-gogo": "node admin.portal.testscript/funzionali/test.cruscotto.backlog.gogo.mjs",
+    "test:backlog-push": "node admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs",
     "test:cursor-api": "node admin.portal.testscript/cursor/test.api.cursor.agent.mjs",
     "test:cursor-funzionale": "node admin.portal.testscript/funzionali/test.cursor.agent.ui.mjs",
     "test:ci": "node scripts/smoke-ci.mjs",
@@ -39,6 +40,7 @@
     "stop:all": "node cruscotto.frontend/cruscotto.process.stop.all.services.mjs"
   },
   "dependencies": {
+    "@connectrpc/connect-node": "^1.7.0",
     "@cursor/sdk": "^1.0.19",
     "@prisma/client": "^6.9.0",
     "dotenv": "^16.4.7",

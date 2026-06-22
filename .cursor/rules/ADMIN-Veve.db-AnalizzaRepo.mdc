@@ -1,0 +1,14 @@
+---
+description: Veve db step 2 — analizza repo per {KEY} (adattatore ADMIN-AnalizzaRepo)
+alwaysApply: false
+---
+
+# Veve DB — Analizza repo
+
+Esegui regola canonica `.cursor/rules/ADMIN-AnalizzaRepo.mdc` + skill `jlo-analizza-repo`.
+
+Prerequisito: **Leggi DB** (`ADMIN-Veve.db-LeggiJira.mdc`) nella stessa sessione.
+
+Output: tabella Stato repo + **Subtask vs repo** (Key | Esito | File | Gap) — identico a veve MCP.
+
+**Vietato:** scrittura su `jira_issue_wip` in questo step (solo step 3–4 db).

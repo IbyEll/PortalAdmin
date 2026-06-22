@@ -1,0 +1,36 @@
+---
+description: Veve db step 1 — leggi parent e subtask da jira_issue (cache cruscotto)
+alwaysApply: false
+---
+
+# Veve DB — Leggi Jira (cache)
+
+## Trigger
+
+`leggi jira db {KEY}` · `veve db {KEY}` · step 3.1 workflow database
+
+## Fonte dati
+
+| Elemento | Dettaglio |
+| --- | --- |
+| DB | SQLite cruscotto — `openCruscottoDb()` / `loadJiraBacklogFromDb()` |
+| Tabella | `jira_issue` dell'ultimo `sync_run` con `status=success` |
+| Modulo | `admin.portal.JiraCORE/jiraCORE.backlog.load.mjs` |
+
+## Applicazione
+
+1. Verifica `cruscottoDbFileExists()` — stop se DB assente.
+2. Carica backlog da DB (`loadJiraBacklogFromDb()`).
+3. Trova riga parent `{KEY}` in `issues`.
+4. Elenca subtask: `parentJiraKey === {KEY}` (o gerarchia `relatedKeys` se presente).
+5. Segnala orphan / key invalide rispetto al parent.
+
+## Output
+
+Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide · `syncRunId` per step 3–4.
+
+## Fallback
+
+Key assente in `jira_issue` → **stop** — suggerire `npm run db:sync` o veve MCP (`ADMIN-Veve-LeggiJira.mdc`).
+
+**Vietato:** MCP Jira, `editJiraIssue`, branch, commit.

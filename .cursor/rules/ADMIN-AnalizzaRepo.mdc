@@ -10,8 +10,9 @@ alwaysApply: true
 | Comando | Contesto |
 | --- | --- |
 | `analizza repo ADMIN-xxx` | Standalone o veve step 2 |
-| `veve ADMIN-xxx` | Step 2 |
-| Step 0 `procedi` / `gogo` | Gap analysis background |
+| `veve {KEY}` / `veve ADMIN-xxx` | Veve step 2 |
+| Step 3 `procedi` / `gogo` | Gap analysis in veve (step 3.2) — prima di Step 0 |
+| Step 0 `procedi` / `gogo` | Riusa output veve; non ripetere CLI salvo ripresa |
 | `chiudi Story ADMIN-xxx` | Gap test |
 
 **Skill:** `.cursor/skills/jlo-analizza-repo/SKILL.md`

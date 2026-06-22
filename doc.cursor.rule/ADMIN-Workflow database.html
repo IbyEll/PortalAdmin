@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Workflow database — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>ADMIN-Workflow database</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Workflow database.mdc</code> ·
+        <span class="tag tag--db">database</span> ·
+        Aggiornato 2026-06-22
+      </p>
+      <p class="lead">
+        Step 1–7 su <code>jira_issue_wip</code> (agente). Step 8 <strong>PUSH</strong> dal cruscotto:
+        sync Jira + PR — solo a story completata.
+      </p>
+      <div class="revision-banner">
+        <strong>Step 7</strong> = chiusura WIP locale → backlog con pulsante <strong>PUSH</strong> ·
+        <strong>Step 8</strong> = Jira da WIP + <code>close-story.mjs</code> (PR).
+      </div>
+    </header>
+
+    <section>
+      <h2>Pipeline — ordine fisso</h2>
+      <table>
+        <thead><tr><th>Step</th><th>Fase</th><th>Chi / dove</th></tr></thead>
+        <tbody>
+          <tr><td>1–2</td><td>Git</td><td>Agente</td></tr>
+          <tr><td>3</td><td>Veve DB</td><td><a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></td></tr>
+          <tr><td>4</td><td>Step 0 — piano</td><td>Legge WIP → START</td></tr>
+          <tr><td>5</td><td>Implementazione</td><td>commit + ok chiudi WIP</td></tr>
+          <tr><td>6</td><td>END-A</td><td>parent Da fare in WIP</td></tr>
+          <tr><td><strong>7</strong></td><td><strong>Chiusura locale</strong></td><td><code>chiudi</code> → parent WIP → END-B → <strong>backlog</strong></td></tr>
+          <tr><td><strong>8</strong></td><td><strong>PUSH</strong></td><td><strong>Cruscotto</strong> — Jira + PR</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Cruscotto — GOGO → PUSH</h2>
+      <table>
+        <thead><tr><th>Stato riga backlog</th><th>Pulsante</th><th>Azione</th></tr></thead>
+        <tbody>
+          <tr><td>Story da lavorare</td><td><strong>GOGO</strong></td><td>Step 1–6 (<code>gogo {KEY}</code>)</td></tr>
+          <tr><td>Dopo step 7 (WIP chiuso, <code>awaitingPush: true</code>)</td><td><strong>PUSH</strong></td><td>Step 8 — sync Jira + PR</td></tr>
+          <tr><td>Dopo step 8 (<code>awaitingPush: false</code>, PR URL)</td><td>—</td><td>Story completata su Jira + GitHub</td></tr>
+        </tbody>
+      </table>
+      <p>Al termine step 7 l'agente torna al backlog; il cruscotto aggiorna la riga e sostituisce GOGO con PUSH.</p>
+    </section>
+
+    <section>
+      <h2>Step 7 — Chiusura locale (solo WIP)</h2>
+
+      <div class="obsolete-block">
+        <div class="obsolete-label">Prima (step 7 includeva PR)</div>
+        <p class="obsolete"><code>close-story.mjs</code> + parent WIP + PR nello stesso step agente.</p>
+      </div>
+
+      <div class="revision-block">
+        <div class="revision-label">Adesso</div>
+        <ol class="steps">
+          <li>Verifica tutte le subtask <code>is_done = true</code> in WIP.</li>
+          <li>Gap test (solo <code>chiudi</code>, non <code>chiudi fast</code>).</li>
+          <li>Update parent WIP: <code>is_done</code>, <code>status=Fatto</code>, <code>raw_fields.awaitingPush=true</code>.</li>
+          <li><strong>END-B</strong> con <code>PR: —</code> — niente push, niente Jira.</li>
+          <li>Ritorno backlog — UI mostra <strong>PUSH</strong>.</li>
+        </ol>
+      </div>
+      <p><strong>Niente</strong> <code>close-story.mjs</code> · <strong>niente</strong> Jira live in step 7.</p>
+    </section>
+
+    <section>
+      <h2>Step 8 — PUSH (Jira da WIP + PR)</h2>
+      <p>Solo dal cruscotto, quando l'utente clicca <strong>PUSH</strong> sulla riga (post step 7).</p>
+
+      <ol class="steps">
+        <li>
+          <strong>Prerequisito</strong> — parent WIP con <code>is_done=true</code> e <code>awaitingPush=true</code>.
+        </li>
+        <li>
+          <strong>Leggi WIP</strong> — parent + subtask; contenuto da <code>raw_fields</code>.
+        </li>
+        <li>
+          <strong>Sync Jira live</strong> — da WIP verso Atlassian:
+          <ul>
+            <li>Subtask: description + transizione Fatto (<code>ok-chiudi-subtask.md</code>)</li>
+            <li>Parent: description + transizione Fatto (<code>chiudi-parent.md</code>)</li>
+          </ul>
+          Task «Jira Auto» o MCP — <strong>unico step con Jira</strong>.
+        </li>
+        <li>
+          <strong>Git / PR / catalogo</strong>:
+          <pre>node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}</pre>
+        </li>
+        <li>
+          <strong>Update WIP</strong> — <code>prUrl</code>, <code>jiraSyncedAt</code>, <code>awaitingPush=false</code>.
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Comandi</h2>
+      <table>
+        <thead><tr><th>Comando / UI</th><th>Step</th></tr></thead>
+        <tbody>
+          <tr><td><code>gogo {KEY}</code></td><td>1–6</td></tr>
+          <tr><td><code>chiudi Story {KEY}</code></td><td>7 (+ gap test)</td></tr>
+          <tr><td><code>chiudi fast Story {KEY}</code></td><td>7</td></tr>
+          <tr><td><strong>PUSH</strong> (cruscotto)</td><td><strong>8</strong></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>DB / Jira per fase</h2>
+      <table>
+        <thead><tr><th>Step</th><th>WIP</th><th>Jira</th><th>Git/PR</th></tr></thead>
+        <tbody>
+          <tr><td>3–5</td><td>read/write</td><td>—</td><td>commit locale</td></tr>
+          <tr><td>7</td><td>parent Fatto</td><td>—</td><td>—</td></tr>
+          <tr><td><strong>8</strong></td><td>read + post-push</td><td><strong>sync Fatto</strong></td><td><strong>PR</strong></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Diagramma</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  G["6 END-A"] --> H["7 chiudi WIP"]
+  H --> HB["END-B → backlog"]
+  HB --> UI["GOGO → PUSH"]
+  UI -->|click PUSH| S8["8 Jira sync"]
+  S8 --> PR["close-story PR"]
+  PR --> DONE["WIP + Jira ok"]
+        </pre>
+      </div>
+    </section>
+
+    <div class="summary-box">
+      <strong>In sintesi:</strong> l'agente chiude la story in WIP (step 7) e torna al backlog;
+      l'utente lancia PUSH dal cruscotto quando è pronto a pubblicare su Jira e aprire la PR (step 8).
+    </div>
+
+    <footer>
+      <a href="ADMIN-Workflow.html">ADMIN-Workflow (MCP)</a> ·
+      <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a>
+    </footer>
+  </div>
+  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
+</body>
+</html>

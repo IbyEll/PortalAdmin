@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-Comcom — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>ADMIN-Comcom</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-Comcom.mdc</code> ·
+        <span class="tag tag--always">alwaysApply: true</span>
+      </p>
+      <p class="lead">
+        Comando <code>comcom nomefile</code> — aggiunge commenti uniformi (testata + corpo) usando i template
+        in <code>.cursor/templates/comments/</code>. Modifica <strong>solo</strong> commenti, mai la logica.
+      </p>
+    </header>
+
+    <section>
+      <h2>Scopo</h2>
+      <p>Standardizzare la documentazione inline nel codice PortalAdmin: metadati, descrizione funzionale,
+      generalizzazione, step numerati e JSDoc — con validazione obbligatoria prima della chiusura.</p>
+      <p><strong>Non</strong> attiva workflow JLO/ADMIN (<code>procedi</code>, <code>gogo</code>, <code>chiudi</code>, <code>veve</code>).</p>
+    </section>
+
+    <section>
+      <h2>Trigger</h2>
+      <table>
+        <thead><tr><th>Comando</th><th>Effetto</th></tr></thead>
+        <tbody>
+          <tr><td><code>comcom nomefile</code></td><td>Commenta il file indicato (path relativo o assoluto)</td></tr>
+          <tr><td><code>comcom path/to/file.mjs</code></td><td>Idem</td></tr>
+          <tr><td>Creazione entrypoint in scope</td><td>Stesse regole anche senza comando esplicito</td></tr>
+        </tbody>
+      </table>
+      <p>Scope automatico: entrypoint in <code>runner/</code>, <code>scripts/</code>,
+      <code>cruscotto.database/script_seed/</code>, <code>admin.portal.testscript/</code>.</p>
+    </section>
+
+    <section>
+      <h2>Sequenza agente (7 passi)</h2>
+      <ol class="steps">
+        <li>
+          <strong>Leggi file + consumer</strong> — file target e 1–2 import consumer (grep).
+          Se esiste <code>creato il:</code> → conserva data e <code>by</code> (re-comcom).
+        </li>
+        <li>
+          <strong>Scegli template</strong> — tabella tipi in
+          <code>.cursor/templates/comments/README.md</code>.
+        </li>
+        <li>
+          <strong>Leggi template</strong> — obbligatorio con Read prima di modificare il target.
+          Se dubbio → <code>template_default.mjs</code>.
+        </li>
+        <li>
+          <strong>Applica sul target</strong> — compila sezioni reali; mantieni ordine template;
+          riga <code>---</code> (120 trattini) prima di <code>*/</code>; step <code>// N.</code> sul corpo.
+        </li>
+        <li>
+          <strong>Valida</strong> — checklist V1–V14 (sotto); correggi finché tutti passano.
+        </li>
+        <li>
+          <strong>Solo commenti</strong> — nessun refactor, rinomina o cambio logica; indentazione invariata.
+        </li>
+        <li>
+          <strong>Output chat</strong> — una riga: <code>template {nome} + {path}</code> (no dump).
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Scelta template per tipo file</h2>
+      <table>
+        <thead><tr><th>Tipo</th><th>Template</th></tr></thead>
+        <tbody>
+          <tr><td>Testscript</td><td><code>testscript.mjs</code></td></tr>
+          <tr><td>CLI entrypoint</td><td><code>script-entrypoint.mjs</code></td></tr>
+          <tr><td>Libreria</td><td><code>lib-module.mjs</code></td></tr>
+          <tr><td>Server HTTP</td><td><code>app-module.mjs</code></td></tr>
+          <tr><td>Pagina HTML</td><td><code>page-html.html</code></td></tr>
+          <tr><td>Script client HTML</td><td><code>page-html.mjs</code></td></tr>
+          <tr><td>Foglio stili</td><td><code>page-styles.css</code></td></tr>
+          <tr><td>Regola Cursor</td><td><code>cursor-rule.mdc</code></td></tr>
+          <tr><td>Fallback</td><td><code>template_default.mjs</code></td></tr>
+        </tbody>
+      </table>
+      <p>Tutti in <code>.cursor/templates/comments/</code>.</p>
+    </section>
+
+    <section>
+      <h2>Testata obbligatoria</h2>
+      <h3>Descrizione funzionale</h3>
+      <pre> * Descrizione funzionale:
+ *
+ * Perché esiste:
+ * - …
+ *
+ * A cosa serve:
+ * - …</pre>
+      <h3>Generalizzazione + Input</h3>
+      <pre> * Generalizzazione:
+ * Si — …   oppure   No — …
+ *
+ * Input:
+ * - nomeIngresso — origine e ruolo</pre>
+      <p>Se <code>No</code> → <code>Input: —</code></p>
+      <h3>Metadati</h3>
+      <p>Separatori esattamente <strong>120 trattini</strong>; riga tipo <code>** TIPO ** -- commentato il:</code>;
+      righe <code>creato il</code> / <code>modificato il</code>; chiusura <code>---</code> prima di <code>*/</code>.</p>
+    </section>
+
+    <section>
+      <h2>Corpo codice — step e JSDoc</h2>
+      <table>
+        <thead><tr><th>Tipo</th><th>Obbligo corpo</th></tr></thead>
+        <tbody>
+          <tr><td>script-entrypoint / testscript</td><td>Step numerati; commenti su exit, flag CLI, branch</td></tr>
+          <tr><td>app-module</td><td>Step su main, routing, shutdown</td></tr>
+          <tr><td>lib-module</td><td>JSDoc su export e helper non banali (no sequenza 1.2.3. senza entrypoint)</td></tr>
+          <tr><td>page-html.mjs</td><td>Step su init DOM, fetch, handler</td></tr>
+          <tr><td>page-styles.css</td><td>Sezioni <code>/* --- nome — scopo --- */</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Re-comcom</h2>
+      <table>
+        <thead><tr><th>Situazione</th><th>creato il / by</th><th>commentato / modificato</th></tr></thead>
+        <tbody>
+          <tr><td>Primo comcom</td><td>Data corrente + git user.name</td><td>Uguali a creato</td></tr>
+          <tr><td>Re-comcom</td><td><strong>Invariati</strong> (copia letterale)</td><td>Aggiornati a sessione corrente</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Validazione commento (V1–V14)</h2>
+      <h3>Controlli automatici</h3>
+      <table>
+        <thead><tr><th>#</th><th>Controllo</th></tr></thead>
+        <tbody>
+          <tr><td>V1</td><td>Zero placeholder: sostituire, compilare, esempio —, yyyy-mm-dd</td></tr>
+          <tr><td>V2</td><td>Zero <code>{…}</code> in commenti testata/step</td></tr>
+          <tr><td>V3</td><td>Zero glob <code>*</code> nel testo commento</td></tr>
+          <tr><td>V4</td><td>Separatori <code>---</code> = esattamente 120 trattini</td></tr>
+          <tr><td>V5</td><td>Ultima riga testata = <code>---</code> prima di <code>*/</code></td></tr>
+          <tr><td>V6</td><td>Righe commento ≤ 120 caratteri</td></tr>
+          <tr><td>V7</td><td>A capo solo su spazio (no parole spezzate)</td></tr>
+        </tbody>
+      </table>
+      <h3>Controlli strutturali</h3>
+      <table>
+        <thead><tr><th>#</th><th>Controllo</th></tr></thead>
+        <tbody>
+          <tr><td>V8</td><td>Metadati completi (tipo, creato, modificato)</td></tr>
+          <tr><td>V9</td><td>Perché esiste / A cosa serve con bullet</td></tr>
+          <tr><td>V10</td><td>Generalizzazione + Input</td></tr>
+          <tr><td>V11</td><td>Re-comcom: creato invariato</td></tr>
+          <tr><td>V12</td><td>Step corpo come da tipo template</td></tr>
+          <tr><td>V13</td><td>Italiano (salvo termini tecnici)</td></tr>
+          <tr><td>V14</td><td>Nessuna modifica logica eseguibile</td></tr>
+        </tbody>
+      </table>
+      <p>Se un controllo fallisce: correggi → ripeti → solo allora output chat.</p>
+    </section>
+
+    <section>
+      <h2>Flusso (diagramma)</h2>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+  A["comcom file"] --> B["Leggi + consumer"]
+  B --> C["Scegli template"]
+  C --> D["Read template"]
+  D --> E["Applica testata + corpo"]
+  E --> F{"V1–V14 ok?"}
+  F -->|no| E
+  F -->|sì| G["Output: template + path"]
+        </pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>Vietato</h2>
+      <ul>
+        <li class="forbidden">Template non letto prima della modifica</li>
+        <li class="forbidden">Placeholder <code>{…}</code> nel file target</li>
+        <li class="forbidden">Modifica logica o frontmatter regola</li>
+        <li class="forbidden">Sovrascrivere <code>creato il</code> su re-comcom</li>
+        <li class="forbidden">Alterare righe <code>*!</code> (intoccabili)</li>
+        <li class="forbidden">Chiudere senza validazione V1–V14</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Priorità</h2>
+      <p>Su <code>comcom</code> e script in scope, questa regola <strong>prevale</strong> su «pochi commenti»
+      (branch/exit, commenti per fase, ordine numerato inclusi).</p>
+    </section>
+
+    <div class="summary-box">
+      <strong>In sintesi:</strong> comcom = leggi template → applica struttura → valida V1–V14 → una riga in chat.
+      Esempi reali: <code>cruscotto.database/cruscotto.db.config.mjs</code>,
+      <code>cruscotto.database/script_seed/script_seed-lib.mjs</code>.
+    </div>
+
+    <footer>
+      Template: <code>.cursor/templates/comments/</code> ·
+      Scelta tipo: <code>README.md</code> nella stessa cartella
+    </footer>
+  </div>
+  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
+</body>
+</html>

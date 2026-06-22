@@ -25,7 +25,7 @@
  *   Si — path DB da CRUSCOTTO_DB_PATH; schema Prisma condiviso tra overlay PortalAdmin.
  *
  * Input:
- *   - CRUSCOTTO_DB_PATH — override path SQLite; default da cruscotto.database/index.mjs
+ *   - CRUSCOTTO_DB_PATH — override path SQLite; default da cruscotto.database/cruscotto.db.config.mjs
  *   - Ultimo syncRun status success con issueCount > 0 in cruscotto.db
  *
  * Consumatori:
@@ -41,7 +41,7 @@
 
 import { normalizeSprintLabel } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
 
-import { cruscottoDbFileExists, closeCruscottoDb, openCruscottoDb } from "./index.mjs";
+import { cruscottoDbFileExists, openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 
 /**
  * @param {Array<{ id: number, name: string, state: string, startDate?: Date | null, endDate?: Date | null }>} rows
@@ -91,91 +91,87 @@ export async function loadJiraBacklogFromDb() {
 
   const db = await openCruscottoDb();
 
-  try {
-    // 1. Ultimo sync run completato con almeno una issue
-    const syncRun = await db.syncRun.findFirst({
-      where  : { status: "success", issueCount: { gt: 0 } }
-    , orderBy: { finishedAt: "desc" }
-    });
+  // 1. Ultimo sync run completato con almeno una issue
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
 
-    if (!syncRun) {
-      return null;
-    }
-
-    // 2. Issue + sprint join per il sync run
-    const rows = await db.jiraIssue.findMany({
-      where  : { syncRunId: syncRun.id }
-    , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
-    , include: {
-        sprints: {
-          include: { sprint: true }
-        },
-      }
-    });
-
-    if (!rows.length) {
-      return null;
-    }
-
-    const jiraSprints = await db.jiraSprint.findMany({ orderBy: { id: "asc" } });
-    const planRows    = await db.workingPlanSprintKeys.findMany({
-      where: { syncRunId: syncRun.id }
-    });
-
-    /** @type {Record<string, string[]>} */
-    const boardSprintKeysByPlanName = {};
-
-    for (const row of planRows) {
-      try {
-        boardSprintKeysByPlanName[row.planSprintName] = JSON.parse(row.issueKeys);
-      } catch {
-        boardSprintKeysByPlanName[row.planSprintName] = [];
-      }
-    }
-
-    // 3. Normalizza righe al tipo JiraBacklogRow + metadati sync
-    /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
-    const issues = rows.map((row) => ({
-      key              : row.jiraKey
-    , type             : row.issueType
-    , tier             : /** @type {"epic"|"task"|"subtask"} */ (row.tier)
-    , isStoryLike      : row.isStoryLike
-    , summary          : row.summary
-    , status           : row.status
-    , parentKey        : row.parentJiraKey
-    , depth            : row.depth
-    , hasChildren      : row.hasChildren
-    , devOrder         : row.devOrder ?? undefined
-    , devSprint        : row.devSprint ?? undefined
-    , devSprintName    : row.devSprintName ?? undefined
-    , devSort          : row.devSort ?? undefined
-    , isSprint6Obsolete: row.isSprint6Obsolete
-    , relatedKeys      : parseRelatedKeys(row.relatedKeys)
-    , jiraSprints      : row.sprints.map(({ sprint }) => ({
-        id   : sprint.id
-      , name : sprint.name
-      , state: sprint.state
-      })),
-    }));
-
-    return {
-      fetchedAt                 : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()
-    , total                     : issues.length
-    , epics                     : issues.filter((row) => row.tier === "epic").length
-    , issues
-    , jiraSprints               : jiraSprints.map((sprint) => ({
-        id       : sprint.id
-      , name     : sprint.name
-      , state    : sprint.state
-      , startDate: sprint.startDate?.toISOString() ?? null
-      , endDate  : sprint.endDate?.toISOString() ?? null
-      }))
-    , jiraSprintsByName         : indexJiraSprintsFromRows(jiraSprints)
-    , boardSprintKeysByPlanName
-    , source                    : "cruscotto.database"
-    , syncRunId                 : syncRun.id
-    };
-  } finally {
-    await closeCruscottoDb();
+  if (!syncRun) {
+    return null;
   }
+
+  // 2. Issue + sprint join per il sync run
+  const rows = await db.jiraIssue.findMany({
+    where  : { syncRunId: syncRun.id }
+  , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
+  , include: {
+      sprints: {
+        include: { sprint: true }
+      },
+    }
+  });
+
+  if (!rows.length) {
+    return null;
+  }
+
+  const jiraSprints = await db.jiraSprint.findMany({ orderBy: { id: "asc" } });
+  const planRows    = await db.workingPlanSprintKeys.findMany({
+    where: { syncRunId: syncRun.id }
+  });
+
+  /** @type {Record<string, string[]>} */
+  const boardSprintKeysByPlanName = {};
+
+  for (const row of planRows) {
+    try {
+      boardSprintKeysByPlanName[row.planSprintName] = JSON.parse(row.issueKeys);
+    } catch {
+      boardSprintKeysByPlanName[row.planSprintName] = [];
+    }
+  }
+
+  // 3. Normalizza righe al tipo JiraBacklogRow + metadati sync
+  /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
+  const issues = rows.map((row) => ({
+    key              : row.jiraKey
+  , type             : row.issueType
+  , tier             : /** @type {"epic"|"task"|"subtask"} */ (row.tier)
+  , isStoryLike      : row.isStoryLike
+  , summary          : row.summary
+  , status           : row.status
+  , parentKey        : row.parentJiraKey
+  , depth            : row.depth
+  , hasChildren      : row.hasChildren
+  , devOrder         : row.devOrder ?? undefined
+  , devSprint        : row.devSprint ?? undefined
+  , devSprintName    : row.devSprintName ?? undefined
+  , devSort          : row.devSort ?? undefined
+  , isSprint6Obsolete: row.isSprint6Obsolete
+  , relatedKeys      : parseRelatedKeys(row.relatedKeys)
+  , jiraSprints      : row.sprints.map(({ sprint }) => ({
+      id   : sprint.id
+    , name : sprint.name
+    , state: sprint.state
+    })),
+  }));
+
+  return {
+    fetchedAt                 : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()
+  , total                     : issues.length
+  , epics                     : issues.filter((row) => row.tier === "epic").length
+  , issues
+  , jiraSprints               : jiraSprints.map((sprint) => ({
+      id       : sprint.id
+    , name     : sprint.name
+    , state    : sprint.state
+    , startDate: sprint.startDate?.toISOString() ?? null
+    , endDate  : sprint.endDate?.toISOString() ?? null
+    }))
+  , jiraSprintsByName         : indexJiraSprintsFromRows(jiraSprints)
+  , boardSprintKeysByPlanName
+  , source                    : "cruscotto.database"
+  , syncRunId                 : syncRun.id
+  };
 }

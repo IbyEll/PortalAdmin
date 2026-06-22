@@ -91,7 +91,23 @@ Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output c
 
 ---
 
-## Verifica branch (primo passo)
+## Pipeline — ordine fisso
+
+| Step | Fase | Regola |
+| --- | --- | --- |
+| 1 | Verifica branch | § sotto |
+| 2 | Pre-flight git | § sotto |
+| 3 | **Veve** | `ADMIN-Veve.mdc` |
+| 4 | Step 0 — piano | Task Jira Auto + START |
+| 5 | Implementazione | subtask + commit + ok chiudi |
+| 6 | END-A | parent ancora Da fare |
+| 7 | Chiusura | `chiudi` → `close-story.mjs` → END-B |
+
+`FULL` / `gogo` cambiano solo confirm vs silent su step 5 — **non** saltano step 1–4.
+
+---
+
+## Verifica branch (step 1)
 
 Eseguire nel **repo workflow** (`cd` su `PRODUCT_REPO_PATH`):
 
@@ -112,13 +128,51 @@ git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
 
 ---
 
-## Pre-flight git
+## Pre-flight git (step 2)
 
 Nel **repo workflow** (`PRODUCT_REPO_PATH`):
 
 1. `git status --porcelain` — vuoto (no stash automatico agente)
 2. `git fetch origin` · `main` allineato a `origin/main`
 3. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}`
+
+---
+
+## Step 3 — Veve (grooming Jira)
+
+**Obbligatorio** su `procedi` / `gogo` su `{KEY}` — dopo pre-flight git, **prima** di Step 0.
+
+Esegui regola `ADMIN-Veve.mdc` (e sotto-regole `ADMIN-Veve-*.mdc`) su `{KEY}`:
+
+| Sotto-step | Regola |
+| --- | --- |
+| 3.1 | `ADMIN-Veve-LeggiJira.mdc` — leggi parent + subtask |
+| 3.2 | `ADMIN-AnalizzaRepo.mdc` — gap analysis repo workflow |
+| 3.3 | `ADMIN-Veve-AggiornaStory.mdc` — aggiorna description parent |
+| 3.4 | `ADMIN-Veve-AggiornaSubtask.mdc` — aggiorna ogni subtask |
+
+| Aspetto | Regola |
+| --- | --- |
+| Chat | **Silenzioso** — `ADMIN-Silence.mdc`; output veve solo in sessione per Step 0 |
+| Jira | `CallMcpTool` `user-atlassian` — **eccezione** ammessa solo in questo step |
+| Git / codice | **Vietato** — come veve standalone (no commit, no branch, no implementazione) |
+| Transizioni Fatto | **Vietate** in veve (salvo richiesta esplicita) |
+| Standalone | `veve {KEY}` resta comando autonomo (chat libera, stessa sequenza) |
+
+**Ripresa:** se veve già eseguito nella stessa sessione su `{KEY}` → salta step 3.
+
+---
+
+## Step 0 — Piano (step 4)
+
+Dopo veve, **prima** dell'implementazione:
+
+1. **Task «Jira Auto»** — piano su Jira già allineato da step 3 (`Step 0 {KEY} plan Jira`)
+2. **Gap** — riusa output step 3.2; **non** ripetere CLI gap salvo ripresa senza veve in sessione
+3. Filtra subtask **Da fare**, ordina (schema → API → web → test → manuale)
+4. Estrae AC/DoD per template **START** (mai copiare description Jira grezza)
+
+**Output chat unico:** blocco START (`ADMIN-Silence.mdc`).
 
 ---
 
@@ -152,17 +206,18 @@ Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
 
 ---
 
-## Jira — pannelli «Jira Auto»
+## Jira — invocazione
 
-Solo **`Task`** subagent — mai `CallMcpTool` diretto nel workflow.
+| Fase workflow | Jira |
+| --- | --- |
+| **Step 3 veve** | `CallMcpTool` `user-atlassian` — regole `ADMIN-Veve*.mdc` |
+| Step 0, ok chiudi, chiudi parent | Solo **`Task`** «Jira Auto» — mai MCP diretto |
 
 | Fase | `description` Task |
 | --- | --- |
 | Step 0 | `Step 0 {KEY} plan Jira` |
 | Ok chiudi | `Ok chiudi {subkey} subtask Jira` |
 | Chiudi parent | `Close {KEY} parent Jira` |
-
-Veve: `CallMcpTool` `user-atlassian` — regole `ADMIN-Veve*.mdc`
 
 ---
 

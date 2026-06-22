@@ -1,0 +1,50 @@
+---
+description: Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database
+alwaysApply: false
+---
+
+# Veve DB — `veve db {KEY}` e workflow database step 3
+
+Variante **cruscotto SQLite**: legge cache `jira_issue`, analizza repo, persiste coda WIP in `jira_issue_wip` — **senza** MCP Jira.
+
+Sequenza: **Leggi DB** → **Analizza repo** → **Aggiorna story WIP** → **Aggiorna subtask WIP**.
+
+| Step veve db | Regola |
+| --- | --- |
+| 1 | `ADMIN-Veve.db-LeggiJira.mdc` |
+| 2 | `ADMIN-AnalizzaRepo.mdc` (stessa di veve MCP) |
+| 3 | `ADMIN-Veve.db-AggiornaStory.mdc` · `.cursor/templates/veve/veve-story-parent.md` |
+| 4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` · `.cursor/templates/veve/veve-subtask.md` |
+
+## Trigger
+
+| Contesto | Comportamento |
+| --- | --- |
+| `veve db {KEY}` | Standalone — chat libera, sequenza completa |
+| `procedi` / `gogo {KEY}` con `ADMIN-Workflow database.mdc` | **Step 3** — silenzioso (`ADMIN-Silence.mdc`) |
+| `chiudi` | **Non** esegue veve db |
+
+`{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).
+
+## Prerequisito DB
+
+| Controllo | Stop se |
+| --- | --- |
+| `cruscotto.db` | Assente o non migrato (`node cruscotto.database/migrate.mjs`) |
+| Sync cache | Nessun `sync_run` success con `jira_issue` per `{KEY}` |
+| Overlay | `CRUSCOTTO_DB_PATH` / `PRJ_NAME` non allineati |
+
+Sync backlog: `npm run db:sync` (host PortalAdmin) prima del primo `veve db` su key assente in cache.
+
+## Persistenza WIP
+
+Tabella `jira_issue_wip` (modello Prisma `JiraIssueWip`) — stessa struttura di `jira_issue`.
+
+| Operazione | Tabella |
+| --- | --- |
+| Lettura parent/subtask | `jira_issue` (ultimo sync success) |
+| Scrittura groomed | `jira_issue_wip` — upsert per `jira_key` |
+
+Testo veve (Obiettivo, AC/DoD, …) da template → campo `raw_fields` JSON: `{ "veveDescription": "…", "gap": {…} }`.
+
+**Vietato:** `CallMcpTool` Jira, `editJiraIssue`, branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).

@@ -89,6 +89,10 @@
         <span class="nav-label">Backlog</span>
         <span class="nav-hint muted">Jira</span>
       </button>
+      <button type="button" data-tab="mybacklog">
+        <span class="nav-label">MyBacklog</span>
+        <span class="nav-hint muted">cache DB</span>
+      </button>
       <button type="button" data-tab="myproject">
         <span class="nav-label">My Project</span>
         <span class="nav-hint muted">repo vs Jira</span>
@@ -125,6 +129,9 @@
       </section>
       <section id="section-backlog" class="hidden" aria-label="Backlog JLO">
         <iframe class="jira-working-frame" src="/backlog.html" title="Backlog JLO — elenco completo issue"></iframe>
+      </section>
+      <section id="section-mybacklog" class="hidden" aria-label="MyBacklog">
+        <iframe class="jira-working-frame" src="/my-backlog.html" title="MyBacklog — backlog da cache cruscotto DB"></iframe>
       </section>
       <section id="section-myproject" class="hidden" aria-label="My Project">
         <iframe class="jira-working-frame" src="/my-project.html" title="My Project — analisi repo vs Jira"></iframe>

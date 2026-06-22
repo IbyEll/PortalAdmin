@@ -19,6 +19,11 @@ import {
 , getCursorLocalCwd
 , isCursorAgentConfigured
 } from "./portal.cursor.agent.config.mjs";
+import {
+  buildWorkflowEndBlock
+, buildWorkflowStartBlock
+, parseWorkflowPrompt
+} from "./portal.cursor.agent.workflow.mjs";
 import { getPortalRoot } from "../lib/portal-paths.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
@@ -26,7 +31,7 @@ const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 /**
  * @typedef {{
  *   seq: number
- *   stream: "stdout" | "stderr" | "system" | "assistant"
+ *   stream: "stdout" | "stderr" | "system" | "assistant" | "workflow"
  *   text: string
  *   at: string
  * }} CursorAgentLogLine
@@ -44,6 +49,8 @@ const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
  *   status: "idle" | "running" | "finished" | "error"
  *   error: string | null
  *   pid: number | null
+ *   workflowKey: string | null
+ *   workflowKind: "gogo" | "procedi" | null
  * }} CursorAgentStatus
  */
 
@@ -59,6 +66,8 @@ const state = {
 , status     : "idle"
 , error      : null
 , pid        : null
+, workflowKey: null
+, workflowKind: null
 };
 
 /** @type {CursorAgentLogLine[]} */
@@ -71,7 +80,7 @@ let logSeq = 0;
 let child = null;
 
 /**
- * @param {"stdout" | "stderr" | "system" | "assistant"} stream
+ * @param {"stdout" | "stderr" | "system" | "assistant" | "workflow"} stream
  * @param {string} text
  */
 function pushLogLine(stream, text) {
@@ -171,12 +180,34 @@ export function getCursorAgentConfigPayload() {
 }
 
 /**
+ * Emette blocco END workflow se il run corrente è gogo/procedi.
+ *
+ * @param {"finished" | "error"} status
+ */
+function emitWorkflowEndIfNeeded(status) {
+  if (!state.workflowKey || !state.workflowKind) {
+    return;
+  }
+
+  const block = buildWorkflowEndBlock({
+    kind      : state.workflowKind
+  , parentKey : state.workflowKey
+  , status
+  , error     : state.error
+  });
+
+  pushLogLine("workflow", block);
+  state.workflowKey    = null;
+  state.workflowKind   = null;
+}
+
+/**
  * @param {Record<string, unknown>} line
  */
 function handleWorkerLine(line) {
   if (line.type === "log" && typeof line.text === "string") {
     const stream = /** @type {CursorAgentLogLine["stream"]} */ (
-      line.stream === "assistant" || line.stream === "stderr" || line.stream === "system"
+      line.stream === "assistant" || line.stream === "stderr" || line.stream === "system" || line.stream === "workflow"
         ? line.stream
         : "system"
     );
@@ -216,6 +247,7 @@ function handleWorkerLine(line) {
       state.runId = line.runId;
     }
 
+    emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");
     void persistState();
   }
 }
@@ -282,6 +314,31 @@ export async function startCursorAgent(options) {
   state.status     = "running";
   state.error      = null;
   state.runId      = null;
+  state.workflowKey  = null;
+  state.workflowKind = null;
+
+  const workflow = parseWorkflowPrompt(prompt);
+
+  if (workflow) {
+    state.workflowKey  = workflow.parentKey;
+    state.workflowKind = workflow.kind;
+
+    try {
+      const startBlock = await buildWorkflowStartBlock(workflow);
+      pushLogLine("workflow", startBlock);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      pushLogLine("workflow", [
+        "─".repeat(72)
+      , `START — ${workflow.kind} ${workflow.parentKey}`
+      , "─".repeat(72)
+      , ""
+      , `⚠ Step 0 parziale: ${message}`
+      , ""
+      , "─".repeat(72)
+      ].join("\n"));
+    }
+  }
 
   pushLogLine("system", `=== Avvio worker Cursor (${runtime}) ===`);
 
@@ -346,6 +403,7 @@ export async function startCursorAgent(options) {
       state.pid        = null;
       child            = null;
       pushLogLine("system", `=== Worker terminato (codice ${code ?? "?"}) ===`);
+      emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");
       void persistState();
     }
   });

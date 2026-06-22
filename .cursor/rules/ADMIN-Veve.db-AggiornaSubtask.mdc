@@ -1,0 +1,34 @@
+---
+description: Veve db step 4 — upsert subtask in jira_issue_wip
+alwaysApply: false
+---
+
+# Veve DB — Aggiorna Subtask (WIP)
+
+## Trigger
+
+`aggiorna subtask db {KEY}` · `veve db {KEY}` step 4
+
+## Per ogni subtask
+
+Template: `.cursor/templates/veve/veve-subtask.md`
+
+Upsert in **`jira_issue_wip`**: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — da gap analysis.
+
+Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaSubtask.mdc`.
+
+## Scrittura DB
+
+Per ogni subtask del parent `{KEY}`:
+
+1. Riga sorgente da `jira_issue` (se presente) o dati da Leggi DB step 1.
+2. Compila `veveDescription` dal template subtask.
+3. **Upsert** `jira_issue_wip` per `jira_key` subtask:
+
+| Campo | Valore |
+| --- | --- |
+| `parent_jira_key` | `{KEY}` |
+| `raw_fields` | JSON con `veveDescription`, `files`, `orderN`, `orderM`, `gap` |
+| Altri campi | Mirror da `jira_issue` o default da Leggi DB |
+
+**Vietato:** MCP Jira, branch, commit, Fatto (salvo richiesta).
