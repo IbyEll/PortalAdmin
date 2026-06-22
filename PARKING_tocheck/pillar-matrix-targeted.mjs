@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { findPillarsForKey, generatePillarMatrixHtml } from "../admin.script.standalone/confluence.pillar.matrix.generate.mjs";
 import { writePillarMatrixPortalTargeted } from "./cruscotto.jira.pillar.matrix.portal.generate.mjs";
 
-import { getPortalRoot } from "../lib/portal.paths.mjs";
+import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
 const REPO_ROOT   = getPortalRoot();
 const PORTAL_DIR  = "cruscotto/pillar-matrix";
