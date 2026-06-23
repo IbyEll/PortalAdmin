@@ -1,6 +1,39 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-96 — Cursor workflow rules + close-story/catalog ADMIN keys.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refinement: ADMIN-96 workflow rules e close-story dry-run
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke workflow — regole Cursor ADMIN e close-story/catalog dry-run.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Garantisce presenza regole workflow e skill Jira Auto prima di procedi/gogo su ADMIN.
+ *
+ *   A cosa serve:
+ *   - Verifica file .cursor/rules e resolveTicketBranch + close-story --dry-run ADMIN-93.
+ *
+ * Generalizzazione:
+ *   No — campioni e path fissi su ticket ADMIN-93/96 e regole PortalAdmin.
+ *
+ * Input:
+ *   - —
+ *
+ * Uso:
+ *   - node test.smoke/smoke-workflow.mjs
+ *
+ * Exit code:
+ *   0 — regole presenti e dry-run close-story ok
+ *   1 — file mancante o dry-run fallito
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";

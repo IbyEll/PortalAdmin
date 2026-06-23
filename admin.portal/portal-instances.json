@@ -1,61 +1,26 @@
 {
   "instances": {
-    "JustLastOne": {
-      "_comcom": {
-        "titolo": "Stato istanza overlay PortalAdmin — persistenza runtime e prepare",
-        "descrizioneFunzionale": {
-          "percheEsiste": [
-            "HOME e server devono ricordare overlay attivo, path product e esito prepare tra riavvii"
-          ],
-          "aCosaServe": [
-            "snapshot JSON per dashboard HOME, allineamento PRJ_NAME / PRODUCT_REPO_PATH e coda log prepare"
-          ]
-        },
-        "consumatori": [
-          "lib/portal.instance.mjs — registry canonico admin.portal/portal-instances.json",
-          "admin.portal/portal.home.server.mjs — API stato istanze e attivazione overlay",
-          "runner/cruscotto.server.mjs — getPortalInstance, getPrepareStatus"
-        ],
-        "nota": "File runtime in admin.portal/. Migrazione automatica da cruscotto.database/portal-instance.json e portal.instance.runtime.state.json legacy.",
-        "campi": {
-          "overlay": "Nome overlay attivo (cartella PROJECT_{overlay})",
-          "prjName": "PRJ_NAME da project.config overlay",
-          "productRepoPath": "Path assoluto checkout product (PRODUCT_REPO_PATH)",
-          "activatedAt": "ISO-8601 ultima attivazione overlay",
-          "reloadRequired": "true se .env PRJ_NAME non ancora allineato al processo corrente",
-          "prepare.status": "idle | running | done | error — fase portal-prepare-instance.mjs",
-          "prepare.startedAt": "ISO-8601 avvio prepare (null se mai partito)",
-          "prepare.finishedAt": "ISO-8601 fine prepare (null se in corso)",
-          "prepare.exitCode": "exit code child prepare (null se in corso)",
-          "prepare.logTail": "ultimi ~8k caratteri stdout/stderr prepare (append da portal.instance.mjs)"
-        }
-      },
-      "overlay": "JustLastOne",
-      "prjName": "JustLastOne",
-      "productRepoPath": "C:/Users/Casa/JustLastOne",
-      "activatedAt": "2026-06-16T17:55:22.597Z",
-      "reloadRequired": false,
-      "prepare": {
-        "status": "done",
-        "startedAt": "2026-06-16T17:55:22.597Z",
-        "finishedAt": "2026-06-16T17:56:11.160Z",
-        "exitCode": 0,
-        "logTail": "[portal-prepare] overlay=JustLastOne product=JustLastOne\n[portal-prepare] repo=C:\\Users\\Casa\\JustLastOne\n[portal-prepare] migrate cruscotto DB…\nPrisma schema loaded from prisma\\schema.prisma\nDatasource \"db\": SQLite database \"cruscotto.db\" at \"file:C:/Users/Casa/PortalAdmin/data/cruscotto.db\"\n\n1 migration found in prisma/migrations\n\n\nNo pending migrations to apply.\nCruscotto DB migrato: file:C:/Users/Casa/PortalAdmin/data/cruscotto.db\n  path: C:\\Users\\Casa\\PortalAdmin\\data\\cruscotto.db\n[portal-prepare] catalogo OK — C:\\Users\\Casa\\PortalAdmin\\PROJECT_JustLastOne\\test.catalog.JustLastOne.mjs\n[portal-prepare] prepare product stack (--prepare-only --no-db)…\ncruscotto.process.start.all.services — stack Auth + API + Web\nProduct: C:\\Users\\Casa\\JustLastOne\nPortal:  C:\\Users\\Casa\\PortalAdmin\n\n[1/3] Refresh database saltato (--no-db)\n\n[2/3] Prepare product repo condiviso (npm, .env, build workspace)…\n\n=== Verifica file .env ===\n\n  ok  packages/database/.env\n  ok  apps/api/.env\n  ok  apps/authentication/.env\n  ok  apps/web/.env\n\n=== Build @justlastone/shared ===\n\n\n> @justlastone/shared@0.1.0 build\n> tsc\n\n\n=== Build @justlastone/i18n ===\n\n\n> @justlastone/i18n@0.1.0 build\n> tsc\n\n\n=== Build @justlastone/auth-kit ===\n\n\n> @justlastone/auth-kit@0.1.0 build\n> tsc\n\n\n=== Prisma generate @justlastone/database ===\n\n\n> @justlastone/database@0.1.0 db:generate\n> prisma generate\n\nwarn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).\nFor more information, see: https://pris.ly/prisma-config\n\nEnvironment variables loaded from .env\nPrisma schema loaded from prisma\\schema.prisma\n┌─────────────────────────────────────────────────────────┐\n│  Update available 6.19.3 -> 7.8.0                       │\n│                                                         │\n│  This is a major update - please follow the guide at    │\n│  https://pris.ly/d/major-version-upgrade                │\n│                                                         │\n│  Run the following to update                            │\n│    npm i --save-dev prisma@latest                       │\n│    npm i @prisma/client@latest                          │\n└─────────────────────────────────────────────────────────┘\n\n✔ Generated Prisma Client (v6.19.3) to .\\..\\..\\node_modules\\@prisma\\client in 732ms\n\nStart by importing your Prisma Client (See: https://pris.ly/d/importing-client)\n\nTip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate\n\n\n=== Build @justlastone/database ===\n\n\n> @justlastone/database@0.1.0 build\n> tsc\n\n\nPrepare completato (--prepare-only).\nAvvio stack: node runner/cruscotto.process.start.all.services.mjs --no-build\n[portal-prepare] completato\n"
-      }
-    },
     "AdminDashBoard": {
       "overlay": "AdminDashBoard",
       "prjName": "AdminDashboard",
       "productRepoPath": "C:/Users/Casa/PortalAdmin",
       "dashboardPort": 3998,
-      "activatedAt": "2026-06-20T05:41:04.588Z",
+      "activatedAt": "2026-06-23T17:42:27.048Z",
       "reloadRequired": false,
       "prepare": {
         "status": "done",
-        "startedAt": "2026-06-20T05:41:04.589Z",
-        "finishedAt": "2026-06-20T05:41:16.800Z",
+        "startedAt": "2026-06-23T17:42:27.048Z",
+        "finishedAt": "2026-06-23T17:42:28.073Z",
         "exitCode": 0,
-        "logTail": "[portal-prepare] overlay=AdminDashBoard product=AdminDashboard\n[portal-prepare] repo=C:\\Users\\Casa\\PortalAdmin\n[portal-prepare] istanzia cruscotto backlog DB…\nwarn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).\nFor more information, see: https://pris.ly/prisma-config\n\nPrisma schema loaded from prisma\\schema.prisma\nDatasource \"db\": SQLite database \"cruscotto_AdminDashBoard.db\" at \"file:C:/Users/Casa/PortalAdmin/PROJECT_AdminDashBoard/cruscotto_AdminDashBoard.db\"\n\nSQLite database cruscotto_AdminDashBoard.db created at file:C:/Users/Casa/PortalAdmin/PROJECT_AdminDashBoard/cruscotto_AdminDashBoard.db\n\n1 migration found in prisma/migrations\n\nApplying migration `20260614210000_init_cruscotto_schema`\n\nThe following migration(s) have been applied:\n\nmigrations/\n  └─ 20260614210000_init_cruscotto_schema/\n    └─ migration.sql\n      \nAll migrations have been successfully applied.\nwarn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).\nFor more information, see: https://pris.ly/prisma-config\n\nPrisma schema loaded from prisma\\schema.prisma\n\n✔ Generated Prisma Client (v6.19.3) to .\\node_modules\\@prisma\\client in 203ms\n\nStart by importing your Prisma Client (See: https://pris.ly/d/importing-client)\n\nTip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate\n\nCruscotto DB migrato: file:C:/Users/Casa/PortalAdmin/PROJECT_AdminDashBoard/cruscotto_AdminDashBoard.db\n  path: C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\cruscotto_AdminDashBoard.db\n[portal-prepare] cruscotto DB creato: C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\cruscotto_AdminDashBoard.db\n[portal-prepare] catalogo OK — C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\test.catalog.AdminDashBoard.mjs\n[portal-prepare] prepare product stack (--prepare-only --no-db)…\ncruscotto.process.start.all.services — stack Auth + API + Web\nProduct: C:\\Users\\Casa\\PortalAdmin\nPortal:  C:\\Users\\Casa\\PortalAdmin\n\n[1/3] Refresh database saltato (--no-db)\n\n[2/3] Prepare product repo condiviso (npm, .env, build workspace)…\n\n=== Verifica file .env ===\n\n  ok  .env\n\nPrepare completato (--prepare-only).\nAvvio stack: node cruscotto.frontend/cruscotto.process.start.all.services.mjs --no-build\n[portal-prepare] completato\n"
+        "logTail": "[portal-prepare] overlay=AdminDashBoard product=AdminDashboard\n[portal-prepare] repo=C:\\Users\\Casa\\PortalAdmin\n[portal-prepare] istanzia cruscotto backlog DB…\n[portal-prepare] cruscotto DB caricato: C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\cruscotto_AdminDashBoard.db\n[portal-prepare] catalogo OK — C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\test.catalog.AdminDashBoard.mjs\n[portal-prepare] prepare product stack (--prepare-only --no-db)…\ncruscotto.process.start.all.services — stack Auth + API + Web\nProduct: C:\\Users\\Casa\\PortalAdmin\nPortal:  C:\\Users\\Casa\\PortalAdmin\n\n[1/3] Refresh database saltato (--no-db)\n\n[2/3] Prepare product repo condiviso (npm, .env, build workspace)…\n\n=== Verifica file .env ===\n\n  ok  .env\n\nPrepare completato (--prepare-only).\nAvvio stack: node cruscotto.frontend/cruscotto.process.start.all.services.mjs --no-build\n[portal-prepare] completato\n"
+      },
+      "dashboard": {
+        "status": "starting",
+        "startedAt": "2026-06-23T18:44:15.981Z",
+        "finishedAt": null,
+        "exitCode": null,
+        "logTail": "[cruscotto] avvio AdminDashBoard su :3998…\nAdmin Dashboard  http://localhost:3998/\nProgetto: AdminDashboard (AdminDashBoard) · Jira ADMIN\nStatic: cruscotto.frontend/ (+ jira insight assets)\n",
+        "pid": 19128
       }
     }
   }

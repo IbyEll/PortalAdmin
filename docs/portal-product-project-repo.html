@@ -266,7 +266,7 @@ const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
       <tbody>
         <tr>
           <td><code>PRJ_NAME</code> (.env)</td>
-          <td>Nome overlay attivo (default <code>JustLastOne</code>)</td>
+          <td>Nome overlay attivo (<code>PRJ_NAME</code> obbligatorio in <code>.env</code>; es. <code>AdminDashBoard</code>)</td>
         </tr>
         <tr>
           <td><code>resolveProjectOverlayName()</code></td>
@@ -302,7 +302,7 @@ const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
         <tr>
           <td><code>PRJ_REPO</code></td>
           <td>«repo del project»</td>
-          <td>Solo <strong>nome cartella</strong> default del product (<code>JustLastOne</code>) → <code>../JustLastOne</code></td>
+          <td>Solo <strong>nome cartella</strong> sibling default del product da <code>project.config</code> (es. <code>JustLastOne</code> → <code>../JustLastOne</code>, <code>PortalAdmin</code> → <code>../PortalAdmin</code>)</td>
         </tr>
         <tr>
           <td><code>PRJ_GITHUB_REPO</code></td>
@@ -323,7 +323,8 @@ const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
     </table>
 
     <div class="callout">
-      Con un solo product attivo, <code>PRJ_NAME=JustLastOne</code> e product repo <code>../JustLastOne</code>
+      Esempio product esterno: <code>PRJ_NAME=JustLastOne</code> e product repo <code>../JustLastOne</code>.
+      Esempio PortalAdmin come product: <code>PRJ_NAME=AdminDashBoard</code> e <code>PRODUCT_REPO_PATH</code> sul checkout PortalAdmin.
       sembrano la stessa cosa. Restano layer distinti: puoi cambiare <code>PRODUCT_REPO_PATH</code>
       (clone altrove) mantenendo lo stesso <code>PRJ_NAME</code>, o aggiungere <code>PROJECT_MyApp/</code>
       prima di avere quel repo clonato.

@@ -1,6 +1,40 @@
 #!/usr/bin/env node
 /**
- * Smoke test path resolver (ADMIN-90 DoD).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-90 path resolver e product.manifest
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke portal paths — resolver root, product repo, testScript e manifest.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - DoD ADMIN-90 richiede smoke su path resolver e manifest prima di workflow product.
+ *
+ *   A cosa serve:
+ *   - Verifica getPortalRoot, getProductRepoPath, testScript, REPORTS_DIR e loadProductManifest.
+ *
+ * Generalizzazione:
+ *   Si — dipende da PRODUCT_REPO_PATH e PRJ_TEST_SCRIPT overlay attivo.
+ *
+ * Input:
+ *   - PRODUCT_REPO_PATH — checkout product con package.json e testScript
+ *   - PRJ_PRODUCT_MANIFEST — path manifest da project.config
+ *
+ * Uso:
+ *   - node test.smoke/smoke-portal-paths.mjs
+ *
+ * Exit code:
+ *   0 — tutti i path e manifest validi
+ *   1 — almeno un check FAIL
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";
@@ -11,7 +45,7 @@ import {
 , getProductRepoPath
 , getTestScriptDir
 , resolveProductRepoPath
-} from "../lib/portal-paths.mjs";
+} from "../lib/portal.paths.resolver.mjs";
 import { scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
 import { loadProductManifest, PRODUCT_MANIFEST_PATH } from "../lib/product.manifest.mjs";
 import { REPORTS_DIR } from "../lib/reporter.mjs";

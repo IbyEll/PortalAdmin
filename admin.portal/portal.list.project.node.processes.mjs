@@ -1,9 +1,43 @@
 /**
- * Elenco processi node.exe legati al product repo e a PortalAdmin.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Elenco processi node.exe legati al product repo e a PortalAdmin (HOME diagnostica).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - HOME PortalAdmin offre kill mirato processi node legati al checkout senza Task Manager.
+ *
+ *   A cosa serve:
+ *   - Scansiona WMI/ps, filtra command line su portal e product path, kill PID singolo o tutti.
+ *
+ * Generalizzazione:
+ *   Si — portalRoot e productRoot passati dal caller HOME server.
+ *
+ * Input:
+ *   - portalRoot — root checkout PortalAdmin
+ *   - productRoot — PRODUCT_REPO_PATH corrente
+ *
+ * Consumatori:
+ *   - admin.portal/portal.home.server.mjs — API GET/DELETE node processes
+ *
+ * Export principali:
+ *   - listProjectNodeProcesses — elenco ProjectNodeProcess pid e command
+ *   - shortenNodeCommand, formatProjectNodeProcessesText — etichette UI console HOME
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawnSync } from "node:child_process";
-import { basename } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { basename, join } from "node:path";
 
 /**
  * @typedef {{
@@ -106,33 +140,158 @@ export function formatProjectNodeProcessesText(processes) {
 }
 
 /**
+ * @param {string} command
+ * @returns {boolean}
+ */
+function isIgnoredGlobalNodeProcess(command) {
+  const lower = command.replace(/\\/g, "/").toLowerCase();
+
+  return (
+    /cursor\/resources\//.test(lower)
+    || /vscode\/extensions\//.test(lower)
+    || /typescript\/lib\/(tsserver|typingsinstaller)/.test(lower)
+    || /\btsserver\.js\b/.test(lower)
+    || /\btypingsinstaller\.js\b/.test(lower)
+  );
+}
+
+/**
+ * @param {string} name
+ * @param {string} subPath
+ * @returns {boolean}
+ */
+function shouldIndexRepoSubdir(name, subPath) {
+  if (/^(admin\.portal|cruscotto\.|runner|apps|PROJECT_)/i.test(name)) {
+    return true;
+  }
+
+  try {
+    for (const child of readdirSync(subPath, { withFileTypes: true })) {
+      if (!child.isDirectory() && /\.mjs$/i.test(child.name)) {
+        return true;
+      }
+    }
+  } catch {
+    // sottocartella non listabile
+  }
+
+  return false;
+}
+
+/**
+ * Aghi di ricerca per command line: path completo, basename e script relativi dalla root repo.
+ *
+ * @param {string[]} markers
+ * @returns {string[]}
+ */
+function buildMarkerNeedles(markers) {
+  /** @type {Set<string>} */
+  const needles = new Set();
+
+  for (const marker of markers) {
+    if (typeof marker !== "string" || !marker.trim()) {
+      continue;
+    }
+
+    const trimmed = marker.trim();
+    const norm    = trimmed.replace(/\\/g, "/").replace(/\/+$/, "");
+
+    needles.add(norm);
+    needles.add(trimmed.replace(/[\\/]+$/, ""));
+
+    const base = basename(norm);
+
+    if (base.length >= 3) {
+      needles.add(base);
+    }
+
+    if (!existsSync(trimmed)) {
+      continue;
+    }
+
+    try {
+      for (const entry of readdirSync(trimmed, { withFileTypes: true })) {
+        if (!entry.isDirectory()) {
+          continue;
+        }
+
+        const name = entry.name;
+
+        if (name.startsWith(".") || name === "node_modules") {
+          continue;
+        }
+
+        const sub = join(trimmed, name);
+
+        if (!shouldIndexRepoSubdir(name, sub)) {
+          continue;
+        }
+
+        needles.add(`${name}/`);
+        needles.add(`${name}\\`);
+
+        try {
+          for (const child of readdirSync(sub, { withFileTypes: true })) {
+            if (child.isDirectory()) {
+              continue;
+            }
+
+            if (/\.mjs$|\.cjs$|\.js$/i.test(child.name)) {
+              needles.add(`${name}/${child.name}`);
+              needles.add(`${name}\\${child.name}`);
+            }
+          }
+        } catch {
+          // sottocartella non listabile
+        }
+      }
+    } catch {
+      // marker non listabile
+    }
+  }
+
+  return [...needles].filter((needle) => needle.length >= 3);
+}
+
+/**
+ * @param {string} command
+ * @param {string[]} needles
+ * @returns {boolean}
+ */
+function commandMatchesNeedles(command, needles) {
+  const cmd = command.replace(/\\/g, "/").toLowerCase();
+
+  for (const needle of needles) {
+    const n = needle.replace(/\\/g, "/").toLowerCase();
+
+    if (n.length < 3) {
+      continue;
+    }
+
+    if (cmd.includes(n)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @param {string[]} markers
  * @param {Set<number>} exclude
  * @returns {ProjectNodeProcess[]}
  */
 function listWindowsNodeProcesses(markers, exclude) {
-  const tags = [...new Set(markers.map((path) => basename(path)).filter(Boolean))];
+  const needles = buildMarkerNeedles(markers);
 
-  if (tags.length === 0) {
+  if (needles.length === 0) {
     return [];
   }
 
-  const tagList = tags.map((tag) => `'${tag.replace(/'/g, "''")}'`).join(",");
-  const script  = `
+  const script = `
 $ErrorActionPreference = 'SilentlyContinue'
-$tags = @(${tagList})
-$exclude = @(${[...exclude].join(",")})
 $out = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {
-  $procId = [int]$_.ProcessId
-  if ($exclude -contains $procId) { return }
-  $cmd = [string]$_.CommandLine
-  if (-not $cmd) { return }
-  $hit = $false
-  foreach ($tag in $tags) {
-    if ($cmd -like "*$tag*") { $hit = $true; break }
-  }
-  if (-not $hit) { return }
-  @{ pid = $procId; command = $cmd }
+  @{ pid = [int]$_.ProcessId; command = [string]$_.CommandLine }
 }
 if ($out) { $out | ConvertTo-Json -Compress }
 `.trim();
@@ -158,7 +317,10 @@ if ($out) { $out | ConvertTo-Json -Compress }
         pid     : Number(row.pid)
       , command : typeof row.command === "string" ? row.command : ""
       }))
-      .filter((row) => Number.isInteger(row.pid) && row.pid > 0 && row.command);
+      .filter((row) => Number.isInteger(row.pid) && row.pid > 0 && row.command)
+      .filter((row) => !exclude.has(row.pid))
+      .filter((row) => !isIgnoredGlobalNodeProcess(row.command))
+      .filter((row) => commandMatchesNeedles(row.command, needles));
   } catch {
     return [];
   }

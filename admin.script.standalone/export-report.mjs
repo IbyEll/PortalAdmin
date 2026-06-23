@@ -1,10 +1,39 @@
 #!/usr/bin/env node
 /**
- * Generatore export Excel/JSON da data/reports/latest.json.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Uso CLI:
- *   node export/export-report.mjs
- *   node export/export-report.mjs --json-only
+ * ************************************************************************************************************************
+ *              Generatore export Excel e JSON da cruscotto.frontend/reports/latest.json.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Report test run-all serve anche in formato Excel per condivisione fuori dal cruscotto.
+ *
+ *   A cosa serve:
+ *   - Legge latest.json normalizzato e scrive xlsx e json in data/exports con timestamp.
+ *
+ * Generalizzazione:
+ *   Si — input da LATEST_JSON reporter; formato indipendente da overlay product.
+ *
+ * Input:
+ *   - argv --json-only — salta generazione Excel
+ *   - file latest.json — report normalizzato da lib/reporter.mjs
+ *
+ * Uso:
+ *   - node admin.script.standalone/export-report.mjs
+ *
+ * Exit code:
+ *   0 — export scritti
+ *   1 — latest.json assente o parse fallito
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";

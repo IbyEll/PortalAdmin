@@ -89,25 +89,19 @@ import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "./crusc
 import { buildBacklogPillarTree } from "./cruscotto.jira.backlog.pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { fetchWorkingInsights } from "./cruscotto.jira.working.insights.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
-import {
-  archiveAndRegenerateWorkingPlan
-, listWorkingPlanArchives
-, regenerateWorkingPlanHtml
-, saveOldAndRebuildWorking
-, workingArchivePath
-} from "./cruscotto.jira.working.plan.mjs";
-//import { regenerateProjectTreeHtml } from "./cruscotto.jira.project.tree.plan.mjs";
+// Jira Working (pagina + API) — PARKING_tocheck/cruscotto.jira.working.*.mjs
+// regenerateProjectTreeHtml — disabilitato; sorgente in PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs
 import {
   analyzeMyProject
+, analyzeProjectOverview
 , getFunzionaliMetaPayload
 , getTecniciMetaPayload
 , loadAndAnalyzeTestTecnici
 , TECNICI_ANALYSIS_HTML
 , TECNICI_ANALYSIS_JSON
-} from "../lib/dashboard.project.mjs";
+} from "../lib/overlay/dashboard.project.mjs";
 import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./cruscotto.testscript.manager.mjs";
 import {
   cancelCursorAgent
@@ -153,7 +147,8 @@ import {
 , getPrepareStatus
 , listAvailableProjects
 } from "../lib/portal.instance.mjs";
-import { buildCruscottoProjectPayload } from "../lib/cruscotto.config.overlay.mjs";
+import { buildCruscottoProjectPayload } from "../lib/overlay/cruscotto.config.overlay.mjs";
+import { resolveDashboardListenPort } from "../lib/portal.launch.dashboard.mjs";
 import {
   describeCruscottoDbLayout
 , resolveCruscottoDbPath
@@ -184,8 +179,8 @@ const CRUSCOTTO_STATIC_ALIASES = {
 , "expand-collapse-ui.css"  : "expand.collapse.toolbar.css"
 , "backlog.html"            : "cruscotto.jira.backlog.html"
 , "my-backlog.html"         : "cruscotto.jira.my-backlog.html"
-, "jira-working.html"       : "cruscotto.jira.working.html"
 , "my-project.html"         : "cruscotto.jira.my-project.html"
+, "project-overview.html"   : "cruscotto.project.overview.html"
 };
 
 /** Route URL → file relativo in cruscotto.frontend/. */
@@ -194,35 +189,19 @@ const CRUSCOTTO_ROUTE_FILES = {
 , "/app.html" : "cruscotto.home.html"
 };
 
-/** Config progetto attivo — costruita al launch, iniettata nelle pagine HTML. */
-const CRUSCOTTO_PROJECT = buildCruscottoProjectPayload();
-
-/** @type {string | null} */
-let cruscottoProjectBootstrapInjection = null;
+const PORT = resolveDashboardListenPort();
 
 /**
  * @returns {string}
  */
 function getCruscottoProjectBootstrapInjection() {
-  // 1. Cache lazy — serializza CRUSCOTTO_PROJECT e script bootstrap per iniezione HTML
-  if (!cruscottoProjectBootstrapInjection) {
-    const json = JSON.stringify(CRUSCOTTO_PROJECT).replace(/</g, "\\u003c");
+  const json = JSON.stringify(buildCruscottoProjectPayload({ dashboardPort: PORT })).replace(/</g, "\\u003c");
 
-    cruscottoProjectBootstrapInjection = [
-      `<script>window.__CRUSCOTTO_PROJECT__=${json};</script>`
-    , `<script src="/cruscotto.project.bootstrap.js"></script>`
-    ].join("\n");
-  }
-
-  return cruscottoProjectBootstrapInjection;
+  return [
+    `<script>window.__CRUSCOTTO_PROJECT__=${json};</script>`
+  , `<script src="/cruscotto.project.bootstrap.js"></script>`
+  ].join("\n");
 }
-
-const PORT = Number(
-  process.env.DASHBOARD_PORT
-  ?? process.env.ADMIN_PORT
-  ?? process.env.PORT
-  ?? 3999
-);
 
 /** @type {import("node:http").Server | null} */
 let httpServer = null;
@@ -390,6 +369,12 @@ function injectCruscottoProjectBootstrap(html) {
   }
 
   const injection = getCruscottoProjectBootstrapInjection();
+  const bodyClose = html.match(/<\/body>/i);
+
+  if (bodyClose && typeof bodyClose.index === "number") {
+    return `${html.slice(0, bodyClose.index)}${injection}\n${html.slice(bodyClose.index)}`;
+  }
+
   const headClose = html.match(/<\/head>/i);
 
   if (headClose && typeof headClose.index === "number") {
@@ -461,42 +446,6 @@ async function serveStatic(req, res) {
 
 /**
  * @param {import("node:http").IncomingMessage} req
- * @param {import("node:http").ServerResponse} res
- * @param {string} urlPath
- * @returns {Promise<boolean>} true se la richiesta è stata gestita
- */
-async function serveWorkingArchive(req, res, urlPath) {
-  // 1. Match archivio — GET /jira-working-archive/{timestamp}.html da working.plan
-  const archiveMatch = urlPath.match(/^\/jira-working-archive\/([0-9T\-Z]+)\.html$/);
-
-  if (!archiveMatch || req.method !== "GET") {
-    return false;
-  }
-
-  try {
-    const filePath = workingArchivePath(archiveMatch[1]);
-
-    if (!existsSync(filePath)) {
-      sendJson(res, 404, { error: "Archivio non trovato" }, req);
-      return true;
-    }
-
-    applyCors(res, req);
-    res.writeHead(200, {
-      "Content-Type"  : "text/html; charset=utf-8"
-    , "Cache-Control" : "no-store"
-    });
-    createReadStream(filePath).pipe(res);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    sendJson(res, 502, { error: message }, req);
-  }
-
-  return true;
-}
-
-/**
- * @param {import("node:http").IncomingMessage} req
  * @returns {Promise<unknown>}
  */
 function readJsonBody(req) {
@@ -539,7 +488,7 @@ function readJsonBody(req) {
 async function handleApi(req, res, urlPath) {
   // 1. Router lineare — match path/metodo; delega a lib cruscotto, Jira, run e servizi product
   if (urlPath === "/api/cruscotto/project" && req.method === "GET") {
-    sendJson(res, 200, CRUSCOTTO_PROJECT, req);
+    sendJson(res, 200, buildCruscottoProjectPayload({ dashboardPort: PORT }), req);
     return;
   }
 
@@ -1282,58 +1231,10 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  if (urlPath === "/api/jira/working/insights" && req.method === "GET") {
+  if (urlPath === "/api/project-overview/analyze" && req.method === "GET") {
     try {
-      const data = await fetchWorkingInsights();
+      const data = await analyzeProjectOverview();
       sendJson(res, 200, data, req);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 502, { error: message }, req);
-    }
-
-    return;
-  }
-
-  if (urlPath === "/api/jira/working/archives" && req.method === "GET") {
-    try {
-      const archives = await listWorkingPlanArchives();
-      sendJson(res, 200, { archives }, req);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 502, { error: message }, req);
-    }
-
-    return;
-  }
-
-  if (urlPath === "/api/jira/working/archive-regenerate" && req.method === "POST") {
-    try {
-      const result = await archiveAndRegenerateWorkingPlan();
-      sendJson(res, 200, result, req);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 502, { error: message }, req);
-    }
-
-    return;
-  }
-
-  if (urlPath === "/api/jira/working/regenerate" && req.method === "POST") {
-    try {
-      const result = await regenerateWorkingPlanHtml();
-      sendJson(res, 200, result, req);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 502, { error: message }, req);
-    }
-
-    return;
-  }
-
-  if (urlPath === "/api/jira/working/save-old-rebuild" && req.method === "POST") {
-    try {
-      const result = await saveOldAndRebuildWorking();
-      sendJson(res, 200, result, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -1357,7 +1258,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/pillar-matrix/regenerate" && req.method === "POST") {
     sendJson(res, 403, {
       error   : "Rigenerazione da cruscotto disabilitata"
-    , command : "node cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs"
+    , command : "node PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
     }, req);
     return;
   }
@@ -1542,12 +1443,9 @@ async function handleRequest(req, res) {
     , "summary"
     , "testtecnici"
     , "testfunzionali"
-    , "jiraworking"
-    , "jiraworkingold"
     , "jiraproject"
     , "backlog"
     , "mybacklog"
-    , "myproject"
     , "pillarmatrix"
     , "process"
     , "cursor"
@@ -1561,12 +1459,7 @@ async function handleRequest(req, res) {
     }
   }
 
-  // 4. Archivio HTML working plan
-  if (await serveWorkingArchive(req, res, urlPath)) {
-    return;
-  }
-
-  // 5. Asset statici cruscotto/
+  // 4. Asset statici cruscotto/
   await serveStatic(req, res);
 }
 
@@ -1620,8 +1513,11 @@ async function main() {
 
   // 3. Listen — log URL dashboard e root static
   httpServer.listen(PORT, () => {
+    const project = buildCruscottoProjectPayload({ dashboardPort: PORT });
     console.log(`Admin Dashboard  http://localhost:${PORT}/`);
-    console.log(`Progetto: ${CRUSCOTTO_PROJECT.repoName} (${CRUSCOTTO_PROJECT.overlayName}) · Jira ${CRUSCOTTO_PROJECT.jiraPrefix}`);
+    console.log(
+      `Progetto: ${project.projectDisplayName} (${project.overlayName}) · Jira ${project.jiraPrefix}`
+    );
     console.log(`Static: cruscotto.frontend/ (+ jira insight assets)`);
   });
 }

@@ -1,21 +1,39 @@
 /**
- * Overlay discovery stack dev — JustLastOne.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Overlay discovery stack dev — JustLastOne (web, api, auth, friendbot).
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
- *   Perché esiste: path servizi, alias processi e extras JLO restano fuori da
- *     discovery.config.mjs generico (caricato via PRJ_NAME).
- *   A cosa serve: valori importati da discovery.config.mjs per tab Servizi/Process,
- *     match PID e avvio stack nel cruscotto dev PortalAdmin.
  *
- * Consumatori: lib/discovery.config.mjs
+ *   Perché esiste:
+ *   - Path servizi, alias processi e extras JLO restano fuori da discovery.config.mjs generico.
+ *
+ *   A cosa serve:
+ *   - Valori per tab Servizi/Process, match PID e avvio stack nel cruscotto dev PortalAdmin.
+ *
+ * Generalizzazione:
+ *   No — DISCOVERY_CONFIG_VALUES dedicato overlay JustLastOne; duplicare per altri product.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - lib/discovery.config.mjs — import dinamico PROJECT_JustLastOne/discovery.config
  *
  * Export principali:
- *   DISCOVERY_CONFIG_VALUES — ids core, extras, path runner, descrizioni UI
+ *   - DISCOVERY_CONFIG_VALUES — coreServiceIds, extras, stackStartScript, descrizioni UI
  *
- * Nuovo product: duplica come discovery.config.{PRJ_NAME}.mjs (es. MyApp).
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
-/** @type {import("../lib/discovery.config.mjs").DiscoveryConfigValues} */
+/** @type {import("../lib/overlay/discovery.config.mjs").DiscoveryConfigValues} */
 export const DISCOVERY_CONFIG_VALUES = {
   // Servizi product — ordine tab Servizi
   coreServiceIds: ["web", "api", "auth"]

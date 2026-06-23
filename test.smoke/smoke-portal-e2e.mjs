@@ -1,6 +1,41 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-145 — spawn dashboard + E2E testScript admin/test-portal-smoke.mjs.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-145 portal E2E test-portal-smoke
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke portal E2E — dashboard spawn e testScript admin/test-portal-smoke.mjs.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Verifica end-to-end cruscotto + test product in un solo smoke prima di go-live.
+ *
+ *   A cosa serve:
+ *   - Spawn cruscotto se down, esegue test-portal-smoke nel product repo o fallback HTTP inline.
+ *
+ * Generalizzazione:
+ *   Si — PRODUCT_REPO_PATH, DASHBOARD_PORT, DASHBOARD_URL per child testScript.
+ *
+ * Input:
+ *   - DASHBOARD_PORT — porta cruscotto (default 3999)
+ *   - PRODUCT_REPO_PATH — root product per testScript admin/test-portal-smoke.mjs
+ *   - PORTAL_ADMIN_PATH — root PortalAdmin passato al child test
+ *
+ * Uso:
+ *   - node test.smoke/smoke-portal-e2e.mjs
+ *
+ * Exit code:
+ *   0 — test product passato o fallback HTTP ok
+ *   1 — child test o fetch falliti
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";

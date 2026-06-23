@@ -1,12 +1,47 @@
 /**
- * Config Cursor Agent SDK — API key, runtime local/cloud e repository GitHub.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Config Cursor Agent SDK — API key, runtime local/cloud e repository GitHub.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Cursor agent cruscotto deve sapere se SDK è configurato e quale repo usare.
+ *
+ *   A cosa serve:
+ *   - Legge CURSOR_API_KEY, runtime e path product per spawn agent Cursor.
+ *
+ * Generalizzazione:
+ *   Si — env CURSOR_API_KEY; product repo da PRODUCT_REPO_PATH; runtime local o cloud.
+ *
+ * Input:
+ *   - CURSOR_API_KEY — token API Cursor (env)
+ *   - CURSOR_AGENT_RUNTIME — local o cloud (env opzionale)
+ *   - PRODUCT_REPO_PATH — repository GitHub workflow agent
+ *
+ * Consumatori:
+ *   - admin.portal/portal.cursor.agent.manager.mjs — validazione prima spawn
+ *   - admin.portal/portal.cursor.agent.workflow.mjs — contesto run agent
+ *
+ * Export principali:
+ *   - getCursorApiKey, isCursorAgentConfigured — stato configurazione SDK
+ *   - getCursorAgentPublicConfig, getCursorAgentWorkerPath — payload UI e path worker
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 

@@ -132,9 +132,9 @@
     </header>
 
     <h2>Ordine di caricamento (runtime)</h2>
-    <p>Tutto parte da <code>PRJ_NAME</code> in <code>.env</code> (default <code>JustLastOne</code>) tramite <code>load-env.mjs</code>:</p>
+    <p>Tutto parte da <code>PRJ_NAME</code> in <code>.env</code> (obbligatorio; es. <code>AdminDashBoard</code> o <code>JustLastOne</code>) tramite <code>lib/portal.load.env.mjs</code>:</p>
     <ol>
-      <li><code>lib/load-env.mjs</code></li>
+      <li><code>lib/portal.load.env.mjs</code></li>
       <li><code>lib/project.config.mjs</code> → import dinamico <code>project.config.{PRJ_NAME}.mjs</code></li>
       <li><code>lib/discovery.config.mjs</code> → import dinamico <code>discovery.config.{PRJ_NAME}.mjs</code></li>
       <li><code>runner/runner.config.stack.mjs</code> → import dinamico <code>runner.config.{PRJ_NAME}.mjs</code></li>

@@ -1,5 +1,37 @@
 /**
- * Data/ora avvio processo (per colonna Stato tabella process).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Data/ora avvio processo — colonna Stato tabella Process cruscotto.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Process mostra quando un PID è stato avviato senza WMI/query ripetute non cacheate.
+ *
+ *   A cosa serve:
+ *   - Risolve startedAt per PID su Windows Get-Process e Unix ps con cache in-memory.
+ *
+ * Generalizzazione:
+ *   Si — batch resolve per lista PID; indipendente da overlay product.
+ *
+ * Input:
+ *   - pid — process id intero positivo
+ *
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.process.services.manager.mjs — arricchisce tabella processi
+ *
+ * Export principali:
+ *   - getProcessStartedAt — ISO string o null per singolo PID
+ *   - warmProcessStartedAtCache, earliestListenerStartedAt — batch e min startedAt
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawnSync } from "node:child_process";

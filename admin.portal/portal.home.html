@@ -1,4 +1,38 @@
 <!DOCTYPE html>
+<!-- ------------------------------------------------------------------------------------------------------------------------
+ ** PAGE HTML ** -- commentato il: 2026-06-23 21:30
+ ------------------------------------------------------------------------------------------------------------------------
+ creato     il: 2026-06-23 21:30   by: IbyEll
+ modificato il: 2026-06-23 21:30   by: IbyEll
+ ------------------------------------------------------------------------------------------------------------------------
+
+ ************************************************************************************************************************
+ *              PortalAdmin HOME — selettore overlay PROJECT_* e prepare istanza cruscotto.
+ ************************************************************************************************************************
+
+ Descrizione funzionale:
+
+   Perché esiste:
+   - Utente deve attivare PRJ_NAME e PRODUCT_REPO_PATH senza editare .env manualmente.
+
+   A cosa serve:
+   - Griglia progetti, stato prepare, link cruscotto e console diagnostica processi node.
+
+ Generalizzazione:
+   Si — card progetti da API listAvailableProjects; testi da risposta server.
+
+ Input:
+   - GET /api/portal/projects — elenco overlay attivabili
+   - POST /api/portal/instance — body overlayName per attivazione
+
+ Servita da:
+   - admin.portal/portal.home.server.mjs — route / e static home
+
+ Asset collegati:
+   - portal.home.css — stili shell HOME
+   - portal.home.js — fetch API, grid e console prepare
+
+ ------------------------------------------------------------------------------------------------------------------------ -->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
@@ -8,84 +42,68 @@
   <link rel="stylesheet" href="/home.css" />
 </head>
 <body class="portal-home">
-  <header class="portal-home-header">
-    <div class="portal-home-brand">
-      <span class="portal-home-logo" aria-hidden="true">◆</span>
+  <header class="portal-topbar">
+    <div class="portal-topbar-brand">
+      <span class="portal-mark" aria-hidden="true">PA</span>
       <div>
-        <h1>PortalAdmin</h1>
-        <p class="muted">Dashboard dev, cruscotto Jira e runner test per monorepo product</p>
+        <p class="portal-topbar-kicker">PortalAdmin</p>
+        <h1>Selettore progetto</h1>
       </div>
     </div>
-    <a class="portal-home-link" href="/app.html" id="link-cruscotto" hidden>Apri cruscotto attivo →</a>
+    <div class="portal-topbar-status">
+      <p class="portal-instance-line" id="instance-status">Caricamento…</p>
+      <a class="portal-topbar-link" href="/app.html" id="link-cruscotto" hidden>Apri cruscotto →</a>
+    </div>
   </header>
 
-  <main class="portal-home-main">
-    <section class="portal-home-hero card">
-      <h2>Cos'è PortalAdmin</h2>
-      <p>
-        PortalAdmin è il repository tooling che ospita il <strong>cruscotto dev</strong>:
-        health stack, esecuzione <code>testScript</code>, backlog Jira, working plan e report HTML/JSON.
-      </p>
-      <ul class="portal-home-features">
-        <li>Overlay <code>PROJECT_{PRJ_NAME}</code> — config, discovery e catalogo test per product</li>
-        <li>API dashboard per overlay — porta dedicata (<code>PRJ_DASHBOARD_PORT</code>, es. JustLastOne :3999, Admin :3998)</li>
-        <li>Segnali Jira ADMIN + product (es. JLO) da <code>portal.config</code></li>
-      </ul>
-      <p class="muted portal-home-hint">
-        Scegli un progetto a destra, poi <strong>Istanzia</strong> per scrivere <code>.env</code>,
-        preparare DB cruscotto e (se configurato) il prepare del monorepo product.
-        Ogni progetto ha una <strong>porta dedicata</strong> — puoi tenere più cruscotti aperti insieme.
-        Dopo <strong>Istanzia</strong>, usa <strong>Avvia</strong> / <strong>Kill</strong> sulla card o <strong>Apri cruscotto</strong> per il browser.
-        La HOME resta su <code>:3990</code> (<code>npm run admin:home</code>).
-      </p>
-    </section>
-
-    <div class="portal-home-split">
-      <aside class="portal-home-console card" id="console-panel" aria-label="Console output">
-        <div class="portal-home-console-head">
-          <h2>Console</h2>
-          <p class="muted" id="prepare-message">In attesa — istanzia un progetto o apri il cruscotto.</p>
-          <p class="muted portal-home-console-hint">
-            Riga sopra = stato sintetico. Area log sotto = traccia click (<strong>azioni HOME</strong>),
-            output <strong>Istanzia</strong> e <strong>Processi Node</strong>. Con <strong>Avvia</strong>, su Windows
-            apre anche una finestra <code>cmd</code> con l’output di <code>npm run admin:dashboard</code>.
+  <main class="portal-shell">
+    <section class="portal-projects" aria-labelledby="projects-title">
+      <header class="portal-section-head">
+        <div>
+          <h2 id="projects-title">Progetti disponibili</h2>
+          <p class="muted portal-section-lead">
+            Scegli overlay e <strong>Istanzia</strong> (scrive <code>.env</code> e prepare),
+            poi <strong>Apri cruscotto</strong> — avvio automatico se non già in ascolto.
           </p>
         </div>
-        <pre class="portal-home-log" id="prepare-log" aria-live="polite"></pre>
-        <div class="portal-home-actions">
-          <button type="button" class="btn-secondary" id="btn-list-node-procs">Processi Node</button>
-          <input
-            type="number"
-            class="portal-home-pid-input"
-            id="node-kill-pid"
-            placeholder="PID"
-            min="1"
-            aria-label="PID processo da terminare"
-          />
-          <button type="button" class="btn-danger" id="btn-kill-node-pid" disabled>Kill PID</button>
-          <button type="button" class="btn-danger" id="btn-kill-node-all" disabled>Kill tutti</button>
-          <button type="button" class="btn-primary" id="btn-open-cruscotto" disabled>Apri ultimo istanziato</button>
-          <button type="button" class="btn-secondary" id="btn-reload-hint" hidden>Riavvia dashboard-server</button>
-        </div>
-        <p class="muted portal-home-reload-note" id="reload-note" hidden>
-          Se l'avvio automatico fallisce, esegui
-          <code>DASHBOARD_PORT=&lt;porta&gt; PRJ_NAME=&lt;overlay&gt; npm run admin:dashboard</code>.
-        </p>
-      </aside>
+      </header>
+      <div class="portal-project-grid" id="project-grid" aria-live="polite"></div>
+    </section>
 
-      <section class="portal-home-cards">
-        <div class="portal-home-section-head">
-          <h2>Progetti disponibili</h2>
-          <p class="muted" id="instance-status">Caricamento…</p>
+    <section class="portal-console" id="console-panel" aria-label="Console output">
+      <header class="portal-console-head">
+        <div class="portal-console-title">
+          <h2>Console</h2>
+          <p class="portal-console-status" id="prepare-message">In attesa — istanzia un progetto.</p>
         </div>
-        <div class="portal-home-grid" id="project-grid" aria-live="polite"></div>
-      </section>
-    </div>
+        <div class="portal-console-toolbar">
+          <button type="button" class="btn-ghost" id="btn-list-node-procs">Processi Node</button>
+          <button type="button" class="btn-ghost btn-sm" id="btn-clear-console" title="Svuota il pannello log — non termina processi">Clear console</button>
+          <label class="portal-pid-field">
+            <span class="sr-only">PID</span>
+            <input
+              type="number"
+              id="node-kill-pid"
+              placeholder="PID"
+              min="1"
+              aria-label="PID processo da terminare"
+            />
+          </label>
+          <button type="button" class="btn-danger btn-sm" id="btn-kill-node-pid" disabled>Kill</button>
+          <button type="button" class="btn-danger btn-sm" id="btn-kill-node-all" disabled>Kill tutti</button>
+          <span class="portal-toolbar-sep" aria-hidden="true"></span>
+          <button type="button" class="btn-primary" id="btn-open-cruscotto" disabled>Apri cruscotto</button>
+          <button type="button" class="btn-ghost" id="btn-reload-hint" hidden>Riavvia server</button>
+        </div>
+      </header>
+      <pre class="portal-console-log" id="prepare-log" aria-live="polite"></pre>
+      <p class="muted portal-console-foot" id="reload-note" hidden></p>
+    </section>
   </main>
 
-  <footer class="portal-home-footer muted">
-    <span>PortalAdmin</span>
-    <span>·</span>
+  <footer class="portal-footer muted">
+    <span>HOME <code>:3990</code></span>
+    <span aria-hidden="true">·</span>
     <a href="https://github.com/IbyEll/PortalAdmin">GitHub</a>
   </footer>
 

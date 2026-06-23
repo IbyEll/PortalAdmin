@@ -52,11 +52,12 @@
 
 import "../lib/portal.load.env.mjs";
 import { fetchJiraBacklog } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
-import { JLO_WORKING_PLAN } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { getWorkingPlan } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { resolveJiraBoardId } from "../lib/project.config.mjs";
 
 const MOVE_BATCH_SIZE = 50;
 
-const BOARD_ID = Number(process.env.JIRA_BOARD_ID ?? 68);
+const BOARD_ID = resolveJiraBoardId();
 const CLOUD_ID = process.env.JIRA_CLOUD_ID ?? "3caddd74-469e-4ca3-adf8-926f79c98e7c";
 const SITE = process.env.JIRA_SITE ?? "myfuturejobsearch.atlassian.net";
 const API_BASE = `https://api.atlassian.com/ex/jira/${CLOUD_ID}`;
@@ -170,7 +171,7 @@ const SPRINT_META = [
 
 /** @type {typeof SPRINT_META[number] & { issues: string[] }[]} */
 const SPRINTS = SPRINT_META.map((meta) => {
-  const block = JLO_WORKING_PLAN.find((row) => row.sprint === meta.n);
+  const block = getWorkingPlan().find((row) => row.sprint === meta.n);
 
   return {
     ...meta,

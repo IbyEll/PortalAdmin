@@ -14,7 +14,7 @@
  *   - buildRepoAlignMap e inspectRepoSignal riusati dal working plan e da JiraCORE gap analysis
  *
  * Generalizzazione:
- *   Si — JIRA_PROJECT_KEYS e REPO_IMPLEMENTATION_SIGNALS da jira.project.config.overlay.mjs; piano sprint via JLO_WORKING_PLAN.
+ *   Si — JIRA_PROJECT_KEYS e REPO_IMPLEMENTATION_SIGNALS da jira.project.config.overlay.mjs; piano sprint via getWorkingPlan().
  *
  * Input:
  *   - JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS — overlay progetto attivo
@@ -40,7 +40,7 @@ import { join } from "node:path";
 
 import { REPO_ROOT } from "../lib/test.catalog.mjs";
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone, isStoryLikeType } from "./cruscotto.jira.backlog.mjs";
-import { JLO_WORKING_PLAN, boardKeysForWorkingPlanBlock, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
+import { boardKeysForWorkingPlanBlock, getWorkingPlan, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
 import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
 import { scanRepoJiraReferences, truncateIssueSummary } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { LATEST_JSON } from "../lib/reporter.mjs";
@@ -205,7 +205,7 @@ export function getCorrelatedOpenKeys(issues, epicKey) {
     }
   }
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     if (!block.keys.includes(epicKey)) {
       continue;
     }
@@ -513,7 +513,7 @@ export function buildBacklogInsights(issues, at = new Date().toISOString(), opti
     }
   }
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     /** @type {typeof issues} */
     const inSprint = [];
 
@@ -718,7 +718,7 @@ export function buildInsightSnapshot(issues, boardSprintKeysByPlanName = {}, rep
   /** @type {Record<string, { done: number, total: number, openKeys: string[], keys: string[] }>} */
   const sprints = {};
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     const keys = mergeWorkingSprintKeys(
       block.keys
     , boardKeysForWorkingPlanBlock(boardSprintKeysByPlanName, block.name)
@@ -755,7 +755,7 @@ export function buildInsightSnapshot(issues, boardSprintKeysByPlanName = {}, rep
   /** @type {string | null} */
   let firstOpenKey = null;
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     for (const key of block.keys) {
       const row = byKey.get(key);
 
@@ -861,7 +861,7 @@ export function isInsightStillValid(insight, snapshot) {
     return !snapshot.report.generatedAt;
   }
 
-  if (text.startsWith("Piano Jira Working") || text.startsWith("Scansione repo")) {
+  if (text.startsWith("Piano sprint") || text.startsWith("Scansione repo")) {
     const backlogMatch = text.match(/(\d+) issue backlog/)
       ?? text.match(/(\d+) issue nel backlog Jira/);
     const legacyMatch = text.match(/(\d+) issue Jira/)

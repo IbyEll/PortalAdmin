@@ -26,8 +26,8 @@
  *
  * Consumatori:
  *   - cruscotto.jira.backlog.mjs — applyDevOrder su fetchJiraBacklog
- *   - cruscotto.jira.backlog.insights.mjs, working.insights.mjs — boardKeysForWorkingPlanBlock
- *   - cruscotto.jira.working.plan.mjs, project.tree.plan.mjs — piano UI
+ *   - cruscotto.jira.backlog.insights.mjs — boardKeysForWorkingPlanBlock
+ *   - cruscotto.jira.backlog.html, my-backlog.html — colonna devOrder / devSprint
  *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/sync-repo-catalog.mjs — tooling sprint e catalogo
  *   - cruscotto.database/load-backlog.mjs — normalizeSprintLabel
  *
@@ -36,6 +36,24 @@
  *   - applyDevOrder, mergeWorkingSprintKeys, normalizeSprintLabel — ordine e sprint
  *   - isSprint6ObsoleteIssue, sprint6ObsoleteKeySet — policy sprint 6
  */
+
+import { getWorkingPlanOverlayMeta } from "../lib/overlay/working.plan.overlay.mjs";
+
+import {
+  JLO_SPRINT_6_BOARD_NOISE
+, JLO_SPRINT_6_OBSOLETE
+, JLO_SPRINT_6_PHASES
+, JLO_WORKING_PLAN
+, sprint6ExecutionPlanKeys
+} from "../PROJECT_JustLastOne/working.plan.data.JustLastOne.mjs";
+
+export {
+  JLO_SPRINT_6_BOARD_NOISE
+, JLO_SPRINT_6_OBSOLETE
+, JLO_SPRINT_6_PHASES
+, JLO_WORKING_PLAN
+, sprint6ExecutionPlanKeys
+};
 
 /**
  * @typedef {{
@@ -52,77 +70,6 @@
  * }} SprintExecutionPhase
  */
 
-/** Ordine esecuzione Sprint 6 — allineato a jira.project.tree.html `sprint6-order`. */
-/** @type {SprintExecutionPhase[]} */
-export const JLO_SPRINT_6_PHASES = [
-  {
-    label : "Fase 0 — Social"
-  , roots : [
-      {
-        key       : "JLO-507"
-      , subtasks  : ["JLO-524", "JLO-525", "JLO-616", "JLO-526"]
-      }
-    ]
-  }
-, {
-    label : "Fase 1 — Feed"
-  , roots : [
-      {
-        key       : "JLO-533"
-      , subtasks  : ["JLO-544", "JLO-545", "JLO-546"]
-      }
-    ]
-  }
-, {
-    label : "Fase 2 — Gamebook"
-  , roots : [
-      {
-        key       : "JLO-952"
-      , subtasks  : ["JLO-953", "JLO-955", "JLO-954", "JLO-956", "JLO-957", "JLO-958"]
-      }
-    ]
-  }
-, {
-    label : "Fase 3 — Chat DM"
-  , roots : [
-      {
-        key       : "JLO-290"
-      , subtasks  : ["JLO-291", "JLO-295", "JLO-293", "JLO-292", "JLO-296", "JLO-297", "JLO-294"]
-      }
-    ]
-  }
-, {
-    label : "Fase 4 — Chat lobby"
-  , roots : [
-      {
-        key       : "JLO-299"
-      , subtasks  : ["JLO-301", "JLO-303", "JLO-300", "JLO-304", "JLO-302", "JLO-305", "JLO-306"]
-      }
-    ]
-  }
-];
-
-/**
- * Chiavi piano Sprint 6 in ordine esecuzione (story + subtask esplicite).
- * @returns {string[]}
- */
-export function sprint6ExecutionPlanKeys() {
-  /** @type {string[]} */
-  const keys = [];
-
-  for (const phase of JLO_SPRINT_6_PHASES) {
-    for (const root of phase.roots) {
-      keys.push(root.key);
-
-      if (root.subtasks) {
-        keys.push(...root.subtasks);
-      }
-    }
-  }
-
-  return keys;
-}
-
 /**
  * @typedef {{
  *   key: string,
@@ -131,52 +78,6 @@ export function sprint6ExecutionPlanKeys() {
  * }} SprintObsoleteEntry
  */
 
-/** Duplicati / legacy Sprint 6 — scope in JLO-952 o fuori piano Fase 0–4. */
-/** @type {SprintObsoleteEntry[]} */
-export const JLO_SPRINT_6_OBSOLETE = [
-  {
-    key        : "JLO-446"
-  , replacedBy : "JLO-953"
-  , reason     : "Shell UI Gamebook → story JLO-952"
-  }
-, {
-    key        : "JLO-447"
-  , replacedBy : "JLO-954"
-  , reason     : "Upload immagine → story JLO-952"
-  }
-, {
-    key        : "JLO-448"
-  , replacedBy : "JLO-957"
-  , reason     : "Share feed amici → story JLO-952"
-  }
-, {
-    key        : "JLO-539"
-  , replacedBy : "JLO-290"
-  , reason     : "Real-time OneNote — sostituito da chat REST JLO-290/299"
-  }
-, {
-    key        : "JLO-307"
-  , replacedBy : "JLO-773"
-  , reason     : "Notifiche inviti partita — epic Sprint 4 Notifiche"
-  }
-, {
-    key        : "JLO-313"
-  , replacedBy : "JLO-773"
-  , reason     : "Notifiche tornei — epic Sprint 4 Notifiche"
-  }
-];
-
-/** Epic / issue sul board Jira ma non nel piano esecuzione (contenitori o sprint errato). */
-export const JLO_SPRINT_6_BOARD_NOISE = [
-  "JLO-445"
-, "JLO-4"
-, "JLO-3"
-, "JLO-849"
-];
-
-/**
- * @returns {Set<string>}
- */
 export function sprint6ObsoleteKeySet() {
   return new Set(JLO_SPRINT_6_OBSOLETE.map((entry) => entry.key));
 }
@@ -237,6 +138,10 @@ export function isSprint6ObsoleteIssue(key, row) {
  * @param {Array<{ key: string, tier?: string, type?: string, summary?: string, parentKey?: string | null, devOrder?: string | null, devSort?: number | null, isSprint6Obsolete?: boolean }>} issues
  */
 export function applySprint6ObsoleteDevOrder(issues) {
+  if (!getWorkingPlanOverlayMeta().sprint6Enabled) {
+    return issues;
+  }
+
   const byKey = new Map(issues.map((row) => [row.key, row]));
 
   for (const row of issues) {
@@ -271,11 +176,15 @@ export function applySprint6ObsoleteDevOrder(issues) {
  * @returns {boolean}
  */
 export function isSprint6AffiliatedRow(row) {
+  if (!getWorkingPlanOverlayMeta().sprint6Enabled) {
+    return false;
+  }
+
   if (row.devSprint === 6) {
     return true;
   }
 
-  const sprint6Name = JLO_WORKING_PLAN.find((block) => block.sprint === 6)?.name ?? "";
+  const sprint6Name = getWorkingPlan().find((block) => block.sprint === 6)?.name ?? "";
 
   if (
     sprint6Name
@@ -301,8 +210,12 @@ export function isSprint6AffiliatedRow(row) {
  * @param {Array<{ key: string, tier?: string, type?: string, summary?: string, parentKey?: string | null, devOrder?: string | null, devSprint?: number | null, devSprintName?: string | null, devSort?: number | null, jiraSprints?: Array<{ name?: string }> }>} issues
  */
 export function applySprint6TailDevOrder(issues) {
+  if (!getWorkingPlanOverlayMeta().sprint6Enabled) {
+    return issues;
+  }
+
   const planKeys     = new Set(sprint6ExecutionPlanKeys());
-  const sprint6Block = JLO_WORKING_PLAN.find((block) => block.sprint === 6);
+  const sprint6Block = getWorkingPlan().find((block) => block.sprint === 6);
   const sprint6Name  = sprint6Block?.name ?? "Sprint 6 — Chat & Gamebook";
   const planMaxSeq   = planMaxSeqForSprint(6) ?? 0;
 
@@ -392,66 +305,32 @@ export function planMaxSeqForSprint(sprint) {
   return maxPlanSeqBySprint().get(sprint) ?? null;
 }
 
-/** @type {WorkingSprintBlock[]} */
-export const JLO_WORKING_PLAN = [
-  {
-    sprint: 1,
-    name  : "Sprint 1 — Completato",
-    keys  : ["JLO-850", "JLO-851", "JLO-852", "JLO-913", "JLO-690", "JLO-922", "JLO-923"],
-  },
-  {
-    sprint: 2,
-    name  : "Sprint 2 — Fase 0",
-    keys  : ["JLO-97", "JLO-247", "JLO-637", "JLO-846", "JLO-924"],
-  },
-  {
-    sprint: 3,
-    name  : "Sprint 3 — Admin MVP",
-    keys  : ["JLO-849", "JLO-930", "JLO-931", "JLO-932", "JLO-933"],
-  },
-  {
-    sprint: 4,
-    name  : "Sprint 4 — Notifiche",
-    keys  : [
-      "JLO-773",
-      "JLO-774",
-      "JLO-779",
-      "JLO-780",
-      "JLO-781",
-      "JLO-775",
-      "JLO-784",
-      "JLO-785",
-      "JLO-786",
-      "JLO-776",
-      "JLO-711",
-    ],
-  },
-  {
-    sprint: 5,
-    name  : "Sprint 5 — Tornei",
-    keys  : ["JLO-3", "JLO-100", "JLO-103", "JLO-256", "JLO-257", "JLO-500"],
-  },
-  {
-    sprint: 6,
-    name  : "Sprint 6 — Chat & Gamebook",
-    keys  : sprint6ExecutionPlanKeys(),
-  },
-  {
-    sprint: 7,
-    name  : "Sprint 7 — Sblocco",
-    keys  : ["JLO-552", "JLO-886", "JLO-847", "JLO-696", "JLO-887", "JLO-848"],
-  },
-  {
-    sprint: 8,
-    name  : "Sprint 8 — Release",
-    keys  : ["JLO-6", "JLO-872", "JLO-871", "JLO-121"],
-  },
-  {
-    sprint: 9,
-    name  : "Sprint 9 — Plus",
-    keys  : ["JLO-873", "JLO-875", "JLO-876", "JLO-874", "JLO-95", "JLO-695"],
-  },
-];
+/**
+ * Piano working attivo per overlay attivo (PRJ_NAME).
+ *
+ * @returns {WorkingSprintBlock[]}
+ */
+export function getWorkingPlan() {
+  return getWorkingPlanOverlayMeta().WORKING_PLAN ?? [];
+}
+
+/**
+ * Config overlay working (catena critica, fasi, sprint 6).
+ *
+ * @returns {ReturnType<typeof getWorkingPlanOverlayMeta> & {
+ *   WORKING_PLAN: WorkingSprintBlock[],
+ *   SPRINT_6_PHASES?: import("./cruscotto.jira.working.order.mjs").SprintExecutionPhase[],
+ *   SPRINT_6_BOARD_NOISE?: string[],
+ * }}
+ */
+export function getWorkingPlanOverlay() {
+  const meta = getWorkingPlanOverlayMeta();
+
+  return {
+    ...meta,
+    WORKING_PLAN: meta.WORKING_PLAN ?? [],
+  };
+}
 
 /**
  * IssueKEY flat dal piano MVP — tooling catalogo/sprint senza dipendere dal nome export.
@@ -459,7 +338,7 @@ export const JLO_WORKING_PLAN = [
  * @returns {string[]}
  */
 export function collectWorkingPlanTicketKeys() {
-  return JLO_WORKING_PLAN.flatMap((block) => block.keys);
+  return getWorkingPlan().flatMap((block) => block.keys);
 }
 
 /**
@@ -480,7 +359,7 @@ function sprintNameByNumber() {
   /** @type {Map<number, string>} */
   const map = new Map();
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     map.set(block.sprint, block.name);
   }
 
@@ -494,7 +373,7 @@ function maxPlanSeqBySprint() {
   /** @type {Map<number, number>} */
   const map = new Map();
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     map.set(block.sprint, block.keys.length);
   }
 
@@ -516,7 +395,7 @@ export function buildDevOrderMap() {
   /** @type {Map<string, DevOrderInfo>} */
   const map = new Map();
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     block.keys.forEach((key, index) => {
       if (map.has(key)) {
         return;
@@ -813,7 +692,7 @@ export const JLO_EPIC_LEGACY_SPRINT_PINS = [
 function resolveJiraSprintBucket(name) {
   const normalized = normalizeSprintLabel(name);
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     if (normalizeSprintLabel(block.name) === normalized) {
       return {
         sprint    : block.sprint

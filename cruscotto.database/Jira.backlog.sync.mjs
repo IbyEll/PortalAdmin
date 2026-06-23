@@ -1,20 +1,38 @@
 /**
- * Persiste snapshot fetchJiraBacklog nel SQLite cruscotto (ADMIN-82 / ADMIN-142).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Persiste snapshot fetchJiraBacklog nel SQLite cruscotto (cache backlog Jira).
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - backlog.html e load Jira devono usare cache locale, non API a ogni richiesta
+ *   - backlog.html e load Jira devono usare cache locale, non API Atlassian a ogni richiesta.
  *
  *   A cosa serve:
- *   - wipe sync_run precedenti, upsert sprint/issue/plan keys da fetch live
+ *   - Wipe sync_run precedenti, upsert sprint, issue e plan keys da fetch live.
+ *
+ * Generalizzazione:
+ *   Si — path DB da overlay PRJ_NAME; fetch da cruscotto.jira.backlog.mjs condiviso.
+ *
+ * Input:
+ *   - CRUSCOTTO_DB_PATH — file SQLite cruscotto overlay
+ *   - credenziali Jira — env per fetchJiraBacklog live
  *
  * Consumatori:
  *   - admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs — syncJiraBacklogFromApi dopo migrate
  *
  * Export principali:
  *   - syncJiraBacklogSnapshot — scrive da oggetto backlog già fetchato
- *   - syncJiraBacklogFromApi — fetch Jira + persist
+ *   - syncJiraBacklogFromApi — fetch Jira e persist in SQLite
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";

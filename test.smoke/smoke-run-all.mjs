@@ -1,13 +1,46 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-92 — run-all discovery da PortalAdmin root.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-92 run-all discovery --list
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke run-all — discovery --list da PortalAdmin root e REPORTS_DIR.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Verifica che run-all trovi almeno uno script testScript nel product repo attivo.
+ *
+ *   A cosa serve:
+ *   - Spawn runner/run-all.mjs --list e controlla stdout e path reports sotto portal.
+ *
+ * Generalizzazione:
+ *   Si — requireTestScriptDir e env product da overlay PRJ_NAME.
+ *
+ * Input:
+ *   - PRODUCT_REPO_PATH — product con directory testScript
+ *
+ * Uso:
+ *   - node test.smoke/smoke-run-all.mjs
+ *
+ * Exit code:
+ *   0 — almeno 1 script in discovery e REPORTS_DIR valido
+ *   1 — exit code child o discovery vuota
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { requireTestScriptDir } from "../lib/portal-paths.mjs";
+import { requireTestScriptDir } from "../lib/portal.paths.resolver.mjs";
 import { REPORTS_DIR } from "../lib/reporter.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");

@@ -1,6 +1,40 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-99 — cruscotto DB path, migrate, loadJiraBacklog fallback.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-99 cruscotto DB migrate e load backlog
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke cruscotto DB — path overlay, migrate temp e loadJiraBacklog fallback.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Cache backlog SQLite per overlay deve avere path, migrate e load coerenti prima del sync Jira.
+ *
+ *   A cosa serve:
+ *   - Verifica layout PROJECT_{overlay}/cruscotto_{overlay}.db, migrate su DB temp e backlog null.
+ *
+ * Generalizzazione:
+ *   Si — PRJ_NAME e CRUSCOTTO_DB_PATH override per test migrate isolato.
+ *
+ * Input:
+ *   - PRJ_NAME — overlay per expectedRel path DB
+ *   - CRUSCOTTO_DB_PATH — override temporaneo su mkdtemp per migrate smoke
+ *
+ * Uso:
+ *   - node test.smoke/smoke-cruscotto-db.mjs
+ *
+ * Exit code:
+ *   0 — layout, migrate e load null su DB vuoto ok
+ *   1 — path, migrate o load incoerenti
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
@@ -16,7 +50,7 @@ import {
 , resolveCruscottoDbPath
 } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { loadJiraBacklogFromDb } from "../admin.portal.JiraCORE/jiraCORE.backlog.load.mjs";
-import { getPortalRoot } from "../lib/portal-paths.mjs";
+import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 import { resolveProjectOverlayName } from "../lib/project.config.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");

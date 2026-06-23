@@ -38,13 +38,22 @@
 
   /** @param {Record<string, unknown>} project */
   function templateVars(project) {
+    const displayName = String(
+      project.projectDisplayName
+      ?? project.repoName
+      ?? project.overlayName
+      ?? ""
+    );
+
     return {
-      repoName     : String(project.repoName ?? "")
-    , repoFolder   : String(project.repoFolder ?? "")
-    , jiraPrefix   : String(project.jiraPrefix ?? "")
-    , slug         : String(project.slug ?? "")
-    , dbFilename   : String(project.dbFilename ?? "")
-    , overlayName  : String(project.overlayName ?? "")
+      repoName            : String(project.repoName ?? "")
+    , projectDisplayName  : displayName
+    , repoFolder          : String(project.repoFolder ?? "")
+    , jiraPrefix          : String(project.jiraPrefix ?? "")
+    , jiraBoardUrl        : String(project.jiraBoardUrl ?? "")
+    , slug                : String(project.slug ?? "")
+    , dbFilename          : String(project.dbFilename ?? "")
+    , overlayName         : String(project.overlayName ?? "")
     };
   }
 
@@ -65,16 +74,16 @@
       document.title = titles.myBacklog;
     }
 
-    if (titles?.working && /Jira Working/i.test(document.title)) {
-      document.title = titles.working;
-    }
-
     if (titles?.projectTree && /Project Tree/i.test(document.title)) {
       document.title = titles.projectTree;
     }
 
     if (titles?.pillarMatrix && /Matrice pilastri/i.test(document.title)) {
       document.title = titles.pillarMatrix;
+    }
+
+    if (titles?.myProject && /My Project/i.test(document.title)) {
+      document.title = titles.myProject;
     }
   }
 
@@ -99,6 +108,11 @@
         } else {
           el.textContent = value;
         }
+        return;
+      }
+
+      if (bindKey === "href") {
+        el.setAttribute("href", interpolate(template, vars));
       }
     });
 
@@ -108,8 +122,17 @@
   /** @param {Record<string, unknown>} project */
   function publish(project) {
     window.CRUSCOTTO_PROJECT = project;
-    applyDomBindings(project);
-    document.dispatchEvent(new CustomEvent("cruscotto:project-ready", { detail: project }));
+
+    const finish = () => {
+      applyDomBindings(project);
+      document.dispatchEvent(new CustomEvent("cruscotto:project-ready", { detail: project }));
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", finish, { once: true });
+    } else {
+      finish();
+    }
   }
 
   const injected = window.__CRUSCOTTO_PROJECT__;

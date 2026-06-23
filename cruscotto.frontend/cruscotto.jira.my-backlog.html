@@ -1521,13 +1521,7 @@
       <h1 data-cruscotto-bind="text" data-cruscotto-template="MyBacklog {jiraPrefix}">MyBacklog</h1>
       <p class="meta">
         Vista Epic · Sprint · Pilastri ·
-        <a href="https://myfuturejobsearch.atlassian.net/jira/software/projects/JLO/boards/68">Board</a> ·
-        <a href="/backlog.html">Backlog Jira</a> ·
-        <a href="/my-backlog.html"><strong>MyBacklog</strong></a> ·
-        <a href="/jira-working.html">Jira Working</a> ·
-        <a href="/jira-project-tree.html">Project Tree</a> ·
-        <a href="/my-project.html">My Project</a> ·
-        <a href="/pillar-matrix/cruscotto.pillar.index.html">Matrice pilastri</a>
+        <a data-cruscotto-bind="href" data-cruscotto-template="{jiraBoardUrl}">Board</a>
       </p>
     </header>
 
@@ -1717,7 +1711,7 @@
     </div>
 
     <footer>
-      Vista Epic o Sprint · ordine da <a href="/jira-working.html">Jira Working</a> · check subtask in <code>localStorage</code> ·
+      Vista Epic o Sprint · ordine da piano sprint · check subtask in <code>localStorage</code> ·
       insight in <code>jlo-my-backlog-insights-v1</code> · API <code>/api/jira/backlog/insights</code>
     </footer>
   </div>
@@ -4215,8 +4209,8 @@
       }
 
       return row.devSprint
-        ? `Sprint ${row.devSprint} — epic ${row.devOrder?.split(".")[0] ?? "—"} · piano Jira Working`
-        : "Fuori dal piano Jira Working";
+        ? `Sprint ${row.devSprint} — epic ${row.devOrder?.split(".")[0] ?? "—"} · piano piano sprint`
+        : "Fuori dal piano piano sprint";
     }
 
     /**
@@ -5409,10 +5403,10 @@
           devTd.classList.add("is-empty");
           devTd.title = row.devSprint
             ? `Epic in sprint ${row.devSprint} — vedi colonna Sprint`
-            : "Fuori dal piano Jira Working";
+            : "Fuori dal piano piano sprint";
         } else if (row.tier === "sprint") {
           devTd.textContent = devOrderCellLabel(row);
-          devTd.title = "Numero sprint · piano Jira Working";
+          devTd.title = "Numero sprint · piano piano sprint";
         } else if (row.tier === "pillar") {
           devTd.textContent = "—";
           devTd.classList.add("is-empty");
@@ -5456,14 +5450,14 @@
 
         if (row.tier === "sprint" && row.devSprintName) {
           sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano Jira Working`;
+          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
         } else if (row.tier === "pillar") {
           sprintTd.textContent = "—";
           sprintTd.classList.add("is-empty");
           sprintTd.title = "Raggruppamento per pilastro prodotto";
         } else if (row.tier === "task" && row.devSprintName) {
           sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano Jira Working`;
+          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
         } else {
           sprintTd.textContent = "—";
           sprintTd.classList.add("is-empty");

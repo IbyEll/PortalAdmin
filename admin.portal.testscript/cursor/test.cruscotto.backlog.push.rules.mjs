@@ -1,5 +1,40 @@
 /**
- * Regole visibilità bottone PUSH — step 8 workflow database (jira_issue_wip).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Regole visibilità bottone PUSH — step 8 workflow database (jira_issue_wip).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - UI backlog e test condividono logica quando mostrare PUSH e come parsare comando utente.
+ *
+ *   A cosa serve:
+ *   - isAwaitingPushWip, buildPushCommand, parsePushApiRequest per markup HTML e API.
+ *
+ * Generalizzazione:
+ *   Si — key ADMIN e JLO; stato wip da fetchWipStatusByKeys generico.
+ *
+ * Input:
+ *   - wip object — WipStatusEntry da API o mock test
+ *   - issueKey — ticket parent o subtask
+ *
+ * Consumatori:
+ *   - admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs — assert regole
+ *   - cruscotto.frontend/cruscotto.jira.backlog.html — render bottone PUSH
+ *
+ * Export principali:
+ *   - buildPushCommand, isValidPushIssueKey — comando e validazione key
+ *   - isAwaitingPushWip, resolveWipPrUrl — visibilità PUSH e link PR
+ *   - parsePushApiRequest — body POST push workflow
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 /**

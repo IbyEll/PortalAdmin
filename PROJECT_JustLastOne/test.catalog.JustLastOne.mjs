@@ -1,5 +1,38 @@
 /**
- * Policy catalogo testScript JustLastOne — solo blocked/excluded (discovery in lib/test.catalog.mjs).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *     Policy catalogo testScript JustLastOne — blocked ed excluded per discovery.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Suite testScript JLO ha script blocked o esclusi da run-all per dipendenze o API assenti.
+ *
+ *   A cosa serve:
+ *   - BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS e BLOCKED_REASONS per lib/test.catalog.mjs.
+ *
+ * Generalizzazione:
+ *   No — policy fissa path relativi testScript product JustLastOne.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - lib/test.catalog.mjs — loadOverlayPolicy quando PRJ_NAME=JustLastOne
+ *
+ * Export principali:
+ *   - BLOCKED_SCRIPTS — Set path non eseguibili
+ *   - EXCLUDED_SCRIPTS — Set path fuori discovery default
+ *   - BLOCKED_REASONS — messaggio per UI cruscotto
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 export const BLOCKED_SCRIPTS = new Set([

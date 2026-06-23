@@ -1,9 +1,39 @@
 #!/usr/bin/env node
 /**
- * Worker Cursor Agent — esegue Agent.create/resume in processo figlio (SDK @cursor/sdk).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
  *
- * Uso interno: admin.portal/cursor.agent.manager.mjs — spawn con --job <path.json>
- * Stdout: una riga JSON per evento (log, meta, done).
+ * ************************************************************************************************************************
+ *              Worker Cursor Agent — Agent.create/resume in processo figlio SDK @cursor/sdk.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - SDK Cursor può bloccare o crashare il processo; isolamento in child da portal.cursor.agent.manager.
+ *
+ *   A cosa serve:
+ *   - Legge job JSON, esegue agent, emette eventi log/meta/done su stdout una riga JSON.
+ *
+ * Generalizzazione:
+ *   No — invocazione interna con --job path; non entrypoint utente diretto.
+ *
+ * Input:
+ *   - argv --job — path file JSON job spawnato dal manager
+ *   - CURSOR_API_KEY — env nel child
+ *
+ * Uso:
+ *   - spawn interno da portal.cursor.agent.manager.mjs
+ *
+ * Exit code:
+ *   0 — job completato
+ *   1 — errore SDK o job file invalido
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { readFile, unlink } from "node:fs/promises";

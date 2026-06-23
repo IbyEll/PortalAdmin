@@ -1,6 +1,39 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-112 — dashboard-server :3999 + static index/backlog.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-112 dashboard-server static e health
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke dashboard — cruscotto.server health e pagine statiche index/backlog.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Regressione rapida su cruscotto HTTP senza aprire browser manuale dopo refactor server.
+ *
+ *   A cosa serve:
+ *   - Spawn opzionale cruscotto.server, fetch /api/health e HTML principali con body minimo.
+ *
+ * Generalizzazione:
+ *   Si — DASHBOARD_PORT env per listener; riusa server già up se health ok.
+ *
+ * Input:
+ *   - DASHBOARD_PORT — porta HTTP cruscotto (default 3999)
+ *
+ * Uso:
+ *   - node test.smoke/smoke-dashboard.mjs
+ *
+ * Exit code:
+ *   0 — health e pagine statiche raggiungibili
+ *   1 — fetch fallito o body troppo corto
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";

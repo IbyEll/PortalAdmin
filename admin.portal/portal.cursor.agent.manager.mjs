@@ -1,5 +1,38 @@
 /**
- * Orchestrazione Cursor Agent — spawn worker SDK, log incrementali e stato persistente.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Orchestrazione Cursor Agent — spawn worker SDK, log incrementali e stato persistente.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Cursor agent cruscotto deve avviare agent SDK senza bloccare il server HTTP.
+ *
+ *   A cosa serve:
+ *   - Spawn worker figlio, stream log JSON, persistenza stato job su file admin.portal.
+ *
+ * Generalizzazione:
+ *   Si — prompt e runtime da body API; repo da getCursorLocalCwd e cloud repos config.
+ *
+ * Input:
+ *   - CURSOR_API_KEY — autenticazione SDK
+ *   - body HTTP prompt — testo agent e opzionale resume agent id
+ *
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.server.mjs — POST /api/cursor/agent/run
+ *
+ * Export principali:
+ *   - startCursorAgent — avvia worker SDK e job id
+ *   - getCursorAgentStatus, getCursorAgentLogs — stato e log incrementali per UI
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";
@@ -24,7 +57,7 @@ import {
 , buildWorkflowStartBlock
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
-import { getPortalRoot } from "../lib/portal-paths.mjs";
+import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 

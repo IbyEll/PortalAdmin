@@ -595,16 +595,8 @@
 <body>
   <div class="page">
     <header>
-      <h1>My Project</h1>
-      <p class="meta">
-        Analisi indipendente repository vs Jira (JLO) ·
-        <a href="/">Cruscotto</a> ·
-        <a href="/backlog.html">Backlog</a> ·
-        <a href="/jira-working.html">Jira Working</a> ·
-        <a href="/jira-project-tree.html">Project Tree</a> ·
-        <a href="/pillar-matrix/cruscotto.pillar.index.html">Matrice pilastri</a> ·
-        <a href="https://myfuturejobsearch.atlassian.net/jira/software/projects/JLO/boards/68">Board JLO</a>
-      </p>
+      <h1 data-cruscotto-bind="text" data-cruscotto-template="My Project — {repoName}">My Project</h1>
+      <p class="meta" data-cruscotto-bind="html" data-cruscotto-template="Analisi indipendente repository vs Jira ({jiraPrefix}) · &lt;a href=&quot;{jiraBoardUrl}&quot;&gt;Board {jiraPrefix}&lt;/a&gt;"></p>
     </header>
 
     <div class="toolbar">
@@ -628,7 +620,7 @@
     <footer>
       API: <code>GET /api/my-project/analyze</code> ·
       Logica: <code>lib/JustLastOne___my-project-analysis.mjs</code> ·
-      Nessun legame con insight Backlog / Jira Working.
+      Nessun legame con insight Backlog / piano sprint.
     </footer>
   </div>
 

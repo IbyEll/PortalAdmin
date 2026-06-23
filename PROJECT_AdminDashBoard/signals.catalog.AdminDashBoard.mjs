@@ -1,5 +1,37 @@
 /**
- * Segnali implementazione repo — overlay AdminDashBoard (ADMIN-*).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Segnali implementazione repo — overlay AdminDashBoard (ticket ADMIN-*).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Chiudi story e gap analysis richiedono catalogo path/test per ticket ADMIN nel repo host.
+ *
+ *   A cosa serve:
+ *   - Elenco PRODUCT_REPO_SIGNALS aggregato in jira.project.config overlay per close-story.
+ *
+ * Generalizzazione:
+ *   No — segnali path fissi su codebase PortalAdmin e ticket ADMIN.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - admin.portal.JiraCORE/jira.project.config.overlay.mjs — REPO_IMPLEMENTATION_SIGNALS
+ *   - admin.portal.JiraCORE/jiraCORE.close.story.mjs — aggiornamento catalogo in chiusura
+ *
+ * Export principali:
+ *   - PRODUCT_REPO_SIGNALS — array key, label, paths, tests opzionali
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 export const PRODUCT_REPO_SIGNALS = [
   {
