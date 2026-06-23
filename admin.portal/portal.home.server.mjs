@@ -34,7 +34,7 @@
  *   - POST /api/portal/instance — activatePortalInstance
  *   - POST /api/portal/open-cruscotto — spawn admin.portal/portal.dashboard.launch.mjs
  *   - POST /api/portal/start-cruscotto — avvio cruscotto senza browser
- *   - POST /api/portal/kill-cruscotto — termina listener sulla porta overlay
+ *   - POST /api/portal/kill-cruscotto — termina cruscotto e rimuove istanza overlay
  *   - GET  /api/portal/node-processes — elenco processi node product + PortalAdmin
  *   - POST /api/portal/kill-node-process — termina pid o tutti i processi elencati
  *   - POST /api/portal/open-cruscotto-browser — openSystemBrowser
@@ -64,18 +64,19 @@ import { fileURLToPath } from "node:url";
 
 import {
   activatePortalInstance
+, deactivatePortalInstance
 , getPortalInstance
 , getPortalInstances
+, getDashboardStatus
 , getPrepareStatus
 , listAvailableProjects
 , readInstanceForOverlay
+, startPortalDashboard
 } from "../lib/portal.instance.mjs";
 import {
   isFullDashboardUp
-, killDashboardOnPort
 , openSystemBrowser
 , resolveCruscottoUrl
-, spawnDashboardLauncher
 } from "../lib/portal.launch.dashboard.mjs";
 import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
@@ -345,14 +346,20 @@ async function handleApi(req, res, urlPath) {
       const overlayQ  = query.get("overlay")?.trim() || undefined;
       const ctx         = await getPortalInstance(overlayQ);
       const prepare     = getPrepareStatus(overlayQ ?? ctx.instance?.overlay);
+      const dashboard   = getDashboardStatus(overlayQ ?? ctx.instance?.overlay);
 
       sendJson(res, 200, {
         instance   : ctx.instance
-          ? { ...ctx.instance, prepare: prepare ?? ctx.instance.prepare }
+          ? {
+              ...ctx.instance
+            , prepare   : prepare ?? ctx.instance.prepare
+            , dashboard : dashboard ?? ctx.instance.dashboard ?? null
+            }
           : null
       , instances  : ctx.instances.map((row) => ({
           ...row
-        , prepare: getPrepareStatus(row.overlay) ?? row.prepare
+        , prepare   : getPrepareStatus(row.overlay) ?? row.prepare
+        , dashboard : getDashboardStatus(row.overlay) ?? row.dashboard ?? null
         }))
       , envPrjName : ctx.envPrjName
       , aligned    : ctx.aligned
@@ -432,19 +439,16 @@ async function handleApi(req, res, urlPath) {
         return;
       }
 
-      spawnDashboardLauncher({
-        port
-      , overlay
-      , productRepoPath : instance.productRepoPath
-      , openPath        : "/app.html#overview"
-      });
+      const launch = await startPortalDashboard(overlay);
 
       sendJson(res, 200, {
-        ok       : true
-      , starting : true
+        ok             : true
+      , alreadyRunning : launch.alreadyRunning === true
+      , starting       : launch.starting === true
       , url
       , port
       , overlay
+      , pid            : launch.pid ?? null
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -494,20 +498,16 @@ async function handleApi(req, res, urlPath) {
         return;
       }
 
-      spawnDashboardLauncher({
-        port
-      , overlay
-      , productRepoPath : instance.productRepoPath
-      , openPath        : "/app.html#overview"
-      , openBrowser     : false
-      });
+      const launch = await startPortalDashboard(overlay);
 
       sendJson(res, 200, {
-        ok       : true
-      , starting : true
+        ok             : true
+      , alreadyRunning : launch.alreadyRunning === true
+      , starting       : launch.starting === true
       , url
       , port
       , overlay
+      , pid            : launch.pid ?? null
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -517,7 +517,7 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  // 6c. Kill cruscotto sulla porta dedicata overlay
+  // 6c. Kill cruscotto e disattiva istanza overlay
   if (urlPath === "/api/portal/kill-cruscotto" && req.method === "POST") {
     try {
       const body    = await readJsonBody(req);
@@ -528,27 +528,21 @@ async function handleApi(req, res, urlPath) {
         return;
       }
 
-      const instance = readInstanceForOverlay(overlay);
-
-      if (!instance) {
-        sendJson(res, 404, { error: `istanza non trovata per ${overlay}` }, req);
-        return;
-      }
-
-      const port   = instance.dashboardPort;
-      const result = killDashboardOnPort(port);
+      const result = await deactivatePortalInstance(overlay);
 
       sendJson(res, 200, {
-        ok      : true
-      , port
-      , overlay
-      , killed  : result.killed
-      , failed  : result.failed
-      , running : await isFullDashboardUp(port)
+        ok          : true
+      , port        : result.port
+      , overlay     : result.overlay
+      , killed      : result.killed
+      , failed      : result.failed
+      , deactivated : result.deactivated
+      , running     : await isFullDashboardUp(result.port)
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 500, { error: message }, req);
+      const status  = /non trovata/i.test(message) ? 404 : 500;
+      sendJson(res, status, { error: message }, req);
     }
 
     return;

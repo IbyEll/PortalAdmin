@@ -312,11 +312,8 @@ body {
 
 
 
-.cruscotto-main:has(#section-jiraworking:not(.hidden)),
 .cruscotto-main:has(#section-jiraproject:not(.hidden)),
-.cruscotto-main:has(#section-backlog:not(.hidden)),
-.cruscotto-main:has(#section-jiraworkingold:not(.hidden)),
-.cruscotto-main:has(#section-myproject:not(.hidden)) {
+.cruscotto-main:has(#section-backlog:not(.hidden)) {
 
   padding: 0;
 
@@ -348,11 +345,8 @@ body {
 
 
 
-#section-jiraworking,
 #section-jiraproject,
-#section-backlog,
-#section-jiraworkingold,
-#section-myproject {
+#section-backlog {
 
   min-height: calc(100vh - 5.25rem);
 

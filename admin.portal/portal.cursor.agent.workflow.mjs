@@ -1,5 +1,38 @@
 /**
- * Workflow gogo/procedi — blocchi START/END formattati per log tab Cursor Agent.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Workflow gogo/procedi — blocchi START/END formattati per log tab Cursor Agent.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Agent tab deve riconoscere prompt gogo/procedi e arricchire log con gap analysis repo.
+ *
+ *   A cosa serve:
+ *   - parseWorkflowPrompt, buildWorkflowStartBlock e buildWorkflowEndBlock per UI agent.
+ *
+ * Generalizzazione:
+ *   Si — parentKey ADMIN o JLO; gap da jiraCORE.repo gap analysis su PRODUCT_REPO_PATH.
+ *
+ * Input:
+ *   - prompt string — testo utente gogo KEY o procedi Story KEY
+ *   - PRODUCT_REPO_PATH — root per analyzeParentForWorkflow
+ *
+ * Consumatori:
+ *   - admin.portal/portal.cursor.agent.manager.mjs — prepend START al job agent
+ *
+ * Export principali:
+ *   - parseWorkflowPrompt — estrae kind e parentKey da prompt
+ *   - buildWorkflowStartBlock, buildWorkflowEndBlock — markdown log workflow
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { execFileSync } from "node:child_process";
@@ -7,7 +40,7 @@ import { execFileSync } from "node:child_process";
 import { analyzeParentForWorkflow } from "../admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs";
 import { formatRepoAnalysisMarkdown } from "../admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs";
 import { getProjectConfig } from "../lib/project.config.mjs";
-import { getProductRepoPath } from "../lib/portal-paths.mjs";
+import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
 const RULE = "─".repeat(72);
 const JIRA_SITE = process.env.JIRA_SITE?.trim() || "myfuturejobsearch.atlassian.net";

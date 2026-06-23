@@ -1,5 +1,40 @@
 /**
- * Jira Cloud REST live — fetch autenticato, ADF da markdown, update description e transizione Fatto.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Jira Cloud REST live — fetch, ADF markdown, update description e transizione Fatto.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Workflow database step 8 PUSH e veve devono scrivere su Jira senza MCP Cursor in CI/script.
+ *
+ *   A cosa serve:
+ *   - jiraLiveFetch, syncIssueFromWipMarkdown e transitionIssueToDone via REST Atlassian.
+ *
+ * Generalizzazione:
+ *   Si — JIRA_CLOUD_ID, JIRA_EMAIL, JIRA_API_TOKEN da env; key ADMIN e JLO.
+ *
+ * Input:
+ *   - JIRA_EMAIL, JIRA_API_TOKEN — Basic auth Atlassian
+ *   - JIRA_CLOUD_ID — cloud id sito (default myfuturejobsearch)
+ *
+ * Consumatori:
+ *   - admin.portal.JiraCORE/jiraCORE.wip.push.mjs — push description e transizione parent
+ *   - admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs — fetch live complementare
+ *
+ * Export principali:
+ *   - jiraLiveFetch — wrapper fetch REST /rest/api/3
+ *   - syncIssueFromWipMarkdown — aggiorna description issue da markdown WIP
+ *   - transitionIssueToDone — transizione stato Fatto se disponibile
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import "../lib/portal.load.env.mjs";

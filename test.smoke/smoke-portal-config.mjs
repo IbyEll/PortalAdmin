@@ -1,6 +1,45 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-93 — portal.config, ADMIN keys, close-story normalizeKey.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 20:42
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 20:42   by: IbyEll
+ * modificato il: 2026-06-23 20:42   by: IbyEll
+ * ticket refirement: ADMIN-93 portal.config overlay e close-story dry-run
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke portal.config — overlay PRJ_*, manifest, segnali e normalizeKey Jira.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Regressione rapida su config overlay PortalAdmin prima di deploy o cambio PRJ_NAME.
+ *
+ *   A cosa serve:
+ *   - Verifica coerenza project.config, manifest, seed, JIRA_PROJECT_KEYS e close-story dry-run.
+ *
+ * Generalizzazione:
+ *   Si — comportamento dipende da PRJ_NAME overlay attivo (ADMIN vs JLO campioni).
+ *
+ * Input:
+ *   - PRJ_NAME — overlay da .env
+ *   - PRODUCT_REPO_PATH — path product per check PRJ_SEED se DB product
+ *
+ * Scenari verificati:
+ *   - overlayMatchesProject — PRJ_NAME allineato a project.config
+ *   - portalProductManifestExists — file PRJ_PRODUCT_MANIFEST presente
+ *   - close-story --dry-run — branch derivato da key progetto
+ *
+ * Uso:
+ *   - node test.smoke/smoke-portal-config.mjs
+ *
+ * Exit code:
+ *   0 — tutti i check passati
+ *   1 — almeno un FAIL stampato su stderr
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";
@@ -16,7 +55,7 @@ import {
 , resolveProductSeedPath
 , resolveProjectOverlayName
 } from "../lib/project.config.mjs";
-import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -78,14 +117,14 @@ if (project.PRJ_JIRA_PREFIX === "ADMIN") {
 }
 
 const refs = scanRepoJiraReferences();
-const sampleRefKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-88" : "JLO-850";
+const sampleRefKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-88" : `${project.PRJ_JIRA_PREFIX}-850`;
 const sampleRef    = refs.get(sampleRefKey);
 
 if (sampleRef?.length) {
   console.log(`  ${sampleRefKey} refs: ${sampleRef.slice(0, 2).join(", ")}`);
 }
 
-const dryKey = project.PRJ_JIRA_PREFIX === "ADMIN" ? "ADMIN-92" : "JLO-850";
+const dryKey = `${project.PRJ_JIRA_PREFIX}-92`;
 const dry    = execFileSync(
   process.execPath
 , ["admin.portal.JiraCORE/jiraCORE.close.story.mjs", "--key", dryKey, "--dry-run"]

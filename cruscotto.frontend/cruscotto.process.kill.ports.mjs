@@ -1,5 +1,39 @@
 /**
- * Termina processi in ascolto su porte TCP locali (dev stack).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Termina processi in ascolto su porte TCP locali (dev stack cruscotto).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Process deve killare listener su porte stack senza script PowerShell duplicati.
+ *
+ *   A cosa serve:
+ *   - findListeningPids e killListenersOnPort su Windows netstat e Unix lsof/fuser.
+ *
+ * Generalizzazione:
+ *   Si — porte passate come numero; cache netstat Windows per refresh multi-porta.
+ *
+ * Input:
+ *   - port — numero porta TCP locale
+ *   - pids opzionali — kill mirato se già noti
+ *
+ * Consumatori:
+ *   - lib/portal.launch.dashboard.mjs — killDashboardOnPort prima spawn cruscotto
+ *   - cruscotto.frontend/cruscotto.process.services.manager.mjs — stop-one e Kill All
+ *
+ * Export principali:
+ *   - findListeningPids — PID in ascolto su porta
+ *   - killListenersOnPort — termina processi sulla porta
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawnSync } from "node:child_process";

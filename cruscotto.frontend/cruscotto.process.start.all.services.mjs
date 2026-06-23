@@ -1,6 +1,39 @@
 #!/usr/bin/env node
 /**
- * cruscotto.process.start.all.services — avvio stack product (Auth + API + Web)
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Avvio stack product completo — Auth, API e Web (cruscotto.process.start.all).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Process e discovery avviano lo stack Nest/turbo product con un solo script runner host.
+ *
+ *   A cosa serve:
+ *   - Prepare repo, syncDatabase opzionale e spawn sequenziale servizi da devStack overlay.
+ *
+ * Generalizzazione:
+ *   Si — servizi da runner.config overlay; skip DB se projectHasProductDatabase false.
+ *
+ * Input:
+ *   - argv --prepare-only, --no-db, flag parseApiStartArgs
+ *   - PRODUCT_REPO_PATH — root monorepo product
+ *
+ * Uso:
+ *   - node cruscotto.frontend/cruscotto.process.start.all.services.mjs
+ *
+ * Exit code:
+ *   0 — stack avviato o --prepare-only completato
+ *   1 — errore prepare o spawn servizio
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";

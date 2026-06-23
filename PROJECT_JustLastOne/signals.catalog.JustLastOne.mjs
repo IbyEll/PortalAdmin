@@ -1,6 +1,37 @@
 /**
- * Segnali implementazione repo — product JustLastOne (JLO-*).
- * Aggregati in portal.config.mjs → REPO_IMPLEMENTATION_SIGNALS.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Segnali implementazione repo — product JustLastOne (ticket JLO-*).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Chiudi story e gap analysis nel product repo richiedono catalogo path per ticket JLO.
+ *
+ *   A cosa serve:
+ *   - PRODUCT_REPO_SIGNALS aggregato in portal.config per close-story workflow JLO.
+ *
+ * Generalizzazione:
+ *   No — segnali path fissi su codebase JustLastOne e prefisso JLO.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - admin.portal.JiraCORE/jira.project.config.overlay.mjs — merge segnali product
+ *   - admin.portal.JiraCORE/jiraCORE.close.story.mjs — aggiornamento catalogo chiusura
+ *
+ * Export principali:
+ *   - PRODUCT_REPO_SIGNALS — array key, label, paths, tests opzionali
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 export const PRODUCT_REPO_SIGNALS = [
   {

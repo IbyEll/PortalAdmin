@@ -41,7 +41,7 @@
  *   - BASE_REPO_SIGNALS_CATALOG_POLICY — skip path, branch, priority scan git (condivisa)
  *
  * Input loadJiraConfig:
- *   - string → productOverlay (es. JustLastOne)
+ *   - string → productOverlay (es. AdminDashBoard, JustLastOne)
  *   - object.productOverlay — obbligatorio se manca env PRJ_NAME
  *   - object.portalRoot — default root PortalAdmin (parent di PROJECT_*)
  *
@@ -127,13 +127,14 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
   ]
 , skipExactPaths         : [
     "cruscotto.frontend/cruscotto.jira.working.order.mjs"
-  , "cruscotto.frontend/cruscotto.jira.working.insights.mjs"
-  , "cruscotto.frontend/cruscotto.jira.project.tree.plan.mjs"
+  , "PARKING_tocheck/cruscotto.jira.working.insights.mjs"
+  , "PARKING_tocheck/cruscotto.jira.working.plan.mjs"
+  , "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
   , "scripts/confluence-pillar-matrix-body.html"
   , "scripts/generate-confluence-pillar-matrix.mjs"
   , "scripts/publish-confluence-pillar-matrix.mjs"
   , "lib/pillar-matrix-portal.mjs"
-  , "cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs"
+  , "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
   , "lib/pillar-matrix-regenerate.mjs"
   ]
 , skipPathPrefixes       : [
@@ -215,7 +216,7 @@ export function resolveJiraConfigInput(input) {
     throw new Error(
       [
         "jira.config — productOverlay mancante."
-      , "Passa PRJ_NAME (string), opts.productOverlay o imposta env PRJ_NAME (es. JustLastOne)."
+      , "Passa PRJ_NAME (string), opts.productOverlay o imposta env PRJ_NAME (es. AdminDashBoard)."
       ].join(" ")
     );
   }

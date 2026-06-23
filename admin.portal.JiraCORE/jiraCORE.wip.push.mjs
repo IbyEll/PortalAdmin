@@ -1,6 +1,39 @@
 #!/usr/bin/env node
 /**
- * Step 8 PUSH — sync Jira live da jira_issue_wip + close-story (PR/catalogo).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Step 8 PUSH — sync Jira live da jira_issue_wip e close-story PR/catalogo.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Workflow database chiude il ciclo veve→WIP→Jira senza Task Jira Auto manuale.
+ *
+ *   A cosa serve:
+ *   - Carica bundle WIP, sync description live, transizione Fatto e invoca close-story.
+ *
+ * Generalizzazione:
+ *   Si — --key ADMIN o JLO; flag --dry-run, --skip-jira, --skip-close.
+ *
+ * Input:
+ *   - argv --key — parent ticket in coda WIP
+ *   - JIRA_EMAIL, JIRA_API_TOKEN — REST live
+ *
+ * Uso:
+ *   - node admin.portal.JiraCORE/jiraCORE.wip.push.mjs --key ADMIN-96
+ *
+ * Exit code:
+ *   0 — push completato o dry-run ok
+ *   1 — WIP non pronto o errore Jira/close-story
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { execFileSync } from "node:child_process";

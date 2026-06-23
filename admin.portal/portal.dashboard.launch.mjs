@@ -54,7 +54,6 @@
 
 import "../lib/portal.load.env.mjs";
 
-import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,6 +62,7 @@ import {
   isFullDashboardUp
 , openSystemBrowser
 , resolveDashboardPort
+, spawnDashboardServerProcess
 } from "../lib/portal.launch.dashboard.mjs";
 import { findListeningPids } from "../cruscotto.frontend/cruscotto.process.kill.ports.mjs";
 
@@ -75,7 +75,7 @@ const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
  */
 function parseArgs(argv) {
   let port         = resolveDashboardPort();
-  let openPath     = "/app.html#overview";
+  let openPath     = "/app.html#process";
   let overlay      = process.env.PRJ_NAME?.trim() || null;
   let openBrowser  = true;
 
@@ -142,43 +142,12 @@ async function waitDashboardUp(port, maxMs = 120000) {
  * @returns {number | undefined}
  */
 function spawnDashboardProcess(port, options = {}) {
-  /** @type {NodeJS.ProcessEnv} */
-  const env = {
-    ...process.env
-  , DASHBOARD_PORT : String(port)
-  };
-
-  if (options.overlay) {
-    env.PRJ_NAME = options.overlay;
-  }
-
-  const windowTitle = options.overlay ? `PortalAdmin ${options.overlay}` : "PortalAdmin Cruscotto";
-
-  if (process.platform === "win32") {
-    // 1a. Windows — finestra cmd con npm run admin:dashboard
-    const child = spawn(
-      "cmd.exe"
-    , ["/c", "start", windowTitle, "cmd", "/k", "npm run admin:dashboard"]
-    , {
-        cwd      : PORTAL_ROOT
-      , env
-      , detached : true
-      , stdio    : "ignore"
-      }
-    );
-
-    child.unref();
-
-    return child.pid;
-  }
-
-  // 1b. Unix — spawn diretto dashboard-server.mjs
-  const serverPath = join(PORTAL_ROOT, "server", "dashboard-server.mjs");
-  const child      = spawn(process.execPath, [serverPath], {
-    cwd      : PORTAL_ROOT
-  , env
-  , detached : true
-  , stdio    : "ignore"
+  // 1. Spawn nascosto — stesso entrypoint della HOME (cruscotto.server.mjs), no finestra cmd
+  const child = spawnDashboardServerProcess({
+    port
+  , overlay         : options.overlay ?? null
+  , detached        : true
+  , stdio           : "ignore"
   });
 
   child.unref();

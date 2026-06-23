@@ -61,9 +61,84 @@ function getCruscottoProject() {
   return w.CRUSCOTTO_PROJECT ?? w.__CRUSCOTTO_PROJECT__ ?? {};
 }
 
+/**
+ * Footer Avvia product / stack completo / Kill All — solo stack Nest (web, api, auth).
+ *
+ * @returns {boolean}
+ */
+function processShowBulkStackFooter() {
+  const ids = new Set(cruscottoStackStartServiceIds());
+
+  return ids.has("web") || ids.has("api") || ids.has("auth");
+}
+
+/**
+ * @param {Record<string, unknown>} [project]
+ */
+function applySidebarProjectBrand(project) {
+  const payload = project ?? getCruscottoProject();
+  const w       = /** @type {Window & { CRUSCOTTO_PROJECT?: Record<string, unknown> }} */ (window);
+
+  if (project) {
+    w.CRUSCOTTO_PROJECT = payload;
+  }
+
+  const title = String(
+    /** @type {Record<string, string> | undefined} */ (payload.titles)?.cruscotto
+    ?? (() => {
+      const name = String(payload.projectDisplayName ?? payload.repoName ?? payload.overlayName ?? "").trim();
+      return name ? `Cruscotto ${name}` : "Cruscotto";
+    })()
+  );
+  const local = String(
+    /** @type {Record<string, string> | undefined} */ (payload.titles)?.sidebarLocal
+    ?? (() => {
+      const name = String(payload.projectDisplayName ?? payload.repoName ?? "").trim();
+      return name ? `${name} local` : "local";
+    })()
+  );
+  const brand   = document.querySelector(".sidebar-brand strong");
+  const localEl = document.querySelector(".sidebar-brand > span.muted");
+
+  if (brand) {
+    brand.textContent = title;
+  }
+
+  if (localEl) {
+    localEl.textContent = local;
+  }
+
+  if (/^Cruscotto(\s|$)/i.test(document.title) || document.title === "Cruscotto Dev") {
+    document.title = title;
+  }
+}
+
+function initSidebarBrand() {
+  applySidebarProjectBrand();
+
+  document.addEventListener("cruscotto:project-ready", (event) => {
+    const detail = /** @type {CustomEvent<Record<string, unknown>>} */ (event).detail;
+
+    if (detail && typeof detail === "object") {
+      applySidebarProjectBrand(detail);
+    }
+  });
+
+  const project = getCruscottoProject();
+
+  if (!project.projectDisplayName && !project.repoName) {
+    fetch("/api/cruscotto/project")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((payload) => applySidebarProjectBrand(/** @type {Record<string, unknown>} */ (payload)))
+      .catch(() => {
+        // bootstrap/API assenti — resta placeholder HTML
+      });
+  }
+}
+
 /** @returns {string} */
 function cruscottoJiraPrefix() {
-  return String(getCruscottoProject().jiraPrefix ?? "JLO");
+  return String(getCruscottoProject().jiraPrefix ?? "").trim();
 }
 
 /** @returns {string} */
@@ -117,9 +192,112 @@ function cruscottoDashboardPort() {
   return Number.isFinite(port) && port > 0 ? port : 3999;
 }
 
+/** @returns {string} */
+function cruscottoStackStartScriptRel() {
+  return String(
+    getCruscottoProject().stackStartScriptRel
+    ?? "cruscotto.frontend/cruscotto.process.start.all.services.mjs"
+  );
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} services
+ * @param {string} id
+ * @returns {string}
+ */
+function processServiceLabel(services, id) {
+  const row = services.find((svc) => String(svc.id ?? "") === id);
+
+  return row ? String(row.label ?? id) : id;
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} services
+ * @param {string[]} ids
+ * @returns {string}
+ */
+function formatProcessServiceList(services, ids) {
+  return ids.map((id) => processServiceLabel(services, id)).join(", ");
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} services
+ */
+function buildProcessStackFooterModel(services) {
+  const coreIds        = cruscottoStackStartServiceIds();
+  const dashboardPort  = cruscottoDashboardPort();
+  const friendbotLabel = cruscottoFriendbotLabel();
+  const coreSet        = new Set(coreIds);
+
+  const extraIds = services
+    .map((svc) => String(svc.id ?? ""))
+    .filter((id) => id && id !== "dashboard" && !coreSet.has(id));
+
+  const fullPollIds = [...new Set([...coreIds, ...extraIds])];
+
+  const killPorts = services
+    .filter((svc) => {
+      const id = String(svc.id ?? "");
+
+      return id !== "dashboard" && typeof svc.port === "number" && svc.port > 0;
+    })
+    .map((svc) => Number(svc.port))
+    .sort((a, b) => a - b);
+
+  const coreList  = formatProcessServiceList(services, coreIds);
+  const extraList = formatProcessServiceList(services, extraIds);
+
+  const coreButton = `Avvia product (${coreList})`;
+  const fullButton = extraIds.length
+    ? `Avvia stack completo (+ ${extraList})`
+    : `Avvia stack completo (${coreList})`;
+
+  /** @type {string[]} */
+  const killParts = [];
+
+  if (killPorts.length) {
+    killParts.push(`libera porte ${killPorts.join(", ")}`);
+  }
+
+  if (extraIds.includes("friendbot")) {
+    killParts.push(`termina ${friendbotLabel}`);
+  }
+
+  const killHint = killParts.length
+    ? `Kill All: ${killParts.join(" · ")} — output nella console. Il cruscotto :${dashboardPort} resta attivo.`
+    : `Kill All — output nella console. Il cruscotto :${dashboardPort} resta attivo.`;
+
+  const killConfirmMessage = [
+    `Terminare i servizi dev (${formatProcessServiceList(services, fullPollIds)})?`
+  , ""
+  , `Il cruscotto su :${dashboardPort} resta attivo. L'output sarà mostrato nella console.`
+  ].join("\n");
+
+  const stackScript = cruscottoStackStartScriptRel();
+
+  return {
+    coreIds
+  , extraIds
+  , fullPollIds
+  , coreButton
+  , fullButton
+  , killHint
+  , killConfirmMessage
+  , stopBtnTitle : `Termina ${fullPollIds.join(", ")} — non il cruscotto :${dashboardPort}`
+  , cliCommand   : `node ${stackScript}`
+  };
+}
+
 // --- router — tab, hash e meta pagina ---
-const TABS = ["overview", "requisiti", "servizi", "test", "summary", "testtecnici", "testfunzionali", "jiraworking", "jiraworkingold", "jiraproject", "backlog", "mybacklog", "myproject", "pillarmatrix", "process", "cursor"];
-const DEFAULT_TAB = "overview";
+const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "projectoverview", "pillarmatrix", "process", "cursor"];
+const DEFAULT_TAB = "requisiti";
+
+/** Hash legacy — tab rimosse, reindirizza alla default. */
+const LEGACY_TAB_ALIASES = {
+  overview  : "requisiti"
+, summary   : "requisiti"
+, myproject : "projectoverview"
+};
 
 // --- tab Process — console log stack dev e dialogo conferma ---
 /** Polling console Process — log stack dev. */
@@ -139,16 +317,134 @@ let processLogCursor = 0;
 let processConsoleActiveTab = "all";
 
 /** @type {Array<{ id: string, label: string }>} */
-const PROCESS_CONSOLE_TABS = [
-  { id: "all",        label: "Tutti" }
-, { id: "database",   label: "Database" }
-, { id: "web",        label: "Web" }
-, { id: "api",        label: "API" }
-, { id: "auth",       label: "Auth" }
-, { id: "api-documentation", label: "API Documentation" }
-, { id: "friendbot",  label: "friendBOT" }
-, { id: "dashboard",  label: "Cruscotto" }
-];
+let processConsoleTabs = [{ id: "all", label: "Tutti" }];
+
+/** @type {Set<string>} */
+let processConsoleKnownServiceIds = new Set();
+
+/** @type {Map<string, number>} */
+let processConsoleServicePorts = new Map();
+
+function initProcessConsoleTabsFallback() {
+  /** @type {Array<{ id: string, label: string }>} */
+  const tabs = [{ id: "all", label: "Tutti" }];
+
+  if (cruscottoHasProductDatabase()) {
+    tabs.push({ id: "database", label: "Database" });
+  }
+
+  processConsoleTabs            = tabs;
+  processConsoleKnownServiceIds = new Set(tabs.map((tab) => tab.id).filter((id) => id !== "all"));
+  processConsoleServicePorts    = new Map();
+  processConsoleActiveTab       = "all";
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} services
+ */
+function applyProcessConsoleTabsFromServices(services) {
+  /** @type {Array<{ id: string, label: string }>} */
+  const tabs = [{ id: "all", label: "Tutti" }];
+  /** @type {Set<string>} */
+  const knownIds = new Set();
+  /** @type {Map<string, number>} */
+  const ports = new Map();
+
+  if (cruscottoHasProductDatabase()) {
+    tabs.push({ id: "database", label: "Database" });
+    knownIds.add("database");
+  }
+
+  for (const svc of services) {
+    const id = String(svc.id ?? "").trim();
+
+    if (!id || id === "database") {
+      continue;
+    }
+
+    const label = String(svc.label ?? id);
+
+    if (!tabs.some((tab) => tab.id === id)) {
+      tabs.push({ id, label });
+    }
+
+    knownIds.add(id);
+
+    const port = Number(svc.port);
+
+    if (Number.isFinite(port) && port > 0) {
+      ports.set(id, port);
+    }
+  }
+
+  processConsoleTabs            = tabs;
+  processConsoleKnownServiceIds = knownIds;
+  processConsoleServicePorts    = ports;
+  refreshProcessConsoleTabsDom();
+}
+
+/**
+ * @param {string} tabId
+ * @returns {boolean}
+ */
+function processConsoleTabExists(tabId) {
+  return processConsoleTabs.some((tab) => tab.id === tabId);
+}
+
+/**
+ * Aggiorna tab/pannelli console dopo discovery — preserva righe già renderizzate.
+ */
+function refreshProcessConsoleTabsDom() {
+  const panel = document.querySelector(".process-console-panel");
+  const tablist = panel?.querySelector("#process-console-tabs");
+  const panesHost = panel?.querySelector(".process-console-panes");
+
+  if (!(tablist instanceof HTMLElement) || !(panesHost instanceof HTMLElement)) {
+    return;
+  }
+
+  tablist.innerHTML = processConsoleTabs.map((tab) => {
+    const active = tab.id === processConsoleActiveTab;
+
+    return `<button type="button" role="tab" class="process-console-tab${active ? " is-active" : ""}" data-console-tab="${escapeHtml(tab.id)}" aria-selected="${active ? "true" : "false"}">${escapeHtml(tab.label)}</button>`;
+  }).join("");
+
+  for (const tab of processConsoleTabs) {
+    let pane = getProcessConsolePane(tab.id);
+
+    if (!(pane instanceof HTMLElement)) {
+      pane = document.createElement("div");
+      pane.id = `process-console-pane-${tab.id}`;
+      pane.className = `process-console-output process-console-pane${tab.id === processConsoleActiveTab ? " is-active" : ""}`;
+      pane.setAttribute("role", "tabpanel");
+      pane.setAttribute("data-console-pane", tab.id);
+      pane.setAttribute("aria-live", "polite");
+      pane.setAttribute("aria-relevant", "additions");
+      pane.hidden = tab.id !== processConsoleActiveTab;
+      panesHost.appendChild(pane);
+    }
+  }
+
+  for (const pane of [...panesHost.querySelectorAll("[data-console-pane]")]) {
+    const id = pane.getAttribute("data-console-pane");
+
+    if (id && !processConsoleTabs.some((tab) => tab.id === id)) {
+      pane.remove();
+    }
+  }
+
+  delete tablist.dataset.bound;
+
+  if (panel instanceof HTMLElement) {
+    bindProcessConsoleTabs(panel);
+  }
+
+  const activeStill = processConsoleTabExists(processConsoleActiveTab)
+    ? processConsoleActiveTab
+    : "all";
+
+  setProcessConsoleTab(activeStill);
+}
 
 /**
  * @param {string} tabId
@@ -158,7 +454,7 @@ function getProcessConsolePane(tabId) {
 }
 
 function clearProcessConsolePanes() {
-  for (const tab of PROCESS_CONSOLE_TABS) {
+  for (const tab of processConsoleTabs) {
     const pane = getProcessConsolePane(tab.id);
 
     if (pane) {
@@ -181,14 +477,11 @@ function clearActiveProcessConsolePane() {
  * @param {Set<string>} tabs
  */
 function mapJloPackageToConsoleTabs(pkg, tabs) {
-  if (pkg === "web") {
-    tabs.add("web");
-  } else if (pkg === "api") {
-    tabs.add("api");
-  } else if (pkg === "auth" || pkg === "authentication") {
-    tabs.add("auth");
-  } else if (pkg === "database") {
-    tabs.add("database");
+  const alias = { authentication: "auth" };
+  const id    = alias[pkg] ?? pkg;
+
+  if (processConsoleKnownServiceIds.has(id)) {
+    tabs.add(id);
   }
 }
 
@@ -197,19 +490,25 @@ function mapJloPackageToConsoleTabs(pkg, tabs) {
  * @returns {string[]}
  */
 function classifyProcessLogLine(text) {
-  const tabs = new Set(["all"]);
+  const tabs    = new Set(["all"]);
   const trimmed = text.trimStart();
+  const knownIds = [...processConsoleKnownServiceIds];
 
-  const prefixMatch = trimmed.match(/^\[(web|api-documentation|api|auth|friendbot|dashboard|turbo-dev)\]/);
+  if (knownIds.length > 0) {
+    const escaped = knownIds.map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const prefixMatch = trimmed.match(new RegExp(`^\\[(${escaped})\\]`));
+
+    if (prefixMatch) {
+      tabs.add(prefixMatch[1]);
+
+      return [...tabs];
+    }
+  }
+
+  const prefixMatch = trimmed.match(/^\[(turbo-dev)\]/);
 
   if (prefixMatch) {
-    const id = prefixMatch[1];
-
-    if (id === "turbo-dev") {
-      tabs.add("web");
-      tabs.add("api");
-      tabs.add("auth");
-    } else {
+    for (const id of cruscottoStackStartServiceIds()) {
       tabs.add(id);
     }
 
@@ -220,23 +519,18 @@ function classifyProcessLogLine(text) {
     mapJloPackageToConsoleTabs(match[1].toLowerCase(), tabs);
   }
 
-  if (/\bPorta 3000\b|:3000\b/.test(text)) {
-    tabs.add("web");
+  for (const [id, port] of processConsoleServicePorts) {
+    if (new RegExp(`\\bPorta ${port}\\b|:${port}\\b`).test(text)) {
+      tabs.add(id);
+    }
   }
 
-  if (/\bPorta 4000\b|:4000\b/.test(text)) {
-    tabs.add("api");
-  }
+  const dashboardPort = cruscottoDashboardPort();
 
-  if (/\bPorta 4001\b|:4001\b/.test(text)) {
-    tabs.add("auth");
-  }
-
-  if (/\bPorta 4080\b|:4080\b/.test(text)) {
-    tabs.add("api-documentation");
-  }
-
-  if (/\bPorta 3999\b|:3999\b/.test(text)) {
+  if (
+    processConsoleKnownServiceIds.has("dashboard")
+    && new RegExp(`\\bPorta ${dashboardPort}\\b|:${dashboardPort}\\b`).test(text)
+  ) {
     tabs.add("dashboard");
   }
 
@@ -244,42 +538,36 @@ function classifyProcessLogLine(text) {
     tabs.add("database");
   }
 
-  if (/friendBOT|friend-bot|friendbot/i.test(text)) {
+  if (processConsoleKnownServiceIds.has("friendbot") && /friendBOT|friend-bot|friendbot/i.test(text)) {
     tabs.add("friendbot");
   }
 
-  if (/api-documentation|serve-api-documentation/i.test(text)) {
+  if (processConsoleKnownServiceIds.has("api-documentation") && /api-documentation|serve-api-documentation/i.test(text)) {
     tabs.add("api-documentation");
   }
 
-  if (/\bcruscotto\b|admin:dashboard/i.test(text)) {
+  if (processConsoleKnownServiceIds.has("dashboard") && /\bcruscotto\b|admin:dashboard/i.test(text)) {
     tabs.add("dashboard");
   }
 
-  const killMatch = text.match(/Kill (web|api-documentation|api|auth|friendbot|dashboard)/i);
-
-  if (killMatch) {
-    tabs.add(killMatch[1].toLowerCase());
-  }
-
-  const svcKillMatch = text.match(/Kill servizio (web|api-documentation|api|auth|friendbot|dashboard)/i);
-
-  if (svcKillMatch) {
-    tabs.add(svcKillMatch[1].toLowerCase());
-  }
-
   if (/Kill stack|Kill nest|Kill product|Porte da liberare|turbo run dev/i.test(text)) {
-    tabs.add("web");
-    tabs.add("api");
-    tabs.add("auth");
+    for (const id of cruscottoStackStartServiceIds()) {
+      tabs.add(id);
+    }
   }
 
   if (/Kill All/i.test(text) || text.includes(cruscottoFriendbotLabel())) {
-    tabs.add("web");
-    tabs.add("api");
-    tabs.add("auth");
-    tabs.add("api-documentation");
-    tabs.add("friendbot");
+    for (const id of cruscottoStackStartServiceIds()) {
+      tabs.add(id);
+    }
+
+    if (processConsoleKnownServiceIds.has("api-documentation")) {
+      tabs.add("api-documentation");
+    }
+
+    if (processConsoleKnownServiceIds.has("friendbot")) {
+      tabs.add("friendbot");
+    }
   }
 
   if (/Processi \(.*authentication|@justlastone\/auth|start_API_Auth/i.test(text)) {
@@ -294,10 +582,16 @@ function classifyProcessLogLine(text) {
     tabs.add("web");
   }
 
-  const startMatch = text.match(/Avvio (web|api-documentation|api|auth|friendbot|dashboard)/i);
+  const startMatch = text.match(/Avvio ([a-z0-9-]+)/i);
 
-  if (startMatch) {
+  if (startMatch && processConsoleKnownServiceIds.has(startMatch[1].toLowerCase())) {
     tabs.add(startMatch[1].toLowerCase());
+  }
+
+  const killMatch = text.match(/Kill (?:servizio )?([a-z0-9-]+)/i);
+
+  if (killMatch && processConsoleKnownServiceIds.has(killMatch[1].toLowerCase())) {
+    tabs.add(killMatch[1].toLowerCase());
   }
 
   return [...tabs];
@@ -309,7 +603,7 @@ function classifyProcessLogLine(text) {
 function setProcessConsoleTab(tabId) {
   processConsoleActiveTab = tabId;
 
-  for (const tab of PROCESS_CONSOLE_TABS) {
+  for (const tab of processConsoleTabs) {
     const pane = getProcessConsolePane(tab.id);
     const btn  = document.querySelector(`[data-console-tab="${tab.id}"]`);
     const active = tab.id === tabId;
@@ -363,16 +657,16 @@ function bindProcessConsoleTabs(root) {
  * @returns {string}
  */
 function renderProcessConsoleTabsMarkup() {
-  const tabButtons = PROCESS_CONSOLE_TABS.map((tab, index) => {
-    const active = index === 0;
+  const tabButtons = processConsoleTabs.map((tab) => {
+    const active = tab.id === processConsoleActiveTab;
 
-    return `<button type="button" role="tab" class="process-console-tab${active ? " is-active" : ""}" data-console-tab="${tab.id}" aria-selected="${active ? "true" : "false"}">${tab.label}</button>`;
+    return `<button type="button" role="tab" class="process-console-tab${active ? " is-active" : ""}" data-console-tab="${escapeHtml(tab.id)}" aria-selected="${active ? "true" : "false"}">${escapeHtml(tab.label)}</button>`;
   }).join("");
 
-  const panes = PROCESS_CONSOLE_TABS.map((tab, index) => {
-    const active = index === 0;
+  const panes = processConsoleTabs.map((tab) => {
+    const active = tab.id === processConsoleActiveTab;
 
-    return `<div id="process-console-pane-${tab.id}" class="process-console-output process-console-pane${active ? " is-active" : ""}" role="tabpanel" data-console-pane="${tab.id}" aria-live="polite" aria-relevant="additions"${active ? "" : " hidden"}></div>`;
+    return `<div id="process-console-pane-${escapeHtml(tab.id)}" class="process-console-output process-console-pane${active ? " is-active" : ""}" role="tabpanel" data-console-pane="${escapeHtml(tab.id)}" aria-live="polite" aria-relevant="additions"${active ? "" : " hidden"}></div>`;
   }).join("");
 
   return `<div class="process-console-tabs" id="process-console-tabs" role="tablist">${tabButtons}</div><div class="process-console-panes">${panes}</div>`;
@@ -551,11 +845,7 @@ async function dumpActiveInstancesToConsole(button = null) {
 
 /** @type {Record<string, { title: string, subtitle: string }>} — titolo e sottotitolo per tab sidebar. */
 const PAGE_META = {
-  overview : {
-    title    : "Overview"
-  , subtitle : "Riepilogo servizi e ultimo run test"
-  }
-, requisiti: {
+  requisiti: {
     title    : "Requisiti"
   , subtitle : "Stack, env e comandi di setup"
   }
@@ -567,10 +857,6 @@ const PAGE_META = {
     title    : "Test"
   , subtitle : "testScript/ — raggruppati per cartella"
   }
-, summary  : {
-    title    : "Summary"
-  , subtitle : "Test case per file — da ultimo report"
-  }
 , testtecnici: {
     title    : "TestTecnici"
   , subtitle : "Esecuzione script e test case per file"
@@ -578,14 +864,6 @@ const PAGE_META = {
 , testfunzionali: {
     title    : "TestFunzionali"
   , subtitle : "Multi-utente — amici, match, flusso E2E"
-  }
-, jiraworking: {
-    title    : "Jira Working"
-  , subtitle : "Ordine di sviluppo backlog e sprint"
-  }
-, jiraworkingold: {
-    title    : "Jira Working OLD"
-  , subtitle : "Snapshot precedente — sola lettura"
   }
 , jiraproject: {
     title    : "Project Tree"
@@ -599,9 +877,9 @@ const PAGE_META = {
     title    : "MyBacklog"
   , subtitle : "Backlog da cache cruscotto DB — Epic · Sprint · Pilastri"
   }
-, myproject: {
-    title    : "My Project"
-  , subtitle : "Analisi indipendente repository vs Jira"
+, projectoverview: {
+    title    : "Project Overview"
+  , subtitle : "Avanzamento, backlog, sintesi, test e gap"
   }
 , pillarmatrix: {
     title    : "Matrice pilastri"
@@ -624,12 +902,8 @@ const PAGE_META = {
  * @returns {{ title: string, subtitle: string }}
  */
 function getPageMeta(tab) {
-  const base = PAGE_META[tab] ?? PAGE_META.overview;
+  const base = PAGE_META[tab] ?? PAGE_META.requisiti;
   const jp   = cruscottoJiraPrefix();
-
-  if (tab === "jiraworking") {
-    return { ...base, subtitle: `${base.subtitle} ${jp}` };
-  }
 
   if (tab === "jiraproject") {
     return { ...base, subtitle: `Backlog ${jp} ad albero — check Fatto per ogni step` };
@@ -662,12 +936,6 @@ let servicesRefreshTimer = null;
 
 /** @type {Set<string>} */
 const collapsedSuites = new Set();
-
-/** @type {Set<string>} */
-const collapsedSummarySuites = new Set();
-
-/** @type {Set<string>} */
-const expandedSummaryFiles = new Set();
 
 /** @type {Set<string>} */
 const collapsedTtecniciSuites = new Set();
@@ -712,18 +980,17 @@ let ttecniciScenarioTopicsSeeded = false;
 const expandedTfuncFiles = new Set();
 
 /** Al primo render, ogni sezione test parte con tutte le suite collassate. */
-/** @type {{ test: boolean, testtecnici: boolean, testfunzionali: boolean, summary: boolean }} */
+/** @type {{ test: boolean, testtecnici: boolean, testfunzionali: boolean }} */
 const suiteCollapseSeeded = {
   test            : false
 , testtecnici     : false
 , testfunzionali  : false
-, summary         : false
 };
 
 /**
  * @param {Array<{ suite: string }>} groups
  * @param {Set<string>} collapsedSet
- * @param {"test" | "testtecnici" | "testfunzionali" | "summary"} section
+ * @param {"test" | "testtecnici" | "testfunzionali"} section
  */
 function seedAllSuitesCollapsed(groups, collapsedSet, section) {
   if (suiteCollapseSeeded[section] || groups.length === 0) {
@@ -4791,143 +5058,6 @@ function buildTestNarrative(name) {
 }
 
 /**
- * @param {HTMLElement} root
- */
-function bindSummaryActions(root) {
-  root.querySelectorAll("[data-toggle-summary-suite]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const suite = btn.getAttribute("data-toggle-summary-suite");
-
-      if (!suite) {
-        return;
-      }
-
-      const group = root.querySelector(`#summary-suite-${suite}`);
-
-      if (!group) {
-        return;
-      }
-
-      const collapsed = group.classList.toggle("is-collapsed");
-
-      if (collapsed) {
-        collapsedSummarySuites.add(suite);
-      } else {
-        collapsedSummarySuites.delete(suite);
-      }
-
-      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    });
-  });
-
-  root.querySelectorAll("[data-toggle-summary-file]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const rel = btn.getAttribute("data-toggle-summary-file");
-
-      if (!rel) {
-        return;
-      }
-
-      const block = root.querySelector(`#summary-file-${cssEscapeId(rel)}`);
-
-      if (!block) {
-        return;
-      }
-
-      const expanded = block.classList.toggle("is-expanded");
-
-      if (expanded) {
-        expandedSummaryFiles.add(rel);
-      } else {
-        expandedSummaryFiles.delete(rel);
-      }
-
-      btn.setAttribute("aria-expanded", expanded ? "true" : "false");
-    });
-  });
-
-  root.querySelector("#btn-summary-expand-all")?.addEventListener("click", () => {
-    root.querySelectorAll(".summary-suite-group").forEach((group) => {
-      const toggle = group.querySelector("[data-toggle-summary-suite]");
-      const suite  = toggle?.getAttribute("data-toggle-summary-suite");
-
-      group.classList.remove("is-collapsed");
-
-      if (suite) {
-        collapsedSummarySuites.delete(suite);
-      }
-
-      toggle?.setAttribute("aria-expanded", "true");
-    });
-
-    root.querySelectorAll(".summary-file-block").forEach((block) => {
-      const toggle = block.querySelector("[data-toggle-summary-file]");
-      const rel    = toggle?.getAttribute("data-toggle-summary-file");
-
-      block.classList.add("is-expanded");
-
-      if (rel) {
-        expandedSummaryFiles.add(rel);
-      }
-
-      toggle?.setAttribute("aria-expanded", "true");
-    });
-  });
-
-  root.querySelector("#btn-summary-collapse-all")?.addEventListener("click", () => {
-    root.querySelectorAll(".summary-suite-group").forEach((group) => {
-      const toggle = group.querySelector("[data-toggle-summary-suite]");
-      const suite  = toggle?.getAttribute("data-toggle-summary-suite");
-
-      group.classList.add("is-collapsed");
-
-      if (suite) {
-        collapsedSummarySuites.add(suite);
-      }
-
-      toggle?.setAttribute("aria-expanded", "false");
-    });
-
-    root.querySelectorAll(".summary-file-block").forEach((block) => {
-      const toggle = block.querySelector("[data-toggle-summary-file]");
-      const rel    = toggle?.getAttribute("data-toggle-summary-file");
-
-      block.classList.remove("is-expanded");
-
-      if (rel) {
-        expandedSummaryFiles.delete(rel);
-      }
-
-      toggle?.setAttribute("aria-expanded", "false");
-    });
-  });
-
-  root.querySelectorAll("[data-jump-summary-suite]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const suite = btn.getAttribute("data-jump-summary-suite");
-
-      if (!suite) {
-        return;
-      }
-
-      const group = root.querySelector(`#summary-suite-${suite}`);
-
-      if (group) {
-        group.classList.remove("is-collapsed");
-        collapsedSummarySuites.delete(suite);
-        const toggle = group.querySelector("[data-toggle-summary-suite]");
-        toggle?.setAttribute("aria-expanded", "true");
-        group.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
-      root.querySelectorAll("[data-jump-summary-suite]").forEach((el) => {
-        el.classList.toggle("active", el.getAttribute("data-jump-summary-suite") === suite);
-      });
-    });
-  });
-}
-
-/**
  * @param {string} value
  */
 function cssEscapeId(value) {
@@ -4943,159 +5073,6 @@ function cssEscapeAttr(value) {
   }
 
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-/**
- * @param {Record<string, unknown> | null} report
- * @param {{ scripts?: Array<Record<string, unknown>> } | null} catalog
- */
-function renderSummary(report, catalog) {
-  const root = document.getElementById("section-summary");
-
-  if (!root) {
-    return;
-  }
-
-  /** @type {Map<string, Record<string, unknown>>} */
-  const reportByScript = new Map();
-
-  if (report && Array.isArray(report.scripts)) {
-    for (const row of report.scripts) {
-      const r = /** @type {Record<string, unknown>} */ (row);
-
-      if (typeof r.script === "string") {
-        reportByScript.set(r.script, r);
-      }
-    }
-  }
-
-  const catalogScripts = Array.isArray(catalog?.scripts)
-    ? catalog.scripts.map((e) => /** @type {Record<string, unknown>} */ (e))
-    : [];
-
-  const groups = groupScriptsBySuite(catalogScripts);
-
-  seedAllSuitesCollapsed(groups, collapsedSummarySuites, "summary");
-
-  let filesWithTests = 0;
-  let totalCases = 0;
-  let casesPassed = 0;
-  let casesFailed = 0;
-  let casesSkipped = 0;
-
-  for (const entry of catalogScripts) {
-    const rel = String(entry.rel ?? "");
-    const tests = extractScriptTests(reportByScript.get(rel));
-
-    if (tests.length > 0) {
-      filesWithTests += 1;
-    }
-
-    for (const test of tests) {
-      totalCases += 1;
-      const status = testCaseStatus(/** @type {{ ok: boolean, skipped: boolean }} */ (test));
-
-      if (status === "passed") {
-        casesPassed += 1;
-      } else if (status === "failed") {
-        casesFailed += 1;
-      } else {
-        casesSkipped += 1;
-      }
-    }
-  }
-
-  const suiteNav = groups.map((group) => `
-    <button type="button" data-jump-summary-suite="${escapeHtml(group.suite)}">
-      ${escapeHtml(group.label)} <span class="muted">(${group.items.length})</span>
-    </button>`
-  ).join("");
-
-  const suitePanels = groups.map((group) => {
-    const suiteCollapsed = collapsedSummarySuites.has(group.suite);
-    const folderPath = group.suite === "root" ? "testScript/" : `testScript/${group.suite}/`;
-
-    const fileBlocks = group.items.map((entry) => {
-      const rel = String(entry.rel ?? "");
-      const last = reportByScript.get(rel);
-      const scriptStatus = last ? String(last.status ?? "—") : "pending";
-      const tests = extractScriptTests(last);
-      const fileExpanded = expandedSummaryFiles.has(rel);
-
-      let testsBody = `<p class="muted">Esegui lo script per registrare l'elenco dei test case.</p>`;
-
-      if (tests.length > 0) {
-        testsBody = renderScriptTestCasesTable(last);
-      }
-
-      return `
-        <article class="summary-file-block${fileExpanded ? " is-expanded" : ""}" id="summary-file-${cssEscapeId(rel)}">
-          <button
-            type="button"
-            class="summary-file-toggle"
-            data-toggle-summary-file="${escapeHtml(rel)}"
-            aria-expanded="${fileExpanded ? "true" : "false"}"
-          >
-            <span class="suite-chevron" aria-hidden="true"></span>
-            <code class="summary-file-path">${escapeHtml(rel)}</code>
-            <span class="summary-file-meta muted">${tests.length} test case</span>
-            <span class="summary-file-status ${statusClass(scriptStatus === "pending" ? "" : scriptStatus)}">${escapeHtml(scriptStatus === "pending" ? "—" : scriptStatus)}</span>
-          </button>
-          <div class="summary-file-body">${testsBody}</div>
-        </article>`;
-    }).join("");
-
-    return `
-      <section class="summary-suite-group${suiteCollapsed ? " is-collapsed" : ""}" id="summary-suite-${escapeHtml(group.suite)}">
-        <button
-          type="button"
-          class="summary-suite-toggle"
-          data-toggle-summary-suite="${escapeHtml(group.suite)}"
-          aria-expanded="${suiteCollapsed ? "false" : "true"}"
-        >
-          <span class="suite-chevron" aria-hidden="true"></span>
-          <span class="suite-title">
-            <span class="suite-name">${escapeHtml(group.label)}</span>
-            <span class="suite-path">${escapeHtml(folderPath)}</span>
-            <span class="suite-count muted">${group.items.length} file</span>
-          </span>
-        </button>
-        <div class="summary-suite-body">${fileBlocks}</div>
-      </section>`;
-  }).join("");
-
-  root.innerHTML = `
-    <div class="panel">
-      <h2>Panoramica test case</h2>
-      <div class="overview-grid">
-        <div class="stat-card"><strong>${catalogScripts.length}</strong><span class="muted">file test</span></div>
-        <div class="stat-card"><strong>${filesWithTests}</strong><span class="muted">file con dettaglio</span></div>
-        <div class="stat-card pass"><strong>${casesPassed}</strong><span class="muted">case ok</span></div>
-        <div class="stat-card fail"><strong>${casesFailed}</strong><span class="muted">case fail</span></div>
-        <div class="stat-card"><strong>${casesSkipped}</strong><span class="muted">case skip</span></div>
-        <div class="stat-card"><strong>${totalCases}</strong><span class="muted">case totali</span></div>
-      </div>
-      <p class="muted">Ultimo report: ${report?.generatedAt ? escapeHtml(String(report.generatedAt)) : "—"} · Apri la tab <a href="#test">Test</a> per eseguire gli script.</p>
-    </div>
-    <div class="panel">
-      <h2>Test per file</h2>
-      <p class="muted">Espandi un file per leggere i test case registrati nell'ultimo run.</p>
-      ${groups.length > 0
-        ? `<div class="summary-toolbar">
-             <nav class="test-suite-nav" aria-label="Salta a cartella">${suiteNav}</nav>
-             <div class="test-suite-bulk">
-               ${treeBulkToggleHtml("btn-summary-expand-all", "btn-summary-collapse-all", {
-                 expandLabel  : "Espandi tutti i file"
-               , collapseLabel: "Collassa tutti i file"
-               , groupLabel   : "Espandi o collassa tutti i file test"
-               })}
-             </div>
-           </div>
-           <div class="summary-suites-wrap">${suitePanels}</div>`
-        : `<p class="muted">Catalogo non disponibile.</p>`}
-    </div>`;
-
-  bindSummaryActions(root);
 }
 
 /** @type {number | null} */
@@ -5121,7 +5098,6 @@ async function refreshRunViewsFromApi() {
   }
 
   renderTest(report, status, scriptCatalog);
-  renderSummary(report, scriptCatalog);
   renderTestTecnici(report, status, scriptCatalog, tecniciMeta);
   renderTestFunzionali(report, status, scriptCatalog, funzionaliMeta);
 
@@ -5146,15 +5122,6 @@ function pollRunStatus() {
     if (!status.running) {
       clearInterval(/** @type {number} */ (pollTimer));
       pollTimer = null;
-
-      if (report) {
-        try {
-          const services = await apiGet("/api/dev/services");
-          renderOverview(services, report);
-        } catch {
-          // ignore overview refresh errors
-        }
-      }
     }
   };
 
@@ -5174,6 +5141,8 @@ async function renderProcess(report) {
     return;
   }
 
+  initProcessConsoleTabsFallback();
+
   const hasReport            = Boolean(report);
   const repoName               = cruscottoRepoName();
   const jiraPrefix             = cruscottoJiraPrefix();
@@ -5182,6 +5151,7 @@ async function renderProcess(report) {
   const defaultProductSibling  = cruscottoDefaultProductSibling();
   const friendbotLabel         = cruscottoFriendbotLabel();
   const dashboardPort          = cruscottoDashboardPort();
+  const showBulkStackFooter      = processShowBulkStackFooter();
   const dbDefaultPath          = hasProductDatabase
     ? `${String(getCruscottoProject().dbPrismaRelPath ?? "packages/database/prisma")}/${dbFilename}`
     : "";
@@ -5354,19 +5324,23 @@ async function renderProcess(report) {
       </table>
       <p id="process-processes-checked" class="muted" style="margin-top:0.35rem;font-size:0.8rem">—</p>
       <div class="btn-row" style="margin-top:0.75rem">
-        <button class="action primary" type="button" id="btn-process-start-core">Avvia product (web, api, auth)</button>
-        <button class="action" type="button" id="btn-process-start-full">Avvia stack completo (+ api-documentation PortalAdmin, cruscotto)</button>
-        <button class="action" type="button" id="btn-process-stop-stack" title="Termina web, api, auth, api-documentation, friendBOT — non il cruscotto :3999">Kill All</button>
+        ${showBulkStackFooter ? `
+        <button class="action primary" type="button" id="btn-process-start-core">Avvia product…</button>
+        <button class="action" type="button" id="btn-process-start-full">Avvia stack completo…</button>
+        <button class="action" type="button" id="btn-process-stop-stack" title="Kill servizi dev — non il cruscotto">Kill All</button>
+        ` : ""}
         <button class="action" type="button" id="btn-process-refresh-processes">Aggiorna processi</button>
         <button class="action" type="button" id="btn-process-retry-discovery">Riprova discovery</button>
       </div>
-      <p class="muted process-stop-hint">Kill All: libera 3000, 4000, 4001, 4080 e termina ${friendbotLabel} — output nella console. Il cruscotto :${dashboardPort} resta attivo.</p>
+      ${showBulkStackFooter ? `
+      <p class="muted process-stop-hint" id="process-stop-hint">—</p>
       <p id="process-start-status" class="muted" style="margin-top:0.75rem">—</p>
       <div class="cmd-block" style="margin-top:0.75rem">
         <span class="muted">CLI</span>
         <code id="process-cli-cmd">node cruscotto.frontend/cruscotto.process.start.all.services.mjs</code>
         <button class="action" type="button" id="btn-process-copy-cmd">Copia</button>
       </div>
+      ` : ""}
     </div>
     <div class="panel process-console-panel">
       <div class="process-console-head">
@@ -5493,6 +5467,7 @@ function formatProcessDiscoveryError(err) {
  * @param {HTMLElement} root
  */
 async function hydrateProcessStack(root) {
+  const showBulkFooter = processShowBulkStackFooter();
   const tableEl  = root.querySelector("#process-services-body");
   const statusEl = root.querySelector("#process-start-status");
   const cliEl    = root.querySelector("#process-cli-cmd");
@@ -5507,7 +5482,11 @@ async function hydrateProcessStack(root) {
   const refreshProcBtn = root.querySelector("#btn-process-refresh-processes");
   const processesCheckedEl = root.querySelector("#process-processes-checked");
 
-  if (!tableEl || !statusEl || !cliEl || !coreBtn || !fullBtn) {
+  if (!tableEl || !refreshProcBtn || !retryBtn) {
+    return;
+  }
+
+  if (showBulkFooter && (!statusEl || !cliEl || !coreBtn || !fullBtn)) {
     return;
   }
 
@@ -5527,6 +5506,46 @@ async function hydrateProcessStack(root) {
   let lastDiscoveredServices = [];
   /** @type {Array<Record<string, unknown>>} */
   let lastProcessRows        = [];
+  /** @type {ReturnType<typeof buildProcessStackFooterModel>} */
+  let processStackFooterModel = buildProcessStackFooterModel([]);
+
+  const stopHintEl = root.querySelector("#process-stop-hint");
+
+  /** @param {string} message */
+  function setProcessStatus(message) {
+    if (statusEl) {
+      statusEl.textContent = message;
+    }
+  }
+
+  /**
+   * @param {Array<Record<string, unknown>>} services
+   */
+  function refreshProcessStackFooter(services) {
+    processStackFooterModel = buildProcessStackFooterModel(services);
+
+    if (coreBtn) {
+      coreBtn.textContent = processStackFooterModel.coreButton;
+    }
+
+    if (fullBtn) {
+      fullBtn.textContent = processStackFooterModel.fullButton;
+    }
+
+    if (stopBtn) {
+      stopBtn.title = processStackFooterModel.stopBtnTitle;
+    }
+
+    if (stopHintEl) {
+      stopHintEl.textContent = processStackFooterModel.killHint;
+    }
+
+    if (cliEl) {
+      cliEl.textContent = processStackFooterModel.cliCommand;
+    }
+  }
+
+  refreshProcessStackFooter([]);
 
   /**
    * @param {number} blockNum
@@ -6107,23 +6126,30 @@ async function hydrateProcessStack(root) {
    * @param {Array<Record<string, unknown>>} processRows
    */
   function syncProcessFooterStartButtons(processRows) {
+    if (!coreBtn && !fullBtn) {
+      return;
+    }
+
     const processById = new Map(
       processRows.map((row) => [String(row.id ?? ""), row])
     );
     const stackAllUp = isProductStackListening(processById);
-    const fullIds    = ["web", "api", "auth", "friendbot", "api-documentation"];
-    const fullAllUp  = fullIds.every((id) => isProcessServiceListening(processById, id));
+    const fullIds    = processStackFooterModel.fullPollIds.length
+      ? processStackFooterModel.fullPollIds
+      : cruscottoStackStartServiceIds();
+    const fullAllUp  = fullIds.length > 0
+      && fullIds.every((id) => isProcessServiceListening(processById, id));
 
     if (stackAllUp) {
-      coreBtn.setAttribute("disabled", "true");
+      coreBtn?.setAttribute("disabled", "true");
     } else {
-      coreBtn.removeAttribute("disabled");
+      coreBtn?.removeAttribute("disabled");
     }
 
     if (fullAllUp) {
-      fullBtn.setAttribute("disabled", "true");
+      fullBtn?.setAttribute("disabled", "true");
     } else {
-      fullBtn.removeAttribute("disabled");
+      fullBtn?.removeAttribute("disabled");
     }
   }
 
@@ -6153,11 +6179,16 @@ async function hydrateProcessStack(root) {
 
         services                 = Array.isArray(core.services) ? core.services : [];
         lastDiscoveredServices   = services;
+        applyProcessConsoleTabsFromServices(services);
+        refreshProcessStackFooter(services);
 
         if (!processesOnly) {
-          cliEl.textContent = `node cruscotto.frontend/cruscotto.process.start.all.services.mjs`;
-          coreBtn.removeAttribute("disabled");
-          fullBtn.removeAttribute("disabled");
+          if (cliEl) {
+            cliEl.textContent = processStackFooterModel.cliCommand;
+          }
+
+          coreBtn?.removeAttribute("disabled");
+          fullBtn?.removeAttribute("disabled");
 
           const dbStatusEarly = HAS_PRODUCT_DATABASE
             ? await apiGet("/api/repo/database/status", 10_000).catch(() => ({}))
@@ -6168,7 +6199,7 @@ async function hydrateProcessStack(root) {
           const launchStatus = await apiGet("/api/repo/services/status", 10_000).catch(() => null);
 
           if (launchStatus) {
-            statusEl.textContent = renderLaunchStatus(launchStatus);
+            setProcessStatus(renderLaunchStatus(launchStatus));
           }
         }
       }
@@ -6204,6 +6235,7 @@ async function hydrateProcessStack(root) {
       , checkedAt
       }, nodeRows);
       lastProcessRows = processRows;
+      refreshProcessStackFooter(services);
       syncProcessFooterStartButtons(processRows);
 
       if (processesCheckedEl && processRows.length > 0) {
@@ -6215,7 +6247,7 @@ async function hydrateProcessStack(root) {
       tableEl.innerHTML = `<tr><td colspan="${PROCESS_TABLE_COLS}" class="muted">${escapeHtml(hint)}</td></tr>`;
 
       if (!processesOnly) {
-        statusEl.textContent = "Discovery non disponibile — riavvia il dashboard e usa Riprova discovery.";
+        setProcessStatus("Discovery non disponibile — riavvia il dashboard e usa Riprova discovery.");
       }
     } finally {
       if (triggerBtn) {
@@ -6251,18 +6283,26 @@ async function hydrateProcessStack(root) {
    */
   function serviceIdsForStartOptions(options) {
     if (options.productStackComplete === true) {
-      return ["web", "api", "auth"];
+      return [...cruscottoStackStartServiceIds()];
     }
 
     if (options.allExtras === true) {
-      return null;
+      return processStackFooterModel.fullPollIds.length
+        ? [...processStackFooterModel.fullPollIds]
+        : null;
     }
 
     if (options.productOnly === true) {
-      return ["web", "api", "auth", "friendbot"];
+      const ids = [...cruscottoStackStartServiceIds()];
+
+      if (processStackFooterModel.extraIds.includes("friendbot")) {
+        ids.push("friendbot");
+      }
+
+      return ids;
     }
 
-    return ["web", "api", "auth"];
+    return [...cruscottoStackStartServiceIds()];
   }
 
   /**
@@ -6378,7 +6418,7 @@ async function hydrateProcessStack(root) {
     const label = button.textContent ?? "Avvia";
     button.setAttribute("disabled", "true");
     button.textContent = "Avvio…";
-    statusEl.textContent = "Richiesta avvio stack…";
+    setProcessStatus("Richiesta avvio stack…");
 
     try {
       const res = await fetch("/api/repo/services/start", {
@@ -6394,7 +6434,7 @@ async function hydrateProcessStack(root) {
       }
 
       const pid = body.pid != null ? String(body.pid) : "—";
-      statusEl.textContent = `Stack avviato (pid ${pid}). Output in tempo reale nella console sotto.`;
+      setProcessStatus(`Stack avviato (pid ${pid}). Output in tempo reale nella console sotto.`);
       processLogCursor = typeof body.logCursor === "number" ? body.logCursor : processLogCursor;
       startProcessConsolePolling();
       startProcessServicesPolling({
@@ -6403,7 +6443,7 @@ async function hydrateProcessStack(root) {
       });
       await loadProcessDiscovery(null, { processesOnly: true });
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Avvio fallito";
+      setProcessStatus(err instanceof Error ? err.message : "Avvio fallito");
     } finally {
       button.removeAttribute("disabled");
       button.textContent = label;
@@ -6418,9 +6458,9 @@ async function hydrateProcessStack(root) {
     const label = button.textContent ?? "Avvia";
     button.setAttribute("disabled", "true");
     button.textContent = "Avvio…";
-    statusEl.textContent = `Avvio ${serviceId}…`;
+    setProcessStatus(`Avvio ${serviceId}…`);
 
-    if (PROCESS_CONSOLE_TABS.some((tab) => tab.id === serviceId)) {
+    if (processConsoleTabExists(serviceId)) {
       setProcessConsoleTab(serviceId);
     }
 
@@ -6438,7 +6478,7 @@ async function hydrateProcessStack(root) {
       }
 
       const pid = body.pid != null ? String(body.pid) : "—";
-      statusEl.textContent = `${serviceId} avviato (pid ${pid}). Output nella console.`;
+      setProcessStatus(`${serviceId} avviato (pid ${pid}). Output nella console.`);
       if (typeof body.logCursor === "number") {
         processLogCursor = body.logCursor;
       }
@@ -6449,7 +6489,7 @@ async function hydrateProcessStack(root) {
       });
       await loadProcessDiscovery(null, { processesOnly: true });
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Avvio fallito";
+      setProcessStatus(err instanceof Error ? err.message : "Avvio fallito");
     } finally {
       button.removeAttribute("disabled");
       button.textContent = label;
@@ -6475,9 +6515,9 @@ async function hydrateProcessStack(root) {
     const label = button.textContent ?? "Kill";
     button.setAttribute("disabled", "true");
     button.textContent = "Kill…";
-    statusEl.textContent = `Kill ${serviceId} in corso…`;
+    setProcessStatus(`Kill ${serviceId} in corso…`);
 
-    const consoleTab = PROCESS_CONSOLE_TABS.some((tab) => tab.id === serviceId)
+    const consoleTab = processConsoleTabExists(serviceId)
       ? serviceId
       : "all";
     beginProcessKillConsole(consoleTab, `Kill ${serviceId} — richiesta al server…`);
@@ -6495,9 +6535,9 @@ async function hydrateProcessStack(root) {
         throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
       }
 
-      statusEl.textContent = typeof body.summary === "string"
+      setProcessStatus(typeof body.summary === "string"
         ? body.summary
-        : `Kill ${serviceId} completato.`;
+        : `Kill ${serviceId} completato.`);
 
       await applyProcessKillLogResponse(body);
 
@@ -6507,7 +6547,7 @@ async function hydrateProcessStack(root) {
       , serviceIds : [serviceId]
       });
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Kill fallito";
+      setProcessStatus(err instanceof Error ? err.message : "Kill fallito");
       appendProcessConsoleLines([{
         stream : "stderr"
       , text   : err instanceof Error ? err.message : "Kill fallito"
@@ -6554,11 +6594,11 @@ async function hydrateProcessStack(root) {
     const label = button.textContent ?? (isReset ? "Delete & create" : isSeed ? "Inizializza" : "Refresh");
     button.setAttribute("disabled", "true");
     button.textContent = isReset ? "Reset…" : isSeed ? "Seed…" : "Push…";
-    statusEl.textContent = isReset
+    setProcessStatus(isReset
       ? "Reset database in corso…"
       : isSeed
         ? "Seed database in corso…"
-        : "db:push in corso…";
+        : "db:push in corso…");
     processLogCursor = 0;
     startProcessConsolePolling();
     clearProcessConsolePanes();
@@ -6585,11 +6625,11 @@ async function hydrateProcessStack(root) {
         throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
       }
 
-      statusEl.textContent = isReset
+      setProcessStatus(isReset
         ? "Database ricreato (delete & create completato)."
         : isSeed
           ? "Database inizializzato (seed completato)."
-          : "Schema allineato (db:push completato).";
+          : "Schema allineato (db:push completato).");
 
       if (Array.isArray(body.lines) && body.lines.length > 0) {
         clearProcessConsolePanes();
@@ -6599,7 +6639,7 @@ async function hydrateProcessStack(root) {
 
       await loadProcessDiscovery(null, { processesOnly: true });
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Operazione database fallita";
+      setProcessStatus(err instanceof Error ? err.message : "Operazione database fallita");
 
       if (!isReset) {
         button.removeAttribute("disabled");
@@ -6626,7 +6666,7 @@ async function hydrateProcessStack(root) {
 
     const confirmed = await processConfirm({
       title        : "Kill stack"
-    , message      : `Terminare lo stack product (${stackLabel})?\n\nCruscotto, API Documentation PortalAdmin e friendBOT restano attivi se non nello stack.`
+    , message      : `Terminare lo stack product (${formatProcessServiceList(lastDiscoveredServices, stackIds)})?\n\nServizi extra e cruscotto non inclusi in questo kill.`
     , confirmLabel : "Kill stack"
     , danger       : true
     });
@@ -6638,7 +6678,7 @@ async function hydrateProcessStack(root) {
     const label = button.textContent ?? "Kill";
     button.setAttribute("disabled", "true");
     button.textContent = "Kill…";
-    statusEl.textContent = "Kill stack in corso…";
+    setProcessStatus("Kill stack in corso…");
     beginProcessKillConsole("all", `Kill stack (${stackLabel}) — richiesta al server…`);
 
     try {
@@ -6657,9 +6697,9 @@ async function hydrateProcessStack(root) {
         throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
       }
 
-      statusEl.textContent = typeof body.summary === "string"
+      setProcessStatus(typeof body.summary === "string"
         ? body.summary
-        : "Kill stack completato.";
+        : "Kill stack completato.");
 
       await applyProcessKillLogResponse(body);
 
@@ -6669,7 +6709,7 @@ async function hydrateProcessStack(root) {
       , serviceIds : cruscottoStackStartServiceIds()
       });
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Kill stack fallito";
+      setProcessStatus(err instanceof Error ? err.message : "Kill stack fallito");
       appendProcessConsoleLines([{
         stream : "stderr"
       , text   : err instanceof Error ? err.message : "Kill stack fallito"
@@ -6740,7 +6780,7 @@ async function hydrateProcessStack(root) {
 
     const confirmed = await processConfirm({
       title        : "Kill All"
-    , message      : `Terminare i servizi dev (web :3000, api :4000, auth :4001, api-documentation :4080 PortalAdmin, ${friendbotLabel})?\n\nIl cruscotto su :${dashboardPort} resta attivo. L'output sarà mostrato nella console.`
+    , message      : processStackFooterModel.killConfirmMessage
     , confirmLabel : "Kill All"
     , danger       : true
     });
@@ -6752,7 +6792,7 @@ async function hydrateProcessStack(root) {
     const label = stopBtn.textContent ?? "Kill All";
     stopBtn.setAttribute("disabled", "true");
     stopBtn.textContent = "Kill…";
-    statusEl.textContent = "Kill All in corso…";
+    setProcessStatus("Kill All in corso…");
     beginProcessKillConsole("all", "Kill All — richiesta inviata al server…");
 
     try {
@@ -6768,9 +6808,9 @@ async function hydrateProcessStack(root) {
         throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
       }
 
-      statusEl.textContent = typeof body.summary === "string"
+      setProcessStatus(typeof body.summary === "string"
         ? body.summary
-        : "Kill All completato.";
+        : "Kill All completato.");
 
       await applyProcessKillLogResponse(body);
 
@@ -6778,7 +6818,7 @@ async function hydrateProcessStack(root) {
       startProcessServicesPolling({ mode: "down", serviceIds: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Kill All fallito";
-      statusEl.textContent = message;
+      setProcessStatus(message);
 
       appendProcessConsoleLines([{
         stream : "stderr"
@@ -6790,20 +6830,24 @@ async function hydrateProcessStack(root) {
     }
   });
 
-  coreBtn.addEventListener("click", () => {
-    triggerProcessStart({
-      withPortal : false
-    , extras     : []
-    , noDb       : true
-    }, /** @type {HTMLButtonElement} */ (coreBtn));
-  });
+  if (showBulkFooter && coreBtn) {
+    coreBtn.addEventListener("click", () => {
+      triggerProcessStart({
+        withPortal : false
+      , extras     : []
+      , noDb       : true
+      }, /** @type {HTMLButtonElement} */ (coreBtn));
+    });
+  }
 
-  fullBtn.addEventListener("click", () => {
-    triggerProcessStart({
-      allExtras : true
-    , noDb      : true
-    }, /** @type {HTMLButtonElement} */ (fullBtn));
-  });
+  if (showBulkFooter && fullBtn) {
+    fullBtn.addEventListener("click", () => {
+      triggerProcessStart({
+        allExtras : true
+      , noDb      : true
+      }, /** @type {HTMLButtonElement} */ (fullBtn));
+    });
+  }
 
   copyBtn?.addEventListener("click", () => {
     copyCmd(cliEl.textContent ?? "");
@@ -6818,7 +6862,7 @@ async function hydrateProcessStack(root) {
       await fetch("/api/repo/services/logs", { method: "DELETE" });
       await reloadProcessConsole(true);
     } catch (err) {
-      statusEl.textContent = err instanceof Error ? err.message : "Pulizia console fallita";
+      setProcessStatus(err instanceof Error ? err.message : "Pulizia console fallita");
     }
   });
 
@@ -7062,58 +7106,6 @@ async function renderCursorAgent() {
   void pollCursorAgentLogs();
 }
 
-// --- tab Overview — riepilogo servizi e quick link ---
-/**
- * Card overview: servizi up/down, pass rate ultimo run, link rapidi dev.
- *
- * @param {Record<string, unknown>} servicesPayload
- * @param {Record<string, unknown> | null} report
- */
-function renderOverview(servicesPayload, report) {
-  const root = document.getElementById("section-overview");
-  if (!root) {
-    return;
-  }
-
-  const services = servicesPayload.services ?? [];
-  const up = services.filter((s) => s.status === "up").length;
-  const down = services.filter((s) => s.status !== "up");
-  const downList = down.map((s) => escapeHtml(String(s.label ?? s.id))).join(", ") || "nessuno";
-
-  const total = report && typeof report.summary === "object"
-    ? /** @type {{ tests?: { total?: number, passed?: number } }} */ (report.summary).tests
-    : null;
-  const passRate = total?.total
-    ? Math.round(((total.passed ?? 0) / total.total) * 100)
-    : null;
-
-  root.innerHTML = `
-    <div class="overview-grid">
-      <div class="stat-card"><strong>${up}/${services.length}</strong><span class="muted">servizi up</span></div>
-      <div class="stat-card"><strong>${passRate != null ? `${passRate}%` : "—"}</strong><span class="muted">pass rate ultimo run</span></div>
-    </div>
-    <div class="panel">
-      <h2>Servizi down</h2>
-      <p>${downList}</p>
-    </div>
-    <div class="panel">
-      <h2>Quick links</h2>
-      <div class="btn-row">
-        <a href="http://localhost:4080/" target="_blank" rel="noopener">API Documentation :4080</a>
-        <a href="http://localhost:4000/api/v1/docs" target="_blank" rel="noopener">Swagger API</a>
-        <a href="http://localhost:4001/api/v1/docs" target="_blank" rel="noopener">Swagger Auth</a>
-      </div>
-      <div class="cmd-block" style="margin-top:0.75rem">
-        <code>node server/dashboard-server.mjs</code>
-        <button class="action" type="button" data-copy="node server/dashboard-server.mjs">Copia</button>
-      </div>
-    </div>`;
-
-  root.querySelectorAll("[data-copy]").forEach((btn) => {
-    btn.addEventListener("click", () => copyCmd(btn.getAttribute("data-copy") ?? ""));
-  });
-}
-
 // --- bootstrap SPA — caricamento iniziale e avvio ---
 /**
  * Carica requisiti, servizi, catalogo test e report; renderizza tutte le tab statiche.
@@ -7156,9 +7148,8 @@ async function loadAll() {
     status = null;
   }
 
-  // 4. Render tab statiche — test, summary, process, cursor, overview per ultimo
+  // 4. Render tab statiche
   renderTest(report, status, scriptCatalog);
-  renderSummary(report, scriptCatalog);
   renderTestTecnici(report, status, scriptCatalog, tecniciMeta);
   renderTestFunzionali(report, status, scriptCatalog, funzionaliMeta);
   await renderProcess(report);
@@ -7166,7 +7157,6 @@ async function loadAll() {
   if (location.hash.replace("#", "") === "cursor") {
     startCursorAgentPolling();
   }
-  renderOverview(services, report);
 }
 
 /**
@@ -7179,23 +7169,28 @@ function initRouter() {
 
   window.addEventListener("hashchange", () => {
     const hash = location.hash.replace("#", "");
+    const tab  = LEGACY_TAB_ALIASES[hash] ?? hash;
 
-    if (TABS.includes(hash)) {
-      setActiveTab(hash);
+    if (TABS.includes(tab)) {
+      setActiveTab(tab);
     }
   });
 
   const rawHash = location.hash.replace("#", "");
-  const hash    = rawHash === "utility" ? "process" : rawHash;
+  const hash    = rawHash === "utility"
+    ? "process"
+    : (LEGACY_TAB_ALIASES[rawHash] ?? rawHash);
   setActiveTab(TABS.includes(hash) ? hash : DEFAULT_TAB);
 }
 
 // --- init pagina ---
-// 1. Router hash e tab sidebar
+// 1. Titolo sidebar da progetto istanziato
+initSidebarBrand();
+// 2. Router hash e tab sidebar
 initRouter();
-// 2. Modal documentazione testScript (delegazione globale)
+// 3. Modal documentazione testScript (delegazione globale)
 bindScriptDocModalGlobal();
-// 3. Caricamento dati iniziale da API cruscotto — errori in .cruscotto-main
+// 4. Caricamento dati iniziale da API cruscotto — errori in .cruscotto-main
 loadAll().catch((err) => {
   console.error(err);
   const main = document.querySelector(".cruscotto-main");

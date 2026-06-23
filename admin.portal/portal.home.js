@@ -1,3 +1,36 @@
+/**
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** PAGE SCRIPT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Companion portal.home.html — grid overlay, prepare e console diagnostica.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - HOME è shell statica; fetch istanza, prepare e kill processi node vivono in questo script.
+ *
+ *   A cosa serve:
+ *   - Render griglia PROJECT_*, polling prepare, apertura cruscotto e console log HOME.
+ *
+ * Generalizzazione:
+ *   Si — overlay da API; homePort e serverMode da bootstrap server.
+ *
+ * Input:
+ *   - GET /api/portal/projects, POST /api/portal/instance — lista e attivazione overlay
+ *   - GET /api/portal/prepare/status — polling stato prepare
+ *
+ * Pagina HTML:
+ *   - admin.portal/portal.home.html — servita su / da portal.home.server.mjs
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
+ */
+
 const grid           = document.getElementById("project-grid");
 const instanceStatus = document.getElementById("instance-status");
 const prepareMessage = document.getElementById("prepare-message");
@@ -7,11 +40,13 @@ const btnReloadHint  = document.getElementById("btn-reload-hint");
 const reloadNote     = document.getElementById("reload-note");
 const linkCruscotto  = document.getElementById("link-cruscotto");
 const btnListNode    = document.getElementById("btn-list-node-procs");
+const btnClearConsole = document.getElementById("btn-clear-console");
 const btnKillNodePid = document.getElementById("btn-kill-node-pid");
 const btnKillNodeAll = document.getElementById("btn-kill-node-all");
 const inputKillPid   = document.getElementById("node-kill-pid");
+const consolePanel   = document.getElementById("console-panel");
 
-const CONSOLE_IDLE = "In attesa — istanzia un progetto dalla colonna destra.";
+const CONSOLE_IDLE = "In attesa — scegli un progetto e premi Istanzia.";
 
 /** @type {"home-only" | "dashboard" | null} */
 let serverMode = null;
@@ -32,12 +67,21 @@ let uiConsoleLines = [];
 /** Tail log prepare (Istanzia) — aggiornato da updatePreparePanel */
 let lastPrepareLogTail = "";
 
+/** Tail log avvio cruscotto — aggiornato da poll durante Apri/Avvia */
+let lastCruscottoLogTail = "";
+
 /** Tail elenco processi Node — aggiornato da listNodeProcesses */
 let lastNodeProcsLogTail = "";
 
 /** Ultimi pid restituiti da /api/portal/node-processes */
 /** @type {number[]} */
 let lastNodeProcPids = [];
+
+/** Classe tema card per overlay (gradiente bordo come layout legacy). */
+const OVERLAY_THEME_CLASS = {
+  JustLastOne    : "theme-jlo"
+, AdminDashBoard : "theme-admin"
+};
 
 function refreshConsoleDisplay() {
   /** @type {string[]} */
@@ -51,6 +95,10 @@ function refreshConsoleDisplay() {
     parts.push("--- prepare (Istanzia) ---", lastPrepareLogTail);
   }
 
+  if (lastCruscottoLogTail) {
+    parts.push("--- cruscotto (avvio) ---", lastCruscottoLogTail);
+  }
+
   if (lastNodeProcsLogTail) {
     parts.push("--- processi Node (product + PortalAdmin) ---", lastNodeProcsLogTail);
   }
@@ -60,6 +108,14 @@ function refreshConsoleDisplay() {
   if (prepareLog.textContent) {
     prepareLog.scrollTop = prepareLog.scrollHeight;
   }
+}
+
+function clearConsole() {
+  uiConsoleLines         = [];
+  lastPrepareLogTail     = "";
+  lastCruscottoLogTail   = "";
+  lastNodeProcsLogTail   = "";
+  prepareLog.textContent = "";
 }
 
 /**
@@ -119,6 +175,31 @@ function findInstance(instanceMap, overlay) {
 }
 
 /**
+ * @param {Record<string, Record<string, unknown>>} instanceMap
+ */
+function updateConsoleToolbar(instanceMap) {
+  const inst           = focusedOverlay ? instanceMap[focusedOverlay] : null;
+  const isInstantiated = Boolean(inst);
+  const prepared       = inst?.prepare?.status === "done";
+  const themeClass     = focusedOverlay
+    ? (OVERLAY_THEME_CLASS[focusedOverlay] ?? "theme-default")
+    : null;
+
+  if (btnOpen) {
+    btnOpen.disabled = !isInstantiated || !prepared;
+  }
+
+  if (consolePanel) {
+    consolePanel.classList.toggle("illuminated", isInstantiated);
+    consolePanel.classList.remove("theme-jlo", "theme-admin", "theme-default");
+
+    if (isInstantiated && themeClass) {
+      consolePanel.classList.add(themeClass);
+    }
+  }
+}
+
+/**
  * @param {Array<Record<string, unknown>>} projects
  * @param {Record<string, Record<string, unknown>>} instanceMap
  */
@@ -126,41 +207,46 @@ function renderProjects(projects, instanceMap) {
   grid.innerHTML = "";
 
   for (const project of projects) {
-    const overlay  = String(project.overlay);
-    const instance = findInstance(instanceMap, overlay);
-    const card     = document.createElement("article");
-    const prepared = instance?.prepare?.status === "done";
-    const running  = Boolean(project.cruscottoRunning);
-    const port     = Number(project.dashboardPort ?? instance?.dashboardPort ?? 3999);
+    const overlay        = String(project.overlay);
+    const instance       = findInstance(instanceMap, overlay);
+    const isInstantiated = Boolean(instance);
+    const card           = document.createElement("article");
+    const prepared       = instance?.prepare?.status === "done";
+    const running        = Boolean(project.cruscottoRunning);
+    const port           = Number(project.dashboardPort ?? instance?.dashboardPort ?? 3999);
+    const themeClass     = OVERLAY_THEME_CLASS[overlay] ?? "theme-default";
 
-    card.className = `project-card${focusedOverlay === overlay ? " active" : ""}${running ? " running" : ""}`;
+    card.className = [
+      "project-card"
+    , themeClass
+    , isInstantiated ? "instantiated" : ""
+    , focusedOverlay === overlay ? "active" : ""
+    , running ? "running" : ""
+    ].filter(Boolean).join(" ");
 
     const ready = Boolean(project.ready);
 
     card.innerHTML = `
-      <div>
+      <div class="project-card-badges">
         <span class="badge">${project.prjJiraPrefix}</span>
-        <span class="badge port" style="margin-left:0.35rem">:${port}</span>
-        ${instance ? '<span class="badge" style="margin-left:0.35rem">istanziato</span>' : ""}
-        ${running ? '<span class="badge ok" style="margin-left:0.35rem">cruscotto attivo</span>' : ""}
-        ${!ready ? '<span class="badge warn" style="margin-left:0.35rem">incompleto</span>' : ""}
+        <span class="badge port">:${port}</span>
+        ${isInstantiated ? '<span class="badge ok">istanziato</span>' : ""}
+        ${running ? '<span class="badge ok">attivo</span>' : ""}
+        ${!ready ? '<span class="badge warn">incompleto</span>' : ""}
       </div>
       <h3>${project.prjName}</h3>
-      <p class="muted">Overlay <code>PROJECT_${project.overlay}</code> · repo <code>../${project.prjRepo}</code></p>
+      <p class="muted project-card-meta"><code>PROJECT_${project.overlay}</code> · <code>../${project.prjRepo}</code></p>
       ${project.missing?.length
-        ? `<p class="muted">Manca: ${project.missing.join(", ")}</p>`
+        ? `<p class="project-card-missing">Manca: ${project.missing.join(", ")}</p>`
         : ""}
       <div class="project-card-actions">
-        <button type="button" class="btn-secondary" data-action="instantiate" data-overlay="${overlay}" ${ready ? "" : "disabled"}>
+        <button type="button" class="btn-secondary" data-action="instantiate" data-overlay="${overlay}" ${ready && !isInstantiated ? "" : "disabled"}>
           Istanzia
         </button>
-        <button type="button" class="btn-primary" data-action="start" data-overlay="${overlay}" data-port="${port}" ${prepared && !running ? "" : "disabled"}>
-          Avvia
-        </button>
-        <button type="button" class="btn-danger" data-action="kill" data-overlay="${overlay}" data-port="${port}" ${running ? "" : "disabled"}>
+        <button type="button" class="btn-danger" data-action="kill" data-overlay="${overlay}" data-port="${port}" ${isInstantiated ? "" : "disabled"}>
           Kill
         </button>
-        <button type="button" class="btn-secondary" data-action="open" data-overlay="${overlay}" data-port="${port}" ${prepared ? "" : "disabled"}>
+        <button type="button" class="btn-primary" data-action="open" data-overlay="${overlay}" data-port="${port}" ${isInstantiated && prepared ? "" : "disabled"}>
           Apri cruscotto
         </button>
       </div>
@@ -168,10 +254,6 @@ function renderProjects(projects, instanceMap) {
 
     card.querySelector('[data-action="instantiate"]')?.addEventListener("click", () => {
       instantiate(overlay);
-    });
-
-    card.querySelector('[data-action="start"]')?.addEventListener("click", () => {
-      startCruscotto(overlay, port);
     });
 
     card.querySelector('[data-action="kill"]')?.addEventListener("click", () => {
@@ -236,7 +318,7 @@ function updatePreparePanel(prepare, reloadRequired, port) {
   lastPrepareLogTail         = String(prepare.logTail || "");
   refreshConsoleDisplay();
 
-  btnOpen.disabled     = prepare.status !== "done";
+  btnOpen.disabled     = prepare.status !== "done" || !focusedOverlay;
   btnReloadHint.hidden = !reloadRequired;
   reloadNote.hidden    = !reloadRequired;
 
@@ -324,6 +406,7 @@ async function load() {
 
   renderProjects(projects.projects, instanceMap);
   updateInstanceStatus(instanceMap);
+  updateConsoleToolbar(instanceMap);
 
   if (focusedOverlay && instanceMap[focusedOverlay]?.prepare) {
     const inst = instanceMap[focusedOverlay];
@@ -332,18 +415,52 @@ async function load() {
     , Boolean(inst.reloadRequired)
     , Number(inst.dashboardPort)
     );
+    applyDashboardLogTail(inst.dashboard);
+  }
+}
+
+/**
+ * @param {Record<string, unknown> | null | undefined} dashboard
+ */
+function applyDashboardLogTail(dashboard) {
+  if (!dashboard || typeof dashboard !== "object") {
+    return;
+  }
+
+  const tail = String(dashboard.logTail ?? "").trim();
+
+  if (tail) {
+    lastCruscottoLogTail = tail;
+    refreshConsoleDisplay();
+  }
+}
+
+/**
+ * @param {string} overlay
+ */
+async function refreshDashboardLog(overlay) {
+  try {
+    const data = await api(`/api/portal/instance?overlay=${encodeURIComponent(overlay)}`);
+    applyDashboardLogTail(data.instance?.dashboard);
+  } catch {
+    // poll silenzioso
   }
 }
 
 /**
  * @param {number} port
- * @param {number} maxMs
+ * @param {string} [overlay]
+ * @param {number} [maxMs]
  */
-async function waitForFullDashboard(port, maxMs = 120000) {
+async function waitForFullDashboard(port, overlay, maxMs = 120000) {
   const deadline = Date.now() + maxMs;
   const base     = `http://localhost:${port}`;
 
   while (Date.now() < deadline) {
+    if (overlay) {
+      await refreshDashboardLog(overlay);
+    }
+
     try {
       const res = await fetch(`${base}/api/scripts`, { signal: AbortSignal.timeout(3000) });
 
@@ -385,10 +502,10 @@ async function startCruscotto(overlay, port) {
       return;
     }
 
-    appendUiConsole(`risposta: starting — log npm in finestra cmd «PortalAdmin ${overlay}» (Windows)`);
+    appendUiConsole(`risposta: starting — log cruscotto nella console sotto (pid ${result.pid ?? "—"})`);
     prepareMessage.textContent = `Attendo cruscotto ${overlay} su :${port}…`;
 
-    const up = await waitForFullDashboard(port);
+    const up = await waitForFullDashboard(port, overlay);
 
     if (up) {
       appendUiConsole(`health OK — http://localhost:${port}/api/scripts`);
@@ -414,7 +531,7 @@ async function startCruscotto(overlay, port) {
  */
 async function killCruscotto(overlay, port) {
   focusedOverlay             = overlay;
-  prepareMessage.textContent = `Kill cruscotto ${overlay} su :${port}…`;
+  prepareMessage.textContent = `Kill istanza ${overlay} (:${port})…`;
   appendUiConsole(`click Kill — ${overlay} :${port} → POST /api/portal/kill-cruscotto`);
 
   try {
@@ -424,15 +541,24 @@ async function killCruscotto(overlay, port) {
     , body    : JSON.stringify({ overlay })
     });
 
-    const killed = Array.isArray(result.killed) ? result.killed.length : 0;
-    const failed = Array.isArray(result.failed) ? result.failed.length : 0;
+    const killed       = Array.isArray(result.killed) ? result.killed.length : 0;
+    const failed       = Array.isArray(result.failed) ? result.failed.length : 0;
+    const deactivated  = result.deactivated === true;
     appendUiConsole(
-      `risposta: killed=${killed} failed=${failed} running=${Boolean(result.running)}`
+      `risposta: deactivated=${deactivated} killed=${killed} failed=${failed} running=${Boolean(result.running)}`
     );
 
-    prepareMessage.textContent = killed > 0
-      ? `Kill :${port} — terminati ${killed} processo/i.`
-      : `Kill :${port} — nessun listener attivo.`;
+    if (focusedOverlay === overlay) {
+      focusedOverlay       = null;
+      lastCruscottoLogTail = "";
+      updatePreparePanel(null, false);
+    }
+
+    prepareMessage.textContent = deactivated
+      ? killed > 0
+        ? `Istanza ${overlay} rimossa — terminati ${killed} processo/i su :${port}.`
+        : `Istanza ${overlay} rimossa.`
+      : `Kill :${port} — operazione incompleta.`;
 
     await load();
   } catch (err) {
@@ -448,7 +574,7 @@ async function killCruscotto(overlay, port) {
  */
 async function openCruscotto(overlay, port) {
   focusedOverlay             = overlay;
-  const targetUrl            = `http://localhost:${port}/app.html#overview`;
+  const targetUrl            = `http://localhost:${port}/app.html#process`;
   appendUiConsole(`click Apri cruscotto — ${overlay} :${port}`);
 
   if (serverMode !== "home-only") {
@@ -477,7 +603,7 @@ async function openCruscotto(overlay, port) {
 
     prepareMessage.textContent = `Attendo cruscotto ${overlay} su :${port}…`;
 
-    const up = await waitForFullDashboard(port);
+    const up = await waitForFullDashboard(port, overlay);
 
     if (up) {
       appendUiConsole(`browser → ${result.url || targetUrl}`);
@@ -499,13 +625,19 @@ async function openCruscotto(overlay, port) {
   }
 }
 
-btnOpen.addEventListener("click", () => {
+btnOpen?.addEventListener("click", () => {
   if (!focusedOverlay) {
-    prepareMessage.textContent = "Seleziona un progetto (Istanzia) prima di aprire il cruscotto.";
+    prepareMessage.textContent = "Seleziona un progetto e premi Istanzia prima di aprire il cruscotto.";
     return;
   }
 
   const card = grid.querySelector(`[data-action="open"][data-overlay="${focusedOverlay}"]`);
+
+  if (card?.disabled) {
+    prepareMessage.textContent = "Apri cruscotto disponibile solo dopo l'istanziazione e il prepare completato.";
+    return;
+  }
+
   const port = Number(card?.getAttribute("data-port") ?? 3999);
 
   openCruscotto(focusedOverlay, port).catch((err) => {
@@ -528,11 +660,11 @@ async function detectServerMode() {
   linkCruscotto.textContent = serverMode === "home-only"
     ? "HOME progetto"
     : "Apri cruscotto attivo →";
-  linkCruscotto.href        = serverMode === "home-only" ? "/" : "/app.html#overview";
+  linkCruscotto.href        = serverMode === "home-only" ? "/" : "/app.html#process";
   linkCruscotto.hidden      = serverMode !== "home-only";
 }
 
-btnReloadHint.addEventListener("click", () => {
+btnReloadHint?.addEventListener("click", () => {
   reloadNote.hidden = false;
   reloadNote.scrollIntoView({ behavior: "smooth" });
 });
@@ -667,6 +799,10 @@ btnListNode?.addEventListener("click", () => {
   listNodeProcesses().catch((err) => {
     prepareMessage.textContent = err instanceof Error ? err.message : String(err);
   });
+});
+
+btnClearConsole?.addEventListener("click", () => {
+  clearConsole();
 });
 
 inputKillPid?.addEventListener("input", () => {

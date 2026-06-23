@@ -74,7 +74,7 @@
       return !report.generatedAt;
     }
 
-    if (text.startsWith("Piano Jira Working") || text.startsWith("Scansione repo")) {
+    if (text.startsWith("Piano sprint") || text.startsWith("Scansione repo")) {
       const backlogMatch = text.match(/(\d+) issue backlog/)
         ?? text.match(/(\d+) issue nel backlog Jira/);
       const legacyMatch = text.match(/(\d+) issue Jira/)

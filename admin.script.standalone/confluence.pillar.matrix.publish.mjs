@@ -1,12 +1,42 @@
 #!/usr/bin/env node
 /**
- * Pubblica matrice pilastri su Confluence (pagina indice + sotto-pagine).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Pubblica matrice pilastri su Confluence — pagina indice e sotto-pagine pilastro.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Matrice generata localmente deve essere pubblicata su wiki senza copy-paste manuale.
+ *
+ *   A cosa serve:
+ *   - Crea o aggiorna pagine Confluence con diff issue evidenziate rispetto alla versione prior.
+ *
+ * Generalizzazione:
+ *   No — SPACE_ID, PARENT_DOC_ID e EXISTING_PAGES fissi su spazio SDS Confluence.
+ *
+ * Input:
+ *   - argv --update — aggiorna pagine esistenti con changelog diff
+ *   - CONFLUENCE token env — API Atlassian Confluence
+ *
  * Uso:
- *   node scripts/publish-confluence-pillar-matrix.mjs          # crea nuove pagine
- *   node scripts/publish-confluence-pillar-matrix.mjs --update # aggiorna + evidenzia diff issue
+ *   - node admin.script.standalone/confluence.pillar.matrix.publish.mjs --update
+ *
+ * Exit code:
+ *   0 — pubblicazione completata
+ *   1 — API Confluence o generate falliti
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/load-env.mjs";
+import "../lib/portal.load.env.mjs";
 import { pathToFileURL } from "node:url";
 import { findPillarsForKey, generatePillarMatrixHtml } from "./generate-confluence-pillar-matrix.mjs";
 import {

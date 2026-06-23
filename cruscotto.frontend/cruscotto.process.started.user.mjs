@@ -1,5 +1,37 @@
 /**
- * Risolve utente Windows/Unix e provenienza avvio (Cursor, cruscotto, terminale).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Risolve utente Windows/Unix e provenienza avvio processo (Cursor, cruscotto, user).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab Process deve distinguere chi ha avviato un servizio dev (IDE vs cruscotto vs shell).
+ *
+ *   A cosa serve:
+ *   - Analizza command line e parent chain per classificare starter e utente OS.
+ *
+ * Generalizzazione:
+ *   Si — euristica su argv processo; cache per PID già risolti.
+ *
+ * Input:
+ *   - pid — process id da ispezionare
+ *
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.process.services.manager.mjs — colonna avviato da in Process
+ *
+ * Export principali:
+ *   - resolveProcessStarter — ProcessStarterInfo con user, starter, label
+ *   - warmProcessStarterCache, clearProcessStarterCache — batch e reset cache
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawnSync } from "node:child_process";

@@ -1,5 +1,38 @@
 /**
- * Meta test funzionali AdminDashboard — suite admin.portal.testscript/funzionali.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Meta test funzionali AdminDashBoard — suite admin.portal.testscript/funzionali.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab TestFunzionali cruscotto richiede overview e runOrder specifici PortalAdmin.
+ *
+ *   A cosa serve:
+ *   - FUNZIONALI_IMPLEMENTATION e getFunzionaliMetaPayload per API meta funzionali.
+ *
+ * Generalizzazione:
+ *   No — scenari e prerequisites dedicati overlay AdminDashBoard.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - lib/dashboard.project.mjs — import test.functional.meta.AdminDashBoard.mjs
+ *   - cruscotto.frontend/cruscotto.server.mjs — GET meta test funzionali
+ *
+ * Export principali:
+ *   - FUNZIONALI_IMPLEMENTATION — title, summary, prerequisites, runOrder
+ *   - getFunzionaliMetaPayload — payload discovery + implementation
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { buildFunzionaliMetaPayload } from "../lib/test.functional.meta.mjs";

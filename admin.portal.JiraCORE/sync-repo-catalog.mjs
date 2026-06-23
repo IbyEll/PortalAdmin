@@ -76,7 +76,11 @@ function escapeRegExp(value) {
  * @param {string} jiraPrefix
  */
 function buildTicketKeyPattern(jiraPrefix) {
-  const prefix = escapeRegExp(String(jiraPrefix).trim() || "JLO");
+  const prefix = escapeRegExp(String(jiraPrefix).trim());
+
+  if (!prefix) {
+    throw new Error("sync-repo-catalog — jiraPrefix mancante (PRJ_JIRA_PREFIX)");
+  }
 
   return {
     full  : new RegExp(`^${prefix}-\\d+$`, "i")

@@ -1,5 +1,38 @@
 /**
- * Meta test funzionali JustLastOne — implementation e scenari statici su lib/test.functional.meta.mjs.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *     Meta test funzionali JustLastOne — implementation e scenari su lib/test.functional.meta.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab TestFunzionali JLO richiede prerequisites, architecture e runOrder multi-utente.
+ *
+ *   A cosa serve:
+ *   - FUNZIONALI_IMPLEMENTATION esteso e getFunzionaliMetaPayload con scenari statici JLO.
+ *
+ * Generalizzazione:
+ *   No — contenuto dedicato flussi sociali e match JustLastOne.
+ *
+ * Input:
+ *   - —
+ *
+ * Consumatori:
+ *   - lib/dashboard.project.mjs — import test.functional.meta.JustLastOne.mjs
+ *   - cruscotto.frontend/cruscotto.server.mjs — API meta test funzionali
+ *
+ * Export principali:
+ *   - FUNZIONALI_IMPLEMENTATION — overview tab funzionali JLO
+ *   - getFunzionaliMetaPayload — payload con scenari statici opzionali
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import {

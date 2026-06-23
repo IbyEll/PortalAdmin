@@ -1,10 +1,39 @@
 #!/usr/bin/env node
 /**
- * Suite read-only — esegue i test API PortalAdmin (cruscotto già avviato).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Suite read-only — test API PortalAdmin con cruscotto già avviato.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Smoke regressione API cruscotto senza eseguire manualmente ogni testscript singolo.
+ *
+ *   A cosa serve:
+ *   - Spawn sequenziale health, portal, jira, cursor test sotto admin.portal.testscript.
+ *
+ * Generalizzazione:
+ *   Si — DASHBOARD_URL e --overlay per istanza cruscotto target.
+ *
+ * Input:
+ *   - DASHBOARD_URL — base HTTP cruscotto (default 127.0.0.1:3999)
+ *   - argv --overlay — contesto PRJ_NAME per portal-context
  *
  * Uso:
- *   node admin.portal.testscript/run-portal-api.mjs --overlay JustLastOne
- *   DASHBOARD_URL=http://127.0.0.1:3999 node admin.portal.testscript/run-portal-api.mjs
+ *   - node admin.portal.testscript/run-portal-api.mjs --overlay AdminDashBoard
+ *
+ * Exit code:
+ *   0 — tutti gli script figli exit 0
+ *   1 — almeno uno script fallito
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";

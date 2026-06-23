@@ -36,14 +36,15 @@
  */
 
 import "../lib/portal.load.env.mjs";
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig, resolveJiraBoardId } from "../lib/project.config.mjs";
 import {
   applyDevOrder
 , applyEpicLegacySprintPins
 , applyJiraSprintFallback
 , applySprint6ObsoleteDevOrder
 , applySprint6TailDevOrder
-, JLO_WORKING_PLAN
+, getWorkingPlan
+, getWorkingPlanOverlay
 , normalizeSprintLabel
 } from "./cruscotto.jira.working.order.mjs";
 import {
@@ -52,7 +53,10 @@ import {
 } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 
 const JIRA_SPRINT_FIELD = "customfield_10020";
-const JIRA_BOARD_ID     = Number(process.env.JIRA_BOARD_ID ?? 68);
+
+function resolveBacklogBoardId() {
+  return resolveJiraBoardId(getProjectConfig());
+}
 
 const CLOUD_ID = process.env.JIRA_CLOUD_ID ?? "3caddd74-469e-4ca3-adf8-926f79c98e7c";
 const API_BASE = `https://api.atlassian.com/ex/jira/${CLOUD_ID}`;
@@ -365,7 +369,7 @@ export async function fetchJiraSprints() {
 
   for (;;) {
     const page = await jiraFetch(
-      `/rest/agile/1.0/board/${JIRA_BOARD_ID}/sprint?state=active,future,closed&startAt=${startAt}&maxResults=50`
+      `/rest/agile/1.0/board/${resolveBacklogBoardId()}/sprint?state=active,future,closed&startAt=${startAt}&maxResults=50`
     );
 
     for (const sprint of page.values ?? []) {
@@ -412,7 +416,7 @@ export async function fetchWorkingPlanBoardSprintKeys(jiraSprints) {
   /** @type {Record<string, string[]>} */
   const byPlanName = {};
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of getWorkingPlan()) {
     const target = normalizeSprintLabel(block.name);
     const sprint = jiraSprints.find((row) => normalizeSprintLabel(row.name) === target);
 
@@ -505,8 +509,11 @@ export async function fetchJiraBacklog() {
   const ordered = applyDevOrder(buildBacklogTree(raw));
   const byKey   = new Map(ordered.map((row) => [row.key, row]));
   let issues    = applyEpicLegacySprintPins(applyJiraSprintFallback(ordered), byKey);
-  issues        = applySprint6TailDevOrder(issues);
-  issues        = applySprint6ObsoleteDevOrder(issues);
+
+  if (getWorkingPlanOverlay().sprint6Enabled) {
+    issues = applySprint6TailDevOrder(issues);
+    issues = applySprint6ObsoleteDevOrder(issues);
+  }
   const epics = issues.filter((row) => row.tier === "epic").length;
   const jiraSprints = await fetchJiraSprints();
   const boardSprintKeysByPlanName = await fetchWorkingPlanBoardSprintKeys(jiraSprints);

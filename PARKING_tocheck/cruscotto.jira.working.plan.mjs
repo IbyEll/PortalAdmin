@@ -36,21 +36,34 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { fetchJiraBacklog, isJiraStatusDone } from "./cruscotto.jira.backlog.mjs";
-import { inspectRepoSignal } from "./cruscotto.jira.backlog.insights.mjs";
+import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import { inspectRepoSignal } from "../cruscotto.frontend/cruscotto.jira.backlog.insights.mjs";
 import { buildWorkingInsights, buildKeyToBlockMap } from "./cruscotto.jira.working.insights.mjs";
-import { formatJiraKeyListsInNoteHtml, jiraLinkHtml } from "./cruscotto.jira.issue.display.mjs";
-import { JLO_SPRINT_6_BOARD_NOISE, JLO_SPRINT_6_PHASES, JLO_WORKING_PLAN, boardKeysForWorkingPlanBlock, isSprint6ObsoleteIssue, mergeWorkingSprintKeys, normalizeSprintLabel, sprint6ObsoleteKeySet } from "./cruscotto.jira.working.order.mjs";
+import { formatJiraKeyListsInNoteHtml, jiraLinkHtml } from "../cruscotto.frontend/cruscotto.jira.issue.display.mjs";
+import { getProjectConfig } from "../lib/project.config.mjs";
+import {
+  getWorkingJiraBoardUrl
+, getWorkingJiraBrowseBase
+, getWorkingSprintBoardTitle
+} from "../lib/overlay/working.plan.overlay.mjs";
+import {
+  getWorkingPlan
+, getWorkingPlanOverlay
+, boardKeysForWorkingPlanBlock
+, isSprint6ObsoleteIssue
+, mergeWorkingSprintKeys
+, normalizeSprintLabel
+, sprint6ObsoleteKeySet
+} from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
 
-const FRONTEND_DIR   = dirname(fileURLToPath(import.meta.url));
-const PORTAL_ROOT    = join(FRONTEND_DIR, "..");
-const CRUSCOTTO_DIR  = FRONTEND_DIR;
-const WORKING_HTML     = join(CRUSCOTTO_DIR, "cruscotto.jira.working.html");
-const WORKING_OLD_HTML = join(CRUSCOTTO_DIR, "cruscotto.jira.working.old.html");
+const PARKING_DIR    = dirname(fileURLToPath(import.meta.url));
+const PORTAL_ROOT    = join(PARKING_DIR, "..");
+const WORKING_HTML     = join(PARKING_DIR, "cruscotto.jira.working.html");
+const WORKING_OLD_HTML = join(PARKING_DIR, "cruscotto.jira.working.old.html");
 const ARCHIVES_DIR   = join(PORTAL_ROOT, "cruscotto.database", "jira.working", "archives");
 const ARCHIVE_INDEX  = join(ARCHIVES_DIR, "index.json");
 
-const JIRA_BASE      = "https://myfuturejobsearch.atlassian.net/browse/";
+const JIRA_BASE      = getWorkingJiraBrowseBase();
 const PLAN_START     = "<!-- WORKING-PLAN-GENERATED-START -->";
 const PLAN_END       = "<!-- WORKING-PLAN-GENERATED-END -->";
 const HEADER_START   = "<!-- WORKING-HEADER-META-START -->";
@@ -66,26 +79,14 @@ const WORKFLOW_END      = "<!-- WORKING-WORKFLOW-END -->";
 const KEY_TO_BLOCK_START = "<!-- WORKING-KEY-TO-BLOCK-START -->";
 const KEY_TO_BLOCK_END   = "<!-- WORKING-KEY-TO-BLOCK-END -->";
 
-const CLEAN_WORKFLOW_INNER = [
-  "    <section>"
-, "      <h2>Workflow agente (Cursor)</h2>"
-, "      <ul>"
-, "        <li>Branch: <code>{TIPO}---JLO-{key}-{slug}</code> — <code>STORY</code> · <code>BUG</code> · <code>TODO</code> (tre trattini <code>---</code>)</li>"
-, "        <li><code>procedi JLO-xxx FULL silent</code> — sequenza subtask in background</li>"
-, "        <li><code>chiudi Story JLO-xxx</code> — push, PR e chiusura parent Jira</li>"
-, "      </ul>"
-, "    </section>",
-].join("\n");
+/**
+ * @returns {string}
+ */
+function buildCleanWorkflowInner() {
+  const cfg = getProjectConfig();
 
-/** @type {Array<{ label: string, keys: string[] }>} */
-const CRITICAL_CHAIN = [
-  { label: "Match lifecycle", keys: ["JLO-690", "JLO-637"] }
-, { label: "Housekeeping 97/247/637", keys: ["JLO-97", "JLO-247", "JLO-637"] }
-, { label: "Export Admin", keys: ["JLO-930", "JLO-931", "JLO-932", "JLO-933"] }
-, { label: "Notifiche fondamenta", keys: ["JLO-774", "JLO-775"] }
-, { label: "Tornei iscrizione/bracket", keys: ["JLO-100", "JLO-103", "JLO-696"] }
-, { label: "Release", keys: ["JLO-872", "JLO-121"] }
-];
+  return getWorkingPlanOverlay().buildWorkflowInner(cfg.PRJ_JIRA_PREFIX);
+}
 
 /**
  * @param {string} raw
@@ -271,10 +272,11 @@ export async function buildWorkingPlanContext(issues) {
   , backlog.boardSprintKeysByPlanName
   );
 
-  /** @type {typeof JLO_WORKING_PLAN} */
+  /** @type {ReturnType<typeof getWorkingPlan>} */
   const blocks = [];
+  const workingPlan = getWorkingPlan();
 
-  for (const plan of JLO_WORKING_PLAN) {
+  for (const plan of workingPlan) {
     const jiraSprint = backlog.jiraSprintsByName[normalizeSprintLabel(plan.name)] ?? null;
     const keys       = mergeWorkingSprintKeys(
       plan.keys
@@ -319,7 +321,7 @@ export async function buildWorkingPlanContext(issues) {
   /** @type {Array<{ key: string, summary: string, type?: string }>} */
   const doneInPlan = [];
 
-  for (const plan of JLO_WORKING_PLAN) {
+  for (const plan of workingPlan) {
     for (const key of plan.keys) {
       const row = byKey.get(key);
 
@@ -350,16 +352,14 @@ export async function buildWorkingPlanContext(issues) {
  * @param {Awaited<ReturnType<typeof buildWorkingPlanContext>>} ctx
  */
 export function renderWorkingHeaderMeta(ctx) {
-  const activeName = ctx.activeSprint?.name ?? "—";
+  const cfg        = getProjectConfig();
+  const boardUrl   = getWorkingJiraBoardUrl();
+  const repoName   = cfg.PRJ_NAME;
 
   return [
     `      <p class="meta">`
-  , `        JustLastOne · rigenerato ${escapeHtml(ctx.label)} · ${ctx.issueCount} issue in JLO ·`
-  , `        <a href="https://myfuturejobsearch.atlassian.net/jira/software/projects/JLO/boards/68">Board JLO</a> ·`
-  , `        <a href="/jira.project.tree.html">Project Tree</a> ·`
-  , `        <a href="/backlog.html">Backlog</a> ·`
-  , `        <a href="/my-project.html">My Project</a> ·`
-  , `        <a href="/jira.working.old.html">Working OLD</a>`
+  , `        ${escapeHtml(repoName)} · rigenerato ${escapeHtml(ctx.label)} · ${ctx.issueCount} issue in ${escapeHtml(cfg.PRJ_JIRA_PREFIX)} ·`
+  , `        <a href="${escapeHtml(boardUrl)}">Board ${escapeHtml(cfg.PRJ_JIRA_PREFIX)}</a>`
   , `      </p>`,
   ].join("\n");
 }
@@ -693,9 +693,12 @@ function renderSprintExecutionPhaseTree(phases, allKeys, byKey, options = {}) {
     ].join("\n"));
   }
 
-  const obsoleteSet = sprint6ObsoleteKeySet();
-  const noiseSet    = new Set(JLO_SPRINT_6_BOARD_NOISE);
-  const extraKeys   = allKeys.filter((key) => !plannedKeys.has(key) && byKey.has(key));
+  const overlay     = getWorkingPlanOverlay();
+  const obsoleteSet = overlay.sprint6Enabled ? sprint6ObsoleteKeySet() : new Set();
+  const noiseSet    = new Set(overlay.SPRINT_6_BOARD_NOISE ?? []);
+  const extraKeys   = overlay.sprint6Enabled
+    ? allKeys.filter((key) => !plannedKeys.has(key) && byKey.has(key))
+    : [];
   const obsoleteKeys = extraKeys.filter((key) => obsoleteSet.has(key) || isSprint6ObsoleteIssue(key, byKey.get(key)));
   const noiseKeys    = extraKeys.filter((key) => noiseSet.has(key));
   const otherKeys    = extraKeys.filter((key) => !obsoleteKeys.includes(key) && !noiseKeys.includes(key));
@@ -761,10 +764,13 @@ function splitSprintPlanName(name, sprintNum) {
  * @param {Map<string, { summary?: string }>} byKey
  */
 function renderSprintBoardCard(block, byKey) {
+  const overlay = getWorkingPlanOverlay();
   const { plan, keys, jiraSprint } = block;
   const { idLabel, title }         = splitSprintPlanName(plan.name, plan.sprint);
-  const keysHtml                   = plan.sprint === 6
-    ? renderSprintExecutionPhaseTree(JLO_SPRINT_6_PHASES, keys, byKey, {
+  const sprint6Phases              = overlay.SPRINT_6_PHASES ?? [];
+  const usePhaseTree               = overlay.sprint6Enabled && plan.sprint === 6 && sprint6Phases.length > 0;
+  const keysHtml                   = usePhaseTree
+    ? renderSprintExecutionPhaseTree(sprint6Phases, keys, byKey, {
         mode         : "board"
       , listClass    : "sprint-keys-list sprint-board-tree"
       , itemIndent   : "              "
@@ -817,73 +823,34 @@ function renderSprintBoardCard(block, byKey) {
  * @param {Awaited<ReturnType<typeof buildWorkingPlanContext>>} ctx
  */
 export function renderWorkingPlanBody(ctx) {
-  const { label, blocks, byKey, firstOpenKey } = ctx;
+  const overlay = getWorkingPlanOverlay();
+  const { blocks, byKey, firstOpenKey } = ctx;
 
   const sprintCards = blocks.map((block) => renderSprintBoardCard(block, byKey)).join("\n");
 
-  /** @type {string[]} */
-  const sintesiRows = [];
-
-  const adminBlock = blocks.find((b) => b.plan.sprint === 3);
-  const hkBlock    = blocks.find((b) => b.plan.sprint === 2);
-  const notifBlock = blocks.find((b) => b.plan.sprint === 4);
-
-  if (adminBlock) {
-    const exportDone = ["JLO-930", "JLO-931", "JLO-932", "JLO-933"].every(
-      (key) => !adminBlock.openKeys.includes(key)
-    );
-
-    sintesiRows.push([
-      "          <tr>"
-    , `            <td><strong>Admin MVP</strong> (${jiraLinkFromMap("JLO-849", byKey)})</td>`
-    , `            <td>Epic ${statusBadge(!adminBlock.openKeys.includes("JLO-849"))} · export 930–933 ${statusBadge(exportDone)}</td>`
-    , "            <td>—</td>"
-    , "          </tr>",
-    ].join("\n"));
-  }
-
-  if (hkBlock) {
-    sintesiRows.push([
-      "          <tr>"
-    , "            <td><strong>Housekeeping</strong> (Fase 0)</td>"
-    , `            <td>${hkBlock.doneCount}/${hkBlock.total} Fatto · aperti ${hkBlock.openKeys.length ? `${renderJiraKeysList(hkBlock.openKeys, byKey)}` : "—"}</td>`
-    , "            <td>—</td>"
-    , "          </tr>",
-    ].join("\n"));
-  }
-
-  if (notifBlock) {
-    sintesiRows.push([
-      "          <tr>"
-    , `            <td><strong>Notifiche P0</strong> (${jiraLinkFromMap("JLO-773", byKey)})</td>`
-    , `            <td>${notifBlock.doneCount}/${notifBlock.total} Fatto in Jira</td>`
-    , "            <td>—</td>"
-    , "          </tr>",
-    ].join("\n"));
-  }
+  const sintesiRows = overlay.buildSintesiRows(blocks, byKey, {
+    jiraLinkFromMap,
+    statusBadge,
+    renderJiraKeysList,
+  });
 
   /** @type {string[]} */
   const faseSections = [];
 
-  const faseDefs = [
-    { sprint: 2, title: "Fase 0 — Housekeeping · Sprint 2", blockId: "fase-0" }
-  , { sprint: 3, title: "Fase 1 — Admin MVP · Sprint 3 · epic JLO-849", blockId: "fase-1" }
-  , { sprint: 4, title: "Fase 2 — Notifiche P0 · Sprint 4 · epic JLO-773", blockId: "fase-2" }
-  , { sprint: 5, title: "Fase 3 — Tornei Kill Race · Sprint 5 · epic JLO-3", blockId: "fase-3" }
-  , { sprint: 6, title: "Social · Chat & Gamebook · Sprint 6 · epic JLO-445", blockId: "fase-chat" }
-  , { sprint: 7, title: "Fase 4 — Sblocco test blocked · Sprint 7", blockId: "fase-4" }
-  , { sprint: 8, title: "Fase 5 — Release · Sprint 8 · epic JLO-6", blockId: "fase-5" }
-  ];
-
-  for (const fase of faseDefs) {
+  for (const fase of overlay.FASE_DEFS ?? []) {
     const block = blocks.find((b) => b.plan.sprint === fase.sprint);
 
     if (!block) {
       continue;
     }
 
-    const items = block.plan.sprint === 6
-      ? renderSprintExecutionPhaseTree(JLO_SPRINT_6_PHASES, block.keys, byKey, {
+    const sprint6Phases = overlay.SPRINT_6_PHASES ?? [];
+    const usePhaseTree  = overlay.sprint6Enabled
+      && fase.phaseTreeSprint === block.plan.sprint
+      && sprint6Phases.length > 0;
+
+    const items = usePhaseTree
+      ? renderSprintExecutionPhaseTree(sprint6Phases, block.keys, byKey, {
           mode         : "fase"
         , listClass    : "sprint-keys-list"
         , itemIndent   : "          "
@@ -904,6 +871,7 @@ export function renderWorkingPlanBody(ctx) {
 
   /** @type {string[]} */
   const chainSteps = [];
+  const CRITICAL_CHAIN = overlay.CRITICAL_CHAIN ?? [];
 
   for (const step of CRITICAL_CHAIN) {
     const rows = step.keys.map((key) => byKey.get(key)).filter(Boolean);
@@ -945,7 +913,7 @@ export function renderWorkingPlanBody(ctx) {
   , ""
   , "    <section>"
   , "      <div class=\"sprint-board-head\">"
-  , "        <h2>Sprint board 68</h2>"
+  , `        <h2>${escapeHtml(getWorkingSprintBoardTitle())}</h2>`
   , "        <div class=\"sprint-board-bulk\" role=\"group\" aria-label=\"Espandi o collassa sprint\">"
   , "          <button type=\"button\" class=\"action sprint-board-bulk-btn\" id=\"btn-sprint-board-expand-all\" title=\"Espandi tutti gli sprint\" aria-label=\"Espandi tutti gli sprint\">Espandi tutti</button>"
   , "          <button type=\"button\" class=\"action sprint-board-bulk-btn\" id=\"btn-sprint-board-collapse-all\" title=\"Collassa tutti gli sprint\" aria-label=\"Collassa tutti gli sprint\">Collassa tutti</button>"
@@ -959,7 +927,7 @@ export function renderWorkingPlanBody(ctx) {
   , faseSections.join("\n\n")
   , ""
   , "    <section>"
-  , "      <h2>Catena critica MVP Warzone</h2>"
+  , `      <h2>${escapeHtml(overlay.CRITICAL_CHAIN_TITLE ?? "Catena critica")}</h2>`
   , '      <div class="flow">'
   , chainSteps.join("\n        ")
   , "      </div>"
@@ -999,7 +967,7 @@ function resetWorkingStaticExtras(html) {
   let out = html;
 
   if (out.includes(WORKFLOW_START) && out.includes(WORKFLOW_END)) {
-    out = replaceBetweenMarkers(out, WORKFLOW_START, WORKFLOW_END, CLEAN_WORKFLOW_INNER);
+    out = replaceBetweenMarkers(out, WORKFLOW_START, WORKFLOW_END, buildCleanWorkflowInner());
   }
 
   out = out.replace(
@@ -1254,8 +1222,7 @@ export function buildWorkingOldSnapshot(html, label) {
       "<!-- WORKING-HEADER-META-END -->",
       [
         `      <p class="meta old-snapshot-notice">`
-      , `        📦 Snapshot precedente · sola lettura ·`
-      , `        <a href="/jira-working.html">versione corrente</a>`
+      , `        📦 Snapshot precedente · sola lettura · versione corrente su Jira Working`
       , `      </p>`
       , "<!-- WORKING-HEADER-META-END -->",
       ].join("\n")

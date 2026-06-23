@@ -32,18 +32,18 @@
   Sezioni DOM principali:
     - aside.cruscotto-sidebar — navigazione tab data-tab
     - header.cruscotto-topbar — #page-title, #page-subtitle
-    - #section-overview … #section-process — pannelli tab (iframe Jira in section-jiraworking, backlog, myproject, …)
+    - #section-overview … #section-process — pannelli tab (iframe backlog, projectoverview, …)
     - #ttecnici-doc-modal — modale documentazione test tecnici
 
   Note:
-    - le pagine Jira sono iframe verso URL brevi (/jira-working.html, /backlog.html, …)
+    - le pagine Jira sono iframe verso URL brevi (/backlog.html, /my-backlog.html, …)
 -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title data-cruscotto-bind="document.title" data-cruscotto-template="Cruscotto {repoName}">Cruscotto Dev</title>
+  <title data-cruscotto-bind="document.title" data-cruscotto-template="Cruscotto {projectDisplayName}">Cruscotto</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
   <link rel="stylesheet" href="/cruscotto.css" />
@@ -51,23 +51,16 @@
 <body class="cruscotto-app">
   <aside class="cruscotto-sidebar" aria-label="Menu principale">
     <div class="sidebar-brand">
-      <strong data-cruscotto-bind="text" data-cruscotto-template="Cruscotto {repoName}">Cruscotto Dev</strong>
-      <span class="muted" data-cruscotto-bind="text" data-cruscotto-template="{repoName} local">local</span>
+      <strong data-cruscotto-bind="text" data-cruscotto-template="Cruscotto {projectDisplayName}">Cruscotto</strong>
+      <span class="muted" data-cruscotto-bind="text" data-cruscotto-template="{projectDisplayName} local">local</span>
       <a class="sidebar-home-link muted" href="/" title="PortalAdmin Home">← Home</a>
     </div>
     <nav class="sidebar-nav">
-      <button type="button" data-tab="overview" class="active">
-        <span class="nav-label">Overview</span>
-      </button>
-      <button type="button" data-tab="requisiti">
+      <button type="button" data-tab="requisiti" class="active">
         <span class="nav-label">Requisiti</span>
       </button>
       <button type="button" data-tab="servizi">
         <span class="nav-label">Servizi</span>
-      </button>
-      <button type="button" data-tab="summary">
-        <span class="nav-label">Summary</span>
-        <span class="nav-hint muted">test case</span>
       </button>
       <button type="button" data-tab="process">
         <span class="nav-label">Process</span>
@@ -81,10 +74,6 @@
         <span class="nav-label">TestFunzionali</span>
         <span class="nav-hint muted">multi-utente</span>
       </button>
-      <button type="button" data-tab="jiraworking">
-        <span class="nav-label">Jira Working</span>
-        <span class="nav-hint muted">backlog</span>
-      </button>
       <button type="button" data-tab="backlog">
         <span class="nav-label">Backlog</span>
         <span class="nav-hint muted">Jira</span>
@@ -93,9 +82,9 @@
         <span class="nav-label">MyBacklog</span>
         <span class="nav-hint muted">cache DB</span>
       </button>
-      <button type="button" data-tab="myproject">
-        <span class="nav-label">My Project</span>
-        <span class="nav-hint muted">repo vs Jira</span>
+      <button type="button" data-tab="projectoverview">
+        <span class="nav-label">Project Overview</span>
+        <span class="nav-hint muted">sintesi</span>
       </button>
       <button type="button" data-tab="cursor">
         <span class="nav-label">Cursor Agent</span>
@@ -110,31 +99,26 @@
   <div class="cruscotto-shell">
     <header class="cruscotto-topbar">
       <div>
-        <h1 id="page-title">Overview</h1>
-        <p id="page-subtitle" class="muted">Ambiente locale — requisiti, servizi e test</p>
+        <h1 id="page-title">Requisiti</h1>
+        <p id="page-subtitle" class="muted">Stack, env e comandi di setup</p>
       </div>
     </header>
     <main class="cruscotto-main">
       <p id="boot-loading" class="boot-loading">Caricamento cruscotto…</p>
-      <section id="section-overview"></section>
-      <section id="section-requisiti" class="hidden"></section>
+      <section id="section-requisiti"></section>
       <section id="section-servizi" class="hidden"></section>
       <section id="section-test" class="hidden"></section>
-      <section id="section-summary" class="hidden"></section>
       <section id="section-process" class="hidden" aria-label="Process Utility"></section>
       <section id="section-testtecnici" class="hidden"></section>
       <section id="section-testfunzionali" class="hidden"></section>
-      <section id="section-jiraworking" class="hidden" aria-label="Jira Working">
-        <iframe class="jira-working-frame" src="/jira-working.html" title="Jira Working — ordine di sviluppo backlog"></iframe>
-      </section>
-      <section id="section-backlog" class="hidden" aria-label="Backlog JLO">
-        <iframe class="jira-working-frame" src="/backlog.html" title="Backlog JLO — elenco completo issue"></iframe>
+      <section id="section-backlog" class="hidden" aria-label="Backlog">
+        <iframe class="jira-working-frame" src="/backlog.html" title="Backlog — elenco completo issue"></iframe>
       </section>
       <section id="section-mybacklog" class="hidden" aria-label="MyBacklog">
         <iframe class="jira-working-frame" src="/my-backlog.html" title="MyBacklog — backlog da cache cruscotto DB"></iframe>
       </section>
-      <section id="section-myproject" class="hidden" aria-label="My Project">
-        <iframe class="jira-working-frame" src="/my-project.html" title="My Project — analisi repo vs Jira"></iframe>
+      <section id="section-projectoverview" class="hidden" aria-label="Project Overview">
+        <iframe class="jira-working-frame" src="/project-overview.html" title="Project Overview — panoramica progetto"></iframe>
       </section>
       <section id="section-cursor" class="hidden" aria-label="Cursor Agent"></section>
     </main>

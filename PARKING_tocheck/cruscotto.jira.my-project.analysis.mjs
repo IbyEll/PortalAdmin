@@ -1,7 +1,7 @@
 /**
  * ** LIBRARY MODULE ** -- commentato il: 2026-06-17
  *
- * My Project — analisi indipendente repo vs Jira (progetto JLO).
+ * My Project — analisi indipendente repo vs Jira (overlay attivo).
  *
  * Descrizione funzionale:
  *
@@ -36,17 +36,38 @@ import { readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
 import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../lib/test.catalog.mjs";
+import { getProjectConfig } from "../lib/project.config.mjs";
 import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 import {
   fetchJiraBacklog
 , isEpicType
 , isJiraStatusDone
 , isStoryLikeType
-} from "./cruscotto.jira.backlog.mjs";
+} from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { scanRepoJiraReferences, walkRepoTextFiles } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
 
-const JIRA_SITE   = "https://myfuturejobsearch.atlassian.net/browse/";
+const JIRA_BOARD_ID = Number(process.env.JIRA_BOARD_ID ?? 68);
+const JIRA_SITE_HOST = String(process.env.JIRA_SITE ?? "myfuturejobsearch.atlassian.net").replace(/^https?:\/\//, "");
+
+/**
+ * @returns {{
+ *   repoName: string
+ *   jiraPrefix: string
+ *   jiraBrowseBase: string
+ *   jiraBoardUrl: string
+ * }}
+ */
+function getMyProjectContext() {
+  const cfg = getProjectConfig();
+
+  return {
+    repoName       : cfg.PRJ_NAME
+  , jiraPrefix     : cfg.PRJ_JIRA_PREFIX
+  , jiraBrowseBase : `https://${JIRA_SITE_HOST}/browse/`
+  , jiraBoardUrl   : `https://${JIRA_SITE_HOST}/jira/software/projects/${cfg.PRJ_JIRA_PREFIX}/boards/${JIRA_BOARD_ID}`
+  };
+}
 
 /**
  * @typedef {{
@@ -102,13 +123,17 @@ function scanRepoStructure() {
     stats.push({ label, value: files.length });
   }
 
+  const portalRoot = getPortalRoot();
+
   countTree("API (`apps/api/src`)", "apps/api/src");
   countTree("Web (`apps/web/src`)", "apps/web/src");
   countTree("Packages (`packages/`)", "packages");
   countTree("testScript/", "testScript");
-  const portalRoot = getPortalRoot();
+  countTree("admin.portal.testscript/", "admin.portal.testscript", portalRoot);
   countTree("PortalAdmin (`lib/`)", "lib", portalRoot);
-  countTree("PortalAdmin (`cruscotto/`)", "cruscotto", portalRoot);
+  countTree("PortalAdmin (`cruscotto.frontend/`)", "cruscotto.frontend", portalRoot);
+  countTree("PortalAdmin (`admin.portal/`)", "admin.portal", portalRoot);
+  countTree("PortalAdmin (`cruscotto.database/`)", "cruscotto.database", portalRoot);
 
   return stats;
 }
@@ -186,7 +211,7 @@ function statusBucket(status) {
 }
 
 /**
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow} row
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow} row
  * @param {Map<string, string[]>} repoRefs
  * @param {{ omitStatus?: boolean }} [options]
  * @returns {TreeNode}
@@ -206,7 +231,7 @@ function rowToTreeNode(row, repoRefs, options = {}) {
     key      : row.key
   , label    : row.summary
   , detail
-  , href     : `${JIRA_SITE}${row.key}`
+  , href     : `${getMyProjectContext().jiraBrowseBase}${row.key}`
   , nodeType : row.type
   , tier     : row.tier
   , done     : isJiraStatusDone(row.status)
@@ -240,7 +265,7 @@ function sortTreeNodes(nodes) {
 
 /**
  * @param {string[]} issueKeys
- * @param {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
+ * @param {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @param {{ omitStatus?: boolean }} [options]
  * @returns {TreeNode[]}
@@ -285,7 +310,7 @@ function buildIssueForest(issueKeys, byKey, repoRefs, options = {}) {
 
 /**
  * @param {string} rootKey
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
  * @returns {string[]}
  */
 function collectSubtreeKeys(rootKey, issues) {
@@ -322,7 +347,7 @@ function collectSubtreeKeys(rootKey, issues) {
 
 /**
  * @param {string[]} keys
- * @param {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
+ * @param {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
  * @returns {string[]}
  */
 function expandWithAncestors(keys, byKey) {
@@ -342,12 +367,12 @@ function expandWithAncestors(keys, byKey) {
 }
 
 /**
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
  * @param {Map<string, string[]>} repoRefs
  * @returns {TreeNode[]}
  */
 function buildEpicForest(issues, repoRefs) {
-  /** @type {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} */
+  /** @type {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} */
   const byKey = new Map(issues.map((row) => [row.key, row]));
   /** @type {TreeNode[]} */
   const forest = [];
@@ -400,8 +425,8 @@ function collectDoneCount(node) {
 }
 
 /**
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[]} rows
- * @param {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} rows
+ * @param {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @returns {TreeNode[]}
  */
@@ -425,8 +450,8 @@ function cleanFeatureLabel(summary) {
 }
 
 /**
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow} row
- * @param {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow} row
+ * @param {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
  */
 function findEpicRow(row, byKey) {
   let parentKey = row.parentKey;
@@ -458,23 +483,24 @@ function futureInline(label) {
 }
 
 /**
- * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
- * @param {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
+ * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} issues
+ * @param {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} byKey
  * @param {Map<string, string[]>} repoRefs
  * @returns {string}
  */
 function buildFunctionalSummaryText(issues, byKey, repoRefs) {
+  const ctx = getMyProjectContext();
   const storyLike = issues.filter(
     (row) => isStoryLikeType(row.type) && row.tier !== "subtask"
   );
   const doneStories = storyLike.filter((row) => isJiraStatusDone(row.status));
   const openStories = storyLike.filter((row) => !isJiraStatusDone(row.status));
 
-  /** @type {Map<string, { epic: import("./cruscotto.jira.backlog.mjs").JiraBacklogRow | null, done: import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[], open: import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[] }>} */
+  /** @type {Map<string, { epic: import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow | null, done: import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[], open: import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[] }>} */
   const groups = new Map();
 
   /**
-   * @param {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow} row
+   * @param {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow} row
    * @param {"done" | "open"} bucket
    */
   function addToGroup(row, bucket) {
@@ -517,7 +543,7 @@ function buildFunctionalSummaryText(issues, byKey, repoRefs) {
   const paragraphs = [];
 
   paragraphs.push(
-    `**Just Last One** (JLO) è una piattaforma gaming in monorepo Turbo: API NestJS (:4000), servizio authentication (:4001), web Next.js con i18n IT/EN, mobile Expo in scaffold, package condivisi e suite \`testScript/\`. Di seguito lo stato per macro-area Epic: testo normale = **consegnato** (${doneStories.length} Story/Bug «Fatto»); testo **magenta** = correzioni o implementazioni ancora aperte in Jira (${openStories.length}):`
+    `**${ctx.repoName}** (${ctx.jiraPrefix}) — stato per macro-area Epic: testo normale = **consegnato** (${doneStories.length} Story/Bug «Fatto»); testo **magenta** = ancora aperte in Jira (${openStories.length}):`
   );
 
   for (const [, group] of orderedGroups) {
@@ -530,10 +556,6 @@ function buildFunctionalSummaryText(issues, byKey, repoRefs) {
 
     if (epic) {
       areaName = epic.summary.replace(/\s*[—–-]\s*.+$/, "").trim();
-
-      if (epic.key === "JLO-695") {
-        areaName = "Prototype / fuori scope";
-      }
     }
 
     const doneLabels = done
@@ -582,7 +604,7 @@ function buildFunctionalSummaryText(issues, byKey, repoRefs) {
   const withRepoTotal = doneStories.filter((row) => (repoRefs.get(row.key)?.length ?? 0) > 0).length;
 
   paragraphs.push(
-    `**Stack operativo oggi:** registrazione e login JWT, creazione/join/leave match e tornei, profilo utente e gamer-world, notifiche match (fondamenta), dashboard Admin locale (runner test, report HTML, cruscotto dev). **${withRepoTotal}** capability Fatto hanno almeno un riferimento \`JLO-xxx\` nei sorgenti.`
+    `**Allineamento repo:** **${withRepoTotal}** capability «Fatto» hanno almeno un riferimento \`${ctx.jiraPrefix}-xxx\` nei sorgenti del product repo.`
   );
 
   return paragraphs.join("\n\n");
@@ -768,12 +790,16 @@ function scanRepoCapabilities(testScripts) {
     adminItems.push("runner testScript orchestrato + report latest.json/html");
   }
 
-  if (repoExists("cruscotto/my-project.html")) {
-    adminItems.push("cruscotto SPA: Overview, Test, Jira Working, Backlog, My Project");
+  if (repoExists("cruscotto.frontend/cruscotto.server.mjs")) {
+    adminItems.push("cruscotto SPA: HOME, Test, Jira Working, Backlog, My Project");
+  }
+
+  if (repoExists("PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs")) {
+    adminItems.push("analisi repo vs Jira (questa pagina)");
   }
 
   if (repoExists("lib/my-project-analysis.mjs")) {
-    adminItems.push("analisi repo vs Jira (questa pagina)");
+    adminItems.push("analisi repo vs Jira (overlay legacy)");
   }
 
   if (adminItems.length) {
@@ -873,10 +899,11 @@ function buildRepoSummaryText(capabilities, testScripts, testReport) {
  * }>}
  */
 export async function analyzeMyProject() {
+  const ctx         = getMyProjectContext();
   const analyzedAt  = new Date().toISOString();
   const backlog     = await fetchJiraBacklog();
   const issues      = backlog.issues;
-  /** @type {Map<string, import("./cruscotto.jira.backlog.mjs").JiraBacklogRow>} */
+  /** @type {Map<string, import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow>} */
   const byKey       = new Map(issues.map((row) => [row.key, row]));
   const repoRefs    = scanRepoJiraReferences();
   const repoStats   = scanRepoStructure();
@@ -927,7 +954,7 @@ export async function analyzeMyProject() {
 
   const activeSprint = backlog.jiraSprints.find((s) => s.state === "active") ?? null;
 
-  /** @type {import("./cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
+  /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
   const sprintIssues = activeSprint
     ? issues.filter((row) => (row.jiraSprints ?? []).some((s) => s.id === activeSprint.id))
     : [];
@@ -977,11 +1004,11 @@ export async function analyzeMyProject() {
     , kind  : "tree"
     , tree  : sprintTree.length
         ? sprintTree
-        : [{ label: "Nessuna issue nello sprint attivo.", detail: "Verifica board 68 su Jira.", children: [] }]
+        : [{ label: "Nessuna issue nello sprint attivo.", detail: `Verifica board ${JIRA_BOARD_ID} su Jira.`, children: [] }]
     }
   , {
       id    : "backlog-full"
-    , title : "Backlog Completa JustLastOne"
+    , title : `Backlog completa ${ctx.repoName}`
     , kind  : "backlog-embed"
     }
   , {
@@ -1027,7 +1054,7 @@ export async function analyzeMyProject() {
     , kind  : "tree"
     , tree  : openNoRepo.length
         ? buildFilteredStoryForest(openNoRepo, byKey, repoRefs)
-        : [{ label: "Nessuno — ogni story aperta ha almeno un riferimento JLO-xxx nel codice.", detail: "Heuristica: grep su sorgenti testo del monorepo.", children: [] }]
+        : [{ label: `Nessuno — ogni story aperta ha almeno un riferimento ${ctx.jiraPrefix}-xxx nel codice.`, detail: "Heuristica: grep su sorgenti testo del product repo.", children: [] }]
     }
   , {
       id    : "tracked-open"
@@ -1045,7 +1072,7 @@ export async function analyzeMyProject() {
         key
       , label  : key
       , detail : (repoRefs.get(key) ?? []).slice(0, 2).join(", ")
-      , href   : `${JIRA_SITE}${key}`
+      , href   : `${ctx.jiraBrowseBase}${key}`
       }))
     }
   , {
@@ -1068,7 +1095,7 @@ export async function analyzeMyProject() {
     , title : "Metodo"
     , kind  : "prose"
     , text  : [
-        "Questa pagina **non** riusa le insight di Backlog o Jira Working. Legge Jira via API (`project = JLO`) e scansiona il repo cercando pattern `JLO-\\d+` in file di testo (TS, JS, JSON, MD, Prisma, HTML, …)."
+        `Questa pagina **non** riusa le insight di Backlog o Jira Working. Legge Jira via API (progetto \`${ctx.jiraPrefix}\`) e scansiona il product repo cercando pattern \`${ctx.jiraPrefix}-\\\\d+\` in file di testo (TS, JS, JSON, MD, Prisma, HTML, …).`
       , "«Ref repo» = almeno un file contiene la key. Non implica che la funzionalità sia completa: indica solo tracciabilità nel codice."
       , "Epic, sprint e story sono mostrati come **albero** (Epic → Story/Bug → Subtask). Lo sprint attivo raggruppa le issue del board con la stessa gerarchia parent Jira."
       ].join("\n\n")
@@ -1076,7 +1103,11 @@ export async function analyzeMyProject() {
   ];
 
   return {
-    analyzedAt
+    configured    : true
+  , overlay       : ctx.repoName
+  , jiraPrefix    : ctx.jiraPrefix
+  , jiraBoardUrl  : ctx.jiraBoardUrl
+  , analyzedAt
   , jiraFetchedAt : backlog.fetchedAt
   , summary       : {
       jiraTotal       : issues.length

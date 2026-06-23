@@ -39,7 +39,7 @@
  *
  * Dipendenze:
  *   - lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
- *   - lib/portal-paths.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
+ *   - lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
  *   - lib/test.run-all.mjs — child process per run tecnici
  *
  * Export principali:
@@ -62,7 +62,7 @@ import {
 , getProductRepoPath
 , getTestScriptDir
 , requireTestScriptDir
-} from "../lib/portal-paths.mjs";
+} from "../lib/portal.paths.resolver.mjs";
 
 /**
  * @typedef {{

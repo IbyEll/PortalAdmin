@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** PAGE SCRIPT ** -- commentato il: 2026-06-18 06:06
+ * ** PAGE SCRIPT ** -- commentato il: 2026-06-23 20:56
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 06:03   by: IbyEll
- * modificato il: 2026-06-18 06:06   by: IbyEll
+ * modificato il: 2026-06-23 20:56   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -76,11 +76,23 @@ function resolveJiraPrefix(opts = {}) {
   );
   const fromProject = String(project?.jiraPrefix ?? "").trim();
 
-  return fromProject || "JLO";
+  if (fromProject) {
+    return fromProject;
+  }
+
+  try {
+    return getProjectConfig().PRJ_JIRA_PREFIX;
+  } catch {
+    return "";
+  }
 }
 
-function buildJiraLinkChunkRe(jiraPrefix = "JLO") {
-  const prefix = escapeRegExp(String(jiraPrefix).trim() || "JLO");
+function buildJiraLinkChunkRe(jiraPrefix) {
+  const prefix = escapeRegExp(String(jiraPrefix ?? resolveJiraPrefix()).trim());
+
+  if (!prefix) {
+    throw new Error("buildJiraLinkChunkRe — jiraPrefix mancante");
+  }
 
   return String.raw`(?:<span class="issue-type[^"]*"[^>]*>[\s\S]*?</span>\s*)?<a class="jira-link" href="[^"]*">${prefix}-\d+</a>(?:<span class="issue-summary">[\s\S]*?</span>)?`;
 }

@@ -1,23 +1,46 @@
 /**
- * Fixture Prisma per suite test JLO — DB dev e reset stato host/player.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Fixture Prisma test JLO — DATABASE_URL dev e reset stato host/player.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
- *   Perché esiste: run-all e testScript condividono setup DATABASE_URL e teardown match
- *     senza duplicare query Prisma tra PortalAdmin e product repo (port da testScript/lib).
- *   A cosa serve: imposta `file:` su JLO_DEV.db nel product checkout e ripulisce match
- *     recruiting/in_game e amicizie host↔player prima di ogni run test.
  *
- * Consumatori: runner/run-all.mjs
+ *   Perché esiste:
+ *   - Run-all e testScript condividono setup DATABASE_URL e teardown match senza duplicare
+ *     query Prisma tra PortalAdmin host e product repo.
+ *
+ *   A cosa serve:
+ *   - Imposta file JLO_DEV.db nel product checkout e ripulisce match e amicizie seed pre-run.
+ *
+ * Generalizzazione:
+ *   No — path SQLite e email host seed fissi per monorepo JustLastOne.
+ *
+ * Input:
+ *   - PRODUCT_REPO_PATH — root product per path packages/database/prisma/JLO_DEV.db
+ *   - DATABASE_URL — env opzionale; default file: impostato da setupDefaultDatabaseUrl
+ *
+ * Consumatori:
+ *   - lib/test.match-fixtures.mjs — import dinamico overlay JustLastOne
+ *   - lib/test.run.all.mjs — resetHostTestState prima della suite
  *
  * Export principali:
- *   setupDefaultDatabaseUrl — env DATABASE_URL + path repo product
- *   clearHostRecruitingMatches — annulla match open/full dell'host seed
- *   resetHostTestState — teardown completo pre-run (match + friendship)
+ *   - setupDefaultDatabaseUrl — env DATABASE_URL e root product
+ *   - clearHostRecruitingMatches — annulla match recruiting host seed
+ *   - resetHostTestState — teardown completo pre-run
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { join } from "node:path";
 
-import { getProductRepoPath } from "../lib/portal-paths.mjs";
+import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
 /**
  * Imposta `process.env.DATABASE_URL` su SQLite dev se assente.

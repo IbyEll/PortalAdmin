@@ -1,38 +1,41 @@
 /**
- * repo-services-manager — orchestrazione stack dev product dal cruscotto (Process / Servizi).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *     repo-services-manager — orchestrazione stack dev product dal cruscotto Process/Servizi.
+ * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - avvio e kill di web, api, auth, api-documentation, friendBOT dal browser senza shell manuali
- *   - job Prisma dev (push, reset, seed) con log unificato per la console Process
+ *   - Avvio e kill di web, api, auth, api-documentation e friendBOT dal browser senza shell.
  *
  *   A cosa serve:
- *   - spawn detached di script runner e StartUnit da discovery.services.repo
- *   - ring buffer stdout/stderr per polling GET /api/repo/services/logs
- *   - elenco processi in ascolto (porte, command line, node non mappati)
+ *   - Spawn script runner, ring buffer log, tabella PID/porte e job Prisma push/reset/seed.
  *
- * Route (montate da dashboard-server.mjs):
- *   GET    /api/repo/services/discover  — manifest + piano avvio
- *   GET    /api/repo/services/status    — stato orchestratore
- *   GET    /api/repo/services/processes — tabella PID/porte Process
- *   GET    /api/repo/services/logs      — log incrementale (cursor)
- *   DELETE /api/repo/services/logs      — svuota console
- *   POST   /api/repo/services/start     — avvio stack (product / full / extras)
- *   POST   /api/repo/services/start-one — avvio singolo servizio
- *   POST   /api/repo/services/stop      — Kill All / product / stack-complete
- *   POST   /api/repo/services/stop-one  — kill singolo servizio
- *   GET    /api/repo/database/status    — stato SQLite dev (PRJ_DB_FILENAME)
- *   POST   /api/repo/database/push      — db:push via init_Database_DEV.mjs
- *   POST   /api/repo/database/reset     — delete & create schema
- *   POST   /api/repo/database/seed      — npm run db:seed
+ * Generalizzazione:
+ *   Si — discovery da PRODUCT_REPO_PATH e discovery.services.repo; route API montate da server.
  *
- * Consumatori: server/dashboard-server.mjs, runner/cruscotto.process.stop.all.services.mjs
+ * Input:
+ *   - PRODUCT_REPO_PATH — root product per discoverRepoServices
+ *   - DASHBOARD_PORT, PRJ_NAME — contesto overlay e listener
+ *   - body HTTP POST start/stop — scope stack o servizio singolo
  *
- * Dipendenze: lib/discovery.services.repo.mjs, cruscotto.process.kill.ports.mjs,
- *   cruscotto.process.stop.all.services.mjs, cruscotto.database/script_seed
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.server.mjs — mount handler /api/repo/services
+ *   - cruscotto.frontend/cruscotto.process.stop.all.services.mjs — kill stack coordinato
  *
- * Env: PRODUCT_REPO_PATH, DASHBOARD_PORT, PRJ_NAME (config project)
+ * Export principali:
+ *   - getRepoServicesDiscover, startRepoServices, stopRepoServices — orchestrazione stack
+ *   - listDevStackProcesses, getRepoServicesLogs — tab Process e console log
+ *   - pushProductDatabase, resetProductDatabase, seedProductDatabase — job DB product
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawn } from "node:child_process";
@@ -40,7 +43,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileS
 import { basename, dirname, join, relative } from "node:path";
 
 import { getProjectConfig, projectHasProductDatabase } from "../lib/project.config.mjs";
-import { getDiscoveryConfig } from "../lib/discovery.config.mjs";
+import { getDiscoveryConfig } from "../lib/overlay/discovery.config.mjs";
 import { resolveSqliteDbFiles } from "../cruscotto.database/product.database.seed.run.mjs";
 
 import {
@@ -931,7 +934,8 @@ export async function listDevStackProcesses() {
     }
   }
 
-  const portalName = basename(portalRoot);
+  const portalName  = basename(portalRoot);
+  const productName = getProjectConfig().PRJ_NAME;
 
   /** @type {Array<Record<string, unknown>>} */
   const nodeRows = nodeProcs
@@ -940,7 +944,7 @@ export async function listDevStackProcesses() {
       id          : `node-${np.pid}`
     , label       : "Node"
     , description : shortenNodeCommand(np.command)
-    , product     : np.command.includes(portalName) ? "PortalAdmin" : "JustLastOne"
+    , product     : np.command.includes(portalName) ? "PortalAdmin" : productName
     , path        : shortenNodeCommand(np.command)
     , port        : null
     , healthUrl   : null
@@ -978,10 +982,11 @@ export async function stopRepoServices(options = {}) {
   stderrBuf = "";
 
   const startedAt = new Date().toISOString();
+  const productName = getProjectConfig().PRJ_NAME;
   const killLabel = productStackComplete
     ? "Kill stack completo"
     : productOnly
-      ? "Kill product JustLastOne"
+      ? `Kill product ${productName}`
       : "Kill All";
   pushLogLine("system", `=== ${killLabel} — avvio ${startedAt} ===`);
 
@@ -1245,7 +1250,7 @@ export function getProductDatabaseStatus() {
     enabled       : true
   , id          : "database"
   , label       : "Database"
-  , product     : "JustLastOne"
+  , product     : getProjectConfig().PRJ_NAME
   , description : "SQLite Prisma — schema e seed dev"
   , path        : relPath
   , exists

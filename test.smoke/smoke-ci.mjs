@@ -1,13 +1,47 @@
 #!/usr/bin/env node
 /**
- * Smoke ADMIN-95 — CI aggregate (paths, config, workflow, run-all, dashboard).
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:05   by: IbyEll
+ * modificato il: 2026-06-23 21:05   by: IbyEll
+ * ticket refirement: ADMIN-95 smoke CI aggregate
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *              Smoke CI — orchestrazione sequenziale smoke PortalAdmin (paths, config, workflow).
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - CI e pre-merge richiedono un unico entrypoint che esegua tutti gli smoke host in ordine.
+ *
+ *   A cosa serve:
+ *   - Spawn sequenziale degli script smoke; fallisce al primo step con exit code diverso da 0.
+ *
+ * Generalizzazione:
+ *   Si — PRODUCT_REPO_PATH validato prima degli step; env propagata ai child.
+ *
+ * Input:
+ *   - PRODUCT_REPO_PATH — product repo deve esistere prima degli step
+ *   - elenco STEPS — path relativi script smoke sotto PortalAdmin
+ *
+ * Uso:
+ *   - node test.smoke/smoke-ci.mjs
+ *
+ * Exit code:
+ *   0 — tutti gli step passati
+ *   1 — PRODUCT_REPO_PATH invalido o step fallito
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { resolveProductRepoPath } from "../lib/portal-paths.mjs";
+import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 

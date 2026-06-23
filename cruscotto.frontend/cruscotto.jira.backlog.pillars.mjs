@@ -37,7 +37,7 @@ import {
 , keysForPillar
 , keysForPillarTreeOrder
 } from "../admin.script.standalone/confluence.pillar.matrix.generate.mjs";
-import { pillarPageUrl } from "./cruscotto.jira.pillar.matrix.portal.mjs";
+import { pillarPageUrl } from "../PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs";
 
 export const PILLAR_HEADER_PREFIX = "__pillar__";
 

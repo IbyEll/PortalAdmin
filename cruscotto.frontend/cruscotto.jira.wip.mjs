@@ -1,5 +1,39 @@
 /**
- * Stato coda WIP backlog — lettura jira_issue_wip e parsing AC/DoD da veveDescription.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Stato coda WIP backlog — lettura jira_issue_wip e parsing AC/DoD da veveDescription.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Tab WIP cruscotto deve mostrare AC/DoD e stato push senza query Jira live a ogni poll.
+ *
+ *   A cosa serve:
+ *   - Legge jira_issue_wip SQLite, parse checkbox AC/DoD da markdown veve e calcola isDone.
+ *
+ * Generalizzazione:
+ *   Si — overlay da PRJ_NAME via openCruscottoDb; key ADMIN e JLO ammesse.
+ *
+ * Input:
+ *   - CRUSCOTTO_DB_PATH — cache SQLite cruscotto overlay
+ *   - parentKey — ticket ADMIN-xxx o JLO-xxx in coda WIP
+ *
+ * Consumatori:
+ *   - cruscotto.frontend/cruscotto.server.mjs — API GET wip status backlog
+ *   - admin.portal.JiraCORE/jiraCORE.wip.push.mjs — assert prima push step 8
+ *
+ * Export principali:
+ *   - fetchWipStatusByKeys — mappa key → WipStatusEntry per UI
+ *   - parseVeveCheckboxSection, buildWipStatusEntry — parse AC/DoD da veve markdown
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";

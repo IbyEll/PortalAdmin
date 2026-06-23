@@ -1,7 +1,39 @@
 #!/usr/bin/env node
 /**
- * Matrice pilastri prodotto × Jira × repo — output HTML Confluence.
- * Uso: node scripts/generate-confluence-pillar-matrix.mjs [--write body.html]
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** SCRIPT ENTRYPOINT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Matrice pilastri prodotto × Jira × repo — output HTML per Confluence.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Documentazione Confluence pilastri deve allineare backlog JLO, segnali repo e gap.
+ *
+ *   A cosa serve:
+ *   - Fetch backlog, inspect repo signals e genera HTML matrice per pilastro prodotto.
+ *
+ * Generalizzazione:
+ *   No — pilastri e key JLO hardcoded per documento 9076737 JustLastOne.
+ *
+ * Input:
+ *   - argv --write — path file body HTML output opzionale
+ *   - credenziali Jira env — fetchJiraBacklog live
+ *
+ * Uso:
+ *   - node admin.script.standalone/confluence.pillar.matrix.generate.mjs
+ *
+ * Exit code:
+ *   0 — HTML generato su stdout o file
+ *   1 — fetch Jira o IO falliti
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { writeFileSync } from "node:fs";

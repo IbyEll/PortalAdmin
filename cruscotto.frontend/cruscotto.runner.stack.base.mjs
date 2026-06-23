@@ -24,7 +24,7 @@
  *   Si — nessun path monorepo hardcoded; cwd spawn = PRODUCT_REPO_PATH; liste .env/clean da consumer.
  *
  * Input:
- *   - PRODUCT_REPO_PATH — checkout product (lib/portal-paths.mjs → root)
+ *   - PRODUCT_REPO_PATH — checkout product (lib/portal.paths.resolver.mjs → root)
  *   - envFiles          — coppie example/target relative a root (passate a ensureEnvFiles)
  *   - cleanPaths        — path dist/.next da rimuovere (passate a cleanBuildArtifacts)
  *   - argv              — slice process.argv per parseApiStartArgs
@@ -50,7 +50,7 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { getPortalRoot, getProductRepoPath } from "../lib/portal-paths.mjs";
+import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 
 // --- path product e binari spawn (valutati all'import) ---
 /** Checkout product repo (PRODUCT_REPO_PATH). */

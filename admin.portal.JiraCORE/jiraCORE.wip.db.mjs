@@ -1,5 +1,40 @@
 /**
- * Lettura e update coda WIP jira_issue_wip — step 8 PUSH workflow database.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Lettura e update coda WIP jira_issue_wip — step 8 PUSH workflow database.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Push workflow deve validare e aggiornare stato WIP in SQLite prima di sync Jira live.
+ *
+ *   A cosa serve:
+ *   - loadWipPushBundle, assertWipReadyForPush, markWipPushed su tabella jira_issue_wip.
+ *
+ * Generalizzazione:
+ *   Si — DB da openCruscottoDb overlay; key ADMIN e JLO normalizzate.
+ *
+ * Input:
+ *   - parentKey — ticket parent in coda WIP
+ *   - CRUSCOTTO_DB_PATH — file SQLite cruscotto overlay
+ *
+ * Consumatori:
+ *   - admin.portal.JiraCORE/jiraCORE.wip.push.mjs — CLI step 8 PUSH
+ *   - cruscotto.frontend/cruscotto.jira.wip.mjs — lettura stato per UI
+ *
+ * Export principali:
+ *   - loadWipPushBundle — parent e subtask WIP per push
+ *   - assertWipReadyForPush, markWipPushed — gate e flag awaitingPush
+ *   - parseWipRawFields, normalizeIssueKey — helper parsing row WIP
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";

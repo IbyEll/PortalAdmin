@@ -1,12 +1,12 @@
 /**
  * Rigenera matrice pilastri — solo portal cruscotto (HTML locale).
- * Equivalente CLI: node cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs
+ * Equivalente CLI: node PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs
  */
 
 import { generatePillarMatrixHtml } from "../scripts/generate-confluence-pillar-matrix.mjs";
-import { writePillarMatrixPortalFromBundle } from "../cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs";
+import { writePillarMatrixPortalFromBundle } from "./cruscotto.jira.pillar.matrix.portal.generate.mjs";
 
-const REGENERATE_COMMAND = "node cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs";
+const REGENERATE_COMMAND = "node PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs";
 
 /**
  * Scarica Jira + repo e aggiorna cruscotto/pillar-matrix/ (senza Confluence).

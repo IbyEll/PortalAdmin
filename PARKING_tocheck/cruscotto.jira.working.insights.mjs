@@ -31,43 +31,30 @@
  *   - buildWorkingInsights, buildKeyToBlockMap — core insight e mappa blocchi UI
  */
 
-import { fetchJiraBacklog, isEpicType, isJiraStatusDone } from "./cruscotto.jira.backlog.mjs";
-import { buildInsightSnapshot, getCorrelatedOpenKeys, inspectRepoSignal, isInActiveJiraSprint } from "./cruscotto.jira.backlog.insights.mjs";
+import { fetchJiraBacklog, isEpicType, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import { buildInsightSnapshot, getCorrelatedOpenKeys, inspectRepoSignal, isInActiveJiraSprint } from "../cruscotto.frontend/cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { JLO_WORKING_PLAN, boardKeysForWorkingPlanBlock, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
+import { boardKeysForWorkingPlanBlock, getWorkingPlan, getWorkingPlanOverlay, mergeWorkingSprintKeys } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
 
 /** @typedef {import("./cruscotto.jira.backlog.insights.mjs").BacklogInsight} WorkingInsight */
 
-/** Issue chiave per housekeeping Fase 0 (zero codice atteso). */
-const HOUSEKEEPING_KEYS = ["JLO-97", "JLO-247", "JLO-637"];
+/**
+ * @returns {Map<string, string>}
+ */
+function buildKeyToFaseBlockMap() {
+  const overlay = getWorkingPlanOverlay();
+  /** @type {Map<string, string>} */
+  const map = new Map();
 
-/** @type {Map<string, string>} */
-const KEY_TO_FASE_BLOCK = new Map();
+  for (const plan of getWorkingPlan()) {
+    const faseBlock = overlay.faseBlockForSprint(plan.sprint);
 
-for (const plan of JLO_WORKING_PLAN) {
-  const faseBlock = plan.sprint === 1
-    ? "fatto"
-    : plan.sprint === 2
-      ? "fase-0"
-      : plan.sprint === 3
-        ? "fase-1"
-        : plan.sprint === 4
-          ? "fase-2"
-          : plan.sprint === 5
-            ? "fase-3"
-            : plan.sprint === 6
-              ? "fase-chat"
-              : plan.sprint === 7
-                ? "fase-4"
-                : plan.sprint === 8
-                  ? "fase-5"
-                  : plan.sprint === 9
-                    ? "sprint-9"
-                    : `sprint-${plan.sprint}`;
-
-  for (const key of plan.keys) {
-    KEY_TO_FASE_BLOCK.set(key, faseBlock);
+    for (const key of plan.keys) {
+      map.set(key, faseBlock);
+    }
   }
+
+  return map;
 }
 
 /**
@@ -77,10 +64,11 @@ for (const plan of JLO_WORKING_PLAN) {
  * @returns {Record<string, string>}
  */
 export function buildKeyToBlockMap() {
+  const keyToFase = buildKeyToFaseBlockMap();
   /** @type {Record<string, string>} */
   const out = {};
 
-  for (const [key, block] of KEY_TO_FASE_BLOCK) {
+  for (const [key, block] of keyToFase) {
     out[key] = block;
   }
 
@@ -93,6 +81,7 @@ export function buildKeyToBlockMap() {
  */
 function resolveWorkingBlock(insight) {
   const { key, text } = insight;
+  const KEY_TO_FASE_BLOCK = buildKeyToFaseBlockMap();
 
   if (text.includes("Catena MVP")) {
     return "catena";
@@ -119,7 +108,7 @@ function resolveWorkingBlock(insight) {
     return "toolbar";
   }
 
-  for (const plan of JLO_WORKING_PLAN) {
+  for (const plan of getWorkingPlan()) {
     if (text.startsWith(`${plan.name}:`)) {
       return `sprint-${plan.sprint}`;
     }
@@ -143,16 +132,6 @@ function attachWorkingBlocks(insights) {
   }));
 }
 
-/** Catena critica MVP (ordine operativo). */
-const CRITICAL_CHAIN = [
-  { label: "Match lifecycle", keys: ["JLO-690", "JLO-637"] }
-, { label: "Housekeeping 97/247/637", keys: HOUSEKEEPING_KEYS }
-, { label: "Export Admin", keys: ["JLO-930", "JLO-931", "JLO-932", "JLO-933"] }
-, { label: "Notifiche fondamenta", keys: ["JLO-774", "JLO-775"] }
-, { label: "Tornei iscrizione/bracket", keys: ["JLO-100", "JLO-103", "JLO-696"] }
-, { label: "Release", keys: ["JLO-872", "JLO-121"] }
-];
-
 /**
  * @param {string} status
  * @returns {boolean}
@@ -167,6 +146,10 @@ function jiraDone(status) {
  * @returns {WorkingInsight[]}
  */
 export function buildWorkingInsights(issues, at = new Date().toISOString(), boardSprintKeysByPlanName = {}) {
+  const overlay = getWorkingPlanOverlay();
+  const workingPlan = getWorkingPlan();
+  const CRITICAL_CHAIN = overlay.CRITICAL_CHAIN ?? [];
+  const HOUSEKEEPING_KEYS = overlay.HOUSEKEEPING_KEYS ?? [];
   /** @type {WorkingInsight[]} */
   const insights = [];
   /** @type {Map<string, typeof issues[number]>} */
@@ -176,7 +159,7 @@ export function buildWorkingInsights(issues, at = new Date().toISOString(), boar
   insights.push({
     at,
     kind : "info",
-    text : `Piano Jira Working · ${JLO_WORKING_PLAN.length} sprint nel piano · ${issues.length} issue scaricate da Jira`,
+    text : `Piano Jira Working · ${workingPlan.length} sprint nel piano · ${issues.length} issue scaricate da Jira`,
   });
 
   /** @type {string | null} */
@@ -184,7 +167,7 @@ export function buildWorkingInsights(issues, at = new Date().toISOString(), boar
   /** @type {string | null} */
   let firstOpenSprint = null;
 
-  for (const block of JLO_WORKING_PLAN) {
+  for (const block of workingPlan) {
     const keys = mergeWorkingSprintKeys(
       block.keys
     , boardKeysForWorkingPlanBlock(boardSprintKeysByPlanName, block.name)
@@ -219,7 +202,7 @@ export function buildWorkingInsights(issues, at = new Date().toISOString(), boar
         : `${block.name}: ${doneCount}/${total} Fatto in Jira — ancora aperti ${openKeys.join(", ")}`,
     });
 
-    if (block.sprint === 2) {
+    if (block.sprint === 2 && HOUSEKEEPING_KEYS.length > 0) {
       /** @type {string[]} */
       const repoReady = [];
 
@@ -303,25 +286,27 @@ export function buildWorkingInsights(issues, at = new Date().toISOString(), boar
     });
   }
 
-  /** @type {string[]} */
-  const hkOpen = HOUSEKEEPING_KEYS.filter((key) => {
-    const row = byKey.get(key);
+  if (HOUSEKEEPING_KEYS.length > 0) {
+    /** @type {string[]} */
+    const hkOpen = HOUSEKEEPING_KEYS.filter((key) => {
+      const row = byKey.get(key);
 
-    return !row || !jiraDone(row.status);
-  });
+      return !row || !jiraDone(row.status);
+    });
 
-  if (hkOpen.length === 0) {
-    insights.push({
-      at,
-      kind : "ok",
-      text : "Housekeeping Fase 0 completato in Jira — JLO-97, JLO-247 e JLO-637 sono Fatto",
-    });
-  } else if (hkOpen.length < HOUSEKEEPING_KEYS.length) {
-    insights.push({
-      at,
-      kind : "warning",
-      text : `Housekeeping parziale in Jira — restano da chiudere: ${hkOpen.join(", ")}`,
-    });
+    if (hkOpen.length === 0) {
+      insights.push({
+        at,
+        kind : "ok",
+        text : `Housekeeping Fase 0 completato in Jira — ${HOUSEKEEPING_KEYS.join(", ")} sono Fatto`,
+      });
+    } else if (hkOpen.length < HOUSEKEEPING_KEYS.length) {
+      insights.push({
+        at,
+        kind : "warning",
+        text : `Housekeeping parziale in Jira — restano da chiudere: ${hkOpen.join(", ")}`,
+      });
+    }
   }
 
   for (const step of CRITICAL_CHAIN) {
@@ -356,32 +341,34 @@ export function buildWorkingInsights(issues, at = new Date().toISOString(), boar
     }
   }
 
-  const exportInspect = inspectRepoSignal("JLO-930", repoRefs);
-  const exportRow = byKey.get("JLO-930");
+  if (overlay.sprint6Enabled) {
+    const exportInspect = inspectRepoSignal("JLO-930", repoRefs);
+    const exportRow = byKey.get("JLO-930");
 
-  if (exportRow && !jiraDone(exportRow.status)) {
-    if (exportInspect && !exportInspect.scan.complete) {
-      insights.push({
-        at,
-        kind : "comment",
-        key  : "JLO-930",
-        type : exportRow.type,
-        text : "Export Excel (JLO-930): la cartella export/ è quasi vuota — subtask 931–933 ancora da completare",
-      });
+    if (exportRow && !jiraDone(exportRow.status)) {
+      if (exportInspect && !exportInspect.scan.complete) {
+        insights.push({
+          at,
+          kind : "comment",
+          key  : "JLO-930",
+          type : exportRow.type,
+          text : "Export Excel (JLO-930): la cartella export/ è quasi vuota — subtask 931–933 ancora da completare",
+        });
+      }
     }
-  }
 
-  for (const blockedKey of ["JLO-886", "JLO-887"]) {
-    const row = byKey.get(blockedKey);
+    for (const blockedKey of ["JLO-886", "JLO-887"]) {
+      const row = byKey.get(blockedKey);
 
-    if (row && !jiraDone(row.status)) {
-      insights.push({
-        at,
-        kind : "comment",
-        key  : blockedKey,
-        type : row.type,
-        text : `${blockedKey} è «${row.status}» in Jira — i test restano blocked finché non chiudi JLO-552 e JLO-696`,
-      });
+      if (row && !jiraDone(row.status)) {
+        insights.push({
+          at,
+          kind : "comment",
+          key  : blockedKey,
+          type : row.type,
+          text : `${blockedKey} è «${row.status}» in Jira — i test restano blocked finché non chiudi JLO-552 e JLO-696`,
+        });
+      }
     }
   }
 

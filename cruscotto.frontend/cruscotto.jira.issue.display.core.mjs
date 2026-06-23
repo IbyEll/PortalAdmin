@@ -36,6 +36,8 @@
  *   - formatJiraKeyListsInNoteHtml — virgole IssueKEY → elenco puntato HTML
  */
 
+import { getProjectConfig } from "../lib/project.config.mjs";
+
 /**
  * @param {string} value
  * @returns {string}
@@ -63,7 +65,15 @@ export function resolveJiraPrefix(opts = {}) {
   );
   const fromProject = String(project?.jiraPrefix ?? "").trim();
 
-  return fromProject || "JLO";
+  if (fromProject) {
+    return fromProject;
+  }
+
+  try {
+    return getProjectConfig().PRJ_JIRA_PREFIX;
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -72,14 +82,20 @@ export function resolveJiraPrefix(opts = {}) {
  * @param {string} [jiraPrefix]
  * @returns {string}
  */
-export function buildJiraLinkChunkRe(jiraPrefix = "JLO") {
-  const prefix = escapeRegExp(String(jiraPrefix).trim() || "JLO");
+export function buildJiraLinkChunkRe(jiraPrefix) {
+  const prefix = escapeRegExp(String(jiraPrefix ?? resolveJiraPrefix()).trim());
+
+  if (!prefix) {
+    throw new Error("buildJiraLinkChunkRe — jiraPrefix mancante");
+  }
 
   return String.raw`(?:<span class="issue-type[^"]*"[^>]*>[\s\S]*?</span>\s*)?<a class="jira-link" href="[^"]*">${prefix}-\d+</a>(?:<span class="issue-summary">[\s\S]*?</span>)?`;
 }
 
-/** Regex chunk link Jira — default prefisso JLO (retrocompat). */
-export const JIRA_LINK_CHUNK_RE = buildJiraLinkChunkRe("JLO");
+/** Regex chunk link Jira — prefisso da resolveJiraPrefix (overlay attivo). */
+export function getJiraLinkChunkRe() {
+  return buildJiraLinkChunkRe(resolveJiraPrefix());
+}
 
 /**
  * Etichetta compatta per badge da issuetype Jira (o null se assente).

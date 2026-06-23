@@ -1,6 +1,39 @@
 #!/usr/bin/env node
 /**
- * Testscript step 8 PUSH — regole, moduli WIP/Jira, API cruscotto e markup backlog.
+ * ------------------------------------------------------------------------------------------------------------------------
+ * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:30
+ * ------------------------------------------------------------------------------------------------------------------------
+ * creato     il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-06-23 21:30   by: IbyEll
+ * ------------------------------------------------------------------------------------------------------------------------
+ *
+ * ************************************************************************************************************************
+ *         Testscript step 8 PUSH — regole WIP, moduli Jira, API cruscotto e markup backlog.
+ * ************************************************************************************************************************
+ *
+ * Descrizione funzionale:
+ *
+ *   Perché esiste:
+ *   - Workflow database PUSH deve essere verificato end-to-end senza push reale su Jira.
+ *
+ *   A cosa serve:
+ *   - Assert su parseVeveCheckboxSection, API wip, buildPushCommand e integrazione portalFetch.
+ *
+ * Generalizzazione:
+ *   Si — --overlay e DASHBOARD_URL per contesto cruscotto multi-istanza.
+ *
+ * Input:
+ *   - DASHBOARD_URL — base HTTP cruscotto sotto test
+ *   - argv --overlay — PRJ_NAME per resolveCruscottoContext
+ *
+ * Uso:
+ *   - node admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs
+ *
+ * Exit code:
+ *   0 — tutti i runTest passati
+ *   1 — almeno un assert fallito
+ *
+ * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import { existsSync } from "node:fs";

@@ -18,7 +18,7 @@
  *   - Evita duplicare policy catalogo segnali e merge overlay product/portal in ogni modulo.
  *
  *   A cosa serve:
- *   - Risolve overlay product da env PRJ_NAME (o default JustLastOne via loadJiraConfig).
+ *   - Risolve overlay product da env PRJ_NAME obbligatorio (loadJiraConfig senza default implicito).
  *   - Espone a init modulo: JIRA_PROJECT_KEYS, REPO_SIGNALS_CATALOG_CONFIG,
  *     REPO_IMPLEMENTATION_SIGNALS, GIT_EVIDENCE_COMMIT_LIMIT, PRODUCT_PROJECT_OVERLAY.
  *
@@ -26,7 +26,7 @@
  *   Si — snapshot config all'import da overlay PRJ_NAME tramite loadJiraConfig.
  *
  * Input:
- *   - PRJ_NAME — overlay product (es. JustLastOne); opzionale se default in loadJiraConfig
+ *   - PRJ_NAME — overlay product (es. AdminDashBoard, JustLastOne); obbligatorio in env o opts
  *
  * Consumatori:
  *   - cruscotto.jira.backlog.insights.mjs — inspect repo vs ticket
@@ -47,12 +47,12 @@
  *   - jira.project.config.mjs — loadJiraConfig, merge overlay PROJECT_*
  *
  * Variabili d'ambiente:
- *   - PRJ_NAME — overlay product (es. JustLastOne); opzionale se default in loadJiraConfig
+ *   - PRJ_NAME — overlay product; obbligatorio (nessun fallback in loadJiraConfig)
  */
 
 import { loadJiraConfig } from "./jira.project.config.mjs";
 
-// 1. Overlay product — da env operatore o default in loadJiraConfig
+// 1. Overlay product — da env operatore (PRJ_NAME obbligatorio)
 const productOverlay = process.env.PRJ_NAME?.trim();
 
 // 2. Caricamento config — merge portal + product, segnali e policy catalogo
