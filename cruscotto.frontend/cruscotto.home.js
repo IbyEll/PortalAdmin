@@ -5306,7 +5306,7 @@ async function renderProcess(report) {
         </ol>
         <p class="muted process-intro-note">
           Setup alternativo da terminale (product repo):
-          <code>node runner/start-dev.mjs</code> — cleanup, build, db opzionale e avvio stack.
+          <code>node admin.script.standalone/start-dev.mjs</code> — cleanup, build, db opzionale e avvio stack.
           Se vedi <em>Discovery non disponibile</em> o <code>Not found</code>, riavvia
           <code>npm run admin:dashboard</code> e ricarica con Ctrl+F5.
         </p>

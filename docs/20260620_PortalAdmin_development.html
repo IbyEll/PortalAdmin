@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PortalAdmin — Visione sviluppo 2026-06-20</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="/docs/docs-chrome.css" />
   <style>
     :root {
       color-scheme: light dark;
@@ -146,9 +147,32 @@
     }
 
     .toc ul { margin: 0.35rem 0 0; }
+
+    del.resolved {
+      text-decoration: line-through;
+      opacity: 0.72;
+    }
+
+    .doc-resolution {
+      display: block;
+      margin: 0.35rem 0 0.5rem;
+      color: var(--ok);
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    .verification-banner {
+      border: 1px solid var(--border);
+      background: rgba(72, 187, 120, 0.06);
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
   </style>
 </head>
 <body>
+  <!-- DOCS-CHROME -->
   <div class="page">
     <header>
       <h1>PortalAdmin — Visione sviluppo</h1>
@@ -162,6 +186,7 @@
         runner testScript, workflow Cursor. Può puntare a <strong>product repo diversi</strong>
         tramite overlay <code>PROJECT_{PRJ_NAME}</code> e variabile <code>PRODUCT_REPO_PATH</code>.
       </p>
+      <div class="verification-banner" id="docs-auto-banner"> <strong>Verifica repo automatica</strong> — 2026-06-23 22:12 · 8/11 controlli OK. Aggiornamento con barrato + commento. </div>
       <nav class="toc" aria-label="Indice">
         <strong>Indice</strong>
         <ul>
@@ -195,8 +220,10 @@ flowchart TB
     HOME["admin.portal — HOME :3990"]
     CRUS["cruscotto.frontend — Cruscotto"]
     LIB["lib/ — config, discovery, test, Jira"]
+    OVERLAY_BASE["PROJECT_Base/"]
     OVERLAY_JLO["PROJECT_JustLastOne/"]
     OVERLAY_ADM["PROJECT_AdminDashBoard/"]
+    PARKING["PARKING_tocheck/"]
     DB["cruscotto.database — cache Jira SQLite"]
   end
 
@@ -212,16 +239,20 @@ flowchart TB
 
   PRJ_NAME --> OVERLAY_JLO
   PRJ_NAME --> OVERLAY_ADM
+  OVERLAY_BASE --> OVERLAY_JLO
+  OVERLAY_BASE --> OVERLAY_ADM
   PRODUCT_REPO_PATH --> product_jlo
   PRODUCT_REPO_PATH --> product_self
 
   OVERLAY_JLO --> CRUS
   OVERLAY_ADM --> CRUS
+  OVERLAY_BASE --> CRUS
   CRUS --> product_jlo
   CRUS --> product_self
   CRUS --> DB
   HOME --> OVERLAY_JLO
   HOME --> OVERLAY_ADM
+  PARKING -.->|orfano| CRUS
     </div>
 
     <table>
@@ -330,6 +361,19 @@ flowchart LR
 
     <h2 id="cartelle">3. Mappa cartelle (repo PortalAdmin)</h2>
 
+    <p>
+      <del class="resolved">
+        Mappa precedente: <code>cruscotto.frontend</code> con «Jira backlog e working plan»;
+        <code>lib/</code> flat (config overlay, portal paths); solo
+        <code>PROJECT_JustLastOne</code> e <code>PROJECT_AdminDashBoard</code>;
+        smoke in <code>scripts/</code>.
+      </del>
+      <span class="doc-resolution">✅ 2026-06-20 — Jira Working in <code>PARKING_tocheck/</code> (orfana, fuori SPA);
+      <code>lib/overlay/</code> per config/piano/path overlay; <code>PROJECT_Base/</code> fallback condiviso;
+      piano sprint attivo in Backlog via <code>cruscotto.jira.working.order.mjs</code>;
+      smoke canonico in <code>test.smoke/</code>.</span>
+    </p>
+
     <div class="mermaid">
 mindmap
   root((PortalAdmin))
@@ -340,21 +384,23 @@ mindmap
     cruscotto.frontend
       SPA cruscotto.home.js
       Process Avvia/Kill + console
-      Jira backlog e working plan
+      Jira backlog my-backlog project-overview
       pillar-matrix
     lib
-      project.config overlay
-      discovery.services.repo
-      test.run.all orchestratore
-      portal.instance
+      project.config portal.paths.resolver
+      lib/overlay config piano sprint
+      discovery.services.repo test.run.all
+    PROJECT_Base
+      pagine e fixture condivise
     PROJECT_JustLastOne
-      project.config
-      discovery.config
-      product.manifest
+      project.config discovery.config
+      working.plan.data product.manifest
     PROJECT_AdminDashBoard
-      project.config
-      discovery.config
+      project.config discovery.config
       product.manifest
+    PARKING_tocheck
+      Jira Working HTML e rigenerazione
+      moduli legacy non referenziati
     cruscotto.database
       Prisma cache Jira SQLite
     admin.portal.testscript
@@ -363,8 +409,8 @@ mindmap
       sync backlog close-story
     runner
       start-dev run-all shim
-    scripts
-      smoke CI close-story
+    test.smoke
+      smoke CI portal paths
     </div>
 
     <h3>Cartelle principali</h3>
@@ -383,11 +429,32 @@ mindmap
         </tr>
         <tr>
           <td><code>lib/</code></td>
-          <td>Config overlay, discovery servizi, catalogo test, reporter, portal paths</td>
+          <td>
+            <del class="resolved">Config overlay, discovery servizi, catalogo test, reporter, <code>portal-paths</code></del>
+            <span class="doc-resolution">✅ 2026-06-20 — Sottocartella <code>lib/overlay/</code>;
+            path host/product in <code>portal.paths.resolver.mjs</code>.</span>
+            Config, discovery servizi, catalogo test, reporter, resolver path portal/product
+          </td>
+        </tr>
+        <tr>
+          <td><code>lib/overlay/</code></td>
+          <td><code>cruscotto.config.overlay</code>, <code>working.plan.overlay</code>, <code>project.overlay.paths</code>, <code>dashboard.project</code></td>
+        </tr>
+        <tr>
+          <td><code>PROJECT_Base/</code></td>
+          <td>File condivisi tra overlay — risolti prima di <code>PROJECT_{PRJ_NAME}</code> (<code>project.overlay.paths</code>)</td>
         </tr>
         <tr>
           <td><code>PROJECT_*/</code></td>
-          <td>Overlay per product: <code>project.config</code>, <code>discovery.config</code>, manifest</td>
+          <td>
+            <del class="resolved">Solo file duplicati per ogni product in <code>PROJECT_{nome}</code></del>
+            <span class="doc-resolution">✅ 2026-06-20 — Istanza = <code>PROJECT_Base</code> + <code>PROJECT_{PRJ_NAME}</code>.</span>
+            Overlay per product: <code>project.config</code>, <code>discovery.config</code>, manifest, catalogo segnali
+          </td>
+        </tr>
+        <tr>
+          <td><code>PARKING_tocheck/</code></td>
+          <td>Moduli non collegati al cruscotto attivo (pagina Jira Working, pillar-matrix legacy, …)</td>
         </tr>
         <tr>
           <td><code>cruscotto.database/</code></td>
@@ -406,8 +473,17 @@ mindmap
           <td><code>start-dev.mjs</code>, shim <code>run-all.mjs</code></td>
         </tr>
         <tr>
+          <td><code>test.smoke/</code></td>
+          <td>Smoke CI e portal paths (ex <code>scripts/smoke-*.mjs</code>)</td>
+        </tr>
+        <tr>
           <td><code>server/</code></td>
-          <td>Legacy / compat — in migrazione verso <code>cruscotto.frontend/</code></td>
+          <td>
+            <del class="resolved">Legacy — entrypoint <code>dashboard-server.mjs</code> e stack in migrazione</del>
+            <span class="doc-resolution">✅ 2026-06-20 — <code>dashboard-server.mjs</code> eliminato; restano
+            <code>dev-api.mjs</code> e <code>cruscotto.health.mjs</code> importati da <code>cruscotto.server.mjs</code>.</span>
+            Residuo legacy — da spostare in <code>cruscotto.frontend/</code> o <code>lib/</code>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -436,6 +512,16 @@ sequenceDiagram
 
     <h2 id="cruscotto-ui">5. Aree UI cruscotto (SPA)</h2>
 
+    <p>
+      <del class="resolved">
+        Tab SPA precedente: Overview/health; coppia Jira backlog + <strong>Jira working plan</strong>
+        (pagina <code>/jira-working.html</code>, tab <code>jiraworking</code>).
+      </del>
+      <span class="doc-resolution">✅ 2026-06-20 — Jira Working rimossa dalla nav e dal server;
+      sorgenti in <code>PARKING_tocheck/</code>. Backlog e MyBacklog mostrano ordine sprint
+      (<code>devOrder</code>) da <code>cruscotto.jira.working.order.mjs</code>. Aggiunti Project Overview e Cursor Agent.</span>
+    </p>
+
     <div class="mermaid">
 block-beta
   columns 3
@@ -444,18 +530,18 @@ block-beta
     h["Cruscotto SPA — app.html"]
   end
   block:row1
-    Overview["Overview / health"]
-    Process["Process — Avvia/Kill + console"]
+    Requisiti["Requisiti / Servizi"]
+    Process["Process — Avvia/Kill"]
     TestT["Test tecnici / funzionali"]
   end
   block:row2
-    JiraB["Jira backlog"]
-    JiraW["Jira working plan"]
-    Cursor["Cursor Agent"]
+    Backlog["Backlog Jira"]
+    MyBL["MyBacklog cache DB"]
+    ProjOv["Project Overview"]
   end
   block:row3
+    Cursor["Cursor Agent"]
     Pillar["Pillar matrix"]
-    Reports["Report JSON/HTML"]
     space:1
   end
     </div>
@@ -463,7 +549,10 @@ block-beta
     <p>
       Config progetto iniettata in ogni pagina:
       <code>window.__CRUSCOTTO_PROJECT__</code> da
-      <code>lib/cruscotto.config.overlay.mjs</code> (overlay attivo, porta, Jira prefix, DB opzionale).
+      <del class="resolved"><code>lib/cruscotto.config.overlay.mjs</code></del>
+      <code>lib/overlay/cruscotto.config.overlay.mjs</code>
+      <span class="doc-resolution">✅ 2026-06-20 — Modulo spostato in <code>lib/overlay/</code>.</span>
+      (overlay attivo, porta, Jira prefix, board URL, DB opzionale).
     </p>
 
     <h2 id="stack">6. Stack tecnico</h2>
@@ -496,13 +585,25 @@ npm run test:portal-api       # Smoke API cruscotto
 npm run test:run-all          # Discovery testScript
 npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
 
+    <p>
+      <del class="resolved"><code>.env.example</code> senza default overlay esplicito.</del>
+      <span class="doc-resolution">✅ 2026-06-20 — Default <code>PRJ_NAME=AdminDashBoard</code> in <code>.env.example</code>;
+      <code>JustLastOne</code> commentato; nessun default Jira board globale.</span>
+    </p>
+
     <h3>Variabili env principali</h3>
     <table>
       <thead>
         <tr><th>Variabile</th><th>Ruolo</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>PRJ_NAME</code></td><td>Overlay attivo (<code>JustLastOne</code> | <code>AdminDashBoard</code>)</td></tr>
+        <tr>
+          <td><code>PRJ_NAME</code></td>
+          <td>
+            <del class="resolved">Overlay attivo — spesso <code>JustLastOne</code> come implicito nei doc</del>
+            Overlay attivo (<code>AdminDashBoard</code> default · <code>JustLastOne</code>)
+          </td>
+        </tr>
         <tr><td><code>PRODUCT_REPO_PATH</code></td><td>Root monorepo product (default sibling)</td></tr>
         <tr><td><code>DASHBOARD_PORT</code></td><td>Porta cruscotto (3998 / 3999)</td></tr>
         <tr><td><code>PORTAL_HOME_PORT</code></td><td>Porta HOME (default 3990)</td></tr>
@@ -520,7 +621,8 @@ npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
 
     <p class="meta" style="margin-top: 2rem;">
       Generato per snapshot sviluppo PortalAdmin · epic ADMIN-88 ·
-      Epic Jira product JLO collegato via <code>PRODUCT_REPO_PATH</code>.
+      Epic Jira product JLO collegato via <code>PRODUCT_REPO_PATH</code>.<br />
+      Revisione 2026-06-20 (sera): Jira Working → PARKING, <code>lib/overlay/</code>, <code>PROJECT_Base</code>.
     </p>
   </div>
 
@@ -531,5 +633,14 @@ npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
     , securityLevel: "loose"
     });
   </script>
+  <script src="/docs/docs-chrome.js" defer></script>
+<!-- DOCS-AUTO-ADDITIONS -->
+<section class="docs-auto-additions" id="docs-auto-additions">
+<h2>Sintesi analisi repo (2026-06-23 22:12)</h2>
+<p class="meta">Generato dal pulsante <strong>Aggiorna</strong> — gap ancora aperti:</p>
+<ul><li><strong>working.plan.data.JustLastOne.mjs</strong> — File assente — import in working.order / working.plan.overlay rotti</li><li><strong>package.json smoke → test.smoke/</strong> — package.json punta ancora a scripts/ (cartella assente)</li><li><strong>smoke-ci.mjs STEPS</strong> — STEPS ancora su scripts/</li></ul>
+<p class="meta">Controlli OK: 8 · aperti: 3</p>
+</section>
+<!-- /DOCS-AUTO-ADDITIONS -->
 </body>
 </html>

@@ -33,7 +33,7 @@
  * Consumatori:
  *   - cruscotto.frontend/cruscotto.process.start.service.mjs — avvio singolo servizio
  *   - cruscotto.frontend/cruscotto.process.start.all.services.mjs — stack completo
- *   - runner/start-dev.mjs — parseStartDevArgs, prepareProductRepo, startDevStack
+ *   - admin.script.standalone/start-dev.mjs — parseStartDevArgs, prepareProductRepo, startDevStack
  *   - cruscotto.database/product.database.init.mjs, product.database.seed.run.mjs
  *
  * Export principali:
@@ -496,7 +496,7 @@ export function parseStartDevArgs(argv) {
 }
 
 export function printStartDevHelp() {
-  console.log(`Uso: node runner/start-dev.mjs [opzioni]
+  console.log(`Uso: node admin.script.standalone/start-dev.mjs [opzioni]
 
 Fasi (default: cleanup → build → db:push → avvio stack):
 
@@ -526,9 +526,9 @@ Database dedicato:
   node cruscotto.database/product.database.seed.run.call.mjs --seed func --wait-auth
 
 Esempi:
-  node runner/start-dev.mjs --clean-only
-  node runner/start-dev.mjs --prepare-only
-  node runner/start-dev.mjs --no-db
+  node admin.script.standalone/start-dev.mjs --clean-only
+  node admin.script.standalone/start-dev.mjs --prepare-only
+  node admin.script.standalone/start-dev.mjs --no-db
   node cruscotto.database/product.database.init.mjs --reset --seed
   node cruscotto.database/product.database.seed.run.call.mjs --seed func --wait-auth 180
 `);

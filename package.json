@@ -10,8 +10,8 @@
   "scripts": {
     "admin:dashboard": "node cruscotto.frontend/cruscotto.server.mjs",
     "admin:home": "node admin.portal/portal.home.server.mjs",
-    "start:dev": "node runner/start-dev.mjs",
-    "dev:prepare": "node runner/start-dev.mjs --prepare-only",
+    "start:dev": "node admin.script.standalone/start-dev.mjs",
+    "dev:prepare": "node admin.script.standalone/start-dev.mjs --prepare-only",
     "dev:db": "node cruscotto.database/product.database.init.mjs --push",
     "dev:seed-data": "node cruscotto.database/product.database.seed.run.call.mjs",
     "dev:api-auth": "node cruscotto.frontend/cruscotto.process.start.service.mjs auth",

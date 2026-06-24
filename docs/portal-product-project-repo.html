@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PortalAdmin — Product, project e repo</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="/docs/docs-chrome.css" />
   <style>
     :root {
       color-scheme: light dark;
@@ -152,7 +153,9 @@
   </style>
 </head>
 <body>
+  <!-- DOCS-CHROME -->
   <div class="page">
+    <div class="verification-banner" id="docs-auto-banner"> <strong>Verifica repo automatica</strong> — 2026-06-23 22:12 · 8/11 controlli OK. Aggiornamento con barrato + commento. </div>
     <header>
       <h1>Product, project e repo in PortalAdmin</h1>
       <p class="meta">Glossario nel codice — aggiornato giugno 2026 · vedi anche <a href="config-runner-overlay-order.html">config/runner overlay</a></p>
@@ -334,7 +337,7 @@ const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
 
     <pre><code>PortalAdmin/                    ← getPortalRoot()      [repo admin]
   lib/                            ← codice generico
-  runner/run-all.mjs
+  lib/test.run.all.mjs
   PROJECT_JustLastOne/            ← overlay project       [PRJ_NAME]
     project.config.JustLastOne.mjs
     test.catalog.JustLastOne.mjs
@@ -362,5 +365,14 @@ const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
     , securityLevel: "loose"
     });
   </script>
+  <script src="/docs/docs-chrome.js" defer></script>
+<!-- DOCS-AUTO-ADDITIONS -->
+<section class="docs-auto-additions" id="docs-auto-additions">
+<h2>Sintesi analisi repo (2026-06-23 22:12)</h2>
+<p class="meta">Generato dal pulsante <strong>Aggiorna</strong> — gap ancora aperti:</p>
+<ul><li><strong>working.plan.data.JustLastOne.mjs</strong> — File assente — import in working.order / working.plan.overlay rotti</li><li><strong>package.json smoke → test.smoke/</strong> — package.json punta ancora a scripts/ (cartella assente)</li><li><strong>smoke-ci.mjs STEPS</strong> — STEPS ancora su scripts/</li></ul>
+<p class="meta">Controlli OK: 8 · aperti: 3</p>
+</section>
+<!-- /DOCS-AUTO-ADDITIONS -->
 </body>
 </html>

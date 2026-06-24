@@ -30,9 +30,9 @@
  *   - PRJ_NAME — overlay runner.config e seed catalog
  *
  * Uso:
- *   - node runner/start-dev.mjs
- *   - node runner/start-dev.mjs --prepare-only
- *   - node runner/start-dev.mjs --start-background --seed func --wait-auth
+ *   - node admin.script.standalone/start-dev.mjs
+ *   - node admin.script.standalone/start-dev.mjs --prepare-only
+ *   - node admin.script.standalone/start-dev.mjs --start-background --seed func --wait-auth
  *
  * Flag CLI:
  *   --help, -h           riepilogo fasi ed exit 0

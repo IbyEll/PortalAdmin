@@ -38,6 +38,9 @@
  *   - GET  /api/portal/node-processes — elenco processi node product + PortalAdmin
  *   - POST /api/portal/kill-node-process — termina pid o tutti i processi elencati
  *   - POST /api/portal/open-cruscotto-browser — openSystemBrowser
+ *   - GET  /api/docs/list, /api/docs/analysis — documentazione docs/
+ *   - POST /api/docs/refresh — analisi repo e aggiornamento HTML barrato + commento
+ *   - GET  /docs/* — pagine HTML docs/ con toolbar condivisa
  *
  * Consumatori:
  *   - npm run admin:home — entrypoint package.json
@@ -58,6 +61,7 @@
 import "../lib/portal.load.env.mjs";
 
 import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
 import { createReadStream, existsSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +84,13 @@ import {
 } from "../lib/portal.launch.dashboard.mjs";
 import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
+  analyzeRepository
+, injectDocsChrome
+, listDocPages
+, refreshDocs
+, resolveDocsFile
+} from "../lib/docs.portal.mjs";
+import {
   formatProjectNodeProcessesText
 , listProjectNodeProcesses
 , matchNodeProcessToServiceId
@@ -92,6 +103,7 @@ const SERVER_DIR           = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT          = join(SERVER_DIR, "..");
 const ADMIN_PORTAL_DIR     = SERVER_DIR;
 const CRUSCOTTO_FRONTEND   = join(PORTAL_ROOT, "cruscotto.frontend");
+const DOCS_DIR             = join(PORTAL_ROOT, "docs");
 const PORT                 = Number(
   process.env.PORTAL_HOME_PORT
   ?? 3990
@@ -290,6 +302,56 @@ function serveHomeAsset(req, res, rel) {
 }
 
 /**
+ * @param {import("node:http").IncomingMessage} req
+ * @param {import("node:http").ServerResponse} res
+ * @param {string} urlPath
+ * @returns {Promise<boolean>}
+ */
+async function serveDocs(req, res, urlPath) {
+  if (urlPath === "/docs") {
+    applyCors(res, req);
+    res.writeHead(302, { Location: "/docs/index.html" });
+    res.end();
+    return true;
+  }
+
+  if (!urlPath.startsWith("/docs/")) {
+    return false;
+  }
+
+  const rel  = urlPath.replace(/^\/docs\//, "");
+  const file = resolveDocsFile(rel);
+
+  if (!file) {
+    sendJson(res, 404, { error: "Documento non trovato" }, req);
+    return true;
+  }
+
+  const ext = extname(file);
+  applyCors(res, req);
+
+  if (ext === ".html") {
+    const raw  = await readFile(file, "utf8");
+    const html = await injectDocsChrome(raw, rel);
+    res.writeHead(200, {
+      "Content-Type"  : "text/html; charset=utf-8"
+    , "Cache-Control" : "no-cache, must-revalidate"
+    });
+    res.end(html);
+    return true;
+  }
+
+  if (!file.startsWith(DOCS_DIR)) {
+    sendJson(res, 404, { error: "Not found" }, req);
+    return true;
+  }
+
+  res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
+  createReadStream(file).pipe(res);
+  return true;
+}
+
+/**
  * Router API /api/* — istanze, progetti, open-cruscotto.
  *
  * @param {import("node:http").IncomingMessage} req
@@ -309,6 +371,43 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/portal/mode" && req.method === "GET") {
     sendJson(res, 200, { mode: "home-only" }, req);
+    return;
+  }
+
+  if (urlPath === "/api/docs/list" && req.method === "GET") {
+    try {
+      const pages = listDocPages(PORTAL_ROOT);
+      sendJson(res, 200, { pages }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/docs/refresh" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const file = typeof body.file === "string" && body.file.trim() ? body.file.trim() : undefined;
+      const result = await refreshDocs({ filename: file });
+      sendJson(res, 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/docs/analysis" && req.method === "GET") {
+    try {
+      sendJson(res, 200, analyzeRepository(PORTAL_ROOT), req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
     return;
   }
 
@@ -711,7 +810,12 @@ async function handleRequest(req, res) {
     return;
   }
 
-  // 4. Altri asset static whitelisted
+  // 4. Documentazione docs/
+  if (await serveDocs(req, res, urlPath)) {
+    return;
+  }
+
+  // 5. Altri asset static whitelisted
   const rel = urlPath.replace(/^\//, "");
 
   if (HOME_STATIC.has(rel)) {

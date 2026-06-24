@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** APPLICATION MODULE ** -- commentato il: 2026-06-18 05:40
+ * ** APPLICATION MODULE ** -- commentato il: 2026-06-23 22:15
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 05:40   by: IbyEll
- * modificato il: 2026-06-18 05:40   by: IbyEll
+ * modificato il: 2026-06-23 22:15   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *           Server HTTP dashboard cruscotto — static cruscotto.frontend e API run, Jira, servizi product.
+ *           Server HTTP cruscotto — static cruscotto.frontend e API run, Jira, servizi product.
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
@@ -19,7 +19,7 @@
  *
  *   A cosa serve:
  *   - Avvio run test (tecnici, funzionali, singolo script, suite, case) e stato run in corso.
- *   - Proxy dati Jira (backlog, insights, working plan, project tree, my-project).
+ *   - Proxy dati Jira (backlog, insights, wip, my-project, project overview).
  *   - Health API/auth/web, discovery servizi repo, DB product (reset, seed, push).
  *   - Report JSON/HTML, export Excel, analisi test tecnici; bootstrap overlay in pagine HTML.
  *
@@ -28,7 +28,7 @@
  *
  * Input:
  *   - PRJ_NAME, PRODUCT_REPO_PATH — contesto product da env e overlay attivo
- *   - DASHBOARD_PORT, ADMIN_PORT, PORT — porta listener (default 3999)
+ *   - DASHBOARD_PORT — porta listener da resolveDashboardListenPort (es. 3998 / 3999)
  *   - req.url, req.method, body JSON — routing API, static e deep-link tab SPA
  *
  * Uso:
@@ -41,24 +41,23 @@
  *   - GET  /api/report, /api/report/html, /api/export
  *   - GET  /api/dev/requirements, /api/dev/services
  *   - GET|POST /api/repo/services/*, /api/repo/database/*
- *   - GET  /api/jira/backlog, /api/jira/backlog/insights, /api/jira/working/*
- *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — step 8 workflow database
+ *   - GET  /api/jira/backlog, /api/jira/backlog/insights
+ *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — workflow database
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
- *   - GET  /api/portal/projects, /api/portal/instance — istanza overlay attiva
- *   - POST /api/portal/instance — attiva overlay PROJECT_* (PRJ_NAME) e prepare
- *   - POST /api/report/tecnici-analysis, /api/pillar-matrix/regenerate (disabilitata)
- *   - GET  /* — static: / home, /app.html, alias cruscotto.js e jira-issue-display.*
+ *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
+ *   - POST /api/report/tecnici-analysis · POST /api/pillar-matrix/regenerate (disabilitata)
+ *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
  *
  * Consumatori:
- *   - cruscotto.frontend/cruscotto.home.js — fetch API run, report, Jira
- *   - test.smoke/smoke-dashboard.mjs, smoke-portal-e2e.mjs — avvio smoke
- *   - package.json admin:dashboard, server/dashboard-server.mjs — entrypoint npm
+ *   - cruscotto.frontend/cruscotto.home.js — fetch API run, report, Jira, Process
+ *   - test.smoke/smoke-dashboard.mjs, smoke-portal-e2e.mjs — smoke avvio server
+ *   - package.json admin:dashboard · admin.portal/portal.dashboard.launch.mjs — spawn dashboard
  *
  * Dipendenze:
- *   - lib/test.catalog.mjs, dashboard.project.mjs, test.dipendenze.mjs, reporter.mjs
- *   - cruscotto.frontend/cruscotto.health.mjs, dev-api.mjs; cruscotto.testscript.manager.mjs
- *   - cruscotto.process.services.manager.mjs, cruscotto.jira.*.mjs, portal.instance.mjs
- *   - lib/cruscotto.config.overlay.mjs, discovery.services.repo.mjs, export/export-report.mjs
+ *   - lib/test.catalog.mjs, test.dipendenze.mjs, reporter.mjs, portal.instance.mjs
+ *   - lib/overlay/cruscotto.config.overlay.mjs, lib/overlay/dashboard.project.mjs
+ *   - cruscotto.health.mjs, cruscotto.dev.api.mjs, cruscotto.testscript.manager.mjs
+ *   - cruscotto.process.services.manager.mjs, cruscotto.jira.*.mjs, admin.portal.JiraCORE/
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
@@ -1399,6 +1398,7 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  // 2. Nessuna route API corrispondente — 404 JSON uniforme
   sendJson(res, 404, { error: "Not found" }, req);
 }
 
@@ -1527,6 +1527,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 main().catch((err) => {
+  // exit 1 — main fallito prima del listen (import o bind)
   console.error(err instanceof Error ? err.message : err);
   process.exitCode = 1;
 });

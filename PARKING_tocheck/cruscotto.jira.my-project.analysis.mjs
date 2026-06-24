@@ -782,11 +782,11 @@ function scanRepoCapabilities(testScripts) {
   /** @type {string[]} */
   const adminItems = [];
 
-  if (repoExists("server/dashboard-server.mjs")) {
+  if (repoExists("cruscotto.frontend/cruscotto.server.mjs")) {
     adminItems.push("dashboard dev :3999 — run test, report HTML, export, health servizi");
   }
 
-  if (repoExists("runner/run-all.mjs")) {
+  if (repoExists("lib/test.run.all.mjs")) {
     adminItems.push("runner testScript orchestrato + report latest.json/html");
   }
 

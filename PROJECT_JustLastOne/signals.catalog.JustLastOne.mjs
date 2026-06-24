@@ -37,7 +37,7 @@ export const PRODUCT_REPO_SIGNALS = [
   {
     key   : "JLO-850"
   , label : "Runner run-all"
-  , paths : ["runner/run-all.mjs"]
+  , paths : ["lib/test.run.all.mjs"]
   , tests : ["dashboard/test-dev-cruscotto.mjs"]
   }
 , {
@@ -48,13 +48,13 @@ export const PRODUCT_REPO_SIGNALS = [
 , {
     key   : "JLO-852"
   , label : "Dashboard server"
-  , paths : ["server/dashboard-server.mjs", "cruscotto/index.html"]
+  , paths : ["cruscotto.frontend/cruscotto.server.mjs", "cruscotto/index.html"]
   }
 , {
     key   : "JLO-913"
   , label : "Cruscotto Dev UI"
   , paths : [
-      "server/dashboard-server.mjs"
+      "cruscotto.frontend/cruscotto.server.mjs"
       , "lib/product.manifest.mjs"
     ]
   , tests : ["dashboard/test-dev-cruscotto.mjs"]
@@ -336,7 +336,7 @@ export const PRODUCT_REPO_SIGNALS = [
 , {
     key   : "JLO-932"
   , label : "API endpoint export Excel e JSON"
-  , paths : ["server/dashboard-server.mjs"]
+  , paths : ["cruscotto.frontend/cruscotto.server.mjs"]
   }
 
 , {

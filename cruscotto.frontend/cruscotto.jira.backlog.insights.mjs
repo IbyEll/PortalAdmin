@@ -368,7 +368,7 @@ export function buildBacklogInsights(issues, at = new Date().toISOString(), opti
     insights.push({
       at,
       kind : "comment",
-      text : "Nessun report test in data/reports/latest.json — esegui «node runner/run-all.mjs» per insight sui test",
+      text : "Nessun report test in data/reports/latest.json — esegui «node lib/test.run.all.mjs» per insight sui test",
     });
   }
 

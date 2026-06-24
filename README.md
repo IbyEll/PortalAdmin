@@ -132,14 +132,14 @@ npm run test:workflow   # smoke rules + close-story ADMIN dry-run
 
 | Script | Descrizione |
 | --- | --- |
-| `admin:dashboard` | Avvia `server/dashboard-server.mjs` (:3999) |
+| `admin:dashboard` | Avvia `cruscotto.frontend/cruscotto.server.mjs` (:3999) |
 | `db:migrate` | Migrazione SQLite cruscotto (`cruscotto.database`) |
 | `test:paths` | Smoke `PRODUCT_REPO_PATH` + scan Jira refs |
 | `test:run-all` | Smoke discovery `run-all.mjs --list` |
 | `test:config` | Smoke `portal.config.mjs` + ADMIN keys + close-story |
 | `test:workflow` | Smoke regole Cursor + catalog ADMIN branch |
 | `test:ci` | Sequenza smoke per CI locale (equivale ai job `smoke`) |
-| `test:dashboard` | Smoke HTTP `dashboard-server.mjs` |
+| `test:dashboard` | Smoke HTTP `cruscotto.frontend/cruscotto.server.mjs` |
 | `test:cruscotto-db` | Smoke path DB + migrate + load fallback |
 | `db:sync` | `node admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs` — Jira → `cruscotto.database/cruscotto.db` |
 

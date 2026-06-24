@@ -45,6 +45,12 @@ const btnKillNodePid = document.getElementById("btn-kill-node-pid");
 const btnKillNodeAll = document.getElementById("btn-kill-node-all");
 const inputKillPid   = document.getElementById("node-kill-pid");
 const consolePanel   = document.getElementById("console-panel");
+const pageTitle      = document.getElementById("portal-page-title");
+const viewProgetti   = document.getElementById("view-progetti");
+const viewDocumenti  = document.getElementById("view-documenti");
+
+const PORTAL_VIEWS = ["progetti", "documenti"];
+const DEFAULT_PORTAL_VIEW = "progetti";
 
 const CONSOLE_IDLE = "In attesa — scegli un progetto e premi Istanzia.";
 
@@ -833,3 +839,45 @@ load().catch((err) => {
 });
 
 detectServerMode().catch(() => {});
+
+/**
+ * @param {"progetti" | "documenti"} view
+ */
+function setPortalView(view) {
+  const id = PORTAL_VIEWS.includes(view) ? view : DEFAULT_PORTAL_VIEW;
+
+  for (const btn of document.querySelectorAll("[data-portal-view]")) {
+    const v = btn.getAttribute("data-portal-view");
+    btn.classList.toggle("active", v === id);
+  }
+
+  viewProgetti?.classList.toggle("hidden", id !== "progetti");
+  viewDocumenti?.classList.toggle("hidden", id !== "documenti");
+
+  if (pageTitle) {
+    pageTitle.textContent = id === "documenti"
+      ? "Documenti"
+      : "Selettore progetto";
+  }
+
+  if (location.hash.replace("#", "") !== id) {
+    history.replaceState(null, "", id === DEFAULT_PORTAL_VIEW ? "/" : `#${id}`);
+  }
+}
+
+for (const btn of document.querySelectorAll("[data-portal-view]")) {
+  btn.addEventListener("click", () => {
+    const view = btn.getAttribute("data-portal-view") ?? DEFAULT_PORTAL_VIEW;
+    setPortalView(/** @type {"progetti" | "documenti"} */ (view));
+  });
+}
+
+window.addEventListener("hashchange", () => {
+  const hash = location.hash.replace("#", "");
+  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti"} */ (hash) : DEFAULT_PORTAL_VIEW);
+});
+
+{
+  const hash = location.hash.replace("#", "");
+  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti"} */ (hash) : DEFAULT_PORTAL_VIEW);
+}

@@ -17,7 +17,7 @@
  *   - La UI polling /api/status ha bisogno di script corrente, progress e exit code.
  *
  *   A cosa serve:
- *   - Spawn runner/run-all.mjs (tutti, suite, singolo script o test case) nel product repo.
+ *   - Spawn lib/test.run.all.mjs (tutti, suite, singolo script o test case) nel product repo.
  *   - Spawn funzionali/run-funzionali.mjs per la suite funzionale dedicata.
  *   - Parser stdout per aggiornare stato in-memory tra una richiesta e l'altra.
  *

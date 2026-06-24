@@ -47,16 +47,22 @@
       <span class="portal-mark" aria-hidden="true">PA</span>
       <div>
         <p class="portal-topbar-kicker">PortalAdmin</p>
-        <h1>Selettore progetto</h1>
+        <h1 id="portal-page-title">Selettore progetto</h1>
       </div>
     </div>
+    <nav class="portal-main-nav" aria-label="Sezioni HOME">
+      <button type="button" class="portal-nav-btn active" data-portal-view="progetti">Progetti</button>
+      <button type="button" class="portal-nav-btn" data-portal-view="documenti">Documenti</button>
+    </nav>
     <div class="portal-topbar-status">
       <p class="portal-instance-line" id="instance-status">Caricamento…</p>
       <a class="portal-topbar-link" href="/app.html" id="link-cruscotto" hidden>Apri cruscotto →</a>
     </div>
   </header>
 
-  <main class="portal-shell">
+  <main class="portal-main">
+    <div id="view-progetti" class="portal-view">
+    <div class="portal-shell">
     <section class="portal-projects" aria-labelledby="projects-title">
       <header class="portal-section-head">
         <div>
@@ -99,6 +105,16 @@
       <pre class="portal-console-log" id="prepare-log" aria-live="polite"></pre>
       <p class="muted portal-console-foot" id="reload-note" hidden></p>
     </section>
+    </div>
+    </div>
+
+    <div id="view-documenti" class="portal-view hidden" aria-label="Documentazione">
+      <iframe
+        class="portal-docs-frame"
+        src="/docs/index.html"
+        title="Documentazione PortalAdmin — docs/"
+      ></iframe>
+    </div>
   </main>
 
   <footer class="portal-footer muted">
