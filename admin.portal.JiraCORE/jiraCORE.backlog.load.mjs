@@ -39,7 +39,6 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { normalizeSprintLabel } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
 
 import { cruscottoDbFileExists, openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 
@@ -51,7 +50,7 @@ function indexJiraSprintsFromRows(rows) {
   const byName = {};
 
   for (const sprint of rows) {
-    byName[normalizeSprintLabel(sprint.name)] = {
+    byName[ sprint.name] = {
       id       : sprint.id
     , name     : sprint.name
     , state    : sprint.state

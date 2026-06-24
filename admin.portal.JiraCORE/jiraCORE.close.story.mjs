@@ -43,7 +43,6 @@
  *
  * Output stdout:
  *   catalog — { updated, skipped, reason?, commit? } su signals.catalog overlay
- *   pillar  — solo con --pillar; aggiornamento mirato PARKING_tocheck/pillar-matrix-targeted
  *   Exit 0 = ok · 1 = errore (working tree sporco, push/gh fallito, branch assente)
  *
  * Consumatori:
@@ -60,10 +59,7 @@ import {
   commitCatalogUpdate
 , ensureRepoImplementationSignal
 } from "./JiraCORE.signals.catalog.implementation.mjs";
-import {
-  commitPillarPortalUpdate
-, updatePillarPortalForTicket
-} from "../PARKING_tocheck/pillar-matrix-targeted.mjs";
+
 import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
 const REPO_ROOT = getPortalRoot();

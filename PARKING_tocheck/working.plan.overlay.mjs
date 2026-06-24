@@ -29,7 +29,7 @@
  *   - JIRA_BOARD_ID / PRJ_JIRA_BOARD_ID — id board sprint
  *
  * Consumatori:
- *   - cruscotto.frontend/cruscotto.jira.working.order.mjs — WORKING_PLAN e meta sprint
+ *   - PARKING_tocheck\cruscotto.jira.working.order.mjs — WORKING_PLAN e meta sprint
  *   - cruscotto.frontend/cruscotto.jira.working.html — titolo board e link Jira
  *
  * Export principali:
@@ -42,16 +42,17 @@
  */
 
 import { getProjectConfig, resolveJiraBoardId, resolveProjectOverlayName } from "../project.config.mjs";
-import * as adminOverlay from "../cruscotto.frontend/plans/working.plan.AdminDashBoard.mjs";
-import * as jloOverlay from "../cruscotto.frontend/plans/working.plan.JLO.overlay.mjs";
+import * as adminOverlay from "../PARKING_tocheck/plans/working.plan.AdminDashBoard.mjs";
+import * as jloOverlay from "../PARKING_tocheck/plans/working.plan.JLO.overlay.mjs";
 import {
   JLO_SPRINT_6_BOARD_NOISE
 , JLO_SPRINT_6_PHASES
 , JLO_WORKING_PLAN
-} from "../PROJECT_JustLastOne/working.plan.data.JustLastOne.mjs";
+} from "./cruscotto.jira.working.order.mjs";
+ 
 
 /**
- * @typedef {import("../cruscotto.frontend/cruscotto.jira.working.order.mjs").WorkingSprintBlock} WorkingSprintBlock
+ * @typedef {import("../PARKING_tocheck/cruscotto.jira.working.order.mjs").WorkingSprintBlock} WorkingSprintBlock
  */
 
 /** @type {Record<string, object>} */
@@ -63,7 +64,7 @@ const OVERLAY_PLAN_LOADERS = {
 /**
  * @returns {typeof adminOverlay & {
  *   WORKING_PLAN: WorkingSprintBlock[],
- *   SPRINT_6_PHASES?: import("../cruscotto.frontend/cruscotto.jira.working.order.mjs").SprintExecutionPhase[],
+ *   SPRINT_6_PHASES?: import("../PARKING_tocheck/cruscotto.jira.working.order.mjs").SprintExecutionPhase[],
  *   SPRINT_6_BOARD_NOISE?: string[],
  * }}
  */

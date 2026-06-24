@@ -35,7 +35,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
-import { JLO_WORKING_PLAN, normalizeSprintLabel } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { JLO_WORKING_PLAN, normalizeSprintLabel } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 
 const CRUSCOTTO_DIR     = join(dirname(fileURLToPath(import.meta.url)), "..", "cruscotto.frontend");
 const PROJECT_TREE_HTML = join(CRUSCOTTO_DIR, "cruscotto.jira.project.tree.html");

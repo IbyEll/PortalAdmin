@@ -37,7 +37,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import { analyzeParentForWorkflow } from "../admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs";
+import { analyzeParentForWorkflow } from "../admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs";
 import { formatRepoAnalysisMarkdown } from "../admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs";
 import { getProjectConfig } from "../lib/project.config.mjs";
 import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";

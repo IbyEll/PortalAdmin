@@ -134,6 +134,29 @@ del.resolved {
   border-top: 1px solid var(--border, #2d3a4f);
 }
 
+.docs-verify-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.docs-verify-table th,
+.docs-verify-table td {
+  border: 1px solid var(--border, #2d3a4f);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-verify-table .sev-ok {
+  color: var(--ok, #48bb78);
+}
+
+.docs-verify-table .sev-warn {
+  color: var(--amber, #f0b429);
+}
+
 .docs-index-grid {
   display: grid;
   gap: 0.75rem;

@@ -111,7 +111,7 @@ Esempio entry:
 }
 ```
 
-`admin.portal.JiraCORE/jiraCORE.close.story.mjs --key ADMIN-81` e `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
+`admin.portal.JiraCORE/jiraCORE.close.story.mjs --key ADMIN-81` e `admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent ADMIN-88` accettano key `ADMIN-*`.
 
 ## Workflow Cursor (ADMIN-96)
 
@@ -120,7 +120,7 @@ Regole agent in `.cursor/rules/`:
 | File | Ruolo |
 | --- | --- |
 | `ADMIN-Workflow.mdc` | gogo / procedi / chiudi su ticket ADMIN-xxx |
-| `ADMIN-AnalizzaRepo.mdc` | gap analysis + CLI `jiraCORE.repo..issuekey.gap.analysis.mjs` |
+| `ADMIN-AnalizzaRepo.mdc` | gap analysis + CLI `jiraCORE.repo.issuekey.gap.analysis.mjs` |
 | `ADMIN-Veve*.mdc` | grooming Jira read-only |
 | `JLO-Workflow.mdc` | alias → ADMIN-Workflow |
 
@@ -172,7 +172,7 @@ Workflow GitHub Actions: [`.github/workflows/portal-smoke.yml`](.github/workflow
 | Trigger | Job | Cosa verifica |
 | --- | --- | --- |
 | PR / push `main` | `smoke` | Checkout dual-repo, `PRODUCT_REPO_PATH`, smoke paths/config/workflow/run-all/dashboard |
-| push `main` (opz.) | `jira-sync` | `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` se secrets Jira configurati |
+| push `main` (opz.) | `jira-sync` | `admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs` se secrets Jira configurati |
 
 Layout CI (sibling virtuale):
 

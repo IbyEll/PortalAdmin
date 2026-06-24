@@ -45,14 +45,14 @@
  *
  * Consumatori:
  *   - Operatore backlog — allineamento board dopo aggiornamento JLO_WORKING_PLAN
- *   - cruscotto.frontend/cruscotto.jira.working.order.mjs — sorgente issue per sprint
+ *   - PARKING_tocheck\cruscotto.jira.working.order.mjs — sorgente issue per sprint
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
 import "../lib/portal.load.env.mjs";
 import { fetchJiraBacklog } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
-import { getWorkingPlan } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { getWorkingPlan } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 import { resolveJiraBoardId } from "../lib/project.config.mjs";
 
 const MOVE_BATCH_SIZE = 50;

@@ -30,7 +30,7 @@
  *   - opts.jiraStatusByKey — stati Jira per allineamento Fatto vs codice
  *
  * Consumatori:
- *   - admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs — CLI --parent / --keys
+ *   - admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs — CLI --parent / --keys
  *   - jira.function.repo.refs.mjs — scanRepoJiraReferences (re-export)
  *   - Regole/skills jlo-analizza-repo, ADMIN-AnalizzaRepo, veve step 2
  *

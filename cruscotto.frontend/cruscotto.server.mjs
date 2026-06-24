@@ -90,8 +90,6 @@ import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlo
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
-// Jira Working (pagina + API) — PARKING_tocheck/cruscotto.jira.working.*.mjs
-// regenerateProjectTreeHtml — disabilitato; sorgente in PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs
 import {
   analyzeMyProject
 , analyzeProjectOverview
@@ -1254,13 +1252,7 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  if (urlPath === "/api/pillar-matrix/regenerate" && req.method === "POST") {
-    sendJson(res, 403, {
-      error   : "Rigenerazione da cruscotto disabilitata"
-    , command : "node PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
-    }, req);
-    return;
-  }
+ 
 
   if (urlPath === "/api/cursor/config" && req.method === "GET") {
     sendJson(res, 200, getCursorAgentConfigPayload(), req);

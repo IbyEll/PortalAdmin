@@ -186,7 +186,7 @@
         runner testScript, workflow Cursor. Può puntare a <strong>product repo diversi</strong>
         tramite overlay <code>PROJECT_{PRJ_NAME}</code> e variabile <code>PRODUCT_REPO_PATH</code>.
       </p>
-      <div class="verification-banner" id="docs-auto-banner"> <strong>Verifica repo automatica</strong> — 2026-06-23 22:12 · 8/11 controlli OK. Aggiornamento con barrato + commento. </div>
+      <div class="verification-banner" id="docs-auto-banner" data-docs-key="banner" data-docs-sig="14/14">  <strong>Verifica repo</strong> — Visione sviluppo 2026-06-20 · 2026-06-24 09:28 · 14/14 controlli OK. </div>
       <nav class="toc" aria-label="Indice">
         <strong>Indice</strong>
         <ul>
@@ -363,11 +363,11 @@ flowchart LR
 
     <p>
       <del class="resolved">
-        Mappa precedente: <code>cruscotto.frontend</code> con «Jira backlog e working plan»;
+        Mappa precedente: <code>cruscotto.frontend</code> con «<del class="resolved" data-docs-check="jiraWorkingParked">Jira backlog e working plan</del><span class="audit-resolution docs-fresh" data-docs-check="jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><span class="docs-fresh-mark" title="Inserito o aggiornato in questo refresh">★</span> ✅ 2026-06-24 09:28 — HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</span>»;
         <code>lib/</code> flat (config overlay, portal paths); solo
         <code>PROJECT_JustLastOne</code> e <code>PROJECT_AdminDashBoard</code>;
         smoke in <code>scripts/</code>.
-      </del>
+      </del><span class="audit-resolution" data-docs-check="jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo">✅ 2026-06-24 09:28 — HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</span>
       <span class="doc-resolution">✅ 2026-06-20 — Jira Working in <code>PARKING_tocheck/</code> (orfana, fuori SPA);
       <code>lib/overlay/</code> per config/piano/path overlay; <code>PROJECT_Base/</code> fallback condiviso;
       piano sprint attivo in Backlog via <code>cruscotto.jira.working.order.mjs</code>;
@@ -447,7 +447,7 @@ mindmap
         <tr>
           <td><code>PROJECT_*/</code></td>
           <td>
-            <del class="resolved">Solo file duplicati per ogni product in <code>PROJECT_{nome}</code></del>
+            <del class="resolved">Solo file duplicati per ogni product in <code>PROJECT_{nome}</code></del> ✅ 2026-06-24 09:27 — HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</span>
             <span class="doc-resolution">✅ 2026-06-20 — Istanza = <code>PROJECT_Base</code> + <code>PROJECT_{PRJ_NAME}</code>.</span>
             Overlay per product: <code>project.config</code>, <code>discovery.config</code>, manifest, catalogo segnali
           </td>
@@ -474,12 +474,12 @@ mindmap
         </tr>
         <tr>
           <td><code>test.smoke/</code></td>
-          <td>Smoke CI e portal paths (ex <code>scripts/smoke-*.mjs</code>)</td>
+          <td>Smoke CI e portal paths (ex <code><del class="resolved" data-docs-check="packageJsonSmokePaths">scripts/smoke-</del><span class="audit-resolution" data-docs-check="packageJsonSmokePaths" data-docs-sig="ok|Path smoke allineati a test.smoke/">✅ 2026-06-24 09:28 — Path smoke allineati a test.smoke/</span>*.mjs</code>)</td>
         </tr>
         <tr>
           <td><code>server/</code></td>
           <td>
-            <del class="resolved">Legacy — entrypoint <code>dashboard-server.mjs</code> e stack in migrazione</del>
+            <del class="resolved">Legacy — entrypoint <code>dashboard-server.mjs</code> e stack in migrazione</del> ✅ 2026-06-24 09:28 — Path smoke allineati a test.smoke/</span>
             <span class="doc-resolution">✅ 2026-06-20 — <code>dashboard-server.mjs</code> eliminato; restano
             <code>dev-api.mjs</code> e <code>cruscotto.health.mjs</code> importati da <code>cruscotto.server.mjs</code>.</span>
             Residuo legacy — da spostare in <code>cruscotto.frontend/</code> o <code>lib/</code>
@@ -514,9 +514,9 @@ sequenceDiagram
 
     <p>
       <del class="resolved">
-        Tab SPA precedente: Overview/health; coppia Jira backlog + <strong>Jira working plan</strong>
-        (pagina <code>/jira-working.html</code>, tab <code>jiraworking</code>).
-      </del>
+        Tab SPA precedente: Overview/health; coppia Jira backlog + <strong><del class="resolved" data-docs-check="jiraWorkingParked">Jira working plan</del><span class="audit-resolution docs-fresh" data-docs-check="jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><span class="docs-fresh-mark" title="Inserito o aggiornato in questo refresh">★</span> ✅ 2026-06-24 09:28 — HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</span></strong>
+        (pagina <code><del class="resolved" data-docs-check="jiraWorkingParked">/jira-working.html</del><span class="audit-resolution" data-docs-check="jiraWorkingParked" data-docs-sig="ok|Route rimossa; file in PARKING_tocheck.">✅ 2026-06-24 09:28 — Route rimossa; file in PARKING_tocheck.</span></code>, tab <code>jiraworking</code>).
+      </del><span class="audit-resolution" data-docs-check="jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo">✅ 2026-06-24 09:28 — HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</span>
       <span class="doc-resolution">✅ 2026-06-20 — Jira Working rimossa dalla nav e dal server;
       sorgenti in <code>PARKING_tocheck/</code>. Backlog e MyBacklog mostrano ordine sprint
       (<code>devOrder</code>) da <code>cruscotto.jira.working.order.mjs</code>. Aggiunti Project Overview e Cursor Agent.</span>
@@ -549,7 +549,7 @@ block-beta
     <p>
       Config progetto iniettata in ogni pagina:
       <code>window.__CRUSCOTTO_PROJECT__</code> da
-      <del class="resolved"><code>lib/cruscotto.config.overlay.mjs</code></del>
+      <del class="resolved"><code><del class="resolved" data-docs-check="overlayInLibOverlay">lib/cruscotto.config.overlay.mjs</del><span class="audit-resolution" data-docs-check="overlayInLibOverlay" data-docs-sig="ok|Spostato in lib/overlay/cruscotto.config.overlay.mjs.">✅ 2026-06-24 09:28 — Spostato in lib/overlay/cruscotto.config.overlay.mjs.</span></code></del>
       <code>lib/overlay/cruscotto.config.overlay.mjs</code>
       <span class="doc-resolution">✅ 2026-06-20 — Modulo spostato in <code>lib/overlay/</code>.</span>
       (overlay attivo, porta, Jira prefix, board URL, DB opzionale).
@@ -600,7 +600,7 @@ npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
         <tr>
           <td><code>PRJ_NAME</code></td>
           <td>
-            <del class="resolved">Overlay attivo — spesso <code>JustLastOne</code> come implicito nei doc</del>
+            <del class="resolved">Overlay attivo — spesso <code>JustLastOne</code> come implicito nei doc</del> ✅ 2026-06-24 09:27 — Path smoke allineati a test.smoke/</span>
             Overlay attivo (<code>AdminDashBoard</code> default · <code>JustLastOne</code>)
           </td>
         </tr>
@@ -635,11 +635,20 @@ npm run db:sync               # Sync backlog Jira → SQLite</code></pre>
   </script>
   <script src="/docs/docs-chrome.js" defer></script>
 <!-- DOCS-AUTO-ADDITIONS -->
-<section class="docs-auto-additions" id="docs-auto-additions">
-<h2>Sintesi analisi repo (2026-06-23 22:12)</h2>
-<p class="meta">Generato dal pulsante <strong>Aggiorna</strong> — gap ancora aperti:</p>
-<ul><li><strong>working.plan.data.JustLastOne.mjs</strong> — File assente — import in working.order / working.plan.overlay rotti</li><li><strong>package.json smoke → test.smoke/</strong> — package.json punta ancora a scripts/ (cartella assente)</li><li><strong>smoke-ci.mjs STEPS</strong> — STEPS ancora su scripts/</li></ul>
-<p class="meta">Controlli OK: 8 · aperti: 3</p>
+<section class="docs-auto-additions" id="docs-auto-additions" data-docs-key="section" data-docs-sig="14/14/0">
+<h2>Analisi repo — Visione sviluppo 2026-06-20 (2026-06-24 09:28)</h2>
+<p class="meta">Titolo documento: <em>PortalAdmin — Visione sviluppo 2026-06-20</em> · ambito dedotto dal titolo:
+architecture, portal · 14 controlli rieseguiti ·
+14 OK · 0 aperti.</p>
+<h3 data-docs-key="arch-table" data-docs-sig="arch-home:ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)|arch-health:ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/">Stato architettura</h3><table class="docs-verify-table"><thead><tr><th>Area</th><th>Esito</th><th>Dettaglio analisi</th></tr></thead><tbody><tr class="" data-docs-key="arch-home" data-docs-sig="ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)"><td>HOME portal</td><td class="sev-ok">✅</td><td>✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="arch-health" data-docs-sig="ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/"><td>Health / dev API</td><td class="sev-ok">✅</td><td>✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/</td></tr></tbody></table>
+<h3 data-docs-key="checks-heading" data-docs-sig="14/14/0">
+
+Verifica completa (14 controlli)</h3>
+<table class="docs-verify-table">
+<thead><tr><th>Controllo</th><th>Esito</th><th>Dettaglio</th></tr></thead>
+<tbody><tr class="" data-docs-key="check:jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><td>Jira Working in PARKING, fuori SPA</td><td class="sev-ok">✅</td><td>HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr><tr class="" data-docs-key="check:overlayInLibOverlay" data-docs-sig="ok|cruscotto.config.overlay.mjs sotto lib/overlay/"><td>Config overlay in lib/overlay/</td><td class="sev-ok">✅</td><td>cruscotto.config.overlay.mjs sotto lib/overlay/</td></tr><tr class="" data-docs-key="check:projectBaseFallback" data-docs-sig="ok|PROJECT_Base con file condivisi"><td>PROJECT_Base fallback</td><td class="sev-ok">✅</td><td>PROJECT_Base con file condivisi</td></tr><tr class="" data-docs-key="check:packageJsonSmokePaths" data-docs-sig="ok|Path smoke allineati a test.smoke/"><td>package.json smoke → test.smoke/</td><td class="sev-ok">✅</td><td>Path smoke allineati a test.smoke/</td></tr><tr class="" data-docs-key="check:smokeCiSteps" data-docs-sig="ok|STEPS su test.smoke/"><td>smoke-ci.mjs STEPS</td><td class="sev-ok">✅</td><td>STEPS su test.smoke/</td></tr><tr class="" data-docs-key="check:healthInFrontend" data-docs-sig="ok|cruscotto.health.mjs in frontend"><td>Health in cruscotto.frontend</td><td class="sev-ok">✅</td><td>cruscotto.health.mjs in frontend</td></tr><tr class="" data-docs-key="check:serverFolderOrphan" data-docs-sig="ok|Nessuna copia health in server/"><td>server/ legacy</td><td class="sev-ok">✅</td><td>Nessuna copia health in server/</td></tr><tr class="" data-docs-key="check:portalPathsMigrated" data-docs-sig="ok|Consumer su portal.paths.resolver.mjs"><td>Alias portal-paths rimosso</td><td class="sev-ok">✅</td><td>Consumer su portal.paths.resolver.mjs</td></tr><tr class="" data-docs-key="check:documentiTab" data-docs-sig="ok|Sezione documenti in portal.home.html (HOME :3990)"><td>Documenti in HOME</td><td class="sev-ok">✅</td><td>Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="check:docsChrome" data-docs-sig="ok|docs/docs-chrome.html + CSS/JS"><td>Chrome docs condiviso</td><td class="sev-ok">✅</td><td>docs/docs-chrome.html + CSS/JS</td></tr><tr class="" data-docs-key="check:startDevCanonical" data-docs-sig="ok|package.json → admin.script.standalone/start-dev.mjs"><td>start:dev canonico</td><td class="sev-ok">✅</td><td>package.json → admin.script.standalone/start-dev.mjs</td></tr><tr class="" data-docs-key="check:testRunAllPresent" data-docs-sig="ok|Modulo presente; smoke-run-all può spawnarlo"><td>lib/test.run.all.mjs</td><td class="sev-ok">✅</td><td>Modulo presente; smoke-run-all può spawnarlo</td></tr><tr class="" data-docs-key="check:jiraFrontendDupRemoved" data-docs-sig="ok|Cartella eliminata; canonico solo admin.portal.JiraCORE/"><td>cruscotto.frontend/jira/ rimosso</td><td class="sev-ok">✅</td><td>Cartella eliminata; canonico solo admin.portal.JiraCORE/</td></tr><tr class="" data-docs-key="check:parkingJiraCopy" data-docs-sig="ok|Nessuna copia jira in PARKING"><td>PARKING jira/ copia</td><td class="sev-ok">✅</td><td>Nessuna copia jira in PARKING</td></tr></tbody>
+</table>
+<p class="meta docs-fresh"><span class="docs-fresh-mark" title="Inserito o aggiornato in questo refresh">★</span> Nessun gap aperto nei controlli automatici.</p>
 </section>
 <!-- /DOCS-AUTO-ADDITIONS -->
 </body>

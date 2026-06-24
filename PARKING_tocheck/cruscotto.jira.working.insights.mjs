@@ -34,7 +34,7 @@
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { buildInsightSnapshot, getCorrelatedOpenKeys, inspectRepoSignal, isInActiveJiraSprint } from "../cruscotto.frontend/cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { boardKeysForWorkingPlanBlock, getWorkingPlan, getWorkingPlanOverlay, mergeWorkingSprintKeys } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { boardKeysForWorkingPlanBlock, getWorkingPlan, getWorkingPlanOverlay, mergeWorkingSprintKeys } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 
 /** @typedef {import("./cruscotto.jira.backlog.insights.mjs").BacklogInsight} WorkingInsight */
 

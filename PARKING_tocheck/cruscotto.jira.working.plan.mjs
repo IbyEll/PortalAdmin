@@ -54,7 +54,7 @@ import {
 , mergeWorkingSprintKeys
 , normalizeSprintLabel
 , sprint6ObsoleteKeySet
-} from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+} from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 
 const PARKING_DIR    = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT    = join(PARKING_DIR, "..");

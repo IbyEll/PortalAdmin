@@ -45,7 +45,7 @@
  *
  * Prerequisiti:
  *   - Git disponibile su product repo e PortalAdmin per scan branch e path
- *   - cruscotto.frontend/cruscotto.jira.working.order.mjs — piano MVP (default key set)
+ *   - PARKING_tocheck\cruscotto.jira.working.order.mjs — piano MVP (default key set)
  *
  * Consumatori:
  *   - Grooming manuale backlog / pillar matrix prima di chiudi story
@@ -55,7 +55,7 @@
  */
 
 import { getProjectConfig } from "../lib/project.config.mjs";
-import { collectWorkingPlanTicketKeys } from "../cruscotto.frontend/cruscotto.jira.working.order.mjs";
+import { collectWorkingPlanTicketKeys } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 import {
   ensureRepoImplementationSignalByKey
 , listAllTicketBranchKeys

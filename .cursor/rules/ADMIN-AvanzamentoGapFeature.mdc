@@ -1,0 +1,59 @@
+---
+description: Analisi avanzamento PortalAdmin — architettura, gap, bug, feature. Script docs/Avanzamento_Gap_Feature.mjs
+globs: docs/Avanzamento_Gap_Feature.*, lib/docs.portal.analysis.mjs
+alwaysApply: false
+---
+
+# ADMIN — Avanzamento Gap Feature
+
+## Trigger
+
+| Comando / richiesta | Effetto |
+| --- | --- |
+| `analizza avanzamento` · `avanzamento gap feature` | Esegui analisi + rigenera HTML |
+| Modifica architettura host significativa | Rigenerare pagina dopo implementazione |
+| `node docs/Avanzamento_Gap_Feature.mjs` | CLI diretta |
+
+## Artefatti
+
+| Path | Ruolo |
+| --- | --- |
+| `docs/Avanzamento_Gap_Feature.mjs` | Script analisi + render HTML |
+| `docs/Avanzamento_Gap_Feature.html` | Output servito su HOME `/docs/` |
+| `lib/docs.portal.analysis.mjs` | 15 controlli automatici base (importato dallo script) |
+
+## Sequenza agente
+
+1. **Esegui** `node docs/Avanzamento_Gap_Feature.mjs` dalla root PortalAdmin.
+2. **Leggi** metriche stdout (arch %, gap, bug).
+3. **Apri** `docs/Avanzamento_Gap_Feature.html` — verifica sezioni per categoria.
+4. Se gap P0/P1 toccati dal task corrente → aggiorna finding o risolvilo nel codice, poi **rigenera**.
+
+## Cosa analizza lo script
+
+| Area | Metodo |
+| --- | --- |
+| Architettura target | existsSync + checklist migrazioni (overlay, dual server, JiraCORE, docs, smoke path file) |
+| Gap | `analyzeRepository` + PARKING import grep |
+| Bug | grep import mancanti (tree regenerate, Confluence, CI portal-paths, npm path) |
+| Deprecation | runner/ comment drift, stub start-dev, portal-paths consumer |
+| Feature / miglioramenti | catalogo curato nel script (docs refresh, istanze, JiraCORE) |
+
+## Categorie output HTML
+
+`avanzamento` · `architettura` · `gap` · `bug` · `deprecation` · `feature` · `miglioramento`
+
+Severità: `P0` · `P1` · `P2` · `info`
+
+## Distinction vs Aggiorna (docs chrome)
+
+| | **Aggiorna** (toolbar docs) | **Avanzamento_Gap_Feature** |
+| --- | --- | --- |
+| Trigger | UI Documenti | CLI / regola / agente |
+| Output | Sezione auto in ogni doc esistente | Pagina dedicata completa |
+| Scope | Controlli + tabella per titolo pagina | Report trasversale categorizzato |
+
+## Vietato
+
+- Assumere path legacy (`scripts/`, `cruscotto.frontend/jira/`) senza verifica `existsSync`
+- Edit manuale solo HTML senza rigenerare da script (drift garantito)

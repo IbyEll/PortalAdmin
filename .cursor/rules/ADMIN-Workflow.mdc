@@ -197,7 +197,7 @@ node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run
 Gap analysis sul **repo workflow** del progetto istanziato:
 
 ```bash
-node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent {KEY} --format md
+node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY} --format md
 ```
 
 Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`

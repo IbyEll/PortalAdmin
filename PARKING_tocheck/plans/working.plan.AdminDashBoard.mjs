@@ -27,7 +27,7 @@
  *
  * Consumatori:
  *   - lib/working.plan.overlay.mjs — merge quando PRJ_JIRA_PREFIX non è JLO
- *   - cruscotto.frontend/cruscotto.jira.working.order.mjs — ordinamento backlog working
+ *   - PARKING_tocheck\cruscotto.jira.working.order.mjs — ordinamento backlog working
  *
  * Export principali:
  *   - WORKING_PLAN — array sprint, name, keys ticket ADMIN

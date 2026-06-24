@@ -20,9 +20,9 @@ alwaysApply: true
 ## CLI
 
 ```bash
-node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent ADMIN-88 --format md
-node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys ADMIN-121,ADMIN-122
-node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507 --format md
+node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent ADMIN-88 --format md
+node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --keys ADMIN-121,ADMIN-122
+node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent JLO-507 --format md
 ```
 
 Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
@@ -47,4 +47,4 @@ Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
 ## Modulo
 
 - `admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs` — `analyzeIssueKeys`, `formatRepoAnalysisMarkdown`
-- `admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs` — CLI
+- `admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs` — CLI

@@ -46,13 +46,13 @@ import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const STEPS = [
-  "scripts/smoke-portal-paths.mjs"
-, "scripts/smoke-portal-config.mjs"
-, "scripts/smoke-workflow.mjs"
-, "scripts/smoke-cruscotto-db.mjs"
-, "scripts/smoke-portal-e2e.mjs"
-, "scripts/smoke-run-all.mjs"
-, "scripts/smoke-dashboard.mjs"
+  "test.smoke/smoke-portal-paths.mjs"
+, "test.smoke/smoke-portal-config.mjs"
+, "test.smoke/smoke-workflow.mjs"
+, "test.smoke/smoke-cruscotto-db.mjs"
+, "test.smoke/smoke-portal-e2e.mjs"
+, "test.smoke/smoke-run-all.mjs"
+, "test.smoke/smoke-dashboard.mjs"
 ];
 
 try {

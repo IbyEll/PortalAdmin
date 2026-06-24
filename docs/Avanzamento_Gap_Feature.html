@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Avanzamento, gap e feature</title>
+  <link rel="stylesheet" href="/docs/docs-chrome.css" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419; --surface: #1a2332; --border: #2d3a4f;
+      --text: #e7ecf3; --muted: #8b9cb3; --ok: #48bb78;
+      --amber: #f0b429; --danger: #f56565; --accent: #3d9cf5;
+    }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.55; }
+    .page { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+    h1 { margin: 0 0 0.35rem; font-size: 1.65rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.35rem; }
+    h3 { margin: 1.25rem 0 0.5rem; font-size: 1rem; color: var(--muted); }
+    .meta { color: var(--muted); font-size: 0.9rem; }
+    .lead { color: var(--muted); }
+    .adv-card {
+      margin: 0.85rem 0 1.1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .adv-card__summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+      user-select: none;
+    }
+    .adv-card__summary::-webkit-details-marker { display: none; }
+    .adv-card__summary::before {
+      content: "▸";
+      color: var(--muted);
+      margin-right: 0.45rem;
+      transition: transform 0.15s ease;
+    }
+    .adv-card[open] > .adv-card__summary::before { transform: rotate(90deg); }
+    .adv-card__title { flex: 1 1 auto; }
+    .adv-card__badge {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .adv-card__body { padding: 0 0.85rem 0.85rem; }
+    .adv-card__body > table { margin-top: 0.35rem; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin: 0; }
+    .metric { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+    .metric strong { display: block; font-size: 1.4rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.75rem 0; }
+    th, td { border: 1px solid var(--border); padding: 0.45rem 0.55rem; text-align: left; vertical-align: top; }
+    code { font-family: ui-monospace, monospace; font-size: 0.85em; background: var(--bg); padding: 0.1em 0.35em; border-radius: 4px; }
+    .tag { font-size: 0.75rem; font-weight: 700; padding: 0.1em 0.45em; border-radius: 4px; }
+    .sev-p0 { color: var(--danger); } .sev-p1 { color: var(--amber); } .sev-p2 { color: var(--muted); } .sev-ok { color: var(--ok); }
+    tr.finding-resolved td:not(.finding-status) del.resolved { display: inline; }
+    tr.finding-resolved td:not(.finding-status) { opacity: 0.82; }
+    .finding-status .audit-resolution { display: block; margin-top: 0.25rem; font-size: 0.82rem; }
+    .issue-ref { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.85em; }
+    .issue-ref:hover { text-decoration: underline; }
+    .issue-ref.missing { color: var(--muted); font-weight: 400; }
+    td.issue-refinement { white-space: nowrap; }
+    .issue-refinement .issue-type {
+      display: inline-block;
+      margin-right: 0.35rem;
+      padding: 0.1rem 0.38rem;
+      border-radius: 4px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      vertical-align: middle;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      text-transform: lowercase;
+    }
+    .issue-refinement .issue-type-bug { color: #fca5a5; border-color: rgba(248, 113, 113, 0.45); background: rgba(248, 113, 113, 0.1); }
+    .issue-ref-create {
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.12rem 0.55rem;
+      border-radius: 4px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      cursor: pointer;
+    }
+    .issue-ref-create:hover:not(:disabled) { background: rgba(61, 156, 245, 0.12); }
+    .issue-ref-create:disabled { opacity: 0.55; cursor: wait; }
+    .issue-ref-create-wrap { position: relative; display: inline-block; }
+    .issue-ref-create-menu {
+      position: absolute;
+      z-index: 30;
+      top: calc(100% + 0.2rem);
+      left: 0;
+      min-width: 11rem;
+      padding: 0.45rem 0.5rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    }
+    .issue-ref-create-menu[hidden] { display: none; }
+    .issue-ref-create-menu-label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .issue-ref-create-type {
+      display: block;
+      width: 100%;
+      margin-bottom: 0.35rem;
+      padding: 0.2rem 0.35rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+    .issue-ref-create-confirm {
+      display: block;
+      width: 100%;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.18rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #0f1419;
+      cursor: pointer;
+    }
+    .issue-ref-create-confirm:hover:not(:disabled) { filter: brightness(1.08); }
+    .issue-ref-create-confirm:disabled { opacity: 0.55; cursor: wait; }
+    td.finding-project { white-space: nowrap; font-size: 0.85em; }
+    .finding-project-tag {
+      display: inline-block;
+      padding: 0.12rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .finding-project-justlastone { color: #6ee7b7; border-color: rgba(52, 211, 153, 0.35); }
+    .finding-project-portaladmin { color: #93c5fd; border-color: rgba(96, 165, 250, 0.35); }
+    .finding-project-portaladmin-cruscotto { color: #a5b4fc; border-color: rgba(129, 140, 248, 0.4); }
+    .finding-project-multi { color: var(--amber); border-color: rgba(240, 180, 41, 0.35); }
+    del.resolved { text-decoration: line-through; opacity: 0.72; }
+    .audit-resolution { display: block; margin: 0.35rem 0 0.5rem; color: var(--ok); font-size: 0.88rem; }
+    .audit-open { display: block; margin: 0.35rem 0 0.5rem; color: var(--amber); font-size: 0.88rem; }
+    .banner {
+      border: 1px solid var(--border);
+      background: rgba(61, 156, 245, 0.08);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .mermaid {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+  <div class="page">
+    <div class="verification-banner" id="docs-auto-banner" data-docs-key="banner" data-docs-sig="14/14">  <strong>Verifica repo</strong> — Avanzamento, gap e feature · 2026-06-24 11:26 · 14/14 controlli OK. </div>
+    <header>
+      <h1>Avanzamento, gap e feature — PortalAdmin</h1>
+      <p class="meta">Generato: 2026-06-24 09:19:32:41:50 · script <code>docs/Avanzamento_Gap_Feature.mjs</code></p>
+      <p class="lead">Analisi dedotta da filesystem, import, package.json, CI e controlli automatici host.</p>
+    </header>
+
+    <details class="adv-card" open data-adv-section="metrics">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Sintesi avanzamento</span>
+<span class="adv-card__badge">1 gap · 2 bug</span>
+</summary>
+<div class="adv-card__body">
+<div class="metrics">
+<div class="metric"><strong>100</strong><span class="meta">Migrazioni architetturali</span></div>
+<div class="metric"><strong>12/12</strong><span class="meta">Target arch. OK</span></div>
+<div class="metric"><strong>14/14</strong><span class="meta">Controlli automatici</span></div>
+<div class="metric"><strong>1</strong><span class="meta">Gap aperti</span></div>
+<div class="metric"><strong>2</strong><span class="meta">Bug aperti</span></div>
+<div class="metric"><strong>7</strong><span class="meta">Import live da PARKING</span></div>
+</div>
+</div>
+</details>
+    <details class="adv-card" data-adv-section="arch">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Architettura e avanzamento</span>
+<span class="adv-card__badge">12 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:arch -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="arch-dual-server" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Dual entrypoint HOME + Dashboard</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>admin.portal/portal.home.server.mjs</code>, <code>cruscotto.frontend/cruscotto.server.mjs</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-overlay-lib" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Overlay in lib/overlay/</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>lib/overlay/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-health-fe" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Health/dev API in cruscotto.frontend</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>cruscotto.frontend/cruscotto.health.mjs</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-jira-core" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Jira tooling canonico admin.portal.JiraCORE</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>admin.portal.JiraCORE/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-jira-dup-removed" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>cruscotto.frontend/jira/ eliminato</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>cruscotto.frontend/jira/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-docs-portal" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Documenti HTML + chrome su HOME :3990</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>docs/</code>, <code>admin.portal/portal.home.html</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-start-dev" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>start:dev → admin.script.standalone</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>admin.script.standalone/start-dev.mjs</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-smoke-files" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Smoke spostati in test.smoke/</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>test.smoke/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-project-base" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-base" title="Progetto / overlay">Base</span></td><td>PROJECT_Base fallback</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>PROJECT_Base/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-jira-working-parked" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Jira Working de-integata (PARKING)</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>PARKING_tocheck/cruscotto.jira.working.html</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-portal-paths-resolver" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>portal.paths.resolver canonico</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>lib/portal.paths.resolver.mjs</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="arch-server-legacy-gone" data-finding-status="fatto" data-finding-sig="fatto|Completato / allineato allo stato target 2026-06."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>server/ legacy rimosso</td><td>Completato / allineato allo stato target 2026-06.</td><td><code>server/</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr></tbody></table>
+<!-- /FINDINGS:arch -->
+</div>
+</details>
+
+<details class="adv-card" open data-adv-section="gap">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Gap analysis</span>
+<span class="adv-card__badge">1 aperti · 1 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:gap -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="gap-parking-live" data-finding-status="partial" data-finding-sig="partial|7 file fuori PARKING importano o re-exportano moduli in staging."><td><span class="tag sev-p1">P1</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="gap-parking-live" data-project="PortalAdmin.Cruscotto" data-section-label="[ Gap analysis ]" data-summary="PARKING_tocheck referenziato da moduli attivi" data-detail="7 file fuori PARKING importano o re-exportano moduli in staging." data-paths="[&quot;admin.portal.JiraCORE/jira.project.config.mjs&quot;,&quot;admin.portal.JiraCORE/jiraCORE.backlog.load.mjs&quot;,&quot;admin.portal.JiraCORE/jiraCORE.close.story.mjs&quot;,&quot;admin.portal.JiraCORE/sync-repo-catalog.mjs&quot;,&quot;cruscotto.frontend/cruscotto.server.mjs&quot;,&quot;lib/docs.portal.analysis.mjs&quot;,&quot;lib/overlay/dashboard.project.mjs&quot;]" title="Crea issue su Jira (PortalAdmin.Cruscotto) — etichetta [ Gap analysis ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin-cruscotto" title="Progetto / overlay">PortalAdmin.Cruscotto</span></td><td>PARKING_tocheck referenziato da moduli attivi</td><td>7 file fuori PARKING importano o re-exportano moduli in staging.</td><td><code>admin.portal.JiraCORE/jira.project.config.mjs</code>, <code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code>, <code>admin.portal.JiraCORE/jiraCORE.close.story.mjs</code>, <code>admin.portal.JiraCORE/sync-repo-catalog.mjs</code>, <code>cruscotto.frontend/cruscotto.server.mjs</code>, <code>lib/docs.portal.analysis.mjs</code>, <code>lib/overlay/dashboard.project.mjs</code></td><td class="finding-status">partial</td></tr></tbody></table>
+<!-- /FINDINGS:gap -->
+</div>
+</details>
+
+<details class="adv-card" open data-adv-section="bug">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Bug</span>
+<span class="adv-card__badge">2 aperti · 2 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:bug -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="bug-tree-regenerate" data-finding-status="open" data-finding-sig="open|POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck."><td><span class="tag sev-p1">P1</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="bug-tree-regenerate" data-project="PortalAdmin" data-section-label="[ Bug ]" data-summary="regenerateProjectTreeHtml chiamata senza import" data-detail="POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck." data-paths="[&quot;cruscotto.frontend/cruscotto.server.mjs&quot;,&quot;PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Bug ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>regenerateProjectTreeHtml chiamata senza import</td><td>POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck.</td><td><code>cruscotto.frontend/cruscotto.server.mjs</code>, <code>PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs</code></td><td class="finding-status">open</td></tr><tr data-finding-id="bug-ci-portal-paths" data-finding-status="open" data-finding-sig="open|portal-smoke.yml inline node -e usa lib/portal-paths.mjs; usare portal.paths.resolver.mjs."><td><span class="tag sev-p1">P1</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="bug-ci-portal-paths" data-project="PortalAdmin" data-section-label="[ Bug ]" data-summary="CI workflow importa portal-paths.mjs rimosso" data-detail="portal-smoke.yml inline node -e usa lib/portal-paths.mjs; usare portal.paths.resolver.mjs." data-paths="[&quot;.github/workflows/portal-smoke.yml&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Bug ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>CI workflow importa portal-paths.mjs rimosso</td><td>portal-smoke.yml inline node -e usa lib/portal-paths.mjs; usare portal.paths.resolver.mjs.</td><td><code>.github/workflows/portal-smoke.yml</code></td><td class="finding-status">open</td></tr></tbody></table>
+<!-- /FINDINGS:bug -->
+</div>
+</details>
+
+<details class="adv-card" open data-adv-section="deprecation">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Deprecation / drift</span>
+<span class="adv-card__badge">2 aperti · 2 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:deprecation -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="dep-runner-comments" data-finding-status="open" data-finding-sig="open|41 file con path legacy; server canonico cruscotto.frontend/cruscotto.server.mjs."><td><span class="tag sev-p2">P2</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="dep-runner-comments" data-project="PortalAdmin" data-section-label="[ Deprecation / drift ]" data-summary="Commenti/doc citano runner/cruscotto.server.mjs" data-detail="41 file con path legacy; server canonico cruscotto.frontend/cruscotto.server.mjs." data-paths="[&quot;runner/&quot;,&quot;cruscotto.frontend/cruscotto.server.mjs&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Deprecation / drift ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Commenti/doc citano runner/cruscotto.server.mjs</td><td>41 file con path legacy; server canonico cruscotto.frontend/cruscotto.server.mjs.</td><td><code>runner/</code>, <code>cruscotto.frontend/cruscotto.server.mjs</code></td><td class="finding-status">open</td></tr><tr data-finding-id="dep-portal-paths-consumers" data-finding-status="open" data-finding-sig="open|11 file importano lib/portal-paths.mjs non più presente."><td><span class="tag sev-p2">P2</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="dep-portal-paths-consumers" data-project="PortalAdmin" data-section-label="[ Deprecation / drift ]" data-summary="Consumer residui su portal-paths (shim rimosso)" data-detail="11 file importano lib/portal-paths.mjs non più presente." data-paths="[&quot;.github/workflows/portal-smoke.yml&quot;,&quot;PARKING_tocheck/cruscotto.jira.working.html&quot;,&quot;docs/Avanzamento_Gap_Feature.html&quot;,&quot;docs/Avanzamento_Gap_Feature.mjs&quot;,&quot;docs/portal-product-project-repo.html&quot;,&quot;docs/repo-audit-ridondanze-gap.html&quot;,&quot;lib/docs.portal.analysis.mjs&quot;,&quot;lib/product.manifest.mjs&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Deprecation / drift ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Consumer residui su portal-paths (shim rimosso)</td><td>11 file importano lib/portal-paths.mjs non più presente.</td><td><code>.github/workflows/portal-smoke.yml</code>, <code>PARKING_tocheck/cruscotto.jira.working.html</code>, <code>docs/Avanzamento_Gap_Feature.html</code>, <code>docs/Avanzamento_Gap_Feature.mjs</code>, <code>docs/portal-product-project-repo.html</code>, <code>docs/repo-audit-ridondanze-gap.html</code>, <code>lib/docs.portal.analysis.mjs</code>, <code>lib/product.manifest.mjs</code></td><td class="finding-status">open</td></tr></tbody></table>
+<!-- /FINDINGS:deprecation -->
+</div>
+</details>
+
+<details class="adv-card" data-adv-section="feature">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Feature completate</span>
+<span class="adv-card__badge">3 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:feature -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="feat-docs-auto-refresh" data-finding-status="fatto" data-finding-sig="fatto|lib/docs.portal.* — verifica automatica, sezione DOCS-AUTO-ADDITIONS, stelline su delta."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Documenti HOME con Aggiorna + analisi repo</td><td>lib/docs.portal.* — verifica automatica, sezione DOCS-AUTO-ADDITIONS, stelline su delta.</td><td><code>lib/docs.portal.mjs</code>, <code>lib/docs.portal.analysis.mjs</code>, <code>docs/docs-chrome.js</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="feat-instance-portal" data-finding-status="fatto" data-finding-sig="fatto|portal.instance.mjs + card PROJECT_* + persistenza .env PRJ_NAME / PRODUCT_REPO_PATH."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Multi-istanza overlay da HOME</td><td>portal.instance.mjs + card PROJECT_* + persistenza .env PRJ_NAME / PRODUCT_REPO_PATH.</td><td><code>lib/portal.instance.mjs</code>, <code>admin.portal/portal.home.html</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr><tr data-finding-id="feat-jira-core-gap" data-finding-status="fatto" data-finding-sig="fatto|CLI e Task agente per gap repo vs ticket, PR, catalogo segnali."><td><span class="tag sev-ok">info</span></td><td class="issue-refinement"></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>JiraCORE gap analysis + close story workflow</td><td>CLI e Task agente per gap repo vs ticket, PR, catalogo segnali.</td><td><code>admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs</code></td><td class="finding-status"><span class="sev-ok">fatto</span></td></tr></tbody></table>
+<!-- /FINDINGS:feature -->
+</div>
+</details>
+
+<details class="adv-card" open data-adv-section="miglioramento">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Miglioramenti suggeriti</span>
+<span class="adv-card__badge">3 aperti · 3 voci</span>
+</summary>
+<div class="adv-card__body">
+<!-- FINDINGS:miglioramento -->
+<table><thead><tr><th>Sev</th><th>Issue refirement</th><th>Project</th><th>Voce</th><th>Dettaglio</th><th>Path</th><th>Stato</th></tr></thead><tbody><tr data-finding-id="imp-promote-parking" data-finding-status="open" data-finding-sig="open|my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING."><td><span class="tag sev-p2">P2</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="imp-promote-parking" data-project="PortalAdmin" data-section-label="[ Miglioramenti suggeriti ]" data-summary="Promuovere moduli PARKING ancora live" data-detail="my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING." data-paths="[&quot;PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs&quot;,&quot;lib/overlay/dashboard.project.mjs&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Miglioramenti suggeriti ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>Promuovere moduli PARKING ancora live</td><td>my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING.</td><td><code>PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs</code>, <code>lib/overlay/dashboard.project.mjs</code></td><td class="finding-status">open</td></tr><tr data-finding-id="imp-ci-admin-overlay" data-finding-status="open" data-finding-sig="open|portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990."><td><span class="tag sev-p2">P2</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="imp-ci-admin-overlay" data-project="PortalAdmin.Cruscotto" data-section-label="[ Miglioramenti suggeriti ]" data-summary="CI job AdminDashBoard + smoke admin:home" data-detail="portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990." data-paths="[&quot;.github/workflows/portal-smoke.yml&quot;]" title="Crea issue su Jira (PortalAdmin.Cruscotto) — etichetta [ Miglioramenti suggeriti ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin-cruscotto" title="Progetto / overlay">PortalAdmin.Cruscotto</span></td><td>CI job AdminDashBoard + smoke admin:home</td><td>portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990.</td><td><code>.github/workflows/portal-smoke.yml</code></td><td class="finding-status">open</td></tr><tr data-finding-id="imp-readme-sync" data-finding-status="open" data-finding-sig="open|Aggiornare path cruscotto.frontend, test.smoke, assenza server/scripts."><td><span class="tag sev-p2">P2</span></td><td class="issue-refinement"><div class="issue-ref-create-wrap"><button type="button" class="issue-ref-create" data-finding-id="imp-readme-sync" data-project="PortalAdmin" data-section-label="[ Miglioramenti suggeriti ]" data-summary="README allineato ad albero attuale" data-detail="Aggiornare path cruscotto.frontend, test.smoke, assenza server/scripts." data-paths="[&quot;README.md&quot;]" title="Crea issue su Jira (PortalAdmin) — etichetta [ Miglioramenti suggeriti ]">Crea</button><div class="issue-ref-create-menu" hidden><label class="issue-ref-create-menu-label">Tipo issue</label><select class="issue-ref-create-type"><option value="BUG" selected>Bug</option><option value="STORY">Story</option><option value="TASK">Task</option><option value="EPIC">Epic</option><option value="TODO">Todo</option></select><button type="button" class="issue-ref-create-confirm">Crea issue</button></div></div></td><td class="finding-project"><span class="finding-project-tag finding-project-portaladmin" title="Progetto / overlay">PortalAdmin</span></td><td>README allineato ad albero attuale</td><td>Aggiornare path cruscotto.frontend, test.smoke, assenza server/scripts.</td><td><code>README.md</code></td><td class="finding-status">open</td></tr></tbody></table>
+<!-- /FINDINGS:miglioramento -->
+</div>
+</details>
+    <details class="adv-card" data-adv-section="checks">
+<summary class="adv-card__summary">
+<span class="adv-card__title">Controlli automatici (docs.portal.analysis)</span>
+<span class="adv-card__badge">14/14 OK</span>
+</summary>
+<div class="adv-card__body">
+<!-- CHECKS:portal-analysis -->
+<table>
+<thead><tr><th>Controllo</th><th>Esito</th><th>Dettaglio</th></tr></thead>
+<tbody><tr><td>Jira Working in PARKING, fuori SPA</td><td class="sev-ok">✅</td><td>HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr><tr><td>Config overlay in lib/overlay/</td><td class="sev-ok">✅</td><td>cruscotto.config.overlay.mjs sotto lib/overlay/</td></tr><tr><td>PROJECT_Base fallback</td><td class="sev-ok">✅</td><td>PROJECT_Base con file condivisi</td></tr><tr><td>package.json smoke → test.smoke/</td><td class="sev-ok">✅</td><td>Path smoke allineati a test.smoke/</td></tr><tr><td>smoke-ci.mjs STEPS</td><td class="sev-ok">✅</td><td>STEPS su test.smoke/</td></tr><tr><td>Health in cruscotto.frontend</td><td class="sev-ok">✅</td><td>cruscotto.health.mjs in frontend</td></tr><tr><td>server/ legacy</td><td class="sev-ok">✅</td><td>Nessuna copia health in server/</td></tr><tr><td>Alias portal-paths rimosso</td><td class="sev-ok">✅</td><td>Consumer su portal.paths.resolver.mjs</td></tr><tr><td>Documenti in HOME</td><td class="sev-ok">✅</td><td>Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr><td>Chrome docs condiviso</td><td class="sev-ok">✅</td><td>docs/docs-chrome.html + CSS/JS</td></tr><tr><td>start:dev canonico</td><td class="sev-ok">✅</td><td>package.json → admin.script.standalone/start-dev.mjs</td></tr><tr><td>lib/test.run.all.mjs</td><td class="sev-ok">✅</td><td>Modulo presente; smoke-run-all può spawnarlo</td></tr><tr><td>cruscotto.frontend/jira/ rimosso</td><td class="sev-ok">✅</td><td>Cartella eliminata; canonico solo admin.portal.JiraCORE/</td></tr><tr><td>PARKING jira/ copia</td><td class="sev-ok">✅</td><td>Nessuna copia jira in PARKING</td></tr></tbody>
+</table>
+<!-- /CHECKS:portal-analysis -->
+</div>
+</details>
+
+    <p class="meta">Rigenera: <code>node docs/Avanzamento_Gap_Feature.mjs</code> · Regola Cursor: ADMIN-AvanzamentoGapFeature.mdc</p>
+  </div>
+  <script src="/docs/docs-chrome.js" defer></script>
+<!-- DOCS-AUTO-ADDITIONS -->
+<section class="docs-auto-additions" id="docs-auto-additions" data-docs-key="section" data-docs-sig="14/14/0">
+<h2>Analisi repo — Avanzamento, gap e feature (2026-06-24 11:26)</h2>
+<p class="meta">Titolo documento: <em>PortalAdmin — Avanzamento, gap e feature</em> · ambito dedotto dal titolo:
+audit, architecture, quality, portal · 14 controlli rieseguiti ·
+14 OK · 0 aperti.</p>
+<h3 data-docs-key="arch-table" data-docs-sig="arch-home:ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)|arch-health:ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/|arch-stack:ok|✅ start:dev canonico: package.json → admin.script.standalone/start-dev.mjs|arch-test:ok|✅ lib/test.run.all.mjs: Modulo presente; smoke-run-all può spawnarlo · ✅ package.json smoke → test.smoke/: Path smoke allineati a test.smoke/ · ✅ smoke-ci.mjs STEPS: STEPS su test.smoke/|arch-overlay:ok|✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs|arch-jira:ok|✅ cruscotto.frontend/jira/ rimosso: Cartella eliminata; canonico solo admin.portal.JiraCORE/ · ✅ PARKING jira/ copia: Nessuna copia jira in PARKING · ✅ Jira Working in PARKING, fuori SPA: HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo">Stato architettura</h3><table class="docs-verify-table"><thead><tr><th>Area</th><th>Esito</th><th>Dettaglio analisi</th></tr></thead><tbody><tr class="" data-docs-key="arch-home" data-docs-sig="ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)"><td>HOME portal</td><td class="sev-ok">✅</td><td>✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="arch-health" data-docs-sig="ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/"><td>Health / dev API</td><td class="sev-ok">✅</td><td>✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/</td></tr><tr class="" data-docs-key="arch-stack" data-docs-sig="ok|✅ start:dev canonico: package.json → admin.script.standalone/start-dev.mjs"><td>Stack prepare</td><td class="sev-ok">✅</td><td>✅ start:dev canonico: package.json → admin.script.standalone/start-dev.mjs</td></tr><tr class="" data-docs-key="arch-test" data-docs-sig="ok|✅ lib/test.run.all.mjs: Modulo presente; smoke-run-all può spawnarlo · ✅ package.json smoke → test.smoke/: Path smoke allineati a test.smoke/ · ✅ smoke-ci.mjs STEPS: STEPS su test.smoke/"><td>Test run-all / smoke</td><td class="sev-ok">✅</td><td>✅ lib/test.run.all.mjs: Modulo presente; smoke-run-all può spawnarlo · ✅ package.json smoke → test.smoke/: Path smoke allineati a test.smoke/ · ✅ smoke-ci.mjs STEPS: STEPS su test.smoke/</td></tr><tr class="" data-docs-key="arch-overlay" data-docs-sig="ok|✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs"><td>Overlay config</td><td class="sev-ok">✅</td><td>✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs</td></tr><tr class="" data-docs-key="arch-jira" data-docs-sig="ok|✅ cruscotto.frontend/jira/ rimosso: Cartella eliminata; canonico solo admin.portal.JiraCORE/ · ✅ PARKING jira/ copia: Nessuna copia jira in PARKING · ✅ Jira Working in PARKING, fuori SPA: HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><td>Jira tooling</td><td class="sev-ok">✅</td><td>✅ cruscotto.frontend/jira/ rimosso: Cartella eliminata; canonico solo admin.portal.JiraCORE/ · ✅ PARKING jira/ copia: Nessuna copia jira in PARKING · ✅ Jira Working in PARKING, fuori SPA: HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr></tbody></table>
+<h3 data-docs-key="checks-heading" data-docs-sig="14/14/0">
+
+Verifica completa (14 controlli)</h3>
+<table class="docs-verify-table">
+<thead><tr><th>Controllo</th><th>Esito</th><th>Dettaglio</th></tr></thead>
+<tbody><tr class="" data-docs-key="check:jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><td>Jira Working in PARKING, fuori SPA</td><td class="sev-ok">✅</td><td>HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr><tr class="" data-docs-key="check:overlayInLibOverlay" data-docs-sig="ok|cruscotto.config.overlay.mjs sotto lib/overlay/"><td>Config overlay in lib/overlay/</td><td class="sev-ok">✅</td><td>cruscotto.config.overlay.mjs sotto lib/overlay/</td></tr><tr class="" data-docs-key="check:projectBaseFallback" data-docs-sig="ok|PROJECT_Base con file condivisi"><td>PROJECT_Base fallback</td><td class="sev-ok">✅</td><td>PROJECT_Base con file condivisi</td></tr><tr class="" data-docs-key="check:packageJsonSmokePaths" data-docs-sig="ok|Path smoke allineati a test.smoke/"><td>package.json smoke → test.smoke/</td><td class="sev-ok">✅</td><td>Path smoke allineati a test.smoke/</td></tr><tr class="" data-docs-key="check:smokeCiSteps" data-docs-sig="ok|STEPS su test.smoke/"><td>smoke-ci.mjs STEPS</td><td class="sev-ok">✅</td><td>STEPS su test.smoke/</td></tr><tr class="" data-docs-key="check:healthInFrontend" data-docs-sig="ok|cruscotto.health.mjs in frontend"><td>Health in cruscotto.frontend</td><td class="sev-ok">✅</td><td>cruscotto.health.mjs in frontend</td></tr><tr class="" data-docs-key="check:serverFolderOrphan" data-docs-sig="ok|Nessuna copia health in server/"><td>server/ legacy</td><td class="sev-ok">✅</td><td>Nessuna copia health in server/</td></tr><tr class="" data-docs-key="check:portalPathsMigrated" data-docs-sig="ok|Consumer su portal.paths.resolver.mjs"><td>Alias portal-paths rimosso</td><td class="sev-ok">✅</td><td>Consumer su portal.paths.resolver.mjs</td></tr><tr class="" data-docs-key="check:documentiTab" data-docs-sig="ok|Sezione documenti in portal.home.html (HOME :3990)"><td>Documenti in HOME</td><td class="sev-ok">✅</td><td>Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="check:docsChrome" data-docs-sig="ok|docs/docs-chrome.html + CSS/JS"><td>Chrome docs condiviso</td><td class="sev-ok">✅</td><td>docs/docs-chrome.html + CSS/JS</td></tr><tr class="" data-docs-key="check:startDevCanonical" data-docs-sig="ok|package.json → admin.script.standalone/start-dev.mjs"><td>start:dev canonico</td><td class="sev-ok">✅</td><td>package.json → admin.script.standalone/start-dev.mjs</td></tr><tr class="" data-docs-key="check:testRunAllPresent" data-docs-sig="ok|Modulo presente; smoke-run-all può spawnarlo"><td>lib/test.run.all.mjs</td><td class="sev-ok">✅</td><td>Modulo presente; smoke-run-all può spawnarlo</td></tr><tr class="" data-docs-key="check:jiraFrontendDupRemoved" data-docs-sig="ok|Cartella eliminata; canonico solo admin.portal.JiraCORE/"><td>cruscotto.frontend/jira/ rimosso</td><td class="sev-ok">✅</td><td>Cartella eliminata; canonico solo admin.portal.JiraCORE/</td></tr><tr class="" data-docs-key="check:parkingJiraCopy" data-docs-sig="ok|Nessuna copia jira in PARKING"><td>PARKING jira/ copia</td><td class="sev-ok">✅</td><td>Nessuna copia jira in PARKING</td></tr></tbody>
+</table>
+<p class="meta docs-fresh"><span class="docs-fresh-mark" title="Inserito o aggiornato in questo refresh">★</span> Nessun gap aperto nei controlli automatici.</p>
+</section>
+<!-- /DOCS-AUTO-ADDITIONS -->
+</body>
+</html>

@@ -90,6 +90,7 @@ import {
 , refreshDocs
 , resolveDocsFile
 } from "../lib/docs.portal.mjs";
+import { createAdvancementFindingIssue } from "../lib/docs.portal.advancement.create.mjs";
 import {
   formatProjectNodeProcessesText
 , listProjectNodeProcesses
@@ -403,6 +404,59 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/docs/analysis" && req.method === "GET") {
     try {
       sendJson(res, 200, analyzeRepository(PORTAL_ROOT), req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/docs/advancement/create-issue" && req.method === "POST") {
+    try {
+      const body = await readJsonBody(req);
+      const findingId = typeof body.findingId === "string" ? body.findingId.trim() : "";
+
+      if (!findingId) {
+        sendJson(res, 400, { error: "findingId obbligatorio" }, req);
+        return;
+      }
+
+      const projectLabel = typeof body.project === "string" && body.project.trim()
+        ? body.project.trim()
+        : "PortalAdmin";
+      const title = typeof body.summary === "string" ? body.summary.trim() : "";
+      const detail = typeof body.detail === "string" ? body.detail.trim() : "";
+
+      if (!title) {
+        sendJson(res, 400, { error: "summary obbligatorio" }, req);
+        return;
+      }
+
+      const paths = Array.isArray(body.paths)
+        ? body.paths.map((p) => String(p))
+        : [];
+
+      const sectionLabel = typeof body.sectionLabel === "string" && body.sectionLabel.trim()
+        ? body.sectionLabel.trim()
+        : undefined;
+      const sectionTitle = typeof body.sectionTitle === "string" && body.sectionTitle.trim()
+        ? body.sectionTitle.trim()
+        : undefined;
+
+      const created = await createAdvancementFindingIssue({
+        projectLabel
+      , findingId
+      , title
+      , detail
+      , paths
+      , issueTypeKey: typeof body.issueType === "string" ? body.issueType : undefined
+      , sectionLabel
+      , sectionTitle
+      , parentKey    : typeof body.parentKey === "string" ? body.parentKey : null
+      });
+
+      sendJson(res, 201, created, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);

@@ -125,21 +125,11 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
   , "pnpm-lock.yaml"
   , "yarn.lock"
   ]
-, skipExactPaths         : [
-    "cruscotto.frontend/cruscotto.jira.working.order.mjs"
-  , "PARKING_tocheck/cruscotto.jira.working.insights.mjs"
-  , "PARKING_tocheck/cruscotto.jira.working.plan.mjs"
-  , "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
-  , "scripts/confluence-pillar-matrix-body.html"
-  , "scripts/generate-confluence-pillar-matrix.mjs"
-  , "scripts/publish-confluence-pillar-matrix.mjs"
-  , "lib/pillar-matrix-portal.mjs"
-  , "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
-  , "lib/pillar-matrix-regenerate.mjs"
-  ]
+, skipExactPaths         : [ ]
 , skipPathPrefixes       : [
     "data/"
   , "cruscotto.frontend/"
+  , "PARKING_tocheck/"
   ]
 , meaningfulPathPrefixes : [
     "apps/"

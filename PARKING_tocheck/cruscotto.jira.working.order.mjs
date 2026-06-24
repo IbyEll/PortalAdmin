@@ -37,24 +37,10 @@
  *   - isSprint6ObsoleteIssue, sprint6ObsoleteKeySet — policy sprint 6
  */
 
-import { getWorkingPlanOverlayMeta } from "../lib/overlay/working.plan.overlay.mjs";
+import { getWorkingPlanOverlayMeta } from "../PARKING_tocheck/working.plan.overlay.mjs";
 
-import {
-  JLO_SPRINT_6_BOARD_NOISE
-, JLO_SPRINT_6_OBSOLETE
-, JLO_SPRINT_6_PHASES
-, JLO_WORKING_PLAN
-, sprint6ExecutionPlanKeys
-} from "../PROJECT_JustLastOne/working.plan.data.JustLastOne.mjs";
-
-export {
-  JLO_SPRINT_6_BOARD_NOISE
-, JLO_SPRINT_6_OBSOLETE
-, JLO_SPRINT_6_PHASES
-, JLO_WORKING_PLAN
-, sprint6ExecutionPlanKeys
-};
-
+  
+ 
 /**
  * @typedef {{
  *   sprint: number,

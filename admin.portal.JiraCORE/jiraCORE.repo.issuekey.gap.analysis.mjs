@@ -30,9 +30,9 @@
  *   - JIRA_EMAIL, JIRA_API_TOKEN, JIRA_CLOUD_ID — fetch backlog con --parent
  *
  * Uso:
- *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --parent JLO-507
- *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --keys JLO-524,JLO-525
- *   - node admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs --key ADMIN-88 --format md
+ *   - node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent JLO-507
+ *   - node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --keys JLO-524,JLO-525
+ *   - node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --key ADMIN-88 --format md
  *
  * Flag CLI:
  *   --parent KEY   parent Story/Bug/Todo — espande figli dal backlog Jira
@@ -170,7 +170,7 @@ async function main() {
   // 2. Validazione — almeno una sorgente key obbligatoria
   if (!args.parent && args.keys.length === 0 && !args.key) {
     console.error(
-      "Uso: admin.portal.JiraCORE/jiraCORE.repo..issuekey.gap.analysis.mjs"
+      "Uso: admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs"
       + " --parent JLO-xxx|ADMIN-xxx | --keys K1,K2 | --key K [--format json|md]"
     );
     process.exit(1);

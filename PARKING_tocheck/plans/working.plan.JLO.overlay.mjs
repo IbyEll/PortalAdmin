@@ -19,7 +19,7 @@
  *   - CRITICAL_CHAIN, FASE_DEFS, helper titoli fase e flag sprint6 per pagina working JLO.
  *
  * Generalizzazione:
- *   No — metadati piano dedicati JustLastOne; WORKING_PLAN dati in working.plan.data overlay.
+ *   No — metadati piano dedicati JustLastOne; WORKING_PLAN in cruscotto.jira.working.order.mjs.
  *
  * Input:
  *   - —
