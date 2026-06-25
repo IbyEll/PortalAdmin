@@ -38,3 +38,4 @@ admin.portal/cursor.agent.runtime.state.json
 Thumbs.db
 desktop.ini
 *.log
+admin.portal/portal-instances.json
