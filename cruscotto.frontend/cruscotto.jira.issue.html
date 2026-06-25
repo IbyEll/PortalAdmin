@@ -915,7 +915,9 @@
         return;
       }
 
-      if (advancement.workflowPhase === "awaiting_push") {
+      if (advancement.fromCache) {
+        wipAdvancementEl.classList.add("is-not-wip");
+      } else if (advancement.workflowPhase === "awaiting_push") {
         wipAdvancementEl.classList.add("is-awaiting-push");
       } else if (advancement.workflowPhase === "published") {
         wipAdvancementEl.classList.add("is-published");
@@ -1025,7 +1027,7 @@
       , typeHead
       , "<span class=\"issue-wip-advancement__title\">Avanzamento WIP (cruscotto DB)</span>"
       , advancement.fromCache
-        ? "<span class=\"issue-wip-advancement__phase\">Cache backlog (WIP purgato)</span>"
+        ? `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "Cache backlog (WIP purgato)")}</span>`
         : `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "")}</span>`
       , "</div>"
       , gridHtml

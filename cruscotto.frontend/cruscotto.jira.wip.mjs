@@ -37,7 +37,7 @@
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
+import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtFromRaw } from "../lib/jira.issue.workflow.raw.mjs";
 
 /** @typedef {{ checked: boolean, text: string }} WipCheckItem */
 
@@ -244,13 +244,15 @@ export function buildWipAdvancementEntry(row, subtaskRows = [], opts = {}) {
   , fromCache           : !inWip
   , jiraKey             : row.jiraKey
   , workflowPhase       : phase
-  , workflowPhaseLabel  : workflowPhaseLabel(phase)
+  , workflowPhaseLabel  : inWip
+    ? workflowPhaseLabel(phase)
+    : "Cache backlog (WIP purgato)"
   , developmentComplete : row.isDone === true
   , subtasksDone        : subtasks.filter((sub) => sub.isDone === true).length
   , subtasksTotal       : subtasks.length
   , gitPushed           : Boolean(raw.pushedAt) || Boolean(prUrl)
   , jiraSynced          : Boolean(raw.jiraSyncedAt)
-  , wipClosedAt         : typeof raw.wipClosedAt === "string" ? raw.wipClosedAt : null
+  , wipClosedAt         : resolveWipClosedAtFromRaw(raw)
   , closedAt            : typeof raw.closedAt === "string" ? raw.closedAt : null
   , pushedAt            : typeof raw.pushedAt === "string" ? raw.pushedAt : null
   , jiraSyncedAt        : typeof raw.jiraSyncedAt === "string" ? raw.jiraSyncedAt : null

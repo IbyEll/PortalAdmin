@@ -38,6 +38,7 @@
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
+import { mergeWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
 
 const ISSUE_KEY_RE = /^(ADMIN|JLO)-\d+$/;
 
@@ -280,7 +281,8 @@ export async function verifyWipBundleAlignedWithCache(parentKey) {
  * @param {Record<string, unknown>} [rawMerge]
  */
 export function jiraIssueDataFromWipRow(wipRow, rawMerge = {}) {
-  const prev = parseWipRawFields(wipRow.rawFields);
+  const prev   = parseWipRawFields(wipRow.rawFields);
+  const merged = mergeWorkflowRawFields(prev, rawMerge);
 
   return {
     issueType         : wipRow.issueType
@@ -300,7 +302,7 @@ export function jiraIssueDataFromWipRow(wipRow, rawMerge = {}) {
   , devSort           : wipRow.devSort
   , isSprint6Obsolete : wipRow.isSprint6Obsolete
   , relatedKeys       : wipRow.relatedKeys
-  , rawFields         : JSON.stringify({ ...prev, ...rawMerge })
+  , rawFields         : JSON.stringify(merged)
   , syncedAt          : new Date()
   };
 }
@@ -426,7 +428,7 @@ export async function mergeJiraIssueCacheRawFields(issueKey, merge = {}) {
   await db.jiraIssue.update({
     where: { jiraKey: key }
   , data : {
-      rawFields: JSON.stringify({ ...prev, ...merge })
+      rawFields: JSON.stringify(mergeWorkflowRawFields(prev, merge))
     , syncedAt : new Date()
     }
   });

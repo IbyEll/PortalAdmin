@@ -281,6 +281,9 @@ export async function pollWipPullRequest(parentKey) {
         , prMergedAt      : pr.mergedAt ?? now
         , prClosedAt      : pr.closedAt ?? (pr.state === "CLOSED" ? now : null)
         , prAppliedAt     : pr.mergedAt ?? pr.closedAt ?? now
+        , wipClosedAt     : typeof rowRaw.wipClosedAt === "string"
+          ? rowRaw.wipClosedAt
+          : (pr.mergedAt ?? pr.closedAt ?? now)
         , prPollComplete  : true
         , prPollActive    : false
         , prLastPolledAt  : now
