@@ -119,9 +119,7 @@ function collectSprintsById(backlog) {
 export async function syncJiraBacklogSnapshot(backlog) {
   const db = await openCruscottoDb();
 
-  // 1. Reset cache — un solo sync run attivo per volta
-  await db.syncRun.deleteMany({});
-
+  // 1. Nuovo sync run — creato prima del wipe così la coda WIP può essere riagganciata
   const syncRun = await db.syncRun.create({
     data: {
       status    : "running"
@@ -130,8 +128,18 @@ export async function syncJiraBacklogSnapshot(backlog) {
     },
   });
 
+  // 2. Preserva jira_issue_wip — FK onDelete:Cascade su sync_run altrimenti cancella tutto il WIP
+  await db.jiraIssueWip.updateMany({
+    data: { syncRunId: syncRun.id }
+  });
+
+  // 3. Reset cache issue — elimina solo i sync run precedenti (non il corrente)
+  await db.syncRun.deleteMany({
+    where: { id: { not: syncRun.id } }
+  });
+
   try {
-    // 2. Upsert tutti gli sprint referenziati (board + customfield per issue)
+    // 4. Upsert tutti gli sprint referenziati (board + customfield per issue)
     for (const sprint of collectSprintsById(backlog).values()) {
       await db.jiraSprint.upsert({
         where  : { id: sprint.id }
@@ -154,7 +162,7 @@ export async function syncJiraBacklogSnapshot(backlog) {
     /** @type {Map<string, string>} jiraKey → issue uuid */
     const issueIds = new Map();
 
-    // 3. Inserisce issue + link sprint per riga backlog
+    // 5. Inserisce issue + link sprint per riga backlog
     const syncedAt = backlog.fetchedAt ?? new Date().toISOString();
 
     for (const row of backlog.issues) {

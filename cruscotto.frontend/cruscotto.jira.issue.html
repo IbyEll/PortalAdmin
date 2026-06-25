@@ -160,6 +160,21 @@
       border-color: rgba(72, 187, 120, 0.45);
       background: linear-gradient(180deg, rgba(72, 187, 120, 0.1), rgba(72, 187, 120, 0.03));
     }
+    .issue-wip-advancement.is-not-wip {
+      border-color: rgba(61, 156, 245, 0.55);
+      background: linear-gradient(180deg, rgba(61, 156, 245, 0.14), rgba(61, 156, 245, 0.05));
+    }
+    .issue-wip-advancement.is-not-wip .issue-wip-advancement__title {
+      color: var(--accent);
+    }
+    .issue-wip-advancement__type {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .issue-wip-advancement__type .issue-type {
+      margin: 0;
+    }
     .issue-wip-advancement__head {
       display: flex;
       flex-wrap: wrap;
@@ -787,9 +802,28 @@
     }
 
     /**
+     * @param {string} [issueType]
+     * @returns {string}
+     */
+    function issueTypeBadgeHtml(issueType) {
+      const badge = window.JiraIssueDisplay?.createIssueTypeBadge?.(issueType);
+
+      if (!badge) {
+        return issueType ? escHtml(issueType) : "—";
+      }
+
+      const wrap = document.createElement("span");
+
+      wrap.appendChild(badge);
+
+      return wrap.innerHTML;
+    }
+
+    /**
      * @param {{
      *   workflowPhase?: string
      *   workflowPhaseLabel?: string
+     *   inWip?: boolean
      *   status?: string | null
      *   developmentComplete?: boolean
      *   awaitingPush?: boolean
@@ -812,23 +846,68 @@
      *   ac?: Array<{ checked: boolean, text: string }>
      *   dod?: Array<{ checked: boolean, text: string }>
      * } | null | undefined} advancement
+     * @param {{
+     *   key: string
+     *   issueType: string
+     *   status: string
+     *   done: boolean
+     *   viewSource?: string
+     *   dbMeta?: { syncedAt?: string | null, descriptionFrom?: string, hasWip?: boolean }
+     * }} issue
      */
-    function renderWipAdvancement(advancement) {
-      if (!wipAdvancementEl) {
+    function renderWipAdvancement(advancement, issue) {
+      if (!wipAdvancementEl || !issue) {
         return;
       }
 
-      if (!advancement?.inWip) {
-        wipAdvancementEl.classList.add("hidden");
-        wipAdvancementEl.replaceChildren();
-        return;
-      }
+      const inWip       = Boolean(advancement?.inWip);
+      const typeBadge   = issueTypeBadgeHtml(issue.issueType);
+      const typeHead    = typeBadge && typeBadge !== "—"
+        ? `<span class="issue-wip-advancement__type">${typeBadge}</span>`
+        : "";
 
       wipAdvancementEl.classList.remove(
         "hidden"
       , "is-awaiting-push"
       , "is-published"
+      , "is-not-wip"
       );
+
+      if (!inWip) {
+        wipAdvancementEl.classList.add("is-not-wip");
+
+        const sourceLabel = issue.viewSource === "db" ? "Cache DB" : "Jira live";
+        const syncedAt    = issue.dbMeta?.syncedAt
+          ? formatShortDate(issue.dbMeta.syncedAt)
+          : "—";
+        const descFrom    = issue.dbMeta?.descriptionFrom === "jira-cache"
+          ? "Description in cache"
+          : issue.dbMeta?.descriptionFrom === "wip"
+            ? "Description WIP"
+            : issue.dbMeta?.descriptionFrom === "jira-live"
+              ? "Description live"
+              : "—";
+
+        wipAdvancementEl.innerHTML = [
+          "<div class=\"issue-wip-advancement__head\">"
+        , typeHead
+        , "<span class=\"issue-wip-advancement__title\">Avanzamento issue</span>"
+        , "<span class=\"issue-wip-advancement__phase\">Non in WIP</span>"
+        , "</div>"
+        , "<dl class=\"issue-wip-advancement__grid\">"
+        , `<dt>Stato</dt><dd>${statusPillHtml(issue.status, issue.done)}</dd>`
+        , `<dt>In coda WIP</dt><dd>${boolHtml(false)}</dd>`
+        , `<dt>Fonte vista</dt><dd>${escHtml(sourceLabel)}</dd>`
+        , `<dt>Sync cache</dt><dd>${escHtml(syncedAt)}</dd>`
+        , `<dt>Description</dt><dd>${escHtml(descFrom)}</dd>`
+        , `<dt>Sviluppo completato</dt><dd>${boolHtml(Boolean(issue.done))}</dd>`
+        , `<dt>PR</dt><dd>—</dd>`
+        , `<dt>Branch</dt><dd>—</dd>`
+        , "</dl>"
+        ].join("");
+
+        return;
+      }
 
       if (advancement.workflowPhase === "awaiting_push") {
         wipAdvancementEl.classList.add("is-awaiting-push");
@@ -923,6 +1002,7 @@
 
       wipAdvancementEl.innerHTML = [
         "<div class=\"issue-wip-advancement__head\">"
+      , typeHead
       , "<span class=\"issue-wip-advancement__title\">Avanzamento WIP (cruscotto DB)</span>"
       , `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "")}</span>`
       , "</div>"
@@ -1138,7 +1218,7 @@
         descriptionTitleEl.classList.toggle("is-wip-field", isWipField(issue, "description"));
       }
 
-      renderWipAdvancement(issue.wipAdvancement ?? issue.wip ?? null);
+      renderWipAdvancement(issue.wipAdvancement ?? issue.wip ?? null, issue);
 
       if (issue.descriptionHtml) {
         descriptionEl.innerHTML = issue.descriptionHtml;
@@ -1185,7 +1265,7 @@
 
       /** @type {string[]} */
       const metaRows = [
-        metaRow("Tipo", escHtml(issue.issueType), "issueType", wipO)
+        metaRow("Tipo", issueTypeBadgeHtml(issue.issueType), "issueType", wipO)
       , metaRow("Stato", statusPillHtml(issue.status, issue.done), "status", wipO)
       , metaRow("Parent", parentHtml)
       , metaRow("Sprint", sprintHtml)
