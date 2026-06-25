@@ -24,7 +24,7 @@
  *   - opts.forceApi — loadJiraBacklog: ignora cache DB se true
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — fetchJiraBacklog, loadJiraBacklog, fetchJiraIssueStatus
+ *   - cruscotto.frontend/cruscotto.server.mjs — fetchJiraBacklog, loadJiraBacklog, fetchJiraIssueStatus
  *   - cruscotto.database/Jira.backlog.sync.mjs, jiraCORE.backlog.load.mjs — persistenza e lettura cache
  *   - cruscotto.jira.backlog.insights.mjs, project.tree.plan.mjs — insight e piano
  *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — tooling batch

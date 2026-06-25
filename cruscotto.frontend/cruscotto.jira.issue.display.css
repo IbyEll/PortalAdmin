@@ -19,7 +19,7 @@
  *   - classi DOM .issue-type, .issue-type-*, a.jira-link — generate da issueTypeClass() e client display
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — alias statico /jira-issue-display.css
+ *   - cruscotto.frontend/cruscotto.server.mjs — alias statico /jira-issue-display.css
  *   - cruscotto.jira.backlog.html, cruscotto.jira.working.html, cruscotto.jira.project.tree.html, cruscotto.jira.my-project.html
  *   - pillar-matrix/cruscotto.pillar.*.html — badge tipo issue nelle matrici pilastro
  *   - cruscotto.jira.pillar.matrix.portal.mjs — HTML generato con stesso link CSS

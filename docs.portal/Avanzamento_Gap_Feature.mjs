@@ -343,7 +343,7 @@ export async function analyzePortalAdvancement(portalRoot) {
       id       : "dep-runner-comments"
     , category : "deprecation"
     , severity : "P2"
-    , title    : "Commenti/doc citano runner/cruscotto.server.mjs"
+    , title    : "Commenti/doc citano cruscotto.frontend/cruscotto.server.mjs"
     , detail   : `${runnerRefs} file con path legacy; server canonico cruscotto.frontend/cruscotto.server.mjs.`
     , paths    : ["runner/", "cruscotto.frontend/cruscotto.server.mjs"]
     , status   : "open"

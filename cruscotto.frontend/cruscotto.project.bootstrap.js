@@ -17,15 +17,15 @@
  *   Si — payload da buildCruscottoProjectPayload (overlay PROJECT_* / PRJ_NAME al launch).
  *
  * Input:
- *   - window.__CRUSCOTTO_PROJECT__ — JSON iniettato da runner/cruscotto.server.mjs in <head>
+ *   - window.__CRUSCOTTO_PROJECT__ — JSON iniettato da cruscotto.frontend/cruscotto.server.mjs in <head>
  *   - GET /api/cruscotto/project — fallback se pagina aperta senza iniezione
  *   - [data-cruscotto-bind], [data-cruscotto-template] — placeholder DOM in HTML companion
  *
  * Pagina HTML:
- *   - Tutte le pagine cruscotto servite da runner/cruscotto.server.mjs (home, backlog, working, pillar matrix, …)
+ *   - Tutte le pagine cruscotto servite da cruscotto.frontend/cruscotto.server.mjs (home, backlog, working, pillar matrix, …)
  *
  * Servito da:
- *   - runner/cruscotto.server.mjs — iniettato automaticamente prima di </head>
+ *   - cruscotto.frontend/cruscotto.server.mjs — iniettato automaticamente prima di </head>
  *
  * API (fetch same-origin):
  *   - GET /api/cruscotto/project — config progetto se manca __CRUSCOTTO_PROJECT__

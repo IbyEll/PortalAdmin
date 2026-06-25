@@ -29,12 +29,12 @@
  *   - options.scriptRel, options.suite, options.testCase — scope run da POST /api/run/*
  *   - discoverTestScripts — elenco script e suite dal catalogo overlay
  *
- * Route o endpoint (montate da runner/cruscotto.server.mjs):
+ * Route o endpoint (montate da cruscotto.frontend/cruscotto.server.mjs):
  *   - GET  /api/status — getRunStatus (running, progress, exitCode, …)
  *   - POST /api/run, /api/run/one, /api/run/suite, /api/run/case, /api/run/funzionali
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — handler run e status
+ *   - cruscotto.frontend/cruscotto.server.mjs — handler run e status
  *   - cruscotto.frontend — avvio run e barra progresso
  *
  * Dipendenze:
