@@ -57,6 +57,7 @@ import {
 , buildWorkflowStartBlock
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
+import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
@@ -278,6 +279,12 @@ function handleWorkerLine(line) {
 
     if (typeof line.runId === "string") {
       state.runId = line.runId;
+    }
+
+    const workflowKey = state.workflowKey;
+
+    if (line.status === "finished" && workflowKey) {
+      void finalizeWipAfterGogo(workflowKey).catch(() => {});
     }
 
     emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");

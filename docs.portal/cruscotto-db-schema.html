@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cruscotto DB — schema SQLite</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+
+  <div class="page">
+    <header>
+      <h1>Cruscotto DB — schema SQLite</h1>
+      <p class="meta">
+        Fonte: <code>cruscotto.database/prisma/schema.prisma</code> ·
+        migration: <code>20260614210000_init</code>, <code>20260622120000_jira_issue_wip</code> ·
+        aggiornato 2026-06-25
+      </p>
+      <p class="lead">
+        Cache backlog Jira per overlay istanziato (<code>PRJ_NAME</code>).
+        File: <code>PROJECT_{overlay}/cruscotto_{overlay}.db</code> —
+        override con env <code>CRUSCOTTO_DB_PATH</code>.
+        Solo schema <strong>implementato</strong>; voci «fase 2» della
+        <a href="/docs/db-cruscotto-proposta.html">proposta architettura</a> non sono incluse.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice tabelle">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#panoramica">Panoramica</a></li>
+        <li><a href="#er-diagram">Diagramma ER</a></li>
+        <li><a href="#tbl-sync_run">sync_run</a></li>
+        <li><a href="#tbl-jira_issue">jira_issue</a></li>
+        <li><a href="#tbl-jira_issue_wip">jira_issue_wip</a></li>
+        <li><a href="#tbl-jira_sprint">jira_sprint</a></li>
+        <li><a href="#tbl-jira_issue_sprint">jira_issue_sprint</a></li>
+        <li><a href="#tbl-jira_issue_link">jira_issue_link</a></li>
+        <li><a href="#tbl-working_plan_sprint_keys">working_plan_sprint_keys</a></li>
+        <li><a href="#raw-fields">raw_fields (JSON)</a></li>
+        <li><a href="#riferimenti">Riferimenti codice</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="panoramica">Panoramica</h2>
+
+    <div class="callout callout-ok">
+      <strong>7 tabelle</strong> SQLite · provider Prisma <code>sqlite</code> ·
+      un solo <code>sync_run</code> attivo per volta (reset a ogni sync Jira).
+    </div>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tabella</th>
+            <th>Ruolo</th>
+            <th>Righe tipiche</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>sync_run</code></td>
+            <td>Job di scarico Jira → cache</td>
+            <td>0–1 attivo</td>
+          </tr>
+          <tr>
+            <td><code>jira_issue</code></td>
+            <td>Snapshot completo backlog (My Backlog, Issue da DB)</td>
+            <td>Tutte le issue del progetto</td>
+          </tr>
+          <tr>
+            <td><code>jira_issue_wip</code></td>
+            <td>Coda workflow locale (veve db, gogo, PUSH)</td>
+            <td>Solo ticket in lavorazione</td>
+          </tr>
+          <tr>
+            <td><code>jira_sprint</code></td>
+            <td>Sprint Jira (board + custom field)</td>
+            <td>Per sprint referenziati</td>
+          </tr>
+          <tr>
+            <td><code>jira_issue_sprint</code></td>
+            <td>Associazione N:N issue ↔ sprint</td>
+            <td>Join</td>
+          </tr>
+          <tr>
+            <td><code>jira_issue_link</code></td>
+            <td>Link tra issue (related, blocks, …)</td>
+            <td>Opzionale (schema pronto)</td>
+          </tr>
+          <tr>
+            <td><code>working_plan_sprint_keys</code></td>
+            <td>Issue keys per sprint nel working plan</td>
+            <td>Per nome sprint piano</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="er-diagram">Diagramma ER</h2>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+erDiagram
+  sync_run ||--o{ jira_issue : "snapshot"
+  sync_run ||--o{ jira_issue_wip : "wip"
+  sync_run ||--o{ working_plan_sprint_keys : "plan"
+  jira_issue ||--o{ jira_issue_sprint : ""
+  jira_sprint ||--o{ jira_issue_sprint : ""
+  jira_issue ||--o{ jira_issue_link : "from"
+  jira_issue ||--o{ jira_issue_link : "to"
+
+  sync_run {
+    TEXT id PK
+    DATETIME started_at
+    DATETIME finished_at
+    TEXT source
+    INT issue_count
+    TEXT status
+  }
+
+  jira_issue {
+    TEXT id PK
+    TEXT jira_key UK
+    TEXT issue_type
+    TEXT summary
+    TEXT status
+    TEXT sync_run_id FK
+  }
+
+  jira_issue_wip {
+    TEXT id PK
+    TEXT jira_key UK
+    TEXT raw_fields JSON
+    TEXT sync_run_id FK
+  }
+      </pre>
+    </div>
+
+    <!-- sync_run -->
+    <h2 id="tbl-sync_run">Tabella <code>sync_run</code></h2>
+    <p class="table-note">
+      Metadati del job di sincronizzazione. Ogni sync elimina i run precedenti e ricrea lo snapshot issue.
+    </p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>id</code></td>
+            <td><code>TEXT</code> (UUID)</td>
+            <td>NO</td>
+            <td>Identificatore univoco del job di sync.</td>
+          </tr>
+          <tr>
+            <td><code>started_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>NO</td>
+            <td>Timestamp avvio scarico; default <code>now()</code>.</td>
+          </tr>
+          <tr>
+            <td><code>finished_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>SÌ</td>
+            <td>Fine job; <code>NULL</code> mentre <code>status = running</code>.</td>
+          </tr>
+          <tr>
+            <td><code>source</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Origine dati; default <code>jira-api</code>.</td>
+          </tr>
+          <tr>
+            <td><code>issue_count</code></td>
+            <td><code>INTEGER</code></td>
+            <td>NO</td>
+            <td>Numero issue scritte in <code>jira_issue</code> in questo run.</td>
+          </tr>
+          <tr>
+            <td><code>status</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Stato job: <code>running</code>, <code>success</code>, <code>partial</code>, <code>failed</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- jira_issue -->
+    <h2 id="tbl-jira_issue">Tabella <code>jira_issue</code></h2>
+    <p class="table-note">
+      Cache backlog allineata a <code>JiraBacklogRow</code>
+      (<code>cruscotto.frontend/cruscotto.jira.backlog.mjs</code>).
+      Popolata da <code>cruscotto.database/Jira.backlog.sync.mjs</code>.
+    </p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>id</code></td>
+            <td><code>TEXT</code> (UUID)</td>
+            <td>NO</td>
+            <td>Chiave interna riga cache (non è la key Jira).</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-uk">UK</span><code>jira_key</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Chiave Jira (<code>ADMIN-154</code>, <code>JLO-507</code>); unique su tutta la tabella.</td>
+          </tr>
+          <tr>
+            <td><code>issue_type</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Tipo Jira: Story, Bug, Sub-task, Epic, …</td>
+          </tr>
+          <tr>
+            <td><code>summary</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Titolo issue.</td>
+          </tr>
+          <tr>
+            <td><code>status</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Stato workflow Jira (es. Da fare, In corso, Fatto).</td>
+          </tr>
+          <tr>
+            <td><code>status_category</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Categoria Jira: <code>new</code>, <code>indeterminate</code>, <code>done</code>.</td>
+          </tr>
+          <tr>
+            <td><code>parent_jira_key</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Key parent (subtask → story); indice su questa colonna.</td>
+          </tr>
+          <tr>
+            <td><code>jira_updated_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>SÌ</td>
+            <td>Ultimo aggiornamento lato Jira (se disponibile nel sync).</td>
+          </tr>
+          <tr>
+            <td><code>tier</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Livello albero backlog: <code>epic</code>, <code>task</code>, <code>subtask</code>.</td>
+          </tr>
+          <tr>
+            <td><code>is_story_like</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td><code>true</code> per Story/Bug/Todo trattati come unità di sviluppo (gogo/PUSH).</td>
+          </tr>
+          <tr>
+            <td><code>is_done</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td><code>true</code> se stato in categoria «done» (<code>isJiraStatusDone</code>).</td>
+          </tr>
+          <tr>
+            <td><code>depth</code></td>
+            <td><code>INTEGER</code></td>
+            <td>NO</td>
+            <td>Profondità nell’albero epic → story → subtask; default 0.</td>
+          </tr>
+          <tr>
+            <td><code>has_children</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td><code>true</code> se l’issue ha figli nel backlog.</td>
+          </tr>
+          <tr>
+            <td><code>dev_order</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Ordine dev gerarchico (es. <code>1.2.3</code>) da working plan.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sprint</code></td>
+            <td><code>INTEGER</code></td>
+            <td>SÌ</td>
+            <td>Numero sprint di sviluppo.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sprint_name</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Nome sprint di sviluppo.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sort</code></td>
+            <td><code>INTEGER</code></td>
+            <td>SÌ</td>
+            <td>Ordinamento numerico all’interno dello sprint.</td>
+          </tr>
+          <tr>
+            <td><code>is_sprint6_obsolete</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td>Flag issue obsolete nello sprint 6; default <code>false</code>.</td>
+          </tr>
+          <tr>
+            <td><code>related_keys</code></td>
+            <td><code>TEXT</code> (JSON)</td>
+            <td>SÌ</td>
+            <td>Array JSON di chiavi correlate (issue links); es. <code>["ADMIN-12","JLO-3"]</code>.</td>
+          </tr>
+          <tr>
+            <td><code>raw_fields</code></td>
+            <td><code>TEXT</code> (JSON)</td>
+            <td>SÌ</td>
+            <td>Payload esteso opzionale; raramente popolato in sync standard. Vedi <a href="#raw-fields">raw_fields</a>.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-fk">FK</span><code>sync_run_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Riferimento a <code>sync_run.id</code>; cascade delete con il run.</td>
+          </tr>
+          <tr>
+            <td><code>synced_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>NO</td>
+            <td>Timestamp scrittura riga in cache; default <code>now()</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- jira_issue_wip -->
+    <h2 id="tbl-jira_issue_wip">Tabella <code>jira_issue_wip</code></h2>
+    <p class="table-note">
+      Coda WIP — stessa struttura colonne di <code>jira_issue</code>, ma solo ticket nel workflow locale
+      (veve db, gogo MyBacklog, chiudi WIP, PUSH). Una riga per <code>jira_key</code> in lavorazione.
+    </p>
+    <div class="callout callout-accent">
+      I campi sotto sono identici a <code>jira_issue</code> salvo il ruolo semantico:
+      qui <code>raw_fields</code> è il cuore del workflow database (veve, git, PUSH).
+    </div>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>id</code></td>
+            <td><code>TEXT</code> (UUID)</td>
+            <td>NO</td>
+            <td>Chiave interna riga WIP.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-uk">UK</span><code>jira_key</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Chiave Jira; unique — un solo record WIP per ticket.</td>
+          </tr>
+          <tr>
+            <td><code>issue_type</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Tipo Jira al momento dell’iscrizione in coda.</td>
+          </tr>
+          <tr>
+            <td><code>summary</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Titolo issue.</td>
+          </tr>
+          <tr>
+            <td><code>status</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Stato workflow; aggiornato da ok chiudi / finalize gogo.</td>
+          </tr>
+          <tr>
+            <td><code>status_category</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Categoria stato Jira.</td>
+          </tr>
+          <tr>
+            <td><code>parent_jira_key</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Parent per subtask in coda WIP.</td>
+          </tr>
+          <tr>
+            <td><code>jira_updated_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>SÌ</td>
+            <td>Ultimo aggiornamento Jira noto.</td>
+          </tr>
+          <tr>
+            <td><code>tier</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td><code>epic</code> · <code>task</code> · <code>subtask</code>.</td>
+          </tr>
+          <tr>
+            <td><code>is_story_like</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td>Story-like per UI gogo/PUSH.</td>
+          </tr>
+          <tr>
+            <td><code>is_done</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td><code>true</code> dopo step 7 chiudi WIP o finalize gogo con sviluppo completo.</td>
+          </tr>
+          <tr>
+            <td><code>depth</code></td>
+            <td><code>INTEGER</code></td>
+            <td>NO</td>
+            <td>Profondità albero backlog.</td>
+          </tr>
+          <tr>
+            <td><code>has_children</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td>Ha subtask nel backlog.</td>
+          </tr>
+          <tr>
+            <td><code>dev_order</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Ordine dev da working plan.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sprint</code></td>
+            <td><code>INTEGER</code></td>
+            <td>SÌ</td>
+            <td>Numero sprint dev.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sprint_name</code></td>
+            <td><code>TEXT</code></td>
+            <td>SÌ</td>
+            <td>Nome sprint dev.</td>
+          </tr>
+          <tr>
+            <td><code>dev_sort</code></td>
+            <td><code>INTEGER</code></td>
+            <td>SÌ</td>
+            <td>Sort in sprint.</td>
+          </tr>
+          <tr>
+            <td><code>is_sprint6_obsolete</code></td>
+            <td><code>BOOLEAN</code></td>
+            <td>NO</td>
+            <td>Flag obsolescenza sprint 6.</td>
+          </tr>
+          <tr>
+            <td><code>related_keys</code></td>
+            <td><code>TEXT</code> (JSON)</td>
+            <td>SÌ</td>
+            <td>Chiavi correlate (array JSON).</td>
+          </tr>
+          <tr>
+            <td><code>raw_fields</code></td>
+            <td><code>TEXT</code> (JSON)</td>
+            <td>SÌ</td>
+            <td>Stato workflow, veve, git, PUSH — vedi <a href="#raw-fields">sezione dedicata</a>.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-fk">FK</span><code>sync_run_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>FK al <code>sync_run</code> dell’ultimo sync usato in enroll.</td>
+          </tr>
+          <tr>
+            <td><code>synced_at</code></td>
+            <td><code>DATETIME</code></td>
+            <td>NO</td>
+            <td>Ultimo aggiornamento riga WIP.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- jira_sprint -->
+    <h2 id="tbl-jira_sprint">Tabella <code>jira_sprint</code></h2>
+    <p class="table-note">Sprint Jira (id numerico board). Upsert a ogni sync backlog.</p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>id</code></td>
+            <td><code>INTEGER</code></td>
+            <td>NO</td>
+            <td>Id sprint Jira (non UUID interno).</td>
+          </tr>
+          <tr>
+            <td><code>name</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Nome sprint.</td>
+          </tr>
+          <tr>
+            <td><code>state</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Stato Jira: <code>future</code>, <code>active</code>, <code>closed</code>.</td>
+          </tr>
+          <tr>
+            <td><code>start_date</code></td>
+            <td><code>DATETIME</code></td>
+            <td>SÌ</td>
+            <td>Data inizio sprint.</td>
+          </tr>
+          <tr>
+            <td><code>end_date</code></td>
+            <td><code>DATETIME</code></td>
+            <td>SÌ</td>
+            <td>Data fine sprint.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- jira_issue_sprint -->
+    <h2 id="tbl-jira_issue_sprint">Tabella <code>jira_issue_sprint</code></h2>
+    <p class="table-note">Tabella di join N:N tra issue cache e sprint Jira.</p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>issue_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>FK → <code>jira_issue.id</code>; parte della chiave composta.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>sprint_id</code></td>
+            <td><code>INTEGER</code></td>
+            <td>NO</td>
+            <td>FK → <code>jira_sprint.id</code>; parte della chiave composta.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- jira_issue_link -->
+    <h2 id="tbl-jira_issue_link">Tabella <code>jira_issue_link</code></h2>
+    <p class="table-note">
+      Link diretti tra issue in cache. Schema presente; popolamento dipende dal sync (related keys oggi anche in
+      <code>jira_issue.related_keys</code>).
+    </p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>id</code></td>
+            <td><code>TEXT</code> (UUID)</td>
+            <td>NO</td>
+            <td>Identificatore link.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-fk">FK</span><code>from_issue_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Issue sorgente → <code>jira_issue.id</code>; indice.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-fk">FK</span><code>to_issue_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Issue destinazione → <code>jira_issue.id</code>; indice.</td>
+          </tr>
+          <tr>
+            <td><code>link_type</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Tipo link Jira: <code>related</code>, <code>blocks</code>, <code>is blocked by</code>, …</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- working_plan_sprint_keys -->
+    <h2 id="tbl-working_plan_sprint_keys">Tabella <code>working_plan_sprint_keys</code></h2>
+    <p class="table-note">
+      Mappa nome sprint del working plan → elenco issue keys. Da
+      <code>backlog.boardSprintKeysByPlanName</code> nel sync.
+    </p>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Tipo SQLite</th>
+            <th>Null</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-pk">PK</span><code>plan_sprint_name</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>Nome sprint nel piano di sviluppo (chiave primaria).</td>
+          </tr>
+          <tr>
+            <td><code>issue_keys</code></td>
+            <td><code>TEXT</code> (JSON)</td>
+            <td>NO</td>
+            <td>Array JSON di <code>jira_key</code> appartenenti allo sprint nel plan.</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-fk">FK</span><code>sync_run_id</code></td>
+            <td><code>TEXT</code></td>
+            <td>NO</td>
+            <td>FK → <code>sync_run.id</code>; cascade delete.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- raw_fields -->
+    <h2 id="raw-fields">Colonna <code>raw_fields</code> (JSON)</h2>
+
+    <p>
+      Campo <code>TEXT</code> con oggetto JSON serializzato. Usato soprattutto in
+      <code>jira_issue_wip</code>; in <code>jira_issue</code> resta opzionale/vuoto nel sync standard.
+      Merge incrementale: ogni step workflow aggiorna solo le chiavi che tocca.
+    </p>
+
+    <h3>Veve e gap (workflow database)</h3>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Chiave JSON</th>
+            <th>Tipo</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>veveDescription</code></td>
+            <td><code>string</code></td>
+            <td>Description veve in markdown (Obiettivo, Stato repo, AC/DoD). Da veve db step 3–4.</td>
+          </tr>
+          <tr>
+            <td><code>gapSummary</code></td>
+            <td><code>string</code></td>
+            <td>Riassunto gap analysis su parent (veve db story).</td>
+          </tr>
+          <tr>
+            <td><code>gap</code></td>
+            <td><code>object</code></td>
+            <td>Dettaglio gap per subtask (file, esito ✅/⚠️/❌).</td>
+          </tr>
+          <tr>
+            <td><code>files</code></td>
+            <td><code>array</code></td>
+            <td>Path file coinvolti (subtask veve).</td>
+          </tr>
+          <tr>
+            <td><code>orderN</code> / <code>orderM</code></td>
+            <td><code>number</code></td>
+            <td>Posizione subtask nell’ordine veve (N di M).</td>
+          </tr>
+          <tr>
+            <td><code>statoRepo</code></td>
+            <td><code>string</code></td>
+            <td>Snapshot tabella Stato repo al ok chiudi subtask.</td>
+          </tr>
+          <tr>
+            <td><code>updatedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Timestamp ultimo aggiornamento veve su questa riga.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Git e workflow gogo</h3>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Chiave JSON</th>
+            <th>Tipo</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>branch</code></td>
+            <td><code>string</code></td>
+            <td>Branch git del ticket (<code>STORY---ADMIN-96-slug</code>).</td>
+          </tr>
+          <tr>
+            <td><code>commitHash</code></td>
+            <td><code>string</code></td>
+            <td>Short hash ultimo commit sul branch.</td>
+          </tr>
+          <tr>
+            <td><code>workflowSource</code></td>
+            <td><code>string</code></td>
+            <td>Origine iscrizione WIP: <code>gogo</code>, <code>veve-db</code>, …</td>
+          </tr>
+          <tr>
+            <td><code>gogoStartedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Avvio gogo da My Backlog (<code>jiraCORE.wip.enroll</code>).</td>
+          </tr>
+          <tr>
+            <td><code>gogoCompletedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Fine Cursor Agent / finalize gogo.</td>
+          </tr>
+          <tr>
+            <td><code>closedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Chiusura subtask locale (ok chiudi WIP).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>PUSH e pubblicazione (step 7–8)</h3>
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Chiave JSON</th>
+            <th>Tipo</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>awaitingPush</code></td>
+            <td><code>boolean</code></td>
+            <td><code>true</code> → UI My Backlog mostra bottone <strong>PUSH</strong> (step 8).</td>
+          </tr>
+          <tr>
+            <td><code>chiudiParent</code></td>
+            <td><code>boolean</code></td>
+            <td>Parent da transizionare a Fatto su Jira allo step PUSH.</td>
+          </tr>
+          <tr>
+            <td><code>wipClosedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Chiusura fase dev locale (step 7 chiudi WIP).</td>
+          </tr>
+          <tr>
+            <td><code>gapTest</code></td>
+            <td><code>string</code></td>
+            <td>Esito gap test al chiudi parent (non in chiudi fast).</td>
+          </tr>
+          <tr>
+            <td><code>prUrl</code></td>
+            <td><code>string</code></td>
+            <td>URL pull request GitHub; UI mostra link <strong>PR</strong>.</td>
+          </tr>
+          <tr>
+            <td><code>pushedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Timestamp push/PR completato.</td>
+          </tr>
+          <tr>
+            <td><code>jiraSyncedAt</code></td>
+            <td><code>string</code> (ISO)</td>
+            <td>Sync Jira live completato allo step PUSH.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="riferimenti">Riferimenti codice</h2>
+
+    <ul>
+      <li><code>cruscotto.database/prisma/schema.prisma</code> — definizione modelli Prisma</li>
+      <li><code>cruscotto.database/cruscotto.db.config.mjs</code> — path DB per overlay</li>
+      <li><code>cruscotto.database/Jira.backlog.sync.mjs</code> — popolamento <code>jira_issue</code></li>
+      <li><code>admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs</code> — enroll/finalize gogo → WIP</li>
+      <li><code>admin.portal.JiraCORE/jiraCORE.wip.db.mjs</code> — gate PUSH, <code>markWipPushed</code></li>
+      <li><code>cruscotto.frontend/cruscotto.jira.wip.mjs</code> — lettura stato WIP per UI</li>
+      <li><code>.cursor/rules/ADMIN-Workflow database.mdc</code> — semantica step 7–8 e merge <code>raw_fields</code></li>
+    </ul>
+
+    <p class="meta" style="margin-top: 2rem;">
+      Pagina generata manualmente da schema Prisma implementato.
+      Per tabelle future (<code>repo_issue_ref</code>, …) vedi
+      <a href="/docs/db-cruscotto-proposta.html">db-cruscotto-proposta.html</a>.
+    </p>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad : true
+    , theme       : "dark"
+    , er          : { useMaxWidth: true }
+    });
+  </script>
+  <script src="/docs/docs-chrome.js" defer></script>
+</body>
+</html>

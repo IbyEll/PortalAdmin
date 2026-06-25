@@ -319,7 +319,7 @@ export function isJiraStatusDone(statusName, statusCategoryKey) {
 export async function fetchJiraIssueStatus(issueKey) {
   const key = String(issueKey).trim().toUpperCase();
 
-  if (!/^JLO-\d+$/.test(key)) {
+  if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
     throw new Error(`Issue key non valida: ${issueKey}`);
   }
 

@@ -82,6 +82,10 @@
         <span class="nav-label">MyBacklog</span>
         <span class="nav-hint muted">cache DB</span>
       </button>
+      <button type="button" data-tab="issue">
+        <span class="nav-label">Issue</span>
+        <span class="nav-hint muted">vista Jira</span>
+      </button>
       <button type="button" data-tab="projectoverview">
         <span class="nav-label">Project Overview</span>
         <span class="nav-hint muted">sintesi</span>
@@ -116,6 +120,9 @@
       </section>
       <section id="section-mybacklog" class="hidden" aria-label="MyBacklog">
         <iframe class="jira-working-frame" src="/my-backlog.html" title="MyBacklog — backlog da cache cruscotto DB"></iframe>
+      </section>
+      <section id="section-issue" class="hidden" aria-label="Issue Jira">
+        <iframe class="jira-working-frame" src="/issue.html" title="Issue — vista dettaglio Jira per issue key"></iframe>
       </section>
       <section id="section-projectoverview" class="hidden" aria-label="Project Overview">
         <iframe class="jira-working-frame" src="/project-overview.html" title="Project Overview — panoramica progetto"></iframe>

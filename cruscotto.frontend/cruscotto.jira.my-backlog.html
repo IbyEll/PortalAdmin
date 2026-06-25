@@ -2454,7 +2454,7 @@
             btn.classList.remove("is-error");
           }, 2200);
         } else {
-          void tryShowPrAfterGogo(btn, issueKey);
+          void refreshRowControlAfterGogo(btn, issueKey);
         }
       };
 
@@ -2736,6 +2736,23 @@
     }
 
     /**
+     * Iscrive il ticket in jira_issue_wip (da cache MyBacklog).
+     *
+     * @param {string} issueKey
+     */
+    async function enrollWipForGogo(issueKey) {
+      try {
+        await fetch("/api/jira/wip/enroll", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+      } catch {
+        /* non blocca avvio agent */
+      }
+    }
+
+    /**
      * Avvia Cursor Agent interno (POST /api/cursor/agent) con prompt gogo.
      *
      * @param {string} issueKey
@@ -2743,6 +2760,8 @@
      */
     async function launchGogoAgent(issueKey) {
       const prompt = buildGogoCommand(issueKey);
+
+      await enrollWipForGogo(issueKey);
 
       try {
         const res = await fetch("/api/cursor/agent", {
@@ -2883,18 +2902,49 @@
     }
 
     /**
+     * Dopo fine gogo — finalizza WIP, aggiorna mappa e sostituisce gogo con PUSH/PR.
+     *
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     */
+    async function refreshRowControlAfterGogo(btn, issueKey) {
+      setGogoButtonRunningState(btn, false);
+
+      try {
+        await fetch("/api/jira/wip/finalize-gogo", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+      } catch {
+        /* fallback su refresh stato */
+      }
+
+      await refreshWipStatusMap(backlog?.issues ?? []);
+
+      const wip   = getWipStatus(issueKey);
+      const prUrl = wip?.prUrl ?? await fetchPrUrlForIssue(issueKey);
+
+      if (prUrl) {
+        saveGogoPrUrl(issueKey, prUrl);
+        replaceGogoControlWithPr(btn, issueKey, prUrl);
+        return;
+      }
+
+      if (wip?.awaitingPush) {
+        const pushWrap = createPushRowButton(issueKey, wip);
+        btn.replaceWith(pushWrap);
+      }
+    }
+
+    /**
      * Dopo fine agent — cerca PR su GitHub e sostituisce il bottone.
      *
      * @param {HTMLButtonElement} btn
      * @param {string} issueKey
      */
     async function tryShowPrAfterGogo(btn, issueKey) {
-      const prUrl = await fetchPrUrlForIssue(issueKey);
-
-      if (prUrl) {
-        saveGogoPrUrl(issueKey, prUrl);
-        replaceGogoControlWithPr(btn, issueKey, prUrl);
-      }
+      await refreshRowControlAfterGogo(btn, issueKey);
     }
 
     /**
@@ -2919,6 +2969,20 @@
       }
 
       if (isJiraRowDone(row)) {
+        void fetch("/api/jira/wip/finalize-gogo", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        }).then(() => refreshWipStatusMap(backlog?.issues ?? [])).then(() => {
+          const synced = getWipStatus(issueKey);
+
+          if (synced?.awaitingPush) {
+            keyCell.appendChild(createPushRowButton(issueKey, synced));
+          } else if (synced?.prUrl) {
+            keyCell.appendChild(createGogoPrLink(issueKey, synced.prUrl));
+          }
+        }).catch(() => {});
+
         return;
       }
 

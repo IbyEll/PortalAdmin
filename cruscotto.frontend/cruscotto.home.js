@@ -289,7 +289,7 @@ function buildProcessStackFooterModel(services) {
 }
 
 // --- router — tab, hash e meta pagina ---
-const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "projectoverview", "pillarmatrix", "process", "cursor"];
+const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "issue", "projectoverview", "pillarmatrix", "process", "cursor"];
 const DEFAULT_TAB = "requisiti";
 
 /** Hash legacy — tab rimosse, reindirizza alla default. */
@@ -298,6 +298,54 @@ const LEGACY_TAB_ALIASES = {
 , summary   : "requisiti"
 , myproject : "projectoverview"
 };
+
+/**
+ * @returns {{ tab: string, payload: string | null }}
+ */
+function parseLocationHash() {
+  let raw = location.hash.replace("#", "");
+
+  if (raw === "utility") {
+    raw = "process";
+  }
+
+  const colon = raw.indexOf(":");
+
+  if (colon > 0) {
+    const tabRaw = raw.slice(0, colon);
+    const tab    = LEGACY_TAB_ALIASES[tabRaw] ?? tabRaw;
+
+    return {
+      tab
+    , payload: raw.slice(colon + 1).trim() || null
+    };
+  }
+
+  return {
+    tab    : LEGACY_TAB_ALIASES[raw] ?? raw
+  , payload: null
+  };
+}
+
+/**
+ * Apre issue nell'iframe Issue — numero o key completa.
+ *
+ * @param {string} issueRef
+ */
+function navigateIssueTab(issueRef) {
+  const iframe = document.querySelector("#section-issue iframe");
+
+  if (!iframe || !issueRef) {
+    return;
+  }
+
+  const prefix = cruscottoJiraPrefix() || "ADMIN";
+  const key    = /^\d+$/.test(issueRef)
+    ? `${prefix}-${issueRef}`
+    : String(issueRef).trim().toUpperCase();
+
+  iframe.src = `/issue.html?key=${encodeURIComponent(key)}`;
+}
 
 // --- tab Process — console log stack dev e dialogo conferma ---
 /** Polling console Process — log stack dev. */
@@ -876,6 +924,10 @@ const PAGE_META = {
 , mybacklog: {
     title    : "MyBacklog"
   , subtitle : "Backlog da cache cruscotto DB — Epic · Sprint · Pilastri"
+  }
+, issue: {
+    title    : "Issue"
+  , subtitle : "Vista dettaglio issue Jira per key — description, link, WIP"
   }
 , projectoverview: {
     title    : "Project Overview"
@@ -1730,8 +1782,9 @@ async function pollProcessConsoleLogs() {
  * Mostra/nasconde sezioni, aggiorna titolo pagina e avvia/ferma polling console Process.
  *
  * @param {string} tab — id in {@link TABS} (sincronizzato con `location.hash`)
+ * @param {string | null} [hashPayload] — es. numero issue per `#issue:154`
  */
-function setActiveTab(tab) {
+function setActiveTab(tab, hashPayload = null) {
   for (const id of TABS) {
     const section = document.getElementById(`section-${id}`);
     const button  = document.querySelector(`[data-tab="${id}"]`);
@@ -1754,7 +1807,16 @@ function setActiveTab(tab) {
     subEl.textContent = meta.subtitle;
   }
 
-  location.hash = tab;
+  if (tab === "issue") {
+    if (hashPayload) {
+      location.hash = `issue:${hashPayload}`;
+      navigateIssueTab(hashPayload);
+    } else {
+      location.hash = "issue";
+    }
+  } else {
+    location.hash = tab;
+  }
 
   if (tab === "process") {
     startProcessConsolePolling();
@@ -7168,19 +7230,15 @@ function initRouter() {
   });
 
   window.addEventListener("hashchange", () => {
-    const hash = location.hash.replace("#", "");
-    const tab  = LEGACY_TAB_ALIASES[hash] ?? hash;
+    const { tab, payload } = parseLocationHash();
 
     if (TABS.includes(tab)) {
-      setActiveTab(tab);
+      setActiveTab(tab, payload);
     }
   });
 
-  const rawHash = location.hash.replace("#", "");
-  const hash    = rawHash === "utility"
-    ? "process"
-    : (LEGACY_TAB_ALIASES[rawHash] ?? rawHash);
-  setActiveTab(TABS.includes(hash) ? hash : DEFAULT_TAB);
+  const { tab, payload } = parseLocationHash();
+  setActiveTab(TABS.includes(tab) ? tab : DEFAULT_TAB, payload);
 }
 
 // --- init pagina ---
