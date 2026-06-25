@@ -40,6 +40,28 @@ import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/crusco
 import { openCruscottoDb, resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
 
 /**
+ * JSON raw_fields cache — description Jira plain text da sync API.
+ *
+ * @param {{ jiraDescription?: string | null }} row
+ * @param {string} syncedAt ISO-8601
+ * @returns {string | null}
+ */
+function rawFieldsFromBacklogRow(row, syncedAt) {
+  const jiraDescription = typeof row.jiraDescription === "string"
+    ? row.jiraDescription.trim()
+    : "";
+
+  if (!jiraDescription) {
+    return null;
+  }
+
+  return JSON.stringify({
+    jiraDescription
+  , jiraDescriptionSyncedAt: syncedAt
+  });
+}
+
+/**
  * Unisce sprint board e sprint su singole issue (FK jira_issue_sprint → jira_sprint).
  *
  * @param {Awaited<ReturnType<typeof fetchJiraBacklog>>} backlog
@@ -133,6 +155,8 @@ export async function syncJiraBacklogSnapshot(backlog) {
     const issueIds = new Map();
 
     // 3. Inserisce issue + link sprint per riga backlog
+    const syncedAt = backlog.fetchedAt ?? new Date().toISOString();
+
     for (const row of backlog.issues) {
       const created = await db.jiraIssue.create({
         data: {
@@ -153,6 +177,7 @@ export async function syncJiraBacklogSnapshot(backlog) {
         , devSort          : row.devSort ?? null
         , isSprint6Obsolete: row.isSprint6Obsolete ?? false
         , relatedKeys      : JSON.stringify(row.relatedKeys ?? [])
+        , rawFields        : rawFieldsFromBacklogRow(row, syncedAt)
         , syncRunId        : syncRun.id
         },
       });

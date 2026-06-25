@@ -47,7 +47,7 @@
  *   - GET  /api/jira/backlog/insights
  *   - GET  /api/jira/issue/:KEY — dettaglio issue live (ADMIN-*, JLO-*)
  *   - GET  /api/jira/issue/:KEY/db — dettaglio issue da cache cruscotto DB
- *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — workflow database
+ *   - GET  /api/jira/wip/status · POST /api/jira/wip/push · POST /api/jira/wip/pr-poll — workflow database
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
  *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
@@ -94,6 +94,7 @@ import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlo
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
+import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
 import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import {
   analyzeMyProject
@@ -114,7 +115,7 @@ import {
 , isCursorAgentActive
 , startCursorAgent
 } from "../admin.portal/portal.cursor.agent.manager.mjs";
-import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
+import { resolvePrUrlForIssueKey, checkNoOpenPullRequests } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import {
   clearRepoServicesLogs
 , getProductDatabaseStatus
@@ -1279,6 +1280,12 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/workflow/gogo-preflight" && req.method === "GET") {
+    const gate = checkNoOpenPullRequests();
+    sendJson(res, gate.ok ? 200 : 409, gate, req);
+    return;
+  }
+
   if (urlPath === "/api/jira/wip/status" && req.method === "GET") {
     const url = new URL(req.url ?? "", "http://localhost");
     const keysParam = String(url.searchParams.get("keys") ?? "").trim();
@@ -1365,6 +1372,26 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/jira/wip/pr-poll" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { ok: false, error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const result = await pollWipPullRequest(key);
+      sendJson(res, result.ok === false && result.complete !== true ? 502 : 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { ok: false, error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/cursor/agent/status" && req.method === "GET") {
     sendJson(res, 200, getCursorAgentStatus(), req);
     return;
@@ -1409,7 +1436,8 @@ async function handleApi(req, res, urlPath) {
 
       if (!result.started) {
         sendJson(res, result.error?.includes("CURSOR_API_KEY") ? 503 : 409, {
-          error: result.error ?? "avvio fallito"
+          error   : result.error ?? "avvio fallito"
+        , openPrs : Array.isArray(result.openPrs) ? result.openPrs : undefined
         }, req);
         return;
       }
@@ -1446,7 +1474,15 @@ async function handleApi(req, res, urlPath) {
 
   if (issueDbMatch && req.method === "GET") {
     try {
-      const data = await fetchJiraIssueDetailFromDb(issueDbMatch[1]);
+      const data = await Promise.race([
+        fetchJiraIssueDetailFromDb(issueDbMatch[1])
+      , new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("Timeout lettura cache DB (25s) — riavvia il cruscotto"))
+          , 25000
+          );
+        })
+      ]);
       sendJson(res, 200, data, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

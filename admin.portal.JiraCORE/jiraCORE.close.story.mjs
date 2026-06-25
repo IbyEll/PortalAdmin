@@ -14,11 +14,11 @@
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Il workflow JLO chiudi/chiudi fast richiede push, PR aperta e catalogo segnali in un solo passo.
+ *   - Il workflow chiudi/chiudi fast e step 8 PUSH: catalogo segnali, push branch e PR in un solo passo.
  *   - Evita comandi git/gh separati dall'agente e mantiene idempotenza su branch già pushate.
  *
  *   A cosa serve:
- *   - Risolve branch ticket, aggiorna REPO_IMPLEMENTATION_SIGNALS, push opzionale, apre PR su main.
+ *   - Risolve branch ticket, aggiorna REPO_IMPLEMENTATION_SIGNALS (commit), poi push branch, apre PR su main.
  *   - Stampa JSON { ok, branch, prUrl, pushed, commits, catalog?, pillar?, error? } su stdout.
  *
  * Generalizzazione:
@@ -383,7 +383,7 @@ async function main() {
       run("git", ["checkout", branch]);
     }
 
-    // 5. Catalogo segnali (+ pillar opzionale) — commit catalogo su PortalAdmin
+    // 5. Catalogo segnali (+ pillar opzionale) — commit su branch ticket **prima** del push
     if (ticketKey) {
       out.catalog = updateImplementationCatalog(ticketKey, branch, false);
       out.pillar  = await runPillarPortalUpdate(ticketKey, { skip: skipPillar });
@@ -395,7 +395,7 @@ async function main() {
       : "1";
     const ahead     = Number(aheadRaw) || 0;
 
-    // 6. Push origin — solo se assente su remote o ahead
+    // 6. Push origin — solo dopo catalogo; se assente su remote o ahead
     let pushed = false;
 
     if (!hasRemote || ahead > 0) {

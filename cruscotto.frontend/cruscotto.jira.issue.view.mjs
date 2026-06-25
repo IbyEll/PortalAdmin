@@ -7,7 +7,7 @@ import { isJiraStatusDone } from "./cruscotto.jira.backlog.mjs";
 import { adfToPlainText } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 import { jiraLiveFetch } from "../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
 import { openCruscottoDb, cruscottoDbFileExists } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { fetchWipAdvancementForIssue } from "./cruscotto.jira.wip.mjs";
+import { fetchWipAdvancementForIssue, buildWipAdvancementEntry } from "./cruscotto.jira.wip.mjs";
 
 const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
 const JIRA_SPRINT_FIELD = "customfield_10020";
@@ -683,6 +683,228 @@ function parseDbRawFields(rawFields) {
 }
 
 /**
+ * @param {unknown} a
+ * @param {unknown} b
+ * @returns {boolean}
+ */
+function dbValuesDiffer(a, b) {
+  if (a === b) {
+    return false;
+  }
+
+  if (a == null && b == null) {
+    return false;
+  }
+
+  if (typeof a === "boolean" || typeof b === "boolean") {
+    return Boolean(a) !== Boolean(b);
+  }
+
+  return String(a ?? "").trim() !== String(b ?? "").trim();
+}
+
+/**
+ * @param {{
+ *   jiraKey?: string
+ *   issueType?: string
+ *   summary?: string
+ *   status?: string
+ *   statusCategory?: string | null
+ *   tier?: string
+ *   isStoryLike?: boolean
+ *   isDone?: boolean
+ *   depth?: number
+ *   hasChildren?: boolean
+ *   devOrder?: string | null
+ *   devSprint?: number | null
+ *   devSprintName?: string | null
+ *   devSort?: number | null
+ *   isSprint6Obsolete?: boolean
+ *   relatedKeys?: string | null
+ *   syncedAt?: Date | null
+ * } | null | undefined} cache
+ * @param {{
+ *   issueType?: string
+ *   summary?: string
+ *   status?: string
+ *   statusCategory?: string | null
+ *   tier?: string
+ *   isStoryLike?: boolean
+ *   isDone?: boolean
+ *   depth?: number
+ *   hasChildren?: boolean
+ *   devOrder?: string | null
+ *   devSprint?: number | null
+ *   devSprintName?: string | null
+ *   devSort?: number | null
+ *   isSprint6Obsolete?: boolean
+ *   relatedKeys?: string | null
+ *   syncedAt?: Date | null
+ * } | null | undefined} wip
+ * @param {string} field
+ * @param {keyof NonNullable<typeof cache>} prop
+ * @param {Set<string>} overrides
+ * @returns {unknown}
+ */
+function pickDbField(cache, wip, field, prop, overrides) {
+  if (!wip) {
+    return cache?.[prop] ?? null;
+  }
+
+  const cacheVal = cache?.[prop];
+  const wipVal   = wip[prop];
+
+  if (cache && dbValuesDiffer(cacheVal, wipVal)) {
+    overrides.add(field);
+    return wipVal ?? cacheVal ?? null;
+  }
+
+  return wipVal ?? cacheVal ?? null;
+}
+
+/**
+ * @param {NonNullable<typeof cache>} cache
+ * @param {typeof wip} wip
+ * @returns {{
+ *   issueType: string
+ *   summary: string
+ *   status: string
+ *   statusCategory: string
+ *   tier: string
+ *   isStoryLike: boolean
+ *   isDone: boolean
+ *   depth: number
+ *   hasChildren: boolean
+ *   devOrder: string | null
+ *   devSprint: number | null
+ *   devSprintName: string | null
+ *   devSort: number | null
+ *   isSprint6Obsolete: boolean
+ *   relatedKeys: string | null
+ *   syncedAt: Date | null
+ *   wipFieldOverrides: string[]
+ * }}
+ */
+function mergeJiraIssueCacheWithWip(cache, wip) {
+  /** @type {Set<string>} */
+  const overrides = new Set();
+
+  const statusName = String(pickDbField(cache, wip, "status", "status", overrides) ?? "—");
+  const statusCategory = String(
+    pickDbField(cache, wip, "statusCategory", "statusCategory", overrides) ?? ""
+  );
+  const isDoneRaw = pickDbField(cache, wip, "isDone", "isDone", overrides);
+
+  return {
+    issueType        : String(pickDbField(cache, wip, "issueType", "issueType", overrides) ?? "—")
+  , summary          : String(pickDbField(cache, wip, "summary", "summary", overrides) ?? "")
+  , status           : statusName
+  , statusCategory
+  , tier             : String(pickDbField(cache, wip, "tier", "tier", overrides) ?? "")
+  , isStoryLike      : Boolean(pickDbField(cache, wip, "isStoryLike", "isStoryLike", overrides))
+  , isDone           : typeof isDoneRaw === "boolean"
+      ? isDoneRaw
+      : isJiraStatusDone(statusName, statusCategory)
+  , depth            : Number(pickDbField(cache, wip, "depth", "depth", overrides) ?? 0)
+  , hasChildren      : Boolean(pickDbField(cache, wip, "hasChildren", "hasChildren", overrides))
+  , devOrder         : /** @type {string | null} */ (pickDbField(cache, wip, "devOrder", "devOrder", overrides) ?? null)
+  , devSprint        : /** @type {number | null} */ (
+      pickDbField(cache, wip, "devSprint", "devSprint", overrides) ?? null
+    )
+  , devSprintName    : /** @type {string | null} */ (
+      pickDbField(cache, wip, "devSprintName", "devSprintName", overrides) ?? null
+    )
+  , devSort          : /** @type {number | null} */ (
+      pickDbField(cache, wip, "devSort", "devSort", overrides) ?? null
+    )
+  , isSprint6Obsolete: Boolean(
+      pickDbField(cache, wip, "isSprint6Obsolete", "isSprint6Obsolete", overrides)
+    )
+  , relatedKeys      : /** @type {string | null} */ (
+      pickDbField(cache, wip, "relatedKeys", "relatedKeys", overrides) ?? null
+    )
+  , syncedAt         : /** @type {Date | null} */ (
+      pickDbField(cache, wip, "syncedAt", "syncedAt", overrides) ?? null
+    )
+  , wipFieldOverrides: [...overrides]
+  };
+}
+
+/**
+ * @param {Array<{
+ *   jiraKey: string
+ *   issueType: string
+ *   summary: string
+ *   status: string
+ *   statusCategory?: string | null
+ *   isDone?: boolean
+ * }>} cacheSubtasks
+ * @param {Array<{
+ *   jiraKey: string
+ *   issueType: string
+ *   summary: string
+ *   status: string
+ *   statusCategory?: string | null
+ *   isDone?: boolean
+ * }>} wipSubtasks
+ */
+function mergeDbSubtasks(cacheSubtasks, wipSubtasks) {
+  const wipMap   = new Map(wipSubtasks.map((row) => [row.jiraKey, row]));
+  const cacheMap = new Map(cacheSubtasks.map((row) => [row.jiraKey, row]));
+  const keys     = [...new Set([...wipMap.keys(), ...cacheMap.keys()])].sort();
+
+  return keys.map((key) => {
+    const cache = cacheMap.get(key);
+    const wip   = wipMap.get(key);
+    const src   = wip ?? cache;
+
+    if (!src) {
+      return null;
+    }
+
+    /** @type {string[]} */
+    const wipOverrides = [];
+
+    if (wip && cache) {
+      if (dbValuesDiffer(cache.summary, wip.summary)) {
+        wipOverrides.push("summary");
+      }
+
+      if (dbValuesDiffer(cache.status, wip.status)) {
+        wipOverrides.push("status");
+      }
+
+      if (dbValuesDiffer(cache.issueType, wip.issueType)) {
+        wipOverrides.push("issueType");
+      }
+
+      const cacheDone = cache.isDone ?? isJiraStatusDone(cache.status, cache.statusCategory ?? "");
+      const wipDone   = wip.isDone ?? isJiraStatusDone(wip.status, wip.statusCategory ?? "");
+
+      if (dbValuesDiffer(cacheDone, wipDone)) {
+        wipOverrides.push("done");
+      }
+    } else if (wip) {
+      wipOverrides.push("summary", "status", "issueType", "done");
+    }
+
+    const useWip = Boolean(wip);
+    const row    = useWip ? wip : cache;
+    const status = row?.status ?? "—";
+    const cat    = row?.statusCategory ?? "";
+
+    return {
+      key
+    , summary     : row?.summary ?? ""
+    , status
+    , done        : row?.isDone ?? isJiraStatusDone(status, cat)
+    , issueType   : row?.issueType ?? "—"
+    , wipOverrides
+    };
+  }).filter((row) => row != null);
+}
+
+/**
  * @param {string} text
  * @returns {string}
  */
@@ -857,6 +1079,37 @@ export function veveMarkdownToHtml(markdown) {
 }
 
 /**
+ * Description Jira live — solo campi description + renderedFields.
+ *
+ * @param {string} issueKey
+ * @returns {Promise<{ descriptionHtml: string, descriptionText: string }>}
+ */
+export async function fetchJiraIssueDescriptionOnly(issueKey) {
+  const key = normalizeIssueKey(issueKey);
+
+  if (!isValidIssueKey(key)) {
+    throw new Error(`Issue key non valida: ${issueKey}`);
+  }
+
+  const issue = /** @type {{
+    fields?: Record<string, unknown>
+    renderedFields?: Record<string, unknown>
+  }} */ (
+    await jiraLiveFetch(
+      `/rest/api/3/issue/${encodeURIComponent(key)}?fields=description&expand=${encodeURIComponent("renderedFields")}`
+    )
+  );
+
+  const fields          = issue.fields ?? {};
+  const descriptionHtml = enhanceVeveDescriptionHtml(
+    descriptionHtmlFromRenderedFields(issue.renderedFields)
+  );
+  const descriptionText = adfToPlainText(fields.description).trim();
+
+  return { descriptionHtml, descriptionText };
+}
+
+/**
  * Dettaglio issue da cache SQLite cruscotto (`jira_issue` + opz. `jira_issue_wip`).
  *
  * @param {string} issueKey
@@ -866,7 +1119,7 @@ export function veveMarkdownToHtml(markdown) {
  *     syncRunId: string
  *     syncedAt: string | null
  *     hasWip: boolean
- *     descriptionFrom: "wip" | "cache" | "none"
+ *     descriptionFrom: "wip" | "cache" | "jira-cache" | "jira-live" | "none"
  *   }
  * }>}
  */
@@ -917,15 +1170,7 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   , orderBy: { jiraKey: "asc" }
   });
 
-  const subtaskSource = wipSubtasks.length > 0 ? wipSubtasks : cacheSubtasks;
-
-  const subtasks = subtaskSource.map((sub) => ({
-    key      : sub.jiraKey
-  , summary  : sub.summary
-  , status   : sub.status
-  , done     : sub.isDone ?? isJiraStatusDone(sub.status, sub.statusCategory ?? "")
-  , issueType: sub.issueType
-  }));
+  const subtasks = mergeDbSubtasks(cacheSubtasks, wipSubtasks);
 
   const parentRow = row.parentJiraKey
     ? await db.jiraIssue.findFirst({
@@ -933,22 +1178,89 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
       })
     : null;
 
-  const issueRaw  = parseDbRawFields(row.rawFields);
-  const wipRaw    = parseDbRawFields(wipRow?.rawFields);
-  const veveMd    = typeof wipRaw.veveDescription === "string" && wipRaw.veveDescription.trim()
+  const issueRaw     = parseDbRawFields(row.rawFields);
+  const wipRaw       = parseDbRawFields(wipRow?.rawFields);
+  const hadWipVeve       = typeof wipRaw.veveDescription === "string" && Boolean(wipRaw.veveDescription.trim());
+  const hadCacheVeve     = typeof issueRaw.veveDescription === "string" && Boolean(issueRaw.veveDescription.trim());
+  const hadCacheJiraDesc = typeof issueRaw.jiraDescription === "string" && Boolean(issueRaw.jiraDescription.trim());
+  let veveMd             = hadWipVeve
     ? wipRaw.veveDescription.trim()
-    : typeof issueRaw.veveDescription === "string" && issueRaw.veveDescription.trim()
+    : hadCacheVeve
       ? issueRaw.veveDescription.trim()
+      : hadCacheJiraDesc
+        ? issueRaw.jiraDescription.trim()
+        : "";
+
+  /** @type {{ descriptionHtml: string, descriptionText: string } | null} */
+  let liveDesc    = null;
+  let syncedToWip = false;
+
+  if (!veveMd) {
+    try {
+      liveDesc = await fetchJiraIssueDescriptionOnly(key);
+      const snap = liveDesc.descriptionText.trim();
+
+      if (snap || liveDesc.descriptionHtml) {
+        if (wipRow && snap) {
+          await db.jiraIssueWip.update({
+            where: { jiraKey: key }
+          , data : {
+              rawFields: JSON.stringify({
+                ...wipRaw
+              , veveDescription         : snap
+              , jiraDescriptionSyncedAt : new Date().toISOString()
+              })
+            }
+          });
+          syncedToWip = true;
+          veveMd      = snap;
+        } else if (snap) {
+          veveMd = snap;
+        }
+      }
+    } catch {
+      // Jira live non disponibile — description resta vuota
+    }
+  }
+
+  /** @type {"wip" | "cache" | "jira-cache" | "jira-live" | "none"} */
+  const descriptionFrom = !veveMd && !liveDesc?.descriptionHtml
+    ? "none"
+    : hadWipVeve || syncedToWip
+      ? "wip"
+      : hadCacheVeve
+        ? "cache"
+        : hadCacheJiraDesc
+          ? "jira-cache"
+          : "jira-live";
+
+  const merged = mergeJiraIssueCacheWithWip(row, wipRow ?? undefined);
+
+  /** @type {Set<string>} */
+  const wipFieldOverrideSet = new Set(wipRow ? merged.wipFieldOverrides : []);
+
+  if (descriptionFrom === "wip") {
+    wipFieldOverrideSet.add("description");
+  }
+
+  const mergedFields = {
+    ...merged
+  , wipFieldOverrides: [...wipFieldOverrideSet]
+  };
+
+  const descriptionText = veveMd || liveDesc?.descriptionText?.trim() || "";
+
+  let descriptionHtml = "";
+
+  if (hadWipVeve || hadCacheVeve || syncedToWip || hadCacheJiraDesc) {
+    descriptionHtml = veveMd
+      ? enhanceVeveDescriptionHtml(rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(veveMd)))
       : "";
-
-  const descriptionFrom = veveMd
-    ? (wipRaw.veveDescription ? "wip" : "cache")
-    : "none";
-
-  const descriptionText = veveMd;
-  const descriptionHtml = veveMd
-    ? enhanceVeveDescriptionHtml(rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(veveMd)))
-    : "";
+  } else if (liveDesc?.descriptionHtml) {
+    descriptionHtml = liveDesc.descriptionHtml;
+  } else if (veveMd) {
+    descriptionHtml = enhanceVeveDescriptionHtml(rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(veveMd)));
+  }
 
   const sprints = row.sprints.map(({ sprint }) => ({
     id   : sprint.id
@@ -959,31 +1271,41 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   /** @type {Array<{ type: string, direction: "inward" | "outward", key: string, summary: string, issueType: string }>} */
   const links = [];
 
-  for (const relatedKey of parseRelatedKeysJson(row.relatedKeys)) {
-    const linked = await db.jiraIssue.findFirst({
-      where: { jiraKey: relatedKey, syncRunId: syncRun.id }
-    });
+  const relatedKeys = parseRelatedKeysJson(mergedFields.relatedKeys ?? row.relatedKeys);
 
-    links.push({
-      type     : "Related"
-    , direction: "outward"
-    , key      : relatedKey
-    , summary  : linked?.summary ?? ""
-    , issueType: linked?.issueType ?? "—"
+  if (relatedKeys.length > 0) {
+    const linkedRows = await db.jiraIssue.findMany({
+      where: {
+        jiraKey   : { in: relatedKeys }
+      , syncRunId : syncRun.id
+      }
     });
+    const linkedByKey = new Map(linkedRows.map((linked) => [linked.jiraKey, linked]));
+
+    for (const relatedKey of relatedKeys) {
+      const linked = linkedByKey.get(relatedKey);
+
+      links.push({
+        type     : "Related"
+      , direction: "outward"
+      , key      : relatedKey
+      , summary  : linked?.summary ?? ""
+      , issueType: linked?.issueType ?? "—"
+      });
+    }
   }
 
-  const statusName     = wipRow?.status ?? row.status;
-  const statusCategory = wipRow?.statusCategory ?? row.statusCategory ?? "";
-  const wipAdvancement = await loadWipAdvancement(key);
+  const wipAdvancement = wipRow
+    ? buildWipAdvancementEntry(wipRow, wipSubtasks)
+    : null;
 
   return {
     key
-  , summary           : wipRow?.summary ?? row.summary
-  , status            : statusName
-  , statusCategory
-  , done              : wipRow?.isDone ?? row.isDone ?? isJiraStatusDone(statusName, statusCategory)
-  , issueType         : wipRow?.issueType ?? row.issueType
+  , summary           : mergedFields.summary
+  , status            : mergedFields.status
+  , statusCategory    : mergedFields.statusCategory
+  , done              : mergedFields.isDone
+  , issueType         : mergedFields.issueType
   , parentKey         : row.parentJiraKey ?? null
   , parentSummary     : parentRow?.summary ?? null
   , labels            : []
@@ -1000,11 +1322,25 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   , browseUrl         : `${JIRA_BROWSE_BASE}/${encodeURIComponent(key)}`
   , projectKey        : getProjectConfig().PRJ_JIRA_PREFIX
   , viewSource        : "db"
+  , wipFieldOverrides : mergedFields.wipFieldOverrides
+  , dbFields          : {
+      tier             : mergedFields.tier
+    , isStoryLike      : mergedFields.isStoryLike
+    , depth            : mergedFields.depth
+    , hasChildren      : mergedFields.hasChildren
+    , devOrder         : mergedFields.devOrder
+    , devSprint        : mergedFields.devSprint
+    , devSprintName    : mergedFields.devSprintName
+    , devSort          : mergedFields.devSort
+    , isSprint6Obsolete: mergedFields.isSprint6Obsolete
+    , wipSyncedAt      : mergedFields.syncedAt?.toISOString() ?? null
+    }
   , dbMeta            : {
       syncRunId      : syncRun.id
     , syncedAt       : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()
     , hasWip         : Boolean(wipRow)
     , descriptionFrom
+    , subtasksFromWip: wipSubtasks.length > 0
     }
   , wip               : wipAdvancement ?? null
   , wipAdvancement

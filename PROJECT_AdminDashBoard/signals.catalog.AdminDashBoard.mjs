@@ -99,4 +99,15 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-154"
+  , label : "bACKLOG + iSSUE vIEW"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+      , "admin.portal.testscript"
+    ]
+  }
+
 ];

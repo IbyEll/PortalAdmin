@@ -5,136 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
     <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
       <h1>ADMIN-Veve</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.mdc</code> ·
-        <span class="tag tag--always">alwaysApply: true</span> ·
-        Aggiornato 2026-06-22
+        <span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--veve">veve</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Grooming backlog: allinea description Jira (parent e subtask) allo stato reale del repository.
-      </p>
-      <div class="revision-banner">
-        <strong>Revisione 2026-06-22:</strong> veve è anche <strong>step 3 obbligatorio</strong> di
-        <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> su <code>procedi</code> / <code>gogo</code>.
-      </div>
+      <p class="lead">Veve grooming {KEY} — leggi Jira, analizza repo, aggiorna story/subtask; anche step 3 di ADMIN-Workflow</p>
     </header>
 
-    <section>
-      <h2>Trigger</h2>
-      <div class="obsolete-block">
-        <div class="obsolete-label">Prima</div>
-        <p class="obsolete">Solo comando esplicito <code>veve ADMIN-xxx</code> — separato dal workflow implementazione.</p>
-      </div>
-      <div class="revision-block">
-        <div class="revision-label">Adesso</div>
-        <table>
-          <thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead>
-          <tbody>
-            <tr><td><code>veve {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
-            <tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Step 3</strong> workflow — silenzioso</td></tr>
-            <tr><td><code>chiudi</code></td><td>Non esegue veve</td></tr>
-          </tbody>
-        </table>
-        <p><code>{KEY}</code> = qualsiasi ticket del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
-      </div>
-    </section>
-
-    <section>
-      <h2>Sequenza veve (4 sotto-step)</h2>
-      <table>
-        <thead><tr><th>Step veve</th><th>Regola</th><th>Template / tool</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td><a href="ADMIN-Veve-LeggiJira.html">Leggi Jira</a></td><td>MCP <code>user-atlassian</code></td></tr>
-          <tr><td>2</td><td><a href="ADMIN-Veve-AnalizzaRepo.html">Analizza repo</a></td><td><a href="ADMIN-AnalizzaRepo.html">ADMIN-AnalizzaRepo</a></td></tr>
-          <tr><td>3</td><td><a href="ADMIN-Veve-AggiornaStory.html">Aggiorna Story</a></td><td><code>veve-story-parent.md</code></td></tr>
-          <tr><td>4</td><td><a href="ADMIN-Veve-AggiornaSubtask.html">Aggiorna Subtask</a></td><td><code>veve-subtask.md</code></td></tr>
-        </tbody>
-      </table>
-      <p>In workflow questi sono i sotto-step <strong>3.1–3.4</strong> di ADMIN-Workflow.</p>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li><strong>Leggi Jira</strong> — parent, subtask, orphan, key invalide (read-only).</li>
-        <li><strong>Analizza repo</strong> — gap analysis; Stato repo + Subtask vs repo.</li>
-        <li><strong>Aggiorna story</strong> — description parent allineata al repo.</li>
-        <li><strong>Aggiorna subtask</strong> — description per ogni subtask.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Variante DB</h2>
-      <p>Per workflow con cache cruscotto e coda <code>jira_issue_wip</code>:
-      <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a> ·
-      <code>veve db {KEY}</code> ·
-      step 3 di <a href="ADMIN-Workflow database.html">ADMIN-Workflow database</a>.</p>
-    </section>
-
-    <section>
-      <h2>Veve MCP vs Veve DB</h2>
-      <table>
-        <thead><tr><th></th><th><code>veve {KEY}</code> MCP</th><th>Step 3 MCP workflow</th><th><code>veve db {KEY}</code></th></tr></thead>
-        <tbody>
-          <tr><td>Sequenza</td><td>1→4 MCP</td><td>3.1→3.4 silenzioso</td><td>1→4 DB</td></tr>
-          <tr><td>Scrittura</td><td>Jira live</td><td>Jira live</td><td><code>jira_issue_wip</code></td></tr>
-          <tr><td>Chat standalone</td><td>Libera</td><td>—</td><td>Libera</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Veve standalone vs workflow step 3 (MCP)</h2>
-      <table>
-        <thead><tr><th></th><th><code>veve {KEY}</code></th><th>Step 3 in procedi/gogo</th></tr></thead>
-        <tbody>
-          <tr><td>Sequenza</td><td>Identica 1→4</td><td>Identica 3.1→3.4</td></tr>
-          <tr><td>Chat</td><td>Riepilogo libero</td><td><a href="ADMIN-Silence.html">Silenziosa</a></td></tr>
-          <tr><td>Jira</td><td>MCP diretto</td><td>MCP diretto</td></tr>
-          <tr><td>Git / codice</td><td>Vietato</td><td>Vietato</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Diagramma (MCP)</h2>
-      <div class="diagram">
-        <pre class="mermaid">
-flowchart TB
-  subgraph standalone["veve {KEY} standalone"]
-    S1["1–4 sequenza veve"] --> S2["Chat riepilogo"]
-  end
-  subgraph wf["procedi / gogo"]
-    W1["2 Pre-flight"] --> W2["3 Veve 1–4"]
-    W2 --> W3["4 Step 0 START"]
-  end
-  V["ADMIN-Veve.mdc"] --> standalone
-  V --> wf
-        </pre>
-      </div>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden">Branch, commit, modifiche codice</li>
-        <li class="forbidden">Transizioni Fatto (salvo richiesta esplicita)</li>
-        <li class="forbidden">Task «Jira Auto» al posto di MCP in veve</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>Veve — <code>veve {KEY}</code> e workflow step 3</h2>
+<p>Sequenza: <strong>Leggi Jira</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna Story</strong> → <strong>Aggiorna Subtask</strong>.</p>
+<table><thead><tr><th>Step veve</th><th>Regola</th></tr></thead><tbody><tr><td>1</td><td><code>ADMIN-Veve-LeggiJira.mdc</code></td></tr>
+<tr><td>2</td><td><code>ADMIN-AnalizzaRepo.mdc</code></td></tr>
+<tr><td>3</td><td><code>ADMIN-Veve-AggiornaStory.mdc</code> · <code>.cursor/templates/veve/veve-story-parent.md</code></td></tr>
+<tr><td>4</td><td><code>ADMIN-Veve-AggiornaSubtask.mdc</code> · <code>.cursor/templates/veve/veve-subtask.md</code></td></tr></tbody></table>
+<h3>Trigger</h3>
+<table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
+<tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Step 3</strong> di <code>ADMIN-Workflow.mdc</code> — silenzioso (<code>ADMIN-Silence.mdc</code>)</td></tr>
+<tr><td><code>chiudi</code></td><td><strong>Non</strong> esegue veve</td></tr></tbody></table>
+<p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code> del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
+<p>Variante <strong>DB</strong> (cache + WIP): <code>ADMIN-Veve.db.mdc</code> · <code>veve db {KEY}</code> · step 3 di <code>ADMIN-Workflow database.mdc</code>.</p>
+<p><strong>MCP veve:</strong> <code>CallMcpTool</code> <code>user-atlassian</code> — <strong>non</strong> Task Jira Auto.</p>
+<h3>Runtime programmatico (server / CI)</h3>
+<p>Stessa sequenza 1→4 di questa regola, <strong>senza</strong> agente Cursor né MCP — per script, CI e pagina Avanzamento.</p>
+<table><thead><tr><th>Contesto</th><th>Entrypoint</th></tr></thead><tbody><tr><td>Jira REST</td><td><code>admin.portal.JiraCORE/jiraCORE.jira.live.mjs</code> (non <code>CallMcpTool</code>)</td></tr></tbody></table>
+<p><strong>Vietato:</strong> branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).</p>
+    </article>
 
     <footer>
-      Variante DB: <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a> ·
-      Workflow: <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> step 3
+      Generato da <code>.cursor/rules/ADMIN-Veve.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
-  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
 </body>
 </html>

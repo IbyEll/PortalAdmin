@@ -1,0 +1,114 @@
+/* Toolbar condivisa — doc.cursor.rule */
+
+.cursor-rules-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg, #0f1419) 92%, transparent);
+  border-bottom: 1px solid var(--border, #2d3a4f);
+  backdrop-filter: blur(8px);
+}
+
+.cursor-rules-chrome-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.55rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.cursor-rules-chrome-brand {
+  font-weight: 650;
+  color: var(--turquoise, #2ee8d6);
+  text-decoration: none;
+}
+
+.cursor-rules-chrome-brand:hover {
+  text-decoration: underline;
+}
+
+.cursor-rules-chrome-link {
+  color: var(--accent, #3d9cf5);
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.cursor-rules-chrome-link:hover {
+  text-decoration: underline;
+}
+
+.cursor-rules-chrome-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #2d3a4f);
+  background: var(--surface-2, #152030);
+  color: var(--turquoise, #2ee8d6);
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.cursor-rules-chrome-btn:hover {
+  border-color: var(--turquoise, #2ee8d6);
+}
+
+.cursor-rules-chrome-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cursor-rules-chrome-status {
+  font-size: 0.82rem;
+  max-width: 22rem;
+}
+
+.cursor-rules-chrome-status.is-ok {
+  color: var(--pass, #34d399);
+}
+
+.cursor-rules-chrome-status.is-err {
+  color: var(--fail, #f87171);
+}
+
+.cursor-rules-chrome-mdc {
+  margin-left: auto;
+  color: var(--muted, #8b9cb3);
+}
+
+.cursor-rules-chrome-select-wrap {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  max-width: 28rem;
+}
+
+.cursor-rules-chrome-select {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #2d3a4f);
+  background: var(--surface, #1a2332);
+  color: var(--text, #e7ecf3);
+  font-size: 0.88rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .cursor-rules-chrome-mdc {
+    margin-left: 0;
+    width: 100%;
+  }
+}

@@ -198,6 +198,24 @@ footer {
   font-size: 0.85rem;
 }
 
+.mdc-body {
+  margin-top: 1.25rem;
+}
+
+.mdc-body h2 {
+  margin-top: 1.75rem;
+}
+
+.mdc-body h3 {
+  margin-top: 1.35rem;
+}
+
+.mdc-body hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
 /* Revisione documentazione — vecchio barrato / nuovo evidenziato */
 .revision-banner {
   background: rgba(61, 156, 245, 0.12);

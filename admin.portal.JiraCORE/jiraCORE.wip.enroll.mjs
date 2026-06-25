@@ -10,6 +10,7 @@ import { getProjectConfig } from "../lib/project.config.mjs";
 import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.wip.mjs";
+import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";
 import { normalizeIssueKey, parseWipRawFields } from "./jiraCORE.wip.db.mjs";
 
 /**
@@ -31,6 +32,48 @@ async function findJiraIssueInLatestSync(db, jiraKey) {
   });
 
   return row ? { row, syncRun } : null;
+}
+
+/**
+ * Se WIP non ha veveDescription, copia testo description da Jira live in raw_fields.
+ *
+ * @param {import("@prisma/client").PrismaClient} db
+ * @param {string} jiraKey
+ */
+async function ensureWipVeveDescriptionFromJira(db, jiraKey) {
+  const wip = await db.jiraIssueWip.findUnique({ where: { jiraKey } });
+
+  if (!wip) {
+    return;
+  }
+
+  const raw = parseWipRawFields(wip.rawFields);
+
+  if (typeof raw.veveDescription === "string" && raw.veveDescription.trim()) {
+    return;
+  }
+
+  try {
+    const live = await fetchJiraIssueDescriptionOnly(jiraKey);
+    const snap = live.descriptionText.trim();
+
+    if (!snap) {
+      return;
+    }
+
+    await db.jiraIssueWip.update({
+      where: { jiraKey }
+    , data : {
+        rawFields: JSON.stringify({
+          ...raw
+        , veveDescription         : snap
+        , jiraDescriptionSyncedAt : new Date().toISOString()
+        })
+      }
+    });
+  } catch {
+    // Jira non disponibile — enroll resta valido senza description
+  }
 }
 
 /**
@@ -178,6 +221,8 @@ export async function enrollIssueInWip(issueKey) {
       });
     }
   }
+
+  await ensureWipVeveDescriptionFromJira(db, key);
 
   return {
     key

@@ -344,7 +344,7 @@ function navigateIssueTab(issueRef) {
     ? `${prefix}-${issueRef}`
     : String(issueRef).trim().toUpperCase();
 
-  iframe.src = `/issue.html?key=${encodeURIComponent(key)}`;
+  iframe.src = `/issue.html?key=${encodeURIComponent(key)}&source=db`;
 }
 
 // --- tab Process — console log stack dev e dialogo conferma ---
@@ -551,6 +551,22 @@ function classifyProcessLogLine(text) {
 
       return [...tabs];
     }
+  }
+
+  if (/cruscotto\.process\.start\.all\.services/i.test(text)) {
+    if (processConsoleKnownServiceIds.has("dashboard")) {
+      tabs.add("dashboard");
+    }
+
+    return [...tabs];
+  }
+
+  if (/cruscotto\.process\.start\.api\.documentation|serve-api-documentation/i.test(text)) {
+    if (processConsoleKnownServiceIds.has("api-documentation")) {
+      tabs.add("api-documentation");
+    }
+
+    return [...tabs];
   }
 
   const prefixMatch = trimmed.match(/^\[(turbo-dev)\]/);
@@ -5654,6 +5670,10 @@ async function hydrateProcessStack(root) {
   function isStackCompleteService(svc) {
     const id = String(svc.id ?? "");
 
+    if (PORTAL_MANAGED_SERVICE_IDS.has(id)) {
+      return false;
+    }
+
     return String(svc.product ?? "") === PRODUCT_REPO_NAME
       && id !== "friendbot"
       && id !== "database";
@@ -5733,8 +5753,8 @@ async function hydrateProcessStack(root) {
         ${renderProcessBlockCell(PROCESS_BLOCK_STACK, rowSpan)}
         <td>${escapeHtml(PRODUCT_REPO_NAME)}</td>
         <td>Stack product<span class="process-svc-suffix"> — AVVIA / KILL</span></td>
-        <td class="process-service-desc muted">Servizi: ${escapeHtml(stackIds)} — <code>cruscotto.process.start.all.services.mjs</code></td>
-        <td><code class="process-service-path">cruscotto.frontend/cruscotto.process.start.all.services.mjs</code></td>
+        <td class="process-service-desc muted">Servizi: ${escapeHtml(stackIds)} — avvio singolo per servizio PortalAdmin</td>
+        <td><code class="process-service-path">${escapeHtml(stackIds)}</code></td>
         <td>—</td>
         <td><code>—</code></td>
         <td class="muted">—</td>

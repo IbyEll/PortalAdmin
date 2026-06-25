@@ -7,91 +7,39 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice</a> · <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>Veve DB — Leggi Jira (cache)</h1>
+      <h1>ADMIN-Veve.db-LeggiJira</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.db-LeggiJira.mdc</code> ·
-        <span class="tag tag--db">veve db step 1 / workflow 3.1</span>
+        <span class="tag tag--db">database</span> ·
+        Aggiornato 2026-06-25 07:45
       </p>
-      <p class="lead">
-        Legge parent e subtask dall'ultimo sync success in <code>jira_issue</code> — senza MCP.
-      </p>
+      <p class="lead">Veve db step 1 — leggi parent e subtask da jira_issue (cache cruscotto)</p>
     </header>
 
-    <section>
-      <h2>Trigger</h2>
-      <ul>
-        <li><code>leggi jira db {KEY}</code></li>
-        <li><code>veve db {KEY}</code> (step 1)</li>
-        <li>Workflow database step 3.1</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Fonte dati</h2>
-      <table>
-        <thead><tr><th>Elemento</th><th>Dettaglio</th></tr></thead>
-        <tbody>
-          <tr><td>DB</td><td><code>openCruscottoDb()</code> / <code>loadJiraBacklogFromDb()</code></td></tr>
-          <tr><td>Tabella</td><td><code>jira_issue</code> — ultimo <code>sync_run</code> con <code>status=success</code></td></tr>
-          <tr><td>Modulo</td><td><code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li><strong>Verifica DB</strong> — <code>cruscottoDbFileExists()</code>; stop se assente.</li>
-        <li><strong>Carica backlog</strong> — <code>loadJiraBacklogFromDb()</code>.</li>
-        <li><strong>Trova parent</strong> — riga <code>{KEY}</code> in <code>issues</code>.</li>
-        <li><strong>Elenca subtask</strong> — <code>parentJiraKey === {KEY}</code> o <code>relatedKeys</code>.</li>
-        <li><strong>Anomalie</strong> — orphan, key invalide; conserva <code>syncRunId</code> per step 3–4.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Output atteso</h2>
-      <table>
-        <thead><tr><th>Elemento</th><th>Contenuto</th></tr></thead>
-        <tbody>
-          <tr><td>Parent</td><td>key, tipo, stato, summary</td></tr>
-          <tr><td>Subtask</td><td>Tabella completa</td></tr>
-          <tr><td>Orphan / key invalide</td><td>Come veve MCP</td></tr>
-          <tr><td><code>syncRunId</code></td><td>Per upsert WIP negli step 3–4</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Fallback</h2>
-      <p>Key assente in <code>jira_issue</code> → stop — eseguire <code>npm run db:sync</code> o usare
-      <a href="ADMIN-Veve-LeggiJira.html">veve MCP Leggi Jira</a>.</p>
-    </section>
-
-    <section>
-      <h2>Confronto MCP</h2>
-      <table>
-        <thead><tr><th></th><th>Veve MCP</th><th>Veve DB</th></tr></thead>
-        <tbody>
-          <tr><td>Fonte</td><td><code>CallMcpTool</code> Atlassian</td><td>SQLite cache</td></tr>
-          <tr><td>Freschezza</td><td>Live Jira</td><td>Ultimo sync success</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden">MCP Jira, <code>editJiraIssue</code></li>
-        <li class="forbidden">Branch, commit</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>Veve DB — Leggi Jira (cache)</h2>
+<h3>Trigger</h3>
+<p><code>leggi jira db {KEY}</code> · <code>veve db {KEY}</code> · step 3.1 workflow database</p>
+<h3>Fonte dati</h3>
+<table><thead><tr><th>Elemento</th><th>Dettaglio</th></tr></thead><tbody><tr><td>DB</td><td>SQLite cruscotto — <code>openCruscottoDb()</code> / <code>loadJiraBacklogFromDb()</code></td></tr>
+<tr><td>Tabella</td><td><code>jira_issue</code> dell'ultimo <code>sync_run</code> con <code>status=success</code></td></tr>
+<tr><td>Modulo</td><td><code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code></td></tr></tbody></table>
+<h3>Applicazione</h3>
+<ol><li>Verifica <code>cruscottoDbFileExists()</code> — stop se DB assente.</li><li>Carica backlog da DB (<code>loadJiraBacklogFromDb()</code>).</li><li>Trova riga parent <code>{KEY}</code> in <code>issues</code>.</li><li>Elenca subtask: <code>parentJiraKey === {KEY}</code> (o gerarchia <code>relatedKeys</code> se presente).</li><li>Segnala orphan / key invalide rispetto al parent.</li></ol>
+<h3>Output</h3>
+<p>Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide · <code>syncRunId</code> per step 3–4.</p>
+<h3>Fallback</h3>
+<p>Key assente in <code>jira_issue</code> → <strong>stop</strong> — suggerire <code>npm run db:sync</code> o veve MCP (<code>ADMIN-Veve-LeggiJira.mdc</code>).</p>
+<p><strong>Vietato:</strong> MCP Jira, <code>editJiraIssue</code>, branch, commit.</p>
+    </article>
 
     <footer>
-      Prossimo: <a href="ADMIN-Veve.db-AnalizzaRepo.html">Analizza repo</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve.db-LeggiJira.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

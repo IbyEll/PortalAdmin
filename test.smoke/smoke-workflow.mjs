@@ -36,12 +36,13 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { resolveTicketBranch } from "../lib/repo.implementation.signals.catalog.mjs";
+import { checkNoOpenPullRequests } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -51,6 +52,7 @@ const RULES = [
 , ".cursor/rules/ADMIN-AnalizzaRepo.mdc"
 , ".cursor/skills/jlo-jira-auto/SKILL.md"
 , ".cursor/skills/jlo-analizza-repo/SKILL.md"
+, "admin.portal/portal.cursor.agent.workflow.mjs"
 ];
 
 for (const rel of RULES) {
@@ -58,6 +60,18 @@ for (const rel of RULES) {
     console.error(`FAIL: missing ${rel}`);
     process.exit(1);
   }
+}
+
+const workflowRule = readFileSync(join(ROOT, ".cursor/rules/ADMIN-Workflow.mdc"), "utf8");
+
+if (!workflowRule.includes("Gate PR aperte")) {
+  console.error("FAIL: ADMIN-Workflow.mdc missing Gate PR aperte (step 2.3)");
+  process.exit(1);
+}
+
+if (typeof checkNoOpenPullRequests !== "function") {
+  console.error("FAIL: checkNoOpenPullRequests not exported");
+  process.exit(1);
 }
 
 const branch93 = resolveTicketBranch("ADMIN-93");

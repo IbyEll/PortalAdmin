@@ -651,11 +651,24 @@ export async function startRepoServices(options = {}) {
   , productStackComplete = false
   } = options;
 
+  /** Stack PortalAdmin (home, api-documentation) — spawn singoli, non start.all.services Nest. */
+  let portalStackOnly = false;
+
   if (productStackComplete) {
-    extras              = [...PRODUCT_STACK_COMPLETE_EXTRAS];
-    withPortal          = false;
-    allExtras           = false;
-    productOnly         = false;
+    const stackIds            = getDiscoveryConfig().stackStartServiceIds ?? [];
+    const stackUsesNestStartAll = stackIds.some((id) => PRODUCT_CORE_SERVICE_IDS.includes(id));
+
+    if (stackUsesNestStartAll || stackIds.length === 0) {
+      extras     = [...PRODUCT_STACK_COMPLETE_EXTRAS];
+      withPortal = false;
+    } else {
+      portalStackOnly = true;
+      extras          = [...stackIds];
+      withPortal      = false;
+    }
+
+    allExtras   = false;
+    productOnly = false;
   } else if (productOnly) {
     extras     = [...PRODUCT_REPO_EXTRAS];
     withPortal = false;
@@ -668,12 +681,15 @@ export async function startRepoServices(options = {}) {
   , withPortal : allExtras || withPortal
   });
 
-  const needsProductStack = productStackComplete
+  const needsProductStack = !portalStackOnly && (
+    productStackComplete
     || productOnly
     || allExtras
-    || (!allExtras && !withPortal && extras.length === 0);
+    || (!allExtras && !withPortal && extras.length === 0)
+  );
 
-  const needsExtraServices = allExtras
+  const needsExtraServices = portalStackOnly
+    || allExtras
     || withPortal
     || extras.length > 0;
 

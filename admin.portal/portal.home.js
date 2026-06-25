@@ -47,9 +47,10 @@ const inputKillPid   = document.getElementById("node-kill-pid");
 const consolePanel   = document.getElementById("console-panel");
 const pageTitle      = document.getElementById("portal-page-title");
 const viewProgetti   = document.getElementById("view-progetti");
-const viewDocumenti  = document.getElementById("view-documenti");
+const viewDocumenti   = document.getElementById("view-documenti");
+const viewCursorRules = document.getElementById("view-cursor-rules");
 
-const PORTAL_VIEWS = ["progetti", "documenti"];
+const PORTAL_VIEWS        = ["progetti", "documenti", "cursor-rules"];
 const DEFAULT_PORTAL_VIEW = "progetti";
 
 const CONSOLE_IDLE = "In attesa — scegli un progetto e premi Istanzia.";
@@ -841,7 +842,7 @@ load().catch((err) => {
 detectServerMode().catch(() => {});
 
 /**
- * @param {"progetti" | "documenti"} view
+ * @param {"progetti" | "documenti" | "cursor-rules"} view
  */
 function setPortalView(view) {
   const id = PORTAL_VIEWS.includes(view) ? view : DEFAULT_PORTAL_VIEW;
@@ -853,11 +854,16 @@ function setPortalView(view) {
 
   viewProgetti?.classList.toggle("hidden", id !== "progetti");
   viewDocumenti?.classList.toggle("hidden", id !== "documenti");
+  viewCursorRules?.classList.toggle("hidden", id !== "cursor-rules");
 
   if (pageTitle) {
-    pageTitle.textContent = id === "documenti"
-      ? "Documenti"
-      : "Selettore progetto";
+    if (id === "documenti") {
+      pageTitle.textContent = "Documenti";
+    } else if (id === "cursor-rules") {
+      pageTitle.textContent = "ADMIN Cursor Rule";
+    } else {
+      pageTitle.textContent = "Selettore progetto";
+    }
   }
 
   if (location.hash.replace("#", "") !== id) {
@@ -868,16 +874,16 @@ function setPortalView(view) {
 for (const btn of document.querySelectorAll("[data-portal-view]")) {
   btn.addEventListener("click", () => {
     const view = btn.getAttribute("data-portal-view") ?? DEFAULT_PORTAL_VIEW;
-    setPortalView(/** @type {"progetti" | "documenti"} */ (view));
+    setPortalView(/** @type {"progetti" | "documenti" | "cursor-rules"} */ (view));
   });
 }
 
 window.addEventListener("hashchange", () => {
   const hash = location.hash.replace("#", "");
-  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti"} */ (hash) : DEFAULT_PORTAL_VIEW);
+  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti" | "cursor-rules"} */ (hash) : DEFAULT_PORTAL_VIEW);
 });
 
 {
   const hash = location.hash.replace("#", "");
-  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti"} */ (hash) : DEFAULT_PORTAL_VIEW);
+  setPortalView(PORTAL_VIEWS.includes(hash) ? /** @type {"progetti" | "documenti" | "cursor-rules"} */ (hash) : DEFAULT_PORTAL_VIEW);
 }

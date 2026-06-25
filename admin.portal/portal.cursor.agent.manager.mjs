@@ -55,6 +55,7 @@ import {
 import {
   buildWorkflowEndBlock
 , buildWorkflowStartBlock
+, checkNoOpenPullRequests
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
 import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
@@ -314,6 +315,20 @@ export async function startCursorAgent(options) {
     return { started: false, error: "agent già in esecuzione" };
   }
 
+  const workflow = parseWorkflowPrompt(prompt);
+
+  if (workflow) {
+    const prGate = checkNoOpenPullRequests();
+
+    if (!prGate.ok) {
+      return {
+        started : false
+      , error   : prGate.error
+      , openPrs : prGate.openPrs
+      };
+    }
+  }
+
   const runtime = options.runtime === "cloud" || options.runtime === "local"
     ? options.runtime
     : getCursorDefaultRuntime();
@@ -356,8 +371,6 @@ export async function startCursorAgent(options) {
   state.runId      = null;
   state.workflowKey  = null;
   state.workflowKind = null;
-
-  const workflow = parseWorkflowPrompt(prompt);
 
   if (workflow) {
     state.workflowKey  = workflow.parentKey;

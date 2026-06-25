@@ -70,7 +70,7 @@ Aggiornamento `REPO_IMPLEMENTATION_SIGNALS` in chiusura parent — **solo** sul 
 | --- | --- |
 | File catalogo | `PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs` (overlay attivo) |
 | Script | `admin.portal.JiraCORE/jiraCORE.close.story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
-| Scrittura | Commit catalogo nel **repo workflow** se il file segnali vive lì; path da `PRJ_NAME` + implementazione `close-story` |
+| Scrittura | Commit catalogo nel **repo workflow** **prima** di `git push` branch; script `close-story` |
 
 Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PRJ_NAME`** e `PRJ_JIRA_PREFIX` dell’istanza corrente.
 
@@ -84,8 +84,8 @@ Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PR
 | --- | --- |
 | **`gogo {KEY}`** | FULL silent — START → subtask → ok chiudi automatico → END-A |
 | `procedi Story {KEY}` | Piano → implementazione → confirm |
-| `chiudi Story {KEY}` | Push + PR + catalogo + gap test + parent Jira → Fatto |
-| **`chiudi fast Story {KEY}`** | Push + PR + catalogo + parent Jira (no gap test) |
+| `chiudi Story {KEY}` | Catalogo + push branch + PR + gap test + parent Jira → Fatto |
+| **`chiudi fast Story {KEY}`** | Catalogo + push branch + PR + parent Jira (no gap test) |
 
 Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output correlate.
 
@@ -96,7 +96,7 @@ Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output c
 | Step | Fase | Regola |
 | --- | --- | --- |
 | 1 | Verifica branch | § sotto |
-| 2 | Pre-flight git | § sotto |
+| 2 | Pre-flight git | § sotto (+ gate PR aperte) |
 | 3 | **Veve** | `ADMIN-Veve.mdc` |
 | 4 | Step 0 — piano | Task Jira Auto + START |
 | 5 | Implementazione | subtask + commit + ok chiudi |
@@ -134,7 +134,24 @@ Nel **repo workflow** (`PRODUCT_REPO_PATH`):
 
 1. `git status --porcelain` — vuoto (no stash automatico agente)
 2. `git fetch origin` · `main` allineato a `origin/main`
-3. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}`
+3. **Nessuna PR aperta** sul repo workflow — vedi § sotto; se ≥1 → **Stop** (merge o chiudi prima di `gogo` / `procedi`)
+4. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}` (solo se nuova branch)
+
+### Gate PR aperte (obbligatorio, step 2.3)
+
+Nel **repo workflow** (`PRODUCT_REPO_PATH`), **sempre** prima di veve e Step 0:
+
+```bash
+gh pr list --state open --json number,title,headRefName,url
+```
+
+| Esito | Azione |
+| --- | --- |
+| Lista vuota | Prosegui |
+| ≥1 PR `open` (qualsiasi branch/ticket) | **Stop** — END parziale con elenco PR; merge o chiudi su GitHub |
+| `gh` assente o errore | **Stop** — non avviare gogo/procedi senza verifica |
+
+Runtime: `checkNoOpenPullRequests()` in `admin.portal/portal.cursor.agent.workflow.mjs` · API `GET /api/workflow/gogo-preflight` · gate su `POST /api/cursor/agent` se prompt `gogo`/`procedi`.
 
 ---
 

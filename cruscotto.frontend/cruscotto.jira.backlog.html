@@ -2577,7 +2577,7 @@
     }
 
     /**
-     * Step 8 PUSH — sync Jira da WIP + close-story via API cruscotto.
+     * Step 8 PUSH — sync Jira da WIP, poi close-story (catalogo → push branch → PR).
      *
      * @param {string} issueKey
      * @returns {Promise<{ ok: boolean, mode: "push", prUrl?: string | null, error?: string }>}

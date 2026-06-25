@@ -7,73 +7,36 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice regole</a> · <a href="ADMIN-Veve.html">ADMIN-Veve</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>ADMIN-Veve — Aggiorna Story</h1>
+      <h1>ADMIN-Veve-AggiornaStory</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve-AggiornaStory.mdc</code> ·
-        <span class="tag tag--veve">veve step 3</span>
+        <span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--veve">veve</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Aggiorna la description del ticket parent ADMIN-xxx allineandola allo stato repository
-        emerso dalla gap analysis.
-      </p>
+      <p class="lead">Veve step 3 — aggiorna description parent ADMIN-xxx</p>
     </header>
 
-    <section>
-      <h2>Trigger</h2>
-      <ul>
-        <li><code>aggiorna story ADMIN-xxx</code></li>
-        <li><code>veve ADMIN-xxx</code> (step 3, dopo Leggi Jira + Analizza repo)</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Prerequisiti</h2>
-      <ul>
-        <li>Output <a href="ADMIN-Veve-LeggiJira.html">Leggi Jira</a> (parent + subtask)</li>
-        <li>Output <a href="ADMIN-Veve-AnalizzaRepo.html">Analizza repo</a> (Stato repo, gap)</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li><strong>Apri template</strong> — <code>.cursor/templates/veve/veve-story-parent.md</code>.</li>
-        <li><strong>Compila placeholder</strong> — Obiettivo, Stato repo, AC/DoD (checkbox B poi A), ordine subtask
-          dai dati Jira + gap analysis.</li>
-        <li><strong>Verifica sezioni</strong> — formato canonico JLO-Veve-AggiornaStory per checkbox AC/DoD.</li>
-        <li><strong>editJiraIssue</strong> — aggiorna solo description del <strong>parent</strong>.</li>
-        <li><strong>Conferma in chat</strong> — parent aggiornato; passa a step 4 se in sequenza veve.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Campi description parent</h2>
-      <table>
-        <thead><tr><th>Sezione</th><th>Fonte dati</th></tr></thead>
-        <tbody>
-          <tr><td>Obiettivo</td><td>Summary + contesto Jira</td></tr>
-          <tr><td>Stato repo</td><td>Gap analysis step 2</td></tr>
-          <tr><td>AC / DoD</td><td>Allineati al repo; checkbox B poi A</td></tr>
-          <tr><td>Ordine subtask</td><td>Sequenza implementazione suggerita</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden">Modificare subtask (step 4)</li>
-        <li class="forbidden">Branch, commit</li>
-        <li class="forbidden">Transizione parent a Fatto</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>ADMIN Veve — Aggiorna Story</h2>
+<h3>Trigger</h3>
+<p><code>aggiorna story ADMIN-xxx</code> · dopo Leggi Jira + Analizza repo</p>
+<h3>Obiettivo</h3>
+<p><code>editJiraIssue</code> description parent: Obiettivo, Stato repo, AC/DoD, ordine subtask.</p>
+<h3>Template</h3>
+<p><code>.cursor/templates/veve/veve-story-parent.md</code> — compila placeholder da Leggi Jira + Analizza repo prima di <code>editJiraIssue</code>.</p>
+<p><strong>Stato repo:</strong> una sola tabella markdown; includere <strong>solo</strong> righe con esito ✅/⚠️/❌ — <strong>non</strong> inserire aree non contemplate (⬜, N/A, trattino).</p>
+<p>Sezioni e <strong>checkbox AC/DoD (B poi A)</strong>: vedi <code>JLO-Veve-AggiornaStory.mdc</code> (canonico).</p>
+<p><strong>Vietato:</strong> edit subtask, branch, commit, Fatto parent.</p>
+    </article>
 
     <footer>
-      Precedente: <a href="ADMIN-Veve-AnalizzaRepo.html">Analizza repo</a> ·
-      Successivo: <a href="ADMIN-Veve-AggiornaSubtask.html">Aggiorna Subtask</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve-AggiornaStory.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

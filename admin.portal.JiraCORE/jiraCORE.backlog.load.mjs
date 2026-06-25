@@ -81,6 +81,25 @@ function parseRelatedKeys(raw) {
 }
 
 /**
+ * @param {string | null | undefined} rawFields
+ * @returns {string | null}
+ */
+function jiraDescriptionFromRawFields(rawFields) {
+  if (!rawFields) {
+    return null;
+  }
+
+  try {
+    const parsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
+    const text = typeof parsed?.jiraDescription === "string" ? parsed.jiraDescription.trim() : "";
+
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @returns {Promise<import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").fetchJiraBacklog extends () => Promise<infer R> ? R : never> | null>}
  */
 export async function loadJiraBacklogFromDb() {
@@ -149,6 +168,7 @@ export async function loadJiraBacklogFromDb() {
   , devSort          : row.devSort ?? undefined
   , isSprint6Obsolete: row.isSprint6Obsolete
   , relatedKeys      : parseRelatedKeys(row.relatedKeys)
+  , jiraDescription  : jiraDescriptionFromRawFields(row.rawFields) ?? undefined
   , jiraSprints      : row.sprints.map(({ sprint }) => ({
       id   : sprint.id
     , name : sprint.name

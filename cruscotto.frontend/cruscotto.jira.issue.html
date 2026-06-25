@@ -29,8 +29,9 @@
       line-height: 1.5;
     }
     .issue-page {
-      max-width: 1080px;
-      margin: 0 auto;
+      width: 100%;
+      max-width: none;
+      margin: 0;
       padding: 1rem 1.25rem 2.5rem;
     }
     .issue-toolbar {
@@ -190,28 +191,65 @@
     }
     .issue-wip-advancement__grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-      gap: 0.45rem 0.85rem;
+      grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr) minmax(6.5rem, auto) minmax(0, 1fr);
+      gap: 0 0.65rem;
+      column-gap: 0.65rem;
       margin: 0;
     }
-    .issue-wip-advancement__grid dt {
+    .issue-wip-advancement__grid dt,
+    .issue-wip-advancement__grid dd {
       margin: 0;
+      padding: 0.32rem 0;
+      border-bottom: 1px solid rgba(45, 58, 79, 0.55);
+      font-size: 0.82rem;
+      align-self: center;
+    }
+    .issue-wip-advancement__grid dt {
       font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
     }
     .issue-wip-advancement__grid dd {
-      margin: 0.1rem 0 0;
-      font-size: 0.86rem;
       color: var(--text);
       word-break: break-word;
+      min-width: 0;
     }
     .issue-wip-advancement__grid dd a {
       color: var(--accent);
       text-decoration: none;
     }
     .issue-wip-advancement__grid dd a:hover { text-decoration: underline; }
+    .pr-state-pill {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .pr-state-pill.is-merged {
+      color: var(--ok);
+      border-color: rgba(72, 187, 120, 0.45);
+      background: rgba(72, 187, 120, 0.1);
+    }
+    .pr-state-pill.is-closed {
+      color: var(--muted);
+      border-color: rgba(139, 156, 179, 0.45);
+    }
+    .pr-state-pill.is-open {
+      color: var(--amber);
+      border-color: rgba(240, 180, 41, 0.45);
+      background: rgba(240, 180, 41, 0.08);
+    }
+    @media (max-width: 860px) {
+      .issue-wip-advancement__grid {
+        grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
+      }
+    }
     .issue-wip-advancement__checks {
       margin-top: 0.55rem;
       display: grid;
@@ -262,7 +300,7 @@
     }
     .issue-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 520px);
       gap: 1rem;
       align-items: start;
     }
@@ -439,27 +477,52 @@
       margin-bottom: 0.45rem;
     }
     .meta-list {
+      display: grid;
+      grid-template-columns: minmax(5.25rem, auto) minmax(0, 1fr) minmax(5.25rem, auto) minmax(0, 1fr);
+      gap: 0 0.65rem;
+      column-gap: 0.65rem;
       margin: 0;
       padding: 0;
-      list-style: none;
     }
-    .meta-list li {
-      display: grid;
-      grid-template-columns: 6.5rem minmax(0, 1fr);
-      gap: 0.5rem;
-      padding: 0.35rem 0;
-      border-bottom: 1px solid rgba(45, 58, 79, 0.55);
-      font-size: 0.88rem;
-    }
-    .meta-list li:last-child { border-bottom: none; }
-    .meta-list dt {
-      margin: 0;
-      color: var(--muted);
-      font-weight: 600;
-    }
+    .meta-list dt,
     .meta-list dd {
       margin: 0;
+      padding: 0.38rem 0;
+      border-bottom: 1px solid rgba(45, 58, 79, 0.55);
+      font-size: 0.86rem;
+      align-self: center;
+    }
+    .meta-list dt {
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .meta-list dd {
       word-break: break-word;
+      min-width: 0;
+    }
+    @media (max-width: 860px) {
+      .meta-list {
+        grid-template-columns: minmax(5.25rem, auto) minmax(0, 1fr);
+      }
+    }
+    .meta-list dt.is-wip-field,
+    .issue-panel__title.is-wip-field,
+    .issue-header h1.is-wip-field,
+    .issue-table th.is-wip-field {
+      color: var(--accent);
+    }
+    #issue-view.issue-wip-phase-awaiting-push .meta-list dt.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-panel__title.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-header h1.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-table th.is-wip-field {
+      color: var(--amber);
+    }
+    #issue-view.issue-wip-phase-published .meta-list dt.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-panel__title.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-header h1.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-table th.is-wip-field {
+      color: var(--ok);
     }
     .label-chip {
       display: inline-block;
@@ -562,7 +625,7 @@
       <div class="issue-layout">
         <div class="issue-main">
           <section class="issue-panel">
-            <h2 class="issue-panel__title">Description</h2>
+            <h2 class="issue-panel__title" id="issue-description-title">Description</h2>
             <div class="issue-panel__body issue-description" id="issue-description"></div>
           </section>
 
@@ -624,6 +687,7 @@
     const wipAcEl      = document.getElementById("issue-wip-ac");
     const wipDodEl     = document.getElementById("issue-wip-dod");
     const wipAdvancementEl = document.getElementById("issue-wip-advancement");
+    const descriptionTitleEl = document.getElementById("issue-description-title");
 
     /**
      * @returns {string}
@@ -734,6 +798,9 @@
      *   acSummary?: string | null
      *   dodSummary?: string | null
      *   prUrl?: string | null
+     *   prState?: string | null
+     *   prAppliedAt?: string | null
+     *   prPollComplete?: boolean
      *   gitPushed?: boolean
      *   jiraSynced?: boolean
      *   jiraSyncedAt?: string | null
@@ -773,6 +840,32 @@
         ? `<a href="${escHtml(advancement.prUrl)}" target="_blank" rel="noopener noreferrer">PR ↗</a>`
         : "—";
 
+      const prStateHtml = (() => {
+        const state = advancement.prState;
+
+        if (!state) {
+          return advancement.prUrl ? '<span class="pr-state-pill is-open">Aperta</span>' : "—";
+        }
+
+        if (state === "MERGED") {
+          return '<span class="pr-state-pill is-merged">Mergiata</span>';
+        }
+
+        if (state === "CLOSED") {
+          return '<span class="pr-state-pill is-closed">Chiusa</span>';
+        }
+
+        if (state === "OPEN") {
+          return '<span class="pr-state-pill is-open">Aperta</span>';
+        }
+
+        return escHtml(state);
+      })();
+
+      const prAppliedCell = advancement.prAppliedAt
+        ? escHtml(formatShortDate(advancement.prAppliedAt))
+        : "—";
+
       const subtasksCell = advancement.subtasksTotal > 0
         ? `${advancement.subtasksDone}/${advancement.subtasksTotal} Fatto`
         : "—";
@@ -788,6 +881,8 @@
           ? escHtml(formatShortDate(advancement.jiraSyncedAt))
           : boolHtml(false)}</dd>`
       , `<dt>PR</dt><dd>${prCell}</dd>`
+      , `<dt>PR stato</dt><dd>${prStateHtml}</dd>`
+      , `<dt>PR applicata</dt><dd>${prAppliedCell}</dd>`
       , `<dt>Commit</dt><dd>${advancement.commitHash
           ? `<code>${escHtml(advancement.commitHash.slice(0, 12))}</code>`
           : "—"}</dd>`
@@ -870,10 +965,14 @@
           ? new Date(issue.dbMeta.syncedAt).toLocaleString("it-IT")
           : "—";
         const descFrom = issue.dbMeta?.descriptionFrom === "wip"
-          ? "description veve WIP"
+          ? "description WIP (veve o sync Jira)"
           : issue.dbMeta?.descriptionFrom === "cache"
-            ? "description in raw_fields cache"
-            : "solo metadati (nessuna description in DB)";
+            ? "description veve in raw_fields cache"
+            : issue.dbMeta?.descriptionFrom === "jira-cache"
+              ? "description Jira in raw_fields (sync DB)"
+              : issue.dbMeta?.descriptionFrom === "jira-live"
+              ? "description Jira live (fallback)"
+              : "solo metadati (nessuna description in DB)";
         const wipNote  = issue.dbMeta?.hasWip ? " · riga WIP presente" : "";
 
         sourceBanner.className = "issue-source-banner is-db";
@@ -910,10 +1009,53 @@
     /**
      * @param {string} label
      * @param {string} valueHtml
+     * @param {string} [fieldKey]
+     * @param {string[]} [wipOverrides]
      * @returns {string}
      */
-    function metaRow(label, valueHtml) {
-      return `<dt>${label}</dt><dd>${valueHtml}</dd>`;
+    function metaRow(label, valueHtml, fieldKey, wipOverrides) {
+      const keys  = Array.isArray(fieldKey) ? fieldKey : (fieldKey ? [fieldKey] : []);
+      const isWip = keys.length > 0
+        && Array.isArray(wipOverrides)
+        && keys.some((key) => wipOverrides.includes(key));
+      const dtCls = isWip ? ' class="is-wip-field"' : "";
+
+      return `<dt${dtCls}>${label}</dt><dd>${valueHtml}</dd>`;
+    }
+
+    /**
+     * @param {{ wipFieldOverrides?: string[] }} issue
+     * @param {string} fieldKey
+     * @returns {boolean}
+     */
+    function isWipField(issue, fieldKey) {
+      return Array.isArray(issue.wipFieldOverrides) && issue.wipFieldOverrides.includes(fieldKey);
+    }
+
+    /**
+     * @param {{ wipAdvancement?: { workflowPhase?: string, inWip?: boolean } | null, wip?: { workflowPhase?: string, inWip?: boolean } | null, wipFieldOverrides?: string[] }} issue
+     */
+    function applyWipPhaseClass(issue) {
+      if (!viewEl) {
+        return;
+      }
+
+      viewEl.classList.remove(
+        "issue-wip-phase-default"
+      , "issue-wip-phase-awaiting-push"
+      , "issue-wip-phase-published"
+      );
+
+      const advancement = issue.wipAdvancement ?? issue.wip;
+      const phase       = advancement?.workflowPhase;
+
+      if (phase === "awaiting_push") {
+        viewEl.classList.add("issue-wip-phase-awaiting-push");
+      } else if (phase === "published") {
+        viewEl.classList.add("issue-wip-phase-published");
+      } else if (advancement?.inWip || (issue.wipFieldOverrides?.length ?? 0) > 0) {
+        viewEl.classList.add("issue-wip-phase-default");
+      }
     }
 
     /**
@@ -940,11 +1082,15 @@
     }
 
     /**
-     * @param {{ key: string, summary: string, status: string, done?: boolean, issueType: string }[]} subtasks
+     * @param {{ key: string, summary: string, status: string, done?: boolean, issueType: string, wipOverrides?: string[] }[]} subtasks
      * @returns {string}
      */
     function renderSubtasksTable(subtasks) {
       const doneCount = subtasks.filter((row) => row.done).length;
+      const anySummaryWip = subtasks.some((row) => row.wipOverrides?.includes("summary"));
+      const anyStatusWip  = subtasks.some((row) => row.wipOverrides?.includes("status"));
+      const summaryThCls  = anySummaryWip ? ' class="is-wip-field"' : "";
+      const statusThCls   = anyStatusWip ? ' class="is-wip-field"' : "";
 
       const rows = subtasks.map((row) => {
         const keyCell = document.createElement("span");
@@ -960,7 +1106,10 @@
 
       return [
         `<p class="subtask-progress">${doneCount} / ${subtasks.length} completati</p>`
-      , "<table class=\"issue-table\"><thead><tr><th>Key</th><th>Summary</th><th>Stato</th></tr></thead><tbody>"
+      , "<table class=\"issue-table\"><thead><tr><th>Key</th>"
+      , `<th${summaryThCls}>Summary</th>`
+      , `<th${statusThCls}>Stato</th>`
+      , "</tr></thead><tbody>"
       , rows
       , "</tbody></table>"
       ].join("");
@@ -972,6 +1121,8 @@
     function renderIssue(issue) {
       document.title = `${issue.key} — ${issue.summary}`;
 
+      applyWipPhaseClass(issue);
+
       keylineEl.replaceChildren();
       renderIssueKey(keylineEl, issue.key, issue.issueType);
 
@@ -981,6 +1132,11 @@
       keylineEl.appendChild(status);
 
       summaryEl.textContent = issue.summary;
+      summaryEl.classList.toggle("is-wip-field", isWipField(issue, "summary"));
+
+      if (descriptionTitleEl) {
+        descriptionTitleEl.classList.toggle("is-wip-field", isWipField(issue, "description"));
+      }
 
       renderWipAdvancement(issue.wipAdvancement ?? issue.wip ?? null);
 
@@ -992,7 +1148,11 @@
         descriptionEl.classList.remove("is-empty");
       } else {
         descriptionEl.replaceChildren();
-        descriptionEl.textContent = "Nessuna description su Jira.";
+        descriptionEl.textContent = issue.dbMeta?.hasWip
+          ? "Nessuna description in WIP — esegui veve db o verifica credenziali Jira."
+          : issue.viewSource === "db"
+            ? "Nessuna description in cache DB."
+            : "Nessuna description su Jira.";
         descriptionEl.classList.add("is-empty");
       }
 
@@ -1021,17 +1181,41 @@
           + (issue.parentSummary ? ` — ${issue.parentSummary}` : "")
         : "—";
 
-      metaEl.innerHTML = [
-        metaRow("Tipo", issue.issueType)
-      , metaRow("Stato", issue.status)
+      const wipO = issue.wipFieldOverrides ?? [];
+
+      /** @type {string[]} */
+      const metaRows = [
+        metaRow("Tipo", escHtml(issue.issueType), "issueType", wipO)
+      , metaRow("Stato", statusPillHtml(issue.status, issue.done), "status", wipO)
       , metaRow("Parent", parentHtml)
       , metaRow("Sprint", sprintHtml)
       , metaRow("Labels", labelsHtml)
-      , metaRow("Assignee", issue.assignee ?? "—")
-      , metaRow("Reporter", issue.reporter ?? "—")
-      , metaRow("Creato", formatDate(issue.created))
-      , metaRow("Aggiornato", formatDate(issue.updated))
-      ].join("");
+      , metaRow("Assignee", escHtml(issue.assignee ?? "—"))
+      , metaRow("Reporter", escHtml(issue.reporter ?? "—"))
+      , metaRow("Creato", escHtml(formatDate(issue.created)))
+      , metaRow("Aggiornato", escHtml(formatDate(issue.updated)))
+      ];
+
+      if (issue.viewSource === "db" && issue.dbFields) {
+        const db = issue.dbFields;
+
+        metaRows.push(
+          metaRow("Tier", escHtml(db.tier || "—"), "tier", wipO)
+        , metaRow("Story-like", boolHtml(Boolean(db.isStoryLike)), "isStoryLike", wipO)
+        , metaRow("Fatto (DB)", boolHtml(Boolean(issue.done)), "isDone", wipO)
+        , metaRow("Dev order", escHtml(db.devOrder ?? "—"), "devOrder", wipO)
+        , metaRow(
+            "Sprint dev"
+          , escHtml(db.devSprintName ?? (db.devSprint != null ? String(db.devSprint) : "—"))
+          , ["devSprintName", "devSprint"]
+          , wipO
+          )
+        , metaRow("Dev sort", db.devSort != null ? escHtml(String(db.devSort)) : "—", "devSort", wipO)
+        , metaRow("Sync WIP", escHtml(formatDate(db.wipSyncedAt)), "syncedAt", wipO)
+        );
+      }
+
+      metaEl.innerHTML = metaRows.join("");
 
       if (issue.subtasks.length > 0) {
         subtasksWrap.classList.remove("hidden");
@@ -1103,8 +1287,11 @@
 
       showState(`Caricamento ${normalized} da ${fromDb ? "cache DB" : "Jira"}…`);
 
+      const controller = new AbortController();
+      const timeoutId  = window.setTimeout(() => controller.abort(), 30000);
+
       try {
-        const res = await fetch(endpoint);
+        const res = await fetch(endpoint, { signal: controller.signal });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -1120,8 +1307,17 @@
         renderIssue(issue);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        showState(message, true);
+
+        if (err instanceof DOMException && err.name === "AbortError") {
+          showState(
+            "Timeout caricamento (30s) — il DB potrebbe essere bloccato: riavvia il cruscotto e riprova"
+          , true
+          );
+        } else {
+          showState(message, true);
+        }
       } finally {
+        window.clearTimeout(timeoutId);
         btnLoad.disabled = false;
 
         if (btnLoadDb) {

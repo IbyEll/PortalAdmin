@@ -43,6 +43,10 @@ import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 /** @typedef {{
  *   awaitingPush: boolean
  *   prUrl: string | null
+ *   prState: string | null
+ *   prMergedAt: string | null
+ *   prAppliedAt: string | null
+ *   prPollComplete: boolean
  *   ac: WipCheckItem[]
  *   dod: WipCheckItem[]
  *   acSummary: string | null
@@ -147,10 +151,23 @@ export function buildWipStatusEntry(row) {
   const prUrl = typeof raw.prUrl === "string" && raw.prUrl.startsWith("http")
     ? raw.prUrl
     : null;
+  const prMergedAt = typeof raw.prMergedAt === "string" ? raw.prMergedAt : null;
+  const prClosedAt = typeof raw.prClosedAt === "string" ? raw.prClosedAt : null;
+  const prState = typeof raw.prState === "string" ? raw.prState : null;
+  const prPollComplete = raw.prPollComplete === true || Boolean(prMergedAt);
+  const prAppliedAt = typeof raw.prAppliedAt === "string" && raw.prAppliedAt.trim()
+    ? raw.prAppliedAt.trim()
+    : prPollComplete
+      ? (prMergedAt ?? prClosedAt ?? (typeof raw.prLastPolledAt === "string" ? raw.prLastPolledAt : null))
+      : null;
 
   return {
     awaitingPush: raw.awaitingPush === true
   , prUrl
+  , prMergedAt
+  , prState
+  , prAppliedAt
+  , prPollComplete
   , ac
   , dod
   , acSummary: ac.length > 0 ? `${acDone}/${ac.length}` : null

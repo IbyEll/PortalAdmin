@@ -127,7 +127,7 @@ let activeDbPath = null;
 export function resolveCruscottoDatabaseUrl() {
   const normalized = resolveCruscottoDbPath().replace(/\\/g, "/");
 
-  return `file:${normalized}`;
+  return `file:${normalized}?busy_timeout=10000`;
 }
 
 /**

@@ -7,64 +7,34 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice regole</a> · <a href="ADMIN-Veve.html">ADMIN-Veve</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>ADMIN-Veve — Aggiorna Subtask</h1>
+      <h1>ADMIN-Veve-AggiornaSubtask</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve-AggiornaSubtask.mdc</code> ·
-        <span class="tag tag--veve">veve step 4</span>
+        <span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--veve">veve</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Per ogni subtask del parent ADMIN-xxx aggiorna la description Jira con obiettivo, stato repo,
-        AC/DoD e file coinvolti derivati dalla gap analysis.
-      </p>
+      <p class="lead">Veve step 4 — aggiorna subtask ADMIN-xxx</p>
     </header>
 
-    <section>
-      <h2>Trigger</h2>
-      <ul>
-        <li><code>aggiorna subtask ADMIN-xxx</code></li>
-        <li><code>veve ADMIN-xxx</code> (step 4 finale)</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li><strong>Itera subtask</strong> — elenco da step 1, ordine N/M da story parent (step 3).</li>
-        <li><strong>Apri template</strong> — <code>.cursor/templates/veve/veve-subtask.md</code> per ogni key.</li>
-        <li><strong>Compila da gap analysis</strong> — Obiettivo, Stato repo, AC/DoD (B poi A), file coinvolti, ordine N/M.</li>
-        <li><strong>editJiraIssue</strong> — una chiamata per subtask (solo description).</li>
-        <li><strong>Riepilogo veve</strong> — tabella subtask aggiornate; grooming completato.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Campi per subtask</h2>
-      <table>
-        <thead><tr><th>Sezione</th><th>Contenuto</th></tr></thead>
-        <tbody>
-          <tr><td>Obiettivo</td><td>Cosa deve fare la subtask</td></tr>
-          <tr><td>Stato repo</td><td>✅ / ⚠️ / ❌ + dettaglio file</td></tr>
-          <tr><td>AC / DoD</td><td>Checkbox allineate al codice</td></tr>
-          <tr><td>File coinvolti</td><td>Path dal gap analysis</td></tr>
-          <tr><td>Ordine</td><td>N/M nella sequenza parent</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden">Branch, commit, modifiche codice</li>
-        <li class="forbidden">Transizione subtask a Fatto (salvo richiesta esplicita)</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>ADMIN Veve — Aggiorna Subtask</h2>
+<h3>Trigger</h3>
+<p><code>aggiorna subtask ADMIN-xxx</code> · <code>veve ADMIN-xxx</code> step 4</p>
+<h3>Per ogni subtask</h3>
+<p>Template: <code>.cursor/templates/veve/veve-subtask.md</code></p>
+<p><code>editJiraIssue</code>: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — compila placeholder da gap analysis.</p>
+<p>Sezioni e <strong>checkbox AC/DoD (B poi A)</strong>: vedi <code>JLO-Veve-AggiornaSubtask.mdc</code> (canonico).</p>
+<p><strong>Vietato:</strong> branch, commit, Fatto (salvo richiesta).</p>
+    </article>
 
     <footer>
-      Orchestratore: <a href="ADMIN-Veve.html">ADMIN-Veve</a> ·
-      Template: <code>.cursor/templates/veve/veve-subtask.md</code>
+      Generato da <code>.cursor/rules/ADMIN-Veve-AggiornaSubtask.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

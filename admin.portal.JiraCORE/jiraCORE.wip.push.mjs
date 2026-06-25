@@ -17,7 +17,7 @@
  *   - Workflow database chiude il ciclo veve→WIP→Jira senza Task Jira Auto manuale.
  *
  *   A cosa serve:
- *   - Carica bundle WIP, sync description live, transizione Fatto e invoca close-story.
+ *   - Carica bundle WIP, sync description live, transizione Fatto, invoca close-story (catalogo → push → PR).
  *
  * Generalizzazione:
  *   Si — --key ADMIN o JLO; flag --dry-run, --skip-jira, --skip-close.
