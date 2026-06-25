@@ -8,6 +8,7 @@ import { adfToPlainText } from "../admin.portal.JiraCORE/jiraCORE.backlog.relate
 import { jiraLiveFetch } from "../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
 import { openCruscottoDb, cruscottoDbFileExists } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { fetchWipAdvancementForIssue, buildWipAdvancementEntry } from "./cruscotto.jira.wip.mjs";
+import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
 
 const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
 const JIRA_SPRINT_FIELD = "customfield_10020";
@@ -1296,8 +1297,10 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   }
 
   const wipAdvancement = wipRow
-    ? buildWipAdvancementEntry(wipRow, wipSubtasks)
-    : null;
+    ? buildWipAdvancementEntry(wipRow, wipSubtasks, { inWip: true })
+    : hasWorkflowAdvancementData(parseWorkflowRawFields(row.rawFields))
+      ? buildWipAdvancementEntry(row, cacheSubtasks, { inWip: false })
+      : null;
 
   return {
     key
@@ -1339,6 +1342,7 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
       syncRunId      : syncRun.id
     , syncedAt       : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()
     , hasWip         : Boolean(wipRow)
+    , hasWorkflowCache: Boolean(wipAdvancement && !wipRow)
     , descriptionFrom
     , subtasksFromWip: wipSubtasks.length > 0
     }

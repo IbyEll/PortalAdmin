@@ -1804,7 +1804,6 @@
       document.body.classList.add("is-embed");
     }
 
-    const JIRA_BASE = "https://myfuturejobsearch.atlassian.net/browse/";
     const INDENT = 1.1;
     /** Larghezza visiva parent (prefix + toggle + gap) — subtask indenta sotto badge STORY. */
     const TREE_BRANCH_INDENT = 3.35;
@@ -1861,6 +1860,79 @@
      */
     function issueTypeForKey(key) {
       return backlog?.issues?.find((row) => row.key === key)?.type;
+    }
+
+    /**
+     * Payload hash tab Issue nel parent cruscotto (`#issue:154` o `#issue:ADMIN-154`).
+     *
+     * @param {string} issueKey
+     * @returns {string}
+     */
+    function issuePageHashPayload(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const num = key.match(/^(?:ADMIN|JLO)-(\d+)$/);
+
+      return num ? num[1] : key;
+    }
+
+    /**
+     * Apre tab Issue nel cruscotto (parent) o issue.html se standalone.
+     *
+     * @param {string} issueKey
+     */
+    function navigateToIssuePage(issueKey) {
+      const key     = String(issueKey ?? "").trim().toUpperCase();
+      const payload = issuePageHashPayload(key);
+
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.location.hash = `issue:${payload}`;
+          return;
+        }
+      } catch {
+        /* iframe cross-origin — fallback sotto */
+      }
+
+      window.location.href = `/issue.html?key=${encodeURIComponent(key)}&source=db`;
+    }
+
+    /**
+     * Link issue key → tab Issue interna (non Jira browse).
+     *
+     * @param {string} issueKey
+     * @returns {HTMLAnchorElement}
+     */
+    function createIssueKeyLink(issueKey) {
+      const key  = String(issueKey ?? "").trim().toUpperCase();
+      const link = document.createElement("a");
+
+      link.className = "jira-link";
+      link.href      = `#issue:${issuePageHashPayload(key)}`;
+      link.textContent = key;
+      link.title     = `Apri issue ${key} nel cruscotto`;
+      link.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        navigateToIssuePage(key);
+      });
+
+      return link;
+    }
+
+    /**
+     * Badge tipo + link issue interno (epic correlati, insight, …).
+     *
+     * @param {ParentNode} parent
+     * @param {string} key
+     * @param {string} [type]
+     */
+    function appendMyBacklogIssueKey(parent, key, type) {
+      const badge = JiraIssueDisplay?.createIssueTypeBadge?.(type ?? issueTypeForKey(key));
+
+      if (badge) {
+        parent.appendChild(badge);
+      }
+
+      parent.appendChild(createIssueKeyLink(key));
     }
 
     /**
@@ -2362,6 +2434,60 @@
 
     /**
      * @param {string} issueKey
+     */
+    function clearGogoPrUrl(issueKey) {
+      try {
+        const key = String(issueKey ?? "").trim().toUpperCase();
+        const map = loadGogoPrMap();
+
+        if (!map[key]) {
+          return;
+        }
+
+        delete map[key];
+        localStorage.setItem(GOGO_PR_STORAGE_KEY, JSON.stringify(map));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    /**
+     * PR mergiata/chiusa — niente più bottone PR in colonna Svil.
+     *
+     * @param {{ prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} wip
+     * @returns {boolean}
+     */
+    function isPrWorkflowComplete(wip) {
+      if (!wip) {
+        return false;
+      }
+
+      if (wip.prPollComplete === true || wip.prMergedAt) {
+        return true;
+      }
+
+      return wip.prState === "MERGED" || wip.prState === "CLOSED";
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {{ prUrl?: string | null, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} wip
+     * @returns {string | null}
+     */
+    function resolveRowPrUrl(issueKey, wip) {
+      if (isPrWorkflowComplete(wip)) {
+        return null;
+      }
+
+      if (typeof wip?.prUrl === "string" && wip.prUrl.startsWith("http")) {
+        return wip.prUrl;
+      }
+
+      return loadGogoPrUrl(issueKey);
+    }
+
+    /**
+     * @param {string} issueKey
      * @returns {Promise<string | null>}
      */
     async function fetchPrUrlForIssue(issueKey) {
@@ -2598,12 +2724,39 @@
 
     /**
      * @param {string} issueKey
-     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null } | undefined}
+     * @param {{ prPollComplete?: boolean, prMergedAt?: string, prState?: string, prAppliedAt?: string, prUrl?: string, backlogStar?: boolean, awaitingPush?: boolean } | null | undefined} [row]
+     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, prState?: string | null, prPollComplete?: boolean, prMergedAt?: string | null, prAppliedAt?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null } | undefined}
      */
-    function getWipStatus(issueKey) {
+    function getWipStatus(issueKey, row) {
       const key = String(issueKey ?? "").trim().toUpperCase();
+      const wip = wipStatusMap[key];
 
-      return wipStatusMap[key];
+      if (wip) {
+        return wip;
+      }
+
+      if (!row) {
+        return undefined;
+      }
+
+      if (
+        row.prPollComplete === true
+        || row.backlogStar === true
+        || row.prMergedAt
+        || row.prState === "MERGED"
+        || row.prState === "CLOSED"
+      ) {
+        return {
+          awaitingPush  : row.awaitingPush === true
+        , prUrl         : typeof row.prUrl === "string" ? row.prUrl : null
+        , prState       : row.prState ?? null
+        , prMergedAt    : row.prMergedAt ?? null
+        , prAppliedAt   : row.prAppliedAt ?? null
+        , prPollComplete: row.prPollComplete === true || Boolean(row.prMergedAt)
+        };
+      }
+
+      return undefined;
     }
 
     /**
@@ -2660,7 +2813,7 @@
       const key = String(issueKey ?? "").trim().toUpperCase();
       const wip = getWipStatus(key);
 
-      if (wip?.prPollComplete || wip?.prMergedAt) {
+      if (isPrWorkflowComplete(wip)) {
         return false;
       }
 
@@ -2725,6 +2878,7 @@
 
         if (data.complete === true) {
           stopPrPolling(key);
+          clearGogoPrUrl(key);
           patchBacklogIssuesFromCache(data.cacheByKey);
           await refreshWipStatusMap(backlog?.issues ?? []);
           applyFilters();
@@ -3168,7 +3322,14 @@
       await refreshWipStatusMap(backlog?.issues ?? []);
 
       const wip   = getWipStatus(issueKey);
-      const prUrl = wip?.prUrl ?? await fetchPrUrlForIssue(issueKey);
+
+      if (isPrWorkflowComplete(wip)) {
+        clearGogoPrUrl(issueKey);
+        btn.remove();
+        return;
+      }
+
+      const prUrl = resolveRowPrUrl(issueKey, wip) ?? await fetchPrUrlForIssue(issueKey);
 
       if (prUrl) {
         saveGogoPrUrl(issueKey, prUrl);
@@ -3202,8 +3363,8 @@
      * @returns {boolean} true se è stato aggiunto un controllo
      */
     function appendGogoRowControl(svilCell, issueKey, row) {
-      const wip = getWipStatus(issueKey);
-      const prUrl = wip?.prUrl ?? loadGogoPrUrl(issueKey);
+      const wip   = getWipStatus(issueKey, row);
+      const prUrl = resolveRowPrUrl(issueKey, wip);
 
       if (prUrl) {
         svilCell.appendChild(createGogoPrLink(issueKey, prUrl));
@@ -5393,9 +5554,9 @@
         return;
       }
 
-      const wip = getWipStatus(row.key);
+      const wip = getWipStatus(row.key, row);
 
-      if (!wip?.prPollComplete && !wip?.prMergedAt) {
+      if (!wip?.prPollComplete && !wip?.prMergedAt && wip?.prState !== "MERGED" && wip?.prState !== "CLOSED") {
         return;
       }
 
@@ -5694,7 +5855,7 @@
           appendInsightKeyMark(row, treePrefix);
           appendPrMergedMark(row, treePrefix);
 
-          if (getWipStatus(row.key)?.prPollComplete) {
+          if (getWipStatus(row.key, row)?.prPollComplete) {
             tr.classList.add("has-pr-merged");
           }
         }
@@ -5757,12 +5918,7 @@
             keyMain.appendChild(badge);
           }
 
-          const link = document.createElement("a");
-          link.className = "jira-link";
-          link.href = `${JIRA_BASE}${row.key}`;
-          link.target = "_blank";
-          link.rel = "noopener";
-          link.textContent = row.key;
+          const link = createIssueKeyLink(row.key);
           keyMain.appendChild(link);
 
           if (row.isRelatedCarryover) {
@@ -5900,11 +6056,10 @@
           const epicLine = document.createElement("span");
           epicLine.className = "epic-affiliation";
           epicLine.append(document.createTextNode("Epic: "));
-          JiraIssueDisplay?.appendIssueKey?.(
+          appendMyBacklogIssueKey(
             epicLine
           , row.epicKey
           , issueTypeForKey(row.epicKey) ?? "Epic"
-          , JIRA_BASE
           );
 
           if (row.epicSummary) {
@@ -5943,11 +6098,10 @@
               item.appendChild(doneMark);
             }
 
-            JiraIssueDisplay?.appendIssueKey?.(
+            appendMyBacklogIssueKey(
               item
             , relatedKey
             , issueTypeForKey(relatedKey)
-            , JIRA_BASE
             );
 
             if (summary) {
@@ -6178,8 +6332,8 @@
         const epicExport = row.epicKey ?? "";
         const svilExport = shouldShowWorkflowButton(row)
           ? (() => {
-              const wip = getWipStatus(row.key);
-              const prUrl = wip?.prUrl ?? loadGogoPrUrl(row.key);
+              const wip = getWipStatus(row.key, row);
+              const prUrl = resolveRowPrUrl(row.key, wip);
 
               if (prUrl) {
                 return "PR";
@@ -6329,11 +6483,10 @@
       if (item.key) {
         const keyEl = document.createElement("span");
         keyEl.className = "insight-key";
-        JiraIssueDisplay?.appendIssueKey?.(
+        appendMyBacklogIssueKey(
           keyEl
         , item.key
         , item.type ?? issueTypeForKey(item.key)
-        , JIRA_BASE
         );
         note.appendChild(keyEl);
       }

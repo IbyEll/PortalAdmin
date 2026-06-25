@@ -100,6 +100,59 @@ function jiraDescriptionFromRawFields(rawFields) {
 }
 
 /**
+ * Campi PR/WIP copiati in jira_issue.raw_fields dopo sync post-merge (stellina backlog senza WIP).
+ *
+ * @param {string | null | undefined} rawFields
+ * @returns {{
+ *   prState?: string
+ *   prPollComplete?: boolean
+ *   backlogStar?: boolean
+ *   prAppliedAt?: string
+ *   prMergedAt?: string
+ *   prUrl?: string
+ * }}
+ */
+function wipPrMetaFromRawFields(rawFields) {
+  if (!rawFields) {
+    return {};
+  }
+
+  try {
+    const parsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
+
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    const prPollComplete = parsed.prPollComplete === true ? true : undefined;
+    const backlogStar    = parsed.backlogStar === true ? true : undefined;
+    const prState        = typeof parsed.prState === "string" ? parsed.prState : undefined;
+    const prTitle        = typeof parsed.prTitle === "string" ? parsed.prTitle : undefined;
+    const prAppliedAt    = typeof parsed.prAppliedAt === "string" ? parsed.prAppliedAt : undefined;
+    const prMergedAt     = typeof parsed.prMergedAt === "string" ? parsed.prMergedAt : undefined;
+    const prUrl          = typeof parsed.prUrl === "string" && parsed.prUrl.startsWith("http")
+      ? parsed.prUrl
+      : undefined;
+
+    if (!prPollComplete && !backlogStar && !prState && !prMergedAt && !prUrl && !prTitle) {
+      return {};
+    }
+
+    return {
+      ...(prState ? { prState } : {})
+    , ...(prPollComplete ? { prPollComplete } : {})
+    , ...(backlogStar ? { backlogStar } : {})
+    , ...(prAppliedAt ? { prAppliedAt } : {})
+    , ...(prMergedAt ? { prMergedAt } : {})
+    , ...(prTitle ? { prTitle } : {})
+    , ...(prUrl ? { prUrl } : {})
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
  * @returns {Promise<import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").fetchJiraBacklog extends () => Promise<infer R> ? R : never> | null>}
  */
 export async function loadJiraBacklogFromDb() {
@@ -152,29 +205,34 @@ export async function loadJiraBacklogFromDb() {
 
   // 3. Normalizza righe al tipo JiraBacklogRow + metadati sync
   /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
-  const issues = rows.map((row) => ({
-    key              : row.jiraKey
-  , type             : row.issueType
-  , tier             : /** @type {"epic"|"task"|"subtask"} */ (row.tier)
-  , isStoryLike      : row.isStoryLike
-  , summary          : row.summary
-  , status           : row.status
-  , parentKey        : row.parentJiraKey
-  , depth            : row.depth
-  , hasChildren      : row.hasChildren
-  , devOrder         : row.devOrder ?? undefined
-  , devSprint        : row.devSprint ?? undefined
-  , devSprintName    : row.devSprintName ?? undefined
-  , devSort          : row.devSort ?? undefined
-  , isSprint6Obsolete: row.isSprint6Obsolete
-  , relatedKeys      : parseRelatedKeys(row.relatedKeys)
-  , jiraDescription  : jiraDescriptionFromRawFields(row.rawFields) ?? undefined
-  , jiraSprints      : row.sprints.map(({ sprint }) => ({
-      id   : sprint.id
-    , name : sprint.name
-    , state: sprint.state
-    })),
-  }));
+  const issues = rows.map((row) => {
+    const wipPrMeta = wipPrMetaFromRawFields(row.rawFields);
+
+    return {
+      key              : row.jiraKey
+    , type             : row.issueType
+    , tier             : /** @type {"epic"|"task"|"subtask"} */ (row.tier)
+    , isStoryLike      : row.isStoryLike
+    , summary          : row.summary
+    , status           : row.status
+    , parentKey        : row.parentJiraKey
+    , depth            : row.depth
+    , hasChildren      : row.hasChildren
+    , devOrder         : row.devOrder ?? undefined
+    , devSprint        : row.devSprint ?? undefined
+    , devSprintName    : row.devSprintName ?? undefined
+    , devSort          : row.devSort ?? undefined
+    , isSprint6Obsolete: row.isSprint6Obsolete
+    , relatedKeys      : parseRelatedKeys(row.relatedKeys)
+    , jiraDescription  : jiraDescriptionFromRawFields(row.rawFields) ?? undefined
+    , ...wipPrMeta
+    , jiraSprints      : row.sprints.map(({ sprint }) => ({
+        id   : sprint.id
+      , name : sprint.name
+      , state: sprint.state
+      }))
+    };
+  });
 
   return {
     fetchedAt                 : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()

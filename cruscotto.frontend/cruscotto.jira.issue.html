@@ -832,6 +832,7 @@
      *   acSummary?: string | null
      *   dodSummary?: string | null
      *   prUrl?: string | null
+     *   prTitle?: string | null
      *   prState?: string | null
      *   prAppliedAt?: string | null
      *   prPollComplete?: boolean
@@ -861,6 +862,11 @@
       }
 
       const inWip       = Boolean(advancement?.inWip);
+      const showWorkflow = inWip
+        || Boolean(advancement?.fromCache)
+        || advancement?.workflowPhase === "published"
+        || Boolean(advancement?.gitPushed)
+        || Boolean(advancement?.prUrl);
       const typeBadge   = issueTypeBadgeHtml(issue.issueType);
       const typeHead    = typeBadge && typeBadge !== "—"
         ? `<span class="issue-wip-advancement__type">${typeBadge}</span>`
@@ -873,7 +879,7 @@
       , "is-not-wip"
       );
 
-      if (!inWip) {
+      if (!showWorkflow) {
         wipAdvancementEl.classList.add("is-not-wip");
 
         const sourceLabel = issue.viewSource === "db" ? "Cache DB" : "Jira live";
@@ -915,9 +921,23 @@
         wipAdvancementEl.classList.add("is-published");
       }
 
-      const prCell = advancement.prUrl
-        ? `<a href="${escHtml(advancement.prUrl)}" target="_blank" rel="noopener noreferrer">PR ↗</a>`
-        : "—";
+      const prCell = (() => {
+        const url   = advancement.prUrl;
+        const title = advancement.prTitle?.trim() || null;
+        const label = title || "PR";
+        const isOpen = advancement.prState === "OPEN"
+          || (!advancement.prPollComplete && url && advancement.prState !== "MERGED" && advancement.prState !== "CLOSED");
+
+        if (!url && !title) {
+          return "—";
+        }
+
+        if (url && isOpen) {
+          return `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">${escHtml(label)} ↗</a>`;
+        }
+
+        return escHtml(label);
+      })();
 
       const prStateHtml = (() => {
         const state = advancement.prState;
@@ -1004,7 +1024,9 @@
         "<div class=\"issue-wip-advancement__head\">"
       , typeHead
       , "<span class=\"issue-wip-advancement__title\">Avanzamento WIP (cruscotto DB)</span>"
-      , `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "")}</span>`
+      , advancement.fromCache
+        ? "<span class=\"issue-wip-advancement__phase\">Cache backlog (WIP purgato)</span>"
+        : `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "")}</span>`
       , "</div>"
       , gridHtml
       , checksHtml

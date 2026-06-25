@@ -37,12 +37,14 @@
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
+import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
 
 /** @typedef {{ checked: boolean, text: string }} WipCheckItem */
 
 /** @typedef {{
  *   awaitingPush: boolean
  *   prUrl: string | null
+ *   prTitle: string | null
  *   prState: string | null
  *   prMergedAt: string | null
  *   prAppliedAt: string | null
@@ -85,17 +87,7 @@ const ISSUE_KEY_RE = /^(ADMIN|JLO)-\d+$/;
  * @returns {Record<string, unknown>}
  */
 function parseRawFields(rawFields) {
-  if (!rawFields) {
-    return {};
-  }
-
-  try {
-    const parsed = typeof rawFields === "string" ? JSON.parse(rawFields) : rawFields;
-
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+  return parseWorkflowRawFields(rawFields);
 }
 
 /**
@@ -151,6 +143,9 @@ export function buildWipStatusEntry(row) {
   const prUrl = typeof raw.prUrl === "string" && raw.prUrl.startsWith("http")
     ? raw.prUrl
     : null;
+  const prTitle = typeof raw.prTitle === "string" && raw.prTitle.trim()
+    ? raw.prTitle.trim()
+    : null;
   const prMergedAt = typeof raw.prMergedAt === "string" ? raw.prMergedAt : null;
   const prClosedAt = typeof raw.prClosedAt === "string" ? raw.prClosedAt : null;
   const prState = typeof raw.prState === "string" ? raw.prState : null;
@@ -164,6 +159,7 @@ export function buildWipStatusEntry(row) {
   return {
     awaitingPush: raw.awaitingPush === true
   , prUrl
+  , prTitle
   , prMergedAt
   , prState
   , prAppliedAt
@@ -223,13 +219,15 @@ export function resolveWipWorkflowPhase(row, subtaskRows) {
 /**
  * @param {{ jiraKey: string, rawFields?: string | null, isDone?: boolean, status?: string | null, syncedAt?: Date | null }} row
  * @param {Array<{ isDone?: boolean, rawFields?: string | null }>} [subtaskRows]
+ * @param {{ inWip?: boolean }} [opts]
  * @returns {WipAdvancementEntry}
  */
-export function buildWipAdvancementEntry(row, subtaskRows = []) {
+export function buildWipAdvancementEntry(row, subtaskRows = [], opts = {}) {
   const raw       = parseRawFields(row.rawFields);
   const status    = buildWipStatusEntry(row);
   const subtasks  = subtaskRows ?? [];
   const phase     = resolveWipWorkflowPhase(row, subtasks);
+  const inWip     = opts.inWip !== false;
   const commits   = subtasks
     .map((sub) => parseRawFields(sub.rawFields).commitHash)
     .filter((hash) => typeof hash === "string" && hash.trim());
@@ -242,7 +240,8 @@ export function buildWipAdvancementEntry(row, subtaskRows = []) {
 
   return {
     ...status
-  , inWip               : true
+  , inWip               : inWip
+  , fromCache           : !inWip
   , jiraKey             : row.jiraKey
   , workflowPhase       : phase
   , workflowPhaseLabel  : workflowPhaseLabel(phase)
@@ -268,7 +267,39 @@ export function buildWipAdvancementEntry(row, subtaskRows = []) {
 }
 
 /**
- * Avanzamento WIP per issue key — parent + subtask in coda `jira_issue_wip`.
+ * Ultima riga jira_issue per key (sync run più recente).
+ *
+ * @param {import("@prisma/client").PrismaClient} db
+ * @param {string} key
+ */
+async function loadLatestCacheIssueRow(db, key) {
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    return { row: null, subtasks: [] };
+  }
+
+  const row = await db.jiraIssue.findFirst({
+    where: { jiraKey: key, syncRunId: syncRun.id }
+  });
+
+  if (!row) {
+    return { row: null, subtasks: [] };
+  }
+
+  const subtasks = await db.jiraIssue.findMany({
+    where  : { parentJiraKey: key, syncRunId: syncRun.id }
+  , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
+  });
+
+  return { row, subtasks };
+}
+
+/**
+ * Avanzamento WIP per issue key — jira_issue_wip oppure fallback jira_issue (post purge).
  *
  * @param {string} issueKey
  * @returns {Promise<WipAdvancementEntry | null>}
@@ -285,16 +316,28 @@ export async function fetchWipAdvancementForIssue(issueKey) {
     where: { jiraKey: key }
   });
 
-  if (!row) {
+  if (row) {
+    const subtasks = await db.jiraIssueWip.findMany({
+      where  : { parentJiraKey: key }
+    , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
+    });
+
+    return buildWipAdvancementEntry(row, subtasks, { inWip: true });
+  }
+
+  const { row: cacheRow, subtasks: cacheSubtasks } = await loadLatestCacheIssueRow(db, key);
+
+  if (!cacheRow) {
     return null;
   }
 
-  const subtasks = await db.jiraIssueWip.findMany({
-    where  : { parentJiraKey: key }
-  , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
-  });
+  const raw = parseRawFields(cacheRow.rawFields);
 
-  return buildWipAdvancementEntry(row, subtasks);
+  if (!hasWorkflowAdvancementData(raw)) {
+    return null;
+  }
+
+  return buildWipAdvancementEntry(cacheRow, cacheSubtasks, { inWip: false });
 }
 
 /**
@@ -330,6 +373,28 @@ export async function fetchWipStatusByKeys(keys) {
 
   for (const row of rows) {
     byKey[row.jiraKey] = buildWipStatusEntry(row);
+  }
+
+  const missing = normalized.filter((key) => !byKey[key]);
+
+  if (missing.length > 0) {
+    const cacheRows = await db.jiraIssue.findMany({
+      where  : { jiraKey: { in: missing } }
+    , select : {
+        jiraKey   : true
+      , rawFields : true
+      , isDone    : true
+      , status    : true
+      }
+    });
+
+    for (const row of cacheRows) {
+      const raw = parseRawFields(row.rawFields);
+
+      if (raw.prPollComplete === true || raw.backlogStar === true || raw.prMergedAt) {
+        byKey[row.jiraKey] = buildWipStatusEntry(row);
+      }
+    }
   }
 
   return { byKey };

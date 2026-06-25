@@ -209,7 +209,17 @@ function ensurePr(branch, dryRun) {
   );
 
   if (listed) {
-    return { prUrl: listed, createdPr: false };
+    const title = run(
+      "gh"
+    , ["pr", "view", listed, "--json", "title", "--jq", ".title"]
+    , { allowFail: true }
+    );
+
+    return {
+      prUrl    : listed
+    , prTitle  : title || `${branch} -- to main`
+    , createdPr: false
+    };
   }
 
   const commits = commitsAheadOfMain(branch);
@@ -222,7 +232,11 @@ function ensurePr(branch, dryRun) {
   ].join("\n");
 
   if (dryRun) {
-    return { prUrl: `(dry-run) PR for ${branch}`, createdPr: true };
+    return {
+      prUrl    : `(dry-run) PR for ${branch}`
+    , prTitle  : `${branch} -- to main`
+    , createdPr: true
+    };
   }
 
   const url = run("gh", [
@@ -233,7 +247,11 @@ function ensurePr(branch, dryRun) {
   , "--body", body
   ]);
 
-  return { prUrl: url, createdPr: true };
+  return {
+    prUrl    : url
+  , prTitle  : `${branch} -- to main`
+  , createdPr: true
+  };
 }
 
 function parseArgs(argv) {
@@ -404,12 +422,13 @@ async function main() {
     }
 
     // 7. PR su main — riusa open esistente o gh pr create
-    const { prUrl, createdPr } = ensurePr(branch, false);
-    const commits                = commitsAheadOfMain(branch);
+    const { prUrl, prTitle, createdPr } = ensurePr(branch, false);
+    const commits                       = commitsAheadOfMain(branch);
 
     out.ok        = true;
     out.branch    = branch;
     out.prUrl     = prUrl;
+    out.prTitle   = prTitle ?? null;
     out.pushed    = pushed;
     out.createdPr = createdPr;
     out.commits   = commits;

@@ -213,10 +213,14 @@ export async function pushWipStory(parentKey, opts = {}) {
   const prUrl = typeof out.close?.prUrl === "string" && out.close.prUrl.startsWith("http")
     ? out.close.prUrl
     : null;
+  const prTitle = typeof out.close?.prTitle === "string" && out.close.prTitle.trim()
+    ? out.close.prTitle.trim()
+    : null;
 
-  out.wip = await markWipPushed(key, { prUrl, dryRun });
+  out.wip = await markWipPushed(key, { prUrl, prTitle, dryRun });
   out.ok = true;
   out.prUrl = prUrl;
+  out.prTitle = prTitle;
 
   return out;
 }
