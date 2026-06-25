@@ -20,7 +20,7 @@
  *
  * Consumatori:
  *   - cruscotto.jira.backlog.html, cruscotto.jira.working.html, cruscotto.jira.project.tree.html, cruscotto.jira.working.old.html — <link href="/insight-toolbar.css" />
- *   - runner/cruscotto.server.mjs — INSIGHT_STATIC_FILES mappa /insight-toolbar.css
+ *   - cruscotto.frontend/cruscotto.server.mjs — INSIGHT_STATIC_FILES mappa /insight-toolbar.css
  */
 
 /* --- badge base toolbar insight --- */

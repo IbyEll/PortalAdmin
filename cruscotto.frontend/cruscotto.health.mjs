@@ -29,11 +29,11 @@
  *   - project.config.{PRJ_NAME}.mjs — PRJ_* health/open URL
  *   - PRJ_NAME, PRODUCT_REPO_PATH — contesto product attivo
  *
- * Route o endpoint (montate da runner/cruscotto.server.mjs):
+ * Route o endpoint (montate da cruscotto.frontend/cruscotto.server.mjs):
  *   - GET /api/health — snapshot project + services (+ auth/api/web legacy)
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — handler GET /api/health
+ *   - cruscotto.frontend/cruscotto.server.mjs — handler GET /api/health
  *   - smoke testScript — verifica HTTP 200
  *
  * Dipendenze:

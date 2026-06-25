@@ -23,7 +23,7 @@
  *   - boardSprintKeysByPlanName — mappa sprint Jira board per blocco piano (opzionale)
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — fetchBacklogInsights, buildRepoAlignMap
+ *   - cruscotto.frontend/cruscotto.server.mjs — fetchBacklogInsights, buildRepoAlignMap
  *   - cruscotto.jira.working.insights.mjs — buildInsightSnapshot, inspectRepoSignal
  *   - cruscotto.jira.working.plan.mjs — inspectRepoSignal
  *   - admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — isJiraStatusDone correlato

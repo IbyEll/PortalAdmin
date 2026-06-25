@@ -27,12 +27,12 @@
  *   - product.manifest.json — loadProductManifest (lib/product.manifest.mjs)
  *   - svc.healthUrl, svc.processScript — probe HTTP o fragment processo per servizio
  *
- * Route o endpoint (montate da runner/cruscotto.server.mjs):
+ * Route o endpoint (montate da cruscotto.frontend/cruscotto.server.mjs):
  *   - GET /api/dev/requirements — prerequisiti da manifest.requirements
  *   - GET /api/dev/services     — servizi manifest + probe health/processo
  *
  * Consumatori:
- *   - runner/cruscotto.server.mjs — route /api/dev/*
+ *   - cruscotto.frontend/cruscotto.server.mjs — route /api/dev/*
  *   - cruscotto.frontend/cruscotto.home.js — tab Requisiti e Servizi
  *
  * Dipendenze:

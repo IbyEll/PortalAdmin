@@ -40,7 +40,7 @@
  *   - cruscotto.frontend/nome-pagina.html — route /app.html
  *
  * Servito da:
- *   - runner/cruscotto.server.mjs — static root cruscotto.frontend/
+ *   - cruscotto.frontend/cruscotto.server.mjs — static root cruscotto.frontend/
  *   - admin.portal/portal.home.server.mjs — static root admin.portal/ (se home)
  *
  * Asset correlati:

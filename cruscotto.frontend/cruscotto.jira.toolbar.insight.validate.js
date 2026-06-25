@@ -24,7 +24,7 @@
  *   - cruscotto.jira.backlog.html, cruscotto.jira.working.html, cruscotto.jira.project.tree.html, working.old
  *
  * Servito da:
- *   - runner/cruscotto.server.mjs — URL /insight-validate.js (INSIGHT_STATIC_FILES → cruscotto.frontend/jira/)
+ *   - cruscotto.frontend/cruscotto.server.mjs — URL /insight-validate.js (INSIGHT_STATIC_FILES → cruscotto.frontend/jira/)
  *
  * Asset correlati:
  *   - cruscotto.jira.backlog.insights.mjs — sorgente canonica isInsightStillValid lato Node
