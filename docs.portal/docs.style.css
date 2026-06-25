@@ -59,13 +59,16 @@ li {
 /* --- Layout pagina --- */
 .page,
 .doc-page {
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 2rem 1.5rem 3rem;
+  box-sizing: border-box;
 }
 
 .page.page--wide {
-  max-width: 1100px;
+  max-width: none;
+  width: 100%;
   padding: 0 1.5rem 3rem;
 }
 
@@ -510,8 +513,9 @@ del.resolved {
 }
 
 .docs-chrome-inner {
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 0.55rem 1.5rem;
   display: flex;
   flex-wrap: wrap;
@@ -739,6 +743,17 @@ del.resolved {
 .metric strong {
   display: block;
   font-size: 1.4rem;
+}
+
+tr.finding-resolved td.issue-refinement--linked,
+tr.finding-resolved td.issue-refinement--linked .issue-ref,
+tr.finding-resolved td.issue-refinement--linked .issue-type {
+  opacity: 1;
+}
+
+tr.finding-resolved td.issue-refinement--linked del.resolved {
+  display: contents;
+  text-decoration: none;
 }
 
 tr.finding-resolved td:not(.finding-status) del.resolved {

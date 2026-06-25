@@ -25,16 +25,24 @@ description: Workflow Jira via Task subagent («Jira Auto»). Usa su procedi/gog
 
 Passa `branch`, `prUrl`, `commits`, `catalog` da `node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key ADMIN-xxx`.
 
+**Da close-story 2026-06:** se `JIRA_EMAIL`/`JIRA_API_TOKEN` in `.env`, lo script applica già `chiudi-parent` in ADF (`jiraCORE.workflow.description.mjs`). Task Jira Auto solo se `--no-jira-sync` o credenziali assenti.
+
+Per re-sync description sola:
+
+```bash
+node admin.portal.JiraCORE/jiraCORE.workflow.description.mjs --key ADMIN-155 --branch BUG---... --commit 13c7c92 --pr https://github.com/...
+```
+
 Repo PR: `https://github.com/IbyEll/PortalAdmin`
 
 ## Template description Jira
 
-| Fase | File |
-| --- | --- |
-| ok chiudi subtask | `.cursor/templates/workflow/ok-chiudi-subtask.md` |
-| chiudi parent | `.cursor/templates/workflow/chiudi-parent.md` |
+| Fase | File | Applicazione |
+| --- | --- | --- |
+| ok chiudi subtask | `.cursor/templates/workflow/ok-chiudi-subtask.md` | `updateIssueDescriptionMarkdown` (ADF) |
+| chiudi parent | `.cursor/templates/workflow/chiudi-parent.md` | `buildChiudiParentMarkdown` + `markdownToAdfDoc` |
 
-Leggi e compila **prima** di `editJiraIssue`. Veve: `.cursor/templates/veve/`.
+**Non** usare `editJiraIssue` con `contentFormat: markdown` per chiudi-parent — le tabelle non rendono. Usare REST ADF via `jiraCORE.jira.live.mjs`.
 
 ## Vietato
 

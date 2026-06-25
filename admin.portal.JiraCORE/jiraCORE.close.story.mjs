@@ -55,10 +55,18 @@
 
 import { execFileSync } from "node:child_process";
 
+import "../lib/portal.load.env.mjs";
+
 import {
   commitCatalogUpdate
 , ensureRepoImplementationSignal
 } from "./JiraCORE.signals.catalog.implementation.mjs";
+
+import {
+  buildChiudiParentContextFromIssue
+, buildChiudiParentMarkdown
+, syncChiudiParentToJira
+} from "./jiraCORE.workflow.description.mjs";
 
 import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
 
@@ -254,9 +262,29 @@ function ensurePr(branch, dryRun) {
   };
 }
 
+function hasJiraCredentials() {
+  return Boolean(process.env.JIRA_EMAIL?.trim() && process.env.JIRA_API_TOKEN?.trim());
+}
+
+/**
+ * @param {string[]} commits
+ * @returns {string}
+ */
+function primaryCommitHash(commits) {
+  const first = commits[0] ?? "";
+  const hash  = first.match(/\b([0-9a-f]{7,40})\b/i)?.[1];
+
+  if (hash) {
+    return hash.slice(0, 12);
+  }
+
+  return run("git", ["rev-parse", "--short", "HEAD"], { allowFail: true }) || "—";
+}
+
 function parseArgs(argv) {
   const dryRun     = argv.includes("--dry-run");
   const withPillar = argv.includes("--pillar");
+  const noJiraSync = argv.includes("--no-jira-sync");
   let key          = null;
   let branch       = null;
 
@@ -270,7 +298,7 @@ function parseArgs(argv) {
     }
   }
 
-  return { dryRun, withPillar, key, branch };
+  return { dryRun, withPillar, noJiraSync, key, branch };
 }
 
 /**
@@ -359,7 +387,7 @@ async function runPillarPortalUpdate(ticketKey, opts = {}) {
 
 async function main() {
   // 1. Parse argv — key, branch, dry-run, pillar opt-in
-  const { dryRun, withPillar, key, branch: branchArg } = parseArgs(process.argv.slice(2));
+  const { dryRun, withPillar, noJiraSync, key, branch: branchArg } = parseArgs(process.argv.slice(2));
   const skipPillar                                     = !withPillar;
   /** @type {{ ok: boolean, branch?: string, prUrl?: string, pushed?: boolean, createdPr?: boolean, commits?: string[], catalog?: object, pillar?: object, error?: string }} */
   const out                                            = { ok: false };
@@ -386,6 +414,13 @@ async function main() {
       if (ticketKey) {
         out.catalog = updateImplementationCatalog(ticketKey, branch, true);
         out.pillar  = await runPillarPortalUpdate(ticketKey, { dryRun: true, skip: skipPillar });
+        const ctx  = await buildChiudiParentContextFromIssue(ticketKey, {
+          branch         : branch
+        , commit         : primaryCommitHash(out.commits ?? [])
+        , prUrl          : null
+        , catalogUpdated : Boolean(out.catalog?.updated)
+        });
+        out.parentDescriptionMarkdown = buildChiudiParentMarkdown(ctx);
       }
 
       console.log(JSON.stringify(out, null, 2));
@@ -432,6 +467,24 @@ async function main() {
     out.pushed    = pushed;
     out.createdPr = createdPr;
     out.commits   = commits;
+
+    if (ticketKey) {
+      const ctx = await buildChiudiParentContextFromIssue(ticketKey, {
+        branch         : branch
+      , commit         : primaryCommitHash(commits)
+      , prUrl
+      , catalogUpdated : Boolean(out.catalog?.updated)
+      });
+      out.parentDescriptionMarkdown = buildChiudiParentMarkdown(ctx);
+
+      if (!noJiraSync && hasJiraCredentials()) {
+        out.jira = await syncChiudiParentToJira(ticketKey, ctx, {
+          dryRun    : false
+        , transition: true
+        });
+      }
+    }
+
     console.log(JSON.stringify(out, null, 2));
   } catch (err) {
     out.error = err instanceof Error ? err.message : String(err);

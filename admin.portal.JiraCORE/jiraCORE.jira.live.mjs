@@ -98,7 +98,120 @@ export async function jiraLiveFetch(path, init = {}) {
 }
 
 /**
- * Converte markdown veve (heading, bullet checkbox, paragrafi) in ADF Jira.
+ * @param {string} text
+ * @returns {object[]}
+ */
+function parseInlineAdfNodes(text) {
+  const input = String(text ?? "");
+  /** @type {object[]} */
+  const nodes = [];
+  const re    = /(\*\*[^*]+\*\*|_[^_]+_|\[[^\]]+\]\([^)]+\)|`[^`]+`)/g;
+  let last    = 0;
+  let match;
+
+  while ((match = re.exec(input)) !== null) {
+    if (match.index > last) {
+      nodes.push({ type: "text", text: input.slice(last, match.index) });
+    }
+
+    const token = match[0];
+
+    if (token.startsWith("**") && token.endsWith("**")) {
+      nodes.push({
+        type   : "text"
+      , text   : token.slice(2, -2)
+      , marks  : [{ type: "strong" }]
+      });
+    } else if (token.startsWith("_") && token.endsWith("_")) {
+      nodes.push({
+        type   : "text"
+      , text   : token.slice(1, -1)
+      , marks  : [{ type: "em" }]
+      });
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      nodes.push({
+        type   : "text"
+      , text   : token.slice(1, -1)
+      , marks  : [{ type: "code" }]
+      });
+    } else {
+      const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+
+      if (link) {
+        nodes.push({
+          type   : "text"
+        , text   : link[1]
+        , marks  : [{ type: "link", attrs: { href: link[2] } }]
+        });
+      } else {
+        nodes.push({ type: "text", text: token });
+      }
+    }
+
+    last = match.index + token.length;
+  }
+
+  if (last < input.length) {
+    nodes.push({ type: "text", text: input.slice(last) });
+  }
+
+  if (nodes.length === 0) {
+    nodes.push({ type: "text", text: input || "—" });
+  }
+
+  return nodes;
+}
+
+/**
+ * @param {string} line
+ * @returns {boolean}
+ */
+function isTableRow(line) {
+  return /^\|.+\|$/.test(String(line ?? "").trim());
+}
+
+/**
+ * @param {string} line
+ * @returns {string[]}
+ */
+function splitTableCells(line) {
+  return String(line)
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+/**
+ * @param {string[]} rowLines
+ * @returns {object}
+ */
+function tableAdfFromRows(rowLines) {
+  const rows = rowLines
+    .filter((line) => !/^\|\s*[-:]+/.test(line.trim()))
+    .map((line, rowIndex) => {
+      const cells = splitTableCells(line).map((cell) => ({
+        type   : rowIndex === 0 ? "tableHeader" : "tableCell"
+      , attrs  : rowIndex === 0 ? {} : {}
+      , content: [{
+          type   : "paragraph"
+        , content: parseInlineAdfNodes(cell)
+        }]
+      }));
+
+      return { type: "tableRow", content: cells };
+    });
+
+  return {
+    type   : "table"
+  , attrs  : { isNumberColumnEnabled: false, layout: "default" }
+  , content: rows
+  };
+}
+
+/**
+ * Converte markdown workflow (heading, tabelle, bullet checkbox, paragrafi) in ADF Jira.
  *
  * @param {string} markdown
  * @returns {{ type: "doc", version: 1, content: object[] }}
@@ -124,12 +237,46 @@ export function markdownToAdfDoc(markdown) {
     });
   }
 
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line    = rawLine.trimEnd();
 
     if (!line.trim()) {
       flushList(listItems);
       listItems = [];
+      continue;
+    }
+
+    if (isTableRow(line)) {
+      flushList(listItems);
+      listItems = [];
+      /** @type {string[]} */
+      const tableLines = [line];
+
+      while (i + 1 < lines.length && isTableRow(lines[i + 1])) {
+        i += 1;
+        tableLines.push(lines[i].trimEnd());
+      }
+
+      content.push(tableAdfFromRows(tableLines));
+      continue;
+    }
+
+    if (/^---+$/.test(line.trim())) {
+      flushList(listItems);
+      listItems = [];
+      content.push({ type: "rule" });
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      flushList(listItems);
+      listItems = [];
+      content.push({
+        type   : "heading"
+      , attrs  : { level: 3 }
+      , content: parseInlineAdfNodes(line.slice(4).trim())
+      });
       continue;
     }
 
@@ -139,7 +286,7 @@ export function markdownToAdfDoc(markdown) {
       content.push({
         type   : "heading"
       , attrs  : { level: 2 }
-      , content: [{ type: "text", text: line.slice(3).trim() }]
+      , content: parseInlineAdfNodes(line.slice(3).trim())
       });
       continue;
     }
@@ -147,13 +294,12 @@ export function markdownToAdfDoc(markdown) {
     const checkbox = line.match(/^-\s*\[([ xX])\]\s*(.+)$/);
 
     if (checkbox) {
-      const mark = checkbox[1].toLowerCase();
-      const prefix = mark === "x" ? "☑ " : "☐ ";
+      const done = checkbox[1].toLowerCase() === "x";
       listItems.push({
         type   : "listItem"
       , content: [{
           type   : "paragraph"
-        , content: [{ type: "text", text: `${prefix}${checkbox[2].trim()}` }]
+        , content: parseInlineAdfNodes(`${done ? "☑" : "☐"} ${checkbox[2].trim()}`)
         }]
       });
       continue;
@@ -164,7 +310,7 @@ export function markdownToAdfDoc(markdown) {
         type   : "listItem"
       , content: [{
           type   : "paragraph"
-        , content: [{ type: "text", text: line.slice(2).trim() }]
+        , content: parseInlineAdfNodes(line.slice(2).trim())
         }]
       });
       continue;
@@ -174,7 +320,7 @@ export function markdownToAdfDoc(markdown) {
     listItems = [];
     content.push({
       type   : "paragraph"
-    , content: [{ type: "text", text: line.trim() }]
+    , content: parseInlineAdfNodes(line.trim())
     });
   }
 

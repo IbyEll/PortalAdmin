@@ -260,7 +260,10 @@ async function restorePersistedFindingIssues() {
 
     if (btn instanceof HTMLButtonElement) {
       paintCreatedIssueCell(btn, { key: link.key, issueType: link.issueType });
+      continue;
     }
+
+    paintCreatedIssueCell(cell, { key: link.key, issueType: link.issueType });
   }
 }
 
