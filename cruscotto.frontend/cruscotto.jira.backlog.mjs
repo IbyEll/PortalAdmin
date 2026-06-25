@@ -194,6 +194,13 @@ export function backlogTier(type) {
  *   relatedKeys?: string[],
  *   jiraDescription?: string | null,
  *   isSprint6Obsolete?: boolean,
+ *   prState?: string,
+ *   prPollComplete?: boolean,
+ *   backlogStar?: boolean,
+ *   prAppliedAt?: string,
+ *   prMergedAt?: string,
+ *   prTitle?: string,
+ *   prUrl?: string,
  * }} JiraBacklogRow
  */
 

@@ -5,11 +5,15 @@
 import { execFileSync } from "node:child_process";
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
+import { hasWorkflowAdvancementData } from "../lib/jira.issue.workflow.raw.mjs";
 import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
   loadWipPushBundle
 , normalizeIssueKey
 , parseWipRawFields
+, mergeJiraIssueCacheRawFields
+, purgeWipBundleIfCacheAligned
+, syncJiraIssueCacheFromWip
 } from "./jiraCORE.wip.db.mjs";
 
 /** @typedef {'OPEN' | 'MERGED' | 'CLOSED'} PrState */
@@ -37,7 +41,7 @@ export function parseGithubPullRequestUrl(prUrl) {
 /**
  * @param {string} prUrl
  * @param {string} [repoCwd]
- * @returns {{ state: PrState, merged: boolean, mergedAt: string | null, closedAt: string | null, url: string }}
+ * @returns {{ state: PrState, merged: boolean, mergedAt: string | null, closedAt: string | null, url: string, title: string | null }}
  */
 export function fetchPullRequestState(prUrl, repoCwd = getProductRepoPath()) {
   const url = String(prUrl ?? "").trim();
@@ -48,7 +52,7 @@ export function fetchPullRequestState(prUrl, repoCwd = getProductRepoPath()) {
 
   const raw = execFileSync(
     "gh"
-  , ["pr", "view", url, "--json", "state,mergedAt,closedAt,url"]
+  , ["pr", "view", url, "--json", "state,mergedAt,closedAt,url,title"]
   , { cwd: repoCwd, encoding: "utf8" }
   ).trim();
 
@@ -57,6 +61,9 @@ export function fetchPullRequestState(prUrl, repoCwd = getProductRepoPath()) {
 
   /** @type {PrState} */
   const normalized = state === "MERGED" || state === "CLOSED" ? state : "OPEN";
+  const title = typeof data.title === "string" && data.title.trim()
+    ? data.title.trim()
+    : null;
 
   return {
     state      : normalized
@@ -64,75 +71,8 @@ export function fetchPullRequestState(prUrl, repoCwd = getProductRepoPath()) {
   , mergedAt   : typeof data.mergedAt === "string" ? data.mergedAt : null
   , closedAt   : typeof data.closedAt === "string" ? data.closedAt : null
   , url        : typeof data.url === "string" ? data.url : url
+  , title
   };
-}
-
-/**
- * @param {import("@prisma/client").JiraIssueWip} wipRow
- * @param {Record<string, unknown>} rawMerge
- */
-function jiraIssueDataFromWipRow(wipRow, rawMerge = {}) {
-  const prev = parseWipRawFields(wipRow.rawFields);
-
-  return {
-    issueType         : wipRow.issueType
-  , summary           : wipRow.summary
-  , status            : wipRow.status
-  , statusCategory    : wipRow.statusCategory
-  , parentJiraKey     : wipRow.parentJiraKey
-  , jiraUpdatedAt     : wipRow.jiraUpdatedAt
-  , tier              : wipRow.tier
-  , isStoryLike       : wipRow.isStoryLike
-  , isDone            : wipRow.isDone
-  , depth             : wipRow.depth
-  , hasChildren       : wipRow.hasChildren
-  , devOrder          : wipRow.devOrder
-  , devSprint         : wipRow.devSprint
-  , devSprintName     : wipRow.devSprintName
-  , devSort           : wipRow.devSort
-  , isSprint6Obsolete : wipRow.isSprint6Obsolete
-  , relatedKeys       : wipRow.relatedKeys
-  , rawFields         : JSON.stringify({ ...prev, ...rawMerge })
-  , syncedAt          : new Date()
-  };
-}
-
-/**
- * Copia parent + subtask WIP nella cache jira_issue (stesso sync_run se la riga esiste).
- *
- * @param {string} parentKey
- * @param {Record<string, unknown>} rawMerge
- * @returns {Promise<string[]>}
- */
-export async function syncJiraIssueCacheFromWip(parentKey, rawMerge = {}) {
-  const key = normalizeIssueKey(parentKey);
-  const db  = await openCruscottoDb();
-  const { parent, subtasks } = await loadWipPushBundle(key);
-  const bundle = [parent, ...subtasks];
-  /** @type {string[]} */
-  const synced = [];
-
-  for (const wipRow of bundle) {
-    const cacheRow = await db.jiraIssue.findUnique({
-      where: { jiraKey: wipRow.jiraKey }
-    });
-
-    if (!cacheRow) {
-      continue;
-    }
-
-    await db.jiraIssue.update({
-      where: { jiraKey: wipRow.jiraKey }
-    , data : jiraIssueDataFromWipRow(wipRow, {
-        ...rawMerge
-      , cacheSyncedFromWipAt: rawMerge.cacheSyncedFromWipAt
-      })
-    });
-
-    synced.push(wipRow.jiraKey);
-  }
-
-  return synced;
 }
 
 /**
@@ -165,7 +105,7 @@ async function readCacheRowsForBundle(parentKey) {
 }
 
 /**
- * Poll PR per parent WIP — se merged/closed: aggiorna WIP, sync jira_issue, stop polling lato client.
+ * Poll PR per parent WIP — se merged/closed: aggiorna WIP, sync jira_issue, purge WIP se allineato.
  *
  * @param {string} parentKey
  * @returns {Promise<{
@@ -175,8 +115,13 @@ async function readCacheRowsForBundle(parentKey) {
  *   prState?: PrState
  *   prUrl?: string | null
  *   syncedKeys?: string[]
+ *   wipPurged?: boolean
+ *   wipDeletedKeys?: string[]
+ *   wipPurgeSkipped?: string
+ *   wipPurgeMismatches?: Array<{ jiraKey: string, mismatches: string[] }>
  *   cacheByKey?: Record<string, { jiraKey: string, status: string, isDone: boolean, summary: string }>
  *   skipped?: string
+ *   error?: string
  * }>}
  */
 export async function pollWipPullRequest(parentKey) {
@@ -185,7 +130,44 @@ export async function pollWipPullRequest(parentKey) {
   const parent = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
 
   if (!parent) {
-    return { ok: false, key, complete: true, skipped: "parent_wip_assente" };
+    const cacheRow = await db.jiraIssue.findUnique({ where: { jiraKey: key } });
+
+    if (!cacheRow) {
+      return { ok: false, key, complete: true, skipped: "parent_wip_assente" };
+    }
+
+    const cacheRaw = parseWipRawFields(cacheRow.rawFields);
+    const prUrl    = typeof cacheRaw.prUrl === "string" && cacheRaw.prUrl.startsWith("http")
+      ? cacheRaw.prUrl
+      : null;
+
+    if (cacheRaw.prPollComplete !== true && !cacheRaw.prMergedAt) {
+      return { ok: false, key, complete: true, skipped: "parent_wip_assente" };
+    }
+
+    let prTitle = typeof cacheRaw.prTitle === "string" ? cacheRaw.prTitle : null;
+
+    if (!prTitle && prUrl) {
+      try {
+        prTitle = fetchPullRequestState(prUrl).title;
+      } catch {
+        /* gh non disponibile */
+      }
+    }
+
+    if (prTitle && prTitle !== cacheRaw.prTitle) {
+      await mergeJiraIssueCacheRawFields(key, { prTitle });
+    }
+
+    return {
+      ok        : true
+    , key
+    , complete  : true
+    , skipped   : "cache_only"
+    , prUrl
+    , prState   : typeof cacheRaw.prState === "string" ? cacheRaw.prState : "MERGED"
+    , prTitle   : prTitle ?? cacheRaw.prTitle ?? null
+    };
   }
 
   const raw = parseWipRawFields(parent.rawFields);
@@ -198,13 +180,43 @@ export async function pollWipPullRequest(parentKey) {
   }
 
   if (raw.prPollComplete === true || raw.prMergedAt) {
+    let prTitle = typeof raw.prTitle === "string" ? raw.prTitle : null;
+
+    if (!prTitle && prUrl) {
+      try {
+        prTitle = fetchPullRequestState(prUrl).title;
+      } catch {
+        /* gh non disponibile */
+      }
+    }
+
+    if (prTitle && prTitle !== raw.prTitle) {
+      await db.jiraIssueWip.update({
+        where: { jiraKey: key }
+      , data : {
+          rawFields: JSON.stringify({ ...raw, prTitle })
+        , syncedAt : new Date()
+        }
+      }).catch(() => null);
+
+      await syncJiraIssueCacheFromWip(key, { prTitle }, { purgeIfAligned: false });
+    } else if (prTitle && !raw.prTitle) {
+      await syncJiraIssueCacheFromWip(key, { prTitle }, { purgeIfAligned: false });
+    }
+
+    const purge = await purgeWipBundleIfCacheAligned(key);
+
     return {
-      ok        : true
+      ok               : true
     , key
-    , complete  : true
-    , skipped   : "already_complete"
+    , complete         : true
+    , skipped          : "already_complete"
     , prUrl
-    , prState   : typeof raw.prState === "string" ? raw.prState : "MERGED"
+    , prState          : typeof raw.prState === "string" ? raw.prState : "MERGED"
+    , wipPurged        : purge.purged
+    , wipDeletedKeys   : purge.deletedKeys
+    , wipPurgeSkipped  : purge.skipped
+    , wipPurgeMismatches: purge.mismatches
     };
   }
 
@@ -265,6 +277,7 @@ export async function pollWipPullRequest(parentKey) {
       , rawFields: JSON.stringify({
           ...rowRaw
         , prState         : pr.state
+        , ...(pr.title ? { prTitle: pr.title } : {})
         , prMergedAt      : pr.mergedAt ?? now
         , prClosedAt      : pr.closedAt ?? (pr.state === "CLOSED" ? now : null)
         , prAppliedAt     : pr.mergedAt ?? pr.closedAt ?? now
@@ -278,8 +291,9 @@ export async function pollWipPullRequest(parentKey) {
     });
   }
 
-  const syncedKeys = await syncJiraIssueCacheFromWip(key, {
+  const syncResult = await syncJiraIssueCacheFromWip(key, {
     prState             : pr.state
+  , ...(pr.title ? { prTitle: pr.title } : {})
   , prMergedAt          : pr.mergedAt ?? now
   , prAppliedAt         : pr.mergedAt ?? pr.closedAt ?? now
   , prPollComplete      : true
@@ -287,15 +301,42 @@ export async function pollWipPullRequest(parentKey) {
   , backlogStar         : true
   });
 
-  const cacheByKey = await readCacheRowsForBundle(key);
+  let cacheByKey = {};
+
+  try {
+    cacheByKey = await readCacheRowsForBundle(key);
+  } catch {
+    /* WIP purgato — leggi cache direttamente */
+    const keys = syncResult.syncedKeys;
+
+    if (keys.length > 0) {
+      const rows = await db.jiraIssue.findMany({
+        where  : { jiraKey: { in: keys } }
+      , select : {
+          jiraKey : true
+        , status  : true
+        , isDone  : true
+        , summary : true
+        }
+      });
+
+      for (const row of rows) {
+        cacheByKey[row.jiraKey] = row;
+      }
+    }
+  }
 
   return {
-    ok         : true
+    ok                  : true
   , key
-  , complete   : true
-  , prState    : pr.state
+  , complete            : true
+  , prState             : pr.state
   , prUrl
-  , syncedKeys
+  , syncedKeys          : syncResult.syncedKeys
+  , wipPurged           : syncResult.purge.purged
+  , wipDeletedKeys      : syncResult.purge.deletedKeys
+  , wipPurgeSkipped     : syncResult.purge.skipped
+  , wipPurgeMismatches  : syncResult.purge.mismatches
   , cacheByKey
   };
 }
