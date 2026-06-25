@@ -110,4 +110,15 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-155"
+  , label : "allinea commenti al path canonico cruscotto.server.mjs"
+  , paths : [
+      "lib"
+      , "scripts"
+      , "server"
+      , "admin.portal.testscript"
+    ]
+  }
+
 ];
