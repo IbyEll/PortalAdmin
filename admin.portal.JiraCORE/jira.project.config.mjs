@@ -129,7 +129,6 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
 , skipPathPrefixes       : [
     "data/"
   , "cruscotto.frontend/"
-  , "PARKING_tocheck/"
   ]
 , meaningfulPathPrefixes : [
     "apps/"

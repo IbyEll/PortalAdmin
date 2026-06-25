@@ -40,7 +40,6 @@ import { join } from "node:path";
 
 import { REPO_ROOT } from "../lib/test.catalog.mjs";
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone, isStoryLikeType } from "./cruscotto.jira.backlog.mjs";
-import { boardKeysForWorkingPlanBlock, getWorkingPlan, mergeWorkingSprintKeys } from "./cruscotto.jira.working.order.mjs";
 import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
 import { scanRepoJiraReferences, truncateIssueSummary } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { LATEST_JSON } from "../lib/reporter.mjs";

@@ -18,7 +18,7 @@
 
   Input:
     - window.__CRUSCOTTO_PROJECT__ / data-cruscotto-bind — prefisso Jira e titolo documento
-    - GET /api/jira/backlog — righe backlog (loadJiraBacklog)
+    - GET /api/jira/backlog — backlog live Jira API (app.html#backlog; no cache DB)
     - GET /api/jira/backlog/insights — snapshot insight repo vs Jira
     - query ?embed=1 — modalità embed in iframe (classe body.is-embed)
 
@@ -1530,7 +1530,7 @@
           <svg class="tree-toolbar-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M7.41 18.59 8.83 20 12 16.83 15.17 20l1.41-1.41L12 14l-4.59 4.59zM7.41 5.41 8.83 4 12 7.17 15.17 4l1.41 1.41L12 10 7.41 5.41z"/></svg>
         </button>
       </span>
-      <button type="button" class="action btn-with-icon btn-jira-reload" id="btn-reload" title="Ricarica backlog da Jira">
+      <button type="button" class="action btn-with-icon btn-jira-reload" id="btn-reload" title="Ricarica backlog live da Jira API">
         <svg class="jira-toolbar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <g transform="translate(2 2) scale(0.833333)">
             <path fill="#2684FF" d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.13v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.218 5.218 0 0 0 24 12.487V1.005A1.001 1.001 0 0 0 23.013 0z"/>
@@ -1689,7 +1689,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="7" class="state">Caricamento backlog da Jira…</td></tr>
+          <tr><td colspan="7" class="state">Caricamento backlog live da Jira API…</td></tr>
         </tbody>
       </table>
     </div>
@@ -5562,7 +5562,7 @@
 
       if (!filterActive) {
         renderRows(displayRows);
-        stats.textContent = `${backlog.total} issue · ${backlog.epics ?? "—"} epic${viewSuffix} · ${new Date(backlog.fetchedAt).toLocaleString("it-IT")}`;
+        stats.textContent = `${backlog.total} issue · ${backlog.epics ?? "—"} epic${viewSuffix} · live · ${new Date(backlog.fetchedAt).toLocaleString("it-IT")}`;
         return;
       }
 
@@ -5678,7 +5678,7 @@
 
     async function loadBacklog() {
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Caricamento backlog da Jira…</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COL_COUNT}" class="state">Caricamento backlog live da Jira API…</td></tr>`;
       }
 
       if (stats) {

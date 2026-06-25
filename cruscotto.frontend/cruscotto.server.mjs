@@ -41,11 +41,13 @@
  *   - GET  /api/report, /api/report/html, /api/export
  *   - GET  /api/dev/requirements, /api/dev/services
  *   - GET|POST /api/repo/services/*, /api/repo/database/*
- *   - GET  /api/jira/backlog, /api/jira/backlog/insights
+ *   - GET  /api/jira/backlog — backlog live Jira API (forceApi; deprecazione prevista)
+ *   - GET  /api/jira/my-backlog — backlog cache cruscotto DB (dbOnly)
+ *   - POST /api/jira/my-backlog/sync — fetch Jira → persist DB
+ *   - GET  /api/jira/backlog/insights
  *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — workflow database
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
- *   - POST /api/report/tecnici-analysis · POST /api/pillar-matrix/regenerate (disabilitata)
  *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
  *
  * Consumatori:
@@ -85,7 +87,6 @@ import {
 , discoverTestCasesForScript
 } from "../lib/test.dipendenze.mjs";
 import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
-import { buildBacklogPillarTree } from "./cruscotto.jira.backlog.pillars.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
@@ -320,7 +321,6 @@ function enrichBacklogPayload(data) {
   const repoRefs = scanRepoJiraReferences();
 
   data.repoAlign  = buildRepoAlignMap(data.issues, repoRefs);
-  data.pillarTree = buildBacklogPillarTree(data.issues);
 
   return data;
 }
@@ -1157,9 +1157,10 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  // Backlog live (app.html#backlog → /backlog.html) — sempre API Jira; cache DB non usata qui.
   if (urlPath === "/api/jira/backlog" && req.method === "GET") {
     try {
-      const data = await loadJiraBacklog();
+      const data = await loadJiraBacklog({ forceApi: true });
       sendBacklogJson(res, req, data);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1169,6 +1170,7 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  // MyBacklog (app.html#mybacklog → /my-backlog.html) — solo cache cruscotto DB; sync via POST my-backlog/sync.
   if (urlPath === "/api/jira/my-backlog" && req.method === "GET") {
     try {
       const data = await loadJiraBacklog({ dbOnly: true });
@@ -1438,7 +1440,6 @@ async function handleRequest(req, res) {
     , "jiraproject"
     , "backlog"
     , "mybacklog"
-    , "pillarmatrix"
     , "process"
     , "cursor"
     ]);

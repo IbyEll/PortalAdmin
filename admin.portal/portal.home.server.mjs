@@ -85,12 +85,15 @@ import {
 import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
 import {
   analyzeRepository
+, getDocsDir
 , injectDocsChrome
 , listDocPages
 , refreshDocs
 , resolveDocsFile
-} from "../lib/docs.portal.mjs";
-import { createAdvancementFindingIssue } from "../lib/docs.portal.advancement.create.mjs";
+} from "../docs.portal.lib/docs.portal.mjs";
+import { createAdvancementFindingIssue } from "../docs.portal.lib/docs.portal.advancement.create.mjs";
+import { loadFindingIssueLinksObject } from "../docs.portal.lib/docs.portal.advancement.finding-issues.store.mjs";
+import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
 import {
   formatProjectNodeProcessesText
 , listProjectNodeProcesses
@@ -104,7 +107,6 @@ const SERVER_DIR           = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT          = join(SERVER_DIR, "..");
 const ADMIN_PORTAL_DIR     = SERVER_DIR;
 const CRUSCOTTO_FRONTEND   = join(PORTAL_ROOT, "cruscotto.frontend");
-const DOCS_DIR             = join(PORTAL_ROOT, "docs");
 const PORT                 = Number(
   process.env.PORTAL_HOME_PORT
   ?? 3990
@@ -309,19 +311,26 @@ function serveHomeAsset(req, res, rel) {
  * @returns {Promise<boolean>}
  */
 async function serveDocs(req, res, urlPath) {
-  if (urlPath === "/docs") {
+  let docsPath = urlPath;
+
+  if (docsPath.startsWith("/docs.portal")) {
+    docsPath = docsPath.replace("/docs.portal", "/docs");
+  }
+
+  if (docsPath === "/docs") {
     applyCors(res, req);
     res.writeHead(302, { Location: "/docs/index.html" });
     res.end();
     return true;
   }
 
-  if (!urlPath.startsWith("/docs/")) {
+  if (!docsPath.startsWith("/docs/")) {
     return false;
   }
 
-  const rel  = urlPath.replace(/^\/docs\//, "");
+  const rel  = docsPath.replace(/^\/docs\//, "");
   const file = resolveDocsFile(rel);
+  const docsDir = getDocsDir();
 
   if (!file) {
     sendJson(res, 404, { error: "Documento non trovato" }, req);
@@ -342,7 +351,7 @@ async function serveDocs(req, res, urlPath) {
     return true;
   }
 
-  if (!file.startsWith(DOCS_DIR)) {
+  if (!file.startsWith(docsDir)) {
     sendJson(res, 404, { error: "Not found" }, req);
     return true;
   }
@@ -412,6 +421,17 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/docs/advancement/finding-issues" && req.method === "GET") {
+    try {
+      sendJson(res, 200, { links: loadFindingIssueLinksObject() }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/docs/advancement/create-issue" && req.method === "POST") {
     try {
       const body = await readJsonBody(req);
@@ -443,6 +463,9 @@ async function handleApi(req, res, urlPath) {
       const sectionTitle = typeof body.sectionTitle === "string" && body.sectionTitle.trim()
         ? body.sectionTitle.trim()
         : undefined;
+      const category = typeof body.category === "string" && body.category.trim()
+        ? body.category.trim()
+        : undefined;
 
       const created = await createAdvancementFindingIssue({
         projectLabel
@@ -453,7 +476,12 @@ async function handleApi(req, res, urlPath) {
       , issueTypeKey: typeof body.issueType === "string" ? body.issueType : undefined
       , sectionLabel
       , sectionTitle
+      , category
       , parentKey    : typeof body.parentKey === "string" ? body.parentKey : null
+      });
+
+      void syncJiraBacklogFromApi().catch((err) => {
+        console.warn("[advancement/create-issue] sync backlog DB:", err instanceof Error ? err.message : err);
       });
 
       sendJson(res, 201, created, req);

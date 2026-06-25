@@ -39,3 +39,11 @@ Non azzerare `[x]` già presenti se B o A li confermano.
 - `ADMIN-Veve-AggiornaStory.mdc`, `ADMIN-Veve-AggiornaSubtask.mdc` — veve MCP (Jira live)
 - `ADMIN-Veve.db-AggiornaStory.mdc`, `ADMIN-Veve.db-AggiornaSubtask.mdc` — veve DB (`jira_issue_wip`)
 - JLO (product): `JustLastOne/.cursor/templates/veve/` — stesso schema
+
+## Runtime programmatico
+
+Senza chat Cursor — implementa `ADMIN-Veve.mdc` step 1→4:
+
+| Modulo | Ruolo |
+| --- | --- |
+| `docs.portal.lib/docs.portal.advancement.create.mjs` | Avanzamento **Crea** → issue grezza  |

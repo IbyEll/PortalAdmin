@@ -10,12 +10,12 @@
  *   - evita duplicare JQL, paginazione e mapping campi sprint/parent in ogni pagina
  *
  *   A cosa serve:
- *   - fetchJiraBacklog con devOrder/devSprint da JLO_WORKING_PLAN e relatedKeys
- *   - loadJiraBacklog — cache DB (cruscotto.database) con fallback API
+ *   - fetchJiraBacklog — JQL progetto overlay, albero Epic/Story/subtask, sprint board Agile
+ *   - loadJiraBacklog — cache DB (cruscotto.database) con fallback API; forceApi per backlog live
  *   - helper tipo issue, tier albero e stato done condivisi tra moduli frontend
  *
  * Generalizzazione:
- *   Si — credenziali e cloudId da env; ordine dev da cruscotto.jira.working.order.mjs (overlay piano).
+ *   Si — credenziali e cloudId da env;  
  *
  * Input:
  *   - JIRA_EMAIL, JIRA_API_TOKEN — auth Basic verso Jira Cloud API
@@ -26,30 +26,20 @@
  * Consumatori:
  *   - runner/cruscotto.server.mjs — fetchJiraBacklog, loadJiraBacklog, fetchJiraIssueStatus
  *   - cruscotto.database/Jira.backlog.sync.mjs, jiraCORE.backlog.load.mjs — persistenza e lettura cache
- *   - cruscotto.jira.backlog.insights.mjs, working.plan.mjs, project.tree.plan.mjs — piano e insight
+ *   - cruscotto.jira.backlog.insights.mjs, project.tree.plan.mjs — insight e piano
  *   - admin.portal.JiraCORE/JiraCORE.sprint.create.mjs, admin.portal.JiraCORE/JiraCORE.repo.issuekey.signal.analysis.mjs — tooling batch
  *
  * Export principali:
  *   - fetchJiraBacklog, loadJiraBacklog — backlog normalizzato
  *   - buildBacklogTree, isEpicType, isStoryLikeType, isJiraStatusDone — modello e utilità
- *   - fetchJiraSprints, fetchWorkingPlanBoardSprintKeys — sprint board Jira
+ *   - fetchJiraSprints, fetchBoardSprintKeysByName — sprint board Jira
  */
 
 import "../lib/portal.load.env.mjs";
 import { getProjectConfig, resolveJiraBoardId } from "../lib/project.config.mjs";
+  
 import {
-  applyDevOrder
-, applyEpicLegacySprintPins
-, applyJiraSprintFallback
-, applySprint6ObsoleteDevOrder
-, applySprint6TailDevOrder
-, getWorkingPlan
-, getWorkingPlanOverlay
-, normalizeSprintLabel
-} from "./cruscotto.jira.working.order.mjs";
-import {
-  extractIssueKeysFromText
-, resolveRelatedTicketKeys
+  resolveRelatedTicketKeys
 } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 
 const JIRA_SPRINT_FIELD = "customfield_10020";
@@ -393,6 +383,18 @@ export async function fetchJiraSprints() {
 }
 
 /**
+ * @param {string} name
+ * @returns {string}
+ */
+function normalizeSprintLabel(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[—–]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * @param {JiraSprintInfo[]} sprints
  */
 export function indexJiraSprintsByName(sprints) {
@@ -407,21 +409,18 @@ export function indexJiraSprintsByName(sprints) {
 }
 
 /**
- * Issue attualmente sul board Agile per ogni sprint del piano Working (solo active/future).
+ * Issue sul board Agile per ogni sprint Jira (active/future; closed → elenco vuoto).
  *
  * @param {JiraSprintInfo[]} jiraSprints
  * @returns {Promise<Record<string, string[]>>}
  */
-export async function fetchWorkingPlanBoardSprintKeys(jiraSprints) {
+export async function fetchBoardSprintKeysByName(jiraSprints) {
   /** @type {Record<string, string[]>} */
-  const byPlanName = {};
+  const byName = {};
 
-  for (const block of getWorkingPlan()) {
-    const target = normalizeSprintLabel(block.name);
-    const sprint = jiraSprints.find((row) => normalizeSprintLabel(row.name) === target);
-
-    if (!sprint || sprint.state === "closed") {
-      byPlanName[block.name] = [];
+  for (const sprint of jiraSprints) {
+    if (sprint.state === "closed") {
+      byName[sprint.name] = [];
       continue;
     }
 
@@ -445,10 +444,10 @@ export async function fetchWorkingPlanBoardSprintKeys(jiraSprints) {
       startAt += page.issues.length;
     }
 
-    byPlanName[block.name] = keys.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    byName[sprint.name] = keys.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }
 
-  return byPlanName;
+  return byName;
 }
 
 /**
@@ -506,17 +505,10 @@ export async function fetchJiraBacklog() {
     }
   } while (nextPageToken);
 
-  const ordered = applyDevOrder(buildBacklogTree(raw));
-  const byKey   = new Map(ordered.map((row) => [row.key, row]));
-  let issues    = applyEpicLegacySprintPins(applyJiraSprintFallback(ordered), byKey);
-
-  if (getWorkingPlanOverlay().sprint6Enabled) {
-    issues = applySprint6TailDevOrder(issues);
-    issues = applySprint6ObsoleteDevOrder(issues);
-  }
-  const epics = issues.filter((row) => row.tier === "epic").length;
-  const jiraSprints = await fetchJiraSprints();
-  const boardSprintKeysByPlanName = await fetchWorkingPlanBoardSprintKeys(jiraSprints);
+  const issues              = buildBacklogTree(raw);
+  const epics               = issues.filter((row) => row.tier === "epic").length;
+  const jiraSprints         = await fetchJiraSprints();
+  const boardSprintKeysByPlanName = await fetchBoardSprintKeysByName(jiraSprints);
 
   return {
     fetchedAt         : new Date().toISOString(),
@@ -530,7 +522,10 @@ export async function fetchJiraBacklog() {
 }
 
 /**
- * Load backlog from cruscotto.db when populated; otherwise fetch live Jira API.
+ * Load backlog — due pipeline in parallelo (vedi cruscotto.server route API):
+ * - forceApi: true  → GET /api/jira/backlog (app #backlog) — Jira live; cache ignorata
+ * - dbOnly: true    → GET /api/jira/my-backlog (app #mybacklog) — solo cruscotto DB
+ * - default         → cache DB se presente, altrimenti API (script/sync interni)
  *
  * @param {{ forceApi?: boolean, dbOnly?: boolean }} [opts]
  * @returns {Promise<Awaited<ReturnType<typeof fetchJiraBacklog>> & { source?: string, syncRunId?: string }>}

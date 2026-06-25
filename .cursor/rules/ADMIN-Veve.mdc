@@ -28,4 +28,12 @@ Variante **DB** (cache + WIP): `ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 
 
 **MCP veve:** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
 
+## Runtime programmatico (server / CI)
+
+Stessa sequenza 1→4 di questa regola, **senza** agente Cursor né MCP — per script, CI e pagina Avanzamento.
+
+| Contesto | Entrypoint |
+| --- | --- |
+| Jira REST | `admin.portal.JiraCORE/jiraCORE.jira.live.mjs` (non `CallMcpTool`) |
+
 **Vietato:** branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).

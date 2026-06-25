@@ -11,18 +11,18 @@ import { join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { writeFile } from "node:fs/promises";
 
-import { enrichFindingsWithIssueRefinement } from "../lib/docs.portal.advancement.issues.mjs";
-import { enrichFindingsWithProject } from "../lib/docs.portal.advancement.project.mjs";
-import { refreshAdvancementPageHtml } from "../lib/docs.portal.advancement.mjs";
-import { isFreshEntry, parsePreviousAutoStates } from "../lib/docs.portal.refresh.mjs";
+import { enrichFindingsWithIssueRefinement } from "../docs.portal.lib/docs.portal.advancement.issues.mjs";
+import { enrichFindingsWithProject } from "../docs.portal.lib/docs.portal.advancement.project.mjs";
+import { refreshAdvancementPageHtml } from "../docs.portal.lib/docs.portal.advancement.mjs";
+import { isFreshEntry, parsePreviousAutoStates } from "../docs.portal.lib/docs.portal.refresh.mjs";
 import {
   ADVANCEMENT_FINDINGS_CSS
 , esc
 , renderAdvancementChecksCard
 , renderAdvancementMetricsCard
 , renderAllAdvancementFindingSections
-} from "../lib/docs.portal.advancement.render.mjs";
-import { analyzeRepository } from "../lib/docs.portal.analysis.mjs";
+} from "../docs.portal.lib/docs.portal.advancement.render.mjs";
+import { analyzeRepository } from "../docs.portal.lib/docs.portal.analysis.mjs";
 
 const DOCS_DIR    = join(fileURLToPath(import.meta.url), "..");
 const PORTAL_ROOT = join(DOCS_DIR, "..");
@@ -107,6 +107,73 @@ function grepFiles(pattern, rootRel = ".") {
   return hits.sort();
 }
 
+/** Path esclusi dalla scansione import live (meta-doc, staging, regole). */
+const SCAN_SKIP_PREFIXES = [
+  "PARKING_tocheck/"
+, "docs.portal/"
+, "docs.portal.lib/"
+, "docs/"
+, "doc.cursor.rule/"
+, ".cursor/"
+];
+
+/** Import/export/require dinamico verso moduli in PARKING_tocheck (non menzioni in prosa). */
+const LIVE_PARKING_IMPORT_RE = /(?:\bfrom\s+|\brequire\s*\(\s*|\bimport\s*\(\s*)["'`][^"'`]*PARKING_tocheck/;
+
+/**
+ * @param {string} rel
+ * @returns {boolean}
+ */
+function isScanExcluded(rel) {
+  const norm = rel.replace(/\\/g, "/");
+
+  return SCAN_SKIP_PREFIXES.some((pfx) => norm === pfx.replace(/\/$/, "") || norm.startsWith(pfx));
+}
+
+/**
+ * File .mjs/.js fuori PARKING con import o re-export verso PARKING_tocheck.
+ *
+ * @param {string} [rootRel]
+ * @returns {string[]}
+ */
+function grepLiveParkingImports(rootRel = ".") {
+  const hits = [];
+  const walk = (dirRel) => {
+    const abs = join(PORTAL_ROOT, dirRel);
+
+    if (!existsSync(abs)) {
+      return;
+    }
+
+    for (const name of readdirSync(abs)) {
+      if (name === "node_modules" || name === ".git") {
+        continue;
+      }
+
+      const rel  = join(dirRel, name).replace(/\\/g, "/");
+      const full = join(PORTAL_ROOT, rel);
+      const st   = statSync(full);
+
+      if (st.isDirectory()) {
+        walk(rel);
+        continue;
+      }
+
+      if (isScanExcluded(rel) || !/\.mjs$/.test(name)) {
+        continue;
+      }
+
+      if (LIVE_PARKING_IMPORT_RE.test(readText(rel))) {
+        hits.push(rel);
+      }
+    }
+  };
+
+  walk(rootRel);
+
+  return hits.sort();
+}
+
 /**
  * @typedef {{ id: string, category: string, severity: string, title: string, detail: string, paths: string[], status: string, issueKey?: string | null, issueSummary?: string | null, issueType?: string | null, project?: string | null }} Finding
  */
@@ -177,8 +244,7 @@ export async function analyzePortalAdvancement(portalRoot) {
     });
   }
 
-  const parkingImports = grepFiles(String.raw`PARKING_tocheck`, ".")
-    .filter((p) => !p.startsWith("PARKING_tocheck/") && !p.includes("docs/") && !p.includes("doc.cursor.rule/"));
+  const parkingImports = grepLiveParkingImports(".");
 
   if (parkingImports.length > 0) {
     add({
@@ -186,8 +252,8 @@ export async function analyzePortalAdvancement(portalRoot) {
     , category : "gap"
     , severity : "P1"
     , title    : "PARKING_tocheck referenziato da moduli attivi"
-    , detail   : `${parkingImports.length} file fuori PARKING importano o re-exportano moduli in staging.`
-    , paths    : parkingImports.slice(0, 12)
+    , detail   : `${parkingImports.length} moduli .mjs fuori PARKING importano o re-exportano da staging.`
+    , paths    : parkingImports
     , status   : "partial"
     });
   }

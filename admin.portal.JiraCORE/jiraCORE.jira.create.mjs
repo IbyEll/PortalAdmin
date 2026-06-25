@@ -57,14 +57,21 @@ export async function createJiraIssue(opts) {
     project  : { key: projectKey }
   , issuetype: { name: typeDef.jiraName }
   , summary
-  , description: markdownToAdfDoc(opts.description ?? "")
   };
+
+  const description = String(opts.description ?? "").trim();
+
+  if (description) {
+    fields.description = markdownToAdfDoc(description);
+  }
 
   if (opts.parentKey) {
     fields.parent = { key: String(opts.parentKey).trim().toUpperCase() };
   }
 
-  const labels = (opts.labels ?? []).map((l) => String(l).trim()).filter(Boolean);
+  const labels = (opts.labels ?? [])
+    .map((l) => String(l).trim().replace(/\s+/g, ""))
+    .filter(Boolean);
 
   if (labels.length > 0) {
     fields.labels = labels;

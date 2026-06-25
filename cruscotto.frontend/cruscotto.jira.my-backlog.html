@@ -18,7 +18,7 @@
 
   Input:
     - window.__CRUSCOTTO_PROJECT__ / data-cruscotto-bind — prefisso Jira e titolo documento
-    - GET /api/jira/my-backlog — righe backlog solo da cruscotto DB (no fallback Atlassian)
+    - GET /api/jira/my-backlog — cache cruscotto DB (app.html#mybacklog; no fallback Atlassian)
     - POST /api/jira/my-backlog/sync — fetch Jira + persist in cruscotto DB
     - GET /api/jira/backlog/insights — snapshot insight repo vs Jira
     - query ?embed=1 — modalità embed in iframe (classe body.is-embed)
@@ -5679,7 +5679,7 @@
 
       if (!filterActive) {
         renderRows(displayRows);
-        stats.textContent = `${backlog.total} issue · ${backlog.epics ?? "—"} epic${viewSuffix} · ${new Date(backlog.fetchedAt).toLocaleString("it-IT")}`;
+        stats.textContent = `${backlog.total} issue · ${backlog.epics ?? "—"} epic${viewSuffix} · DB · ${new Date(backlog.fetchedAt).toLocaleString("it-IT")}`;
         return;
       }
 

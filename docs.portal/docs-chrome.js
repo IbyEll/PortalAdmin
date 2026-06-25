@@ -11,7 +11,7 @@ const statusEl   = document.getElementById("docs-chrome-status");
  * @returns {string}
  */
 function currentDocRel() {
-  const path = window.location.pathname.replace(/^\/docs\//, "");
+  const path = window.location.pathname.replace(/^\/docs(?:\.portal)?\//, "");
 
   return path || "index.html";
 }
@@ -134,6 +134,10 @@ void loadDocList().catch((err) => {
   setStatus(err instanceof Error ? err.message : String(err), "err");
 });
 
+void restorePersistedFindingIssues().catch(() => {
+  // store assente o pagina non Avanzamento
+});
+
 // 3. Dopo Aggiorna — scroll alla prima stellina
 if (sessionStorage.getItem("docs-scroll-fresh")) {
   sessionStorage.removeItem("docs-scroll-fresh");
@@ -192,9 +196,9 @@ function closeIssueCreateMenus(wrap) {
  * @param {{ key: string, issueType?: string }} data
  */
 function paintCreatedIssueCell(btn, data) {
-  const cell = btn.closest("td.issue-refinement");
+  const cell = btn?.closest?.("td.issue-refinement") ?? btn;
 
-  if (!cell) {
+  if (!(cell instanceof HTMLElement)) {
     return;
   }
 
@@ -202,7 +206,62 @@ function paintCreatedIssueCell(btn, data) {
   const badge           = `<span class="issue-type issue-type-${slug}">${label}</span>`;
   const url             = `${JIRA_BROWSE_BASE}/${encodeURIComponent(data.key)}`;
 
+  cell.dataset.issueKey = data.key;
   cell.innerHTML = `${badge}<a class="issue-ref" href="${url}" target="_blank" rel="noopener noreferrer">${data.key}</a>`;
+
+  if (data.issueType) {
+    cell.dataset.issueType = String(data.issueType);
+  }
+}
+
+/**
+ * Ripristina link issue persistiti dopo reload pagina Avanzamento.
+ * @returns {Promise<void>}
+ */
+async function restorePersistedFindingIssues() {
+  const rows = document.querySelectorAll("tr[data-finding-id]");
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  const res = await fetch("/api/docs/advancement/finding-issues");
+
+  if (!res.ok) {
+    return;
+  }
+
+  const data  = await res.json().catch(() => ({}));
+  const links = data.links && typeof data.links === "object" ? data.links : {};
+
+  for (const row of rows) {
+    if (!(row instanceof HTMLElement)) {
+      continue;
+    }
+
+    const findingId = row.dataset.findingId ?? "";
+    const link      = links[findingId];
+
+    if (!link?.key) {
+      continue;
+    }
+
+    const cell = row.querySelector("td.issue-refinement");
+
+    if (!(cell instanceof HTMLElement)) {
+      continue;
+    }
+
+    if (cell.querySelector("a.issue-ref")) {
+      continue;
+    }
+
+    const btn = cell.querySelector(".issue-ref-create");
+
+    if (btn instanceof HTMLButtonElement) {
+      paintCreatedIssueCell(btn, { key: link.key, issueType: link.issueType });
+    }
+  }
 }
 
 // 4. Crea issue Jira da finding Avanzamento (colonna Issue refinement)
@@ -249,6 +308,7 @@ document.addEventListener("click", (ev) => {
           , project     : btn.dataset.project
           , issueType   : sel.value || "BUG"
           , sectionLabel: btn.dataset.sectionLabel
+          , category    : btn.dataset.category || undefined
           , summary     : btn.dataset.summary
           , detail      : btn.dataset.detail
           , paths
@@ -263,7 +323,7 @@ document.addEventListener("click", (ev) => {
 
         closeIssueCreateMenus(wrap ?? undefined);
         paintCreatedIssueCell(btn, data);
-        setStatus(`Creato ${data.key} su Jira`, "ok");
+        setStatus(`Creato ${data.key} — veve applicato`, "ok");
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus(message, "err");

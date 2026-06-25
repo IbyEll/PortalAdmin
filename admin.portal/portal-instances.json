@@ -5,22 +5,22 @@
       "prjName": "AdminDashboard",
       "productRepoPath": "C:/Users/Casa/PortalAdmin",
       "dashboardPort": 3998,
-      "activatedAt": "2026-06-23T17:42:27.048Z",
+      "activatedAt": "2026-06-25T02:05:16.399Z",
       "reloadRequired": false,
       "prepare": {
         "status": "done",
-        "startedAt": "2026-06-23T17:42:27.048Z",
-        "finishedAt": "2026-06-23T17:42:28.073Z",
+        "startedAt": "2026-06-25T02:05:16.399Z",
+        "finishedAt": "2026-06-25T02:05:17.009Z",
         "exitCode": 0,
         "logTail": "[portal-prepare] overlay=AdminDashBoard product=AdminDashboard\n[portal-prepare] repo=C:\\Users\\Casa\\PortalAdmin\n[portal-prepare] istanzia cruscotto backlog DB…\n[portal-prepare] cruscotto DB caricato: C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\cruscotto_AdminDashBoard.db\n[portal-prepare] catalogo OK — C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\test.catalog.AdminDashBoard.mjs\n[portal-prepare] prepare product stack (--prepare-only --no-db)…\ncruscotto.process.start.all.services — stack Auth + API + Web\nProduct: C:\\Users\\Casa\\PortalAdmin\nPortal:  C:\\Users\\Casa\\PortalAdmin\n\n[1/3] Refresh database saltato (--no-db)\n\n[2/3] Prepare product repo condiviso (npm, .env, build workspace)…\n\n=== Verifica file .env ===\n\n  ok  .env\n\nPrepare completato (--prepare-only).\nAvvio stack: node cruscotto.frontend/cruscotto.process.start.all.services.mjs --no-build\n[portal-prepare] completato\n"
       },
       "dashboard": {
-        "status": "error",
-        "startedAt": "2026-06-24T02:07:51.391Z",
-        "finishedAt": "2026-06-24T02:07:53.596Z",
-        "exitCode": 1,
-        "logTail": "[cruscotto] avvio AdminDashBoard su :3998…\nnode:internal/modules/esm/resolve:271\r\n    throw new ERR_MODULE_NOT_FOUND(\r\n          ^\r\n\r\nError [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\\Users\\Casa\\PortalAdmin\\cruscotto.frontend\\cruscotto.jira.working.order.mjs' imported from C:\\Users\\Casa\\PortalAdmin\\cruscotto.frontend\\cruscotto.jira.backlog.mjs\r\n    at finalizeResolution (node:internal/modules/esm/resolve:271:11)\r\n    at moduleResolve (node:internal/modules/esm/resolve:861:10)\r\n    at defaultResolve (node:internal/modules/esm/resolve:988:11)\r\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:697:20)\r\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:714:38)\r\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:746:52)\r\n    at #resolve (node:internal/modules/esm/loader:679:17)\r\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:599:35)\r\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:162:33)\r\n    at ModuleJob.link (node:internal/modules/esm/module_job:252:17) {\r\n  code: 'ERR_MODULE_NOT_FOUND',\r\n  url: 'file:///C:/Users/Casa/PortalAdmin/cruscotto.frontend/cruscotto.jira.working.order.mjs'\r\n}\r\n\r\nNode.js v24.15.0\r\n",
-        "pid": 3728
+        "status": "starting",
+        "startedAt": "2026-06-25T02:12:59.402Z",
+        "finishedAt": null,
+        "exitCode": null,
+        "logTail": "[cruscotto] avvio AdminDashBoard su :3998…\nAdmin Dashboard  http://localhost:3998/\nProgetto: AdminDashboard (AdminDashBoard) · Jira ADMIN\nStatic: cruscotto.frontend/ (+ jira insight assets)\n",
+        "pid": 18808
       }
     }
   }
