@@ -59,7 +59,7 @@ import {
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
 import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 

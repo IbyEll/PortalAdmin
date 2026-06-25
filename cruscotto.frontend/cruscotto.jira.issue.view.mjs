@@ -2,13 +2,13 @@
  * Vista issue Jira — fetch live dettaglio per key (ADMIN-*, JLO-*).
  */
 
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { isJiraStatusDone } from "./cruscotto.jira.backlog.mjs";
 import { adfToPlainText } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 import { jiraLiveFetch } from "../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
 import { openCruscottoDb, cruscottoDbFileExists } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { fetchWipAdvancementForIssue, buildWipAdvancementEntry } from "./cruscotto.jira.wip.mjs";
-import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
+import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../admin.portal.JiraCORE/jira.issue.workflow.raw.mjs";
 
 const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
 const JIRA_SPRINT_FIELD = "customfield_10020";

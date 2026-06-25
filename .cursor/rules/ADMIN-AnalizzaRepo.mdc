@@ -31,7 +31,7 @@ Key ammesse: `ADMIN-xxx`, `JLO-xxx`.
 
 | Area | Path (PortalAdmin) | Path (product JLO) |
 | --- | --- | --- |
-| Portal / cruscotto | `lib/`, `server/`, `cruscotto/`, `scripts/` | — |
+| Portal / cruscotto | `admin.portal.lib/`, `server/`, `cruscotto/`, `scripts/` | — |
 | Schema / API / Web | — | `packages/`, `apps/` |
 | Test | — | `testScript/` |
 | Catalogo | `portal.config.mjs`, `lib/repo.implementation.signals.catalog.mjs` | — |

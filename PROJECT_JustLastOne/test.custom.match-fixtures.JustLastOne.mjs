@@ -27,8 +27,8 @@
  *   - DATABASE_URL — env opzionale; default file: impostato da setupDefaultDatabaseUrl
  *
  * Consumatori:
- *   - lib/test.match-fixtures.mjs — import dinamico overlay JustLastOne
- *   - lib/test.run.all.mjs — resetHostTestState prima della suite
+ *   - admin.portal.lib/test.match-fixtures.mjs — import dinamico overlay JustLastOne
+ *   - admin.portal.lib/test.run.all.mjs — resetHostTestState prima della suite
  *
  * Export principali:
  *   - setupDefaultDatabaseUrl — env DATABASE_URL e root product
@@ -40,7 +40,7 @@
 
 import { join } from "node:path";
 
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 /**
  * Imposta `process.env.DATABASE_URL` su SQLite dev se assente.

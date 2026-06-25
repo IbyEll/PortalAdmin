@@ -68,7 +68,7 @@
  */
 
 // import dipendenze Node, lib http.mjs (product) o moduli PortalAdmin per smoke
-// import { assert, logSection, printSummary, resolveScriptMeta, runTest } from "../lib/http.mjs";
+// import { assert, logSection, printSummary, resolveScriptMeta, runTest } from "../admin.portal.lib/http.mjs";
 
 /** Accumulatore esiti runTest per riepilogo finale. */
 /** @type {{ name: string, ok: boolean, detail?: string }[]} */

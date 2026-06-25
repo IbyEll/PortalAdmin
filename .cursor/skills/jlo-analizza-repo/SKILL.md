@@ -24,7 +24,7 @@ node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent JLO-
 
 ## Aree PortalAdmin
 
-`lib/`, `server/`, `cruscotto/`, `scripts/`, `portal.config.mjs`
+`admin.portal.lib/`, `server/`, `cruscotto/`, `scripts/`, `portal.config.mjs`
 
 ## Aree product (JLO)
 

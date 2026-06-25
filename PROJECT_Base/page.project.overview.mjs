@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — dynamic import overview overlay
+ *   - admin.portal.lib/dashboard.project.mjs — dynamic import overview overlay
  *   - cruscotto.frontend/cruscotto.server.mjs — API project overview
  *
  * Export principali:

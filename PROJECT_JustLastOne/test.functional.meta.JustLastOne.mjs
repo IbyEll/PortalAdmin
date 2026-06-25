@@ -7,7 +7,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *     Meta test funzionali JustLastOne — implementation e scenari su lib/test.functional.meta.
+ *     Meta test funzionali JustLastOne — implementation e scenari su admin.portal.lib/test.functional.meta.
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — import test.functional.meta.JustLastOne.mjs
+ *   - admin.portal.lib/dashboard.project.mjs — import test.functional.meta.JustLastOne.mjs
  *   - cruscotto.frontend/cruscotto.server.mjs — API meta test funzionali
  *
  * Export principali:
@@ -37,7 +37,7 @@
 
 import {
   buildFunzionaliMetaPayload
-} from "../lib/test.functional.meta.mjs";
+} from "../admin.portal.lib/test.functional.meta.mjs";
 
 export const FUNZIONALI_IMPLEMENTATION = {
   title       : "Test funzionali multi-utente"

@@ -26,8 +26,8 @@
  *   - options.html — genera latest.html se true (default)
  *
  * Consumatori:
- *   - lib/test.run.all.mjs — writeRunReports, mergeWithLatestReport
- *   - lib/test.technical.analysis.mjs — LATEST_JSON per analisi tecnici
+ *   - admin.portal.lib/test.run.all.mjs — writeRunReports, mergeWithLatestReport
+ *   - admin.portal.lib/test.technical.analysis.mjs — LATEST_JSON per analisi tecnici
  *   - cruscotto.frontend/cruscotto.server.mjs — serve latest.json/html
  *
  * Export principali:

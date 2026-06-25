@@ -69,7 +69,7 @@ const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const PUSH_CLI = resolve(ROOT, "admin.portal.JiraCORE/jiraCORE.wip.push.mjs");
 const PUSH_TEST_KEY = String(process.env.WIP_PUSH_TEST_KEY ?? "").trim().toUpperCase();
 
-/** @type {import("../lib/http.mjs").TestResult[]} */
+/** @type {import("../admin.portal.lib/http.mjs").TestResult[]} */
 const results = [];
 
 async function main() {

@@ -61,8 +61,8 @@ import { dirname, join, resolve } from "node:path";
 
 import { PrismaClient } from "@prisma/client";
 
-import { resolveProjectOverlayName } from "../lib/project.config.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { resolveProjectOverlayName } from "../admin.portal.lib/project.config.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { runCruscottoMigrateFull } from "./cruscotto.db.migrate.mjs";
 
 // --- costanti di modulo (policy, set, path fissi) ---

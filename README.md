@@ -19,7 +19,7 @@ Repository autonomo per l'**Admin Dashboard** estratto da [JustLastOne](https://
 | `server/` | `dashboard-server.mjs` — HTTP static + API run/status/report |
 | `cruscotto/` | SPA frontend cruscotto |
 | `runner/` | `run-all.mjs` — orchestrazione testScript nel **product repo** |
-| `lib/` | Helper condivisi (env, Jira, catalogo, `portal-paths`) |
+| `admin.portal.lib/` | Helper condivisi (env, Jira, catalogo, `portal-paths`) |
 | `cruscotto.database/` | SQLite cache Jira (ADMIN-81) |
 | `data/` | Artefatti generati (DB, report) — **gitignored** |
 
@@ -94,7 +94,7 @@ npm run test:paths
 
 ## portal.config.mjs (ADMIN-93)
 
-Segnali repo e progetti Jira configurabili **senza** modificare `lib/jira-backlog-insights.mjs`:
+Segnali repo e progetti Jira configurabili **senza** modificare `cruscotto.frontend/cruscotto.jira.backlog-insights.mjs`:
 
 | Export | Ruolo |
 | --- | --- |

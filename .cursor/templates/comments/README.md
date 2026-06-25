@@ -10,7 +10,7 @@ I template sono **riferimento obbligatorio** — non importati a runtime. Il cor
 | --- | --- | --- | --- |
 | 1 | **Testscript** | `testscript.mjs` | `testScript/` (product), `test.smoke/`, `admin.portal.testscript/`, suite `runTest`/`assert` |
 | 2 | **Script / entrypoint** | `script-entrypoint.mjs` | `#!/usr/bin/env node`, `scripts/`, seed CLI, `main` implicito, argv (non test) |
-| 3 | **Libreria** | `lib-module.mjs` | `lib/`, `cruscotto.database/`, `runner/*-lib.mjs`, export senza argv |
+| 3 | **Libreria** | `lib-module.mjs` | `admin.portal.lib/`, `cruscotto.database/`, `runner/*-lib.mjs`, export senza argv |
 | 4 | **Server / UI** | `app-module.mjs` | `server/`, `runner/*server*.mjs`, handler HTTP Node |
 | 5 | **Pagina HTML** | `page-html.html` | `.html` in `cruscotto.frontend/`, `admin.portal/`, `pillar-matrix/`, pagine generate Jira |
 | 6 | **Script pagina HTML** | `page-html.mjs` | `.js`/`.mjs` client servito con una HTML (no `import` Node, no `#!/usr/bin/env node`) |

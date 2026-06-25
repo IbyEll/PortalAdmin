@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/discovery.config.mjs — import dinamico PROJECT_JustLastOne/discovery.config
+ *   - admin.portal.lib/discovery.config.mjs — import dinamico PROJECT_JustLastOne/discovery.config
  *
  * Export principali:
  *   - DISCOVERY_CONFIG_VALUES — coreServiceIds, extras, stackStartScript, descrizioni UI
@@ -33,7 +33,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-/** @type {import("../lib/overlay/discovery.config.mjs").DiscoveryConfigValues} */
+/** @type {import("../admin.portal.lib/overlay/discovery.config.mjs").DiscoveryConfigValues} */
 export const DISCOVERY_CONFIG_VALUES = {
   // Servizi product — ordine tab Servizi
   coreServiceIds: ["web", "api", "auth"]

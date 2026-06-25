@@ -50,7 +50,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { JIRA_PROJECT_KEYS } from "./jira.project.config.overlay.mjs";
 
 // --- costanti di modulo (regex, policy walk, limiti scan) ---

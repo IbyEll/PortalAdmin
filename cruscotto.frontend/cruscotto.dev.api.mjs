@@ -24,7 +24,7 @@
  *   Si — servizi e requirements da product.manifest (overlay PRJ_NAME / PRODUCT_REPO_PATH).
  *  
  * Input:
- *   - product.manifest.json — loadProductManifest (lib/product.manifest.mjs)
+ *   - product.manifest.json — loadProductManifest (admin.portal.lib/product.manifest.mjs)
  *   - svc.healthUrl, svc.processScript — probe HTTP o fragment processo per servizio
  *
  * Route o endpoint (montate da cruscotto.frontend/cruscotto.server.mjs):
@@ -36,8 +36,8 @@
  *   - cruscotto.frontend/cruscotto.home.js — tab Requisiti e Servizi
  *
  * Dipendenze:
- *   - lib/product.manifest.mjs — definizione servizi e requirements
- *   - lib/discovery.services.repo.mjs — FRIEND_BOT_PROCESS_FRAGMENT
+ *   - admin.portal.lib/product.manifest.mjs — definizione servizi e requirements
+ *   - admin.portal.lib/discovery.services.repo.mjs — FRIEND_BOT_PROCESS_FRAGMENT
  *   - runner/cruscotto.process.kill.ports.mjs — findPidsByCommandFragment
  *
  * Export principali:
@@ -47,9 +47,9 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { loadProductManifest } from "../lib/product.manifest.mjs";
+import { loadProductManifest } from "../admin.portal.lib/product.manifest.mjs";
 import { findPidsByCommandFragment } from "../cruscotto.frontend/cruscotto.process.kill.ports.mjs";
-import { FRIEND_BOT_PROCESS_FRAGMENT } from "../lib/discovery.services.repo.mjs";
+import { FRIEND_BOT_PROCESS_FRAGMENT } from "../admin.portal.lib/discovery.services.repo.mjs";
 
 // --- policy probe ---
 const PROBE_TIMEOUT_MS = 2000;

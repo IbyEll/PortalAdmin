@@ -26,7 +26,7 @@
  *   - PRJ_DASHBOARD_PORT — default da project.config overlay
  *
  * Consumatori:
- *   - lib/portal.instance.mjs — spawn dopo attivazione overlay
+ *   - admin.portal.lib/portal.instance.mjs — spawn dopo attivazione overlay
  *   - admin.portal/portal.dashboard.launch.mjs — launch da HOME UI
  *
  * Export principali:

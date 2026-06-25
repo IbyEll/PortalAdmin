@@ -28,7 +28,7 @@
  *   - PRJ_TEST_SCRIPT — directory test relativa al product repo
  *
  * Consumatori:
- *   - lib/test.catalog.mjs, lib/test.run.all.mjs — getProductRepoPath, getTestScriptDir
+ *   - admin.portal.lib/test.catalog.mjs, admin.portal.lib/test.run.all.mjs — getProductRepoPath, getTestScriptDir
  *   - cruscotto.frontend/cruscotto.server.mjs — path host e product
  *
  * Export principali:

@@ -16,7 +16,7 @@
  *   - Suite testScript JLO ha script blocked o esclusi da run-all per dipendenze o API assenti.
  *
  *   A cosa serve:
- *   - BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS e BLOCKED_REASONS per lib/test.catalog.mjs.
+ *   - BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS e BLOCKED_REASONS per admin.portal.lib/test.catalog.mjs.
  *
  * Generalizzazione:
  *   No — policy fissa path relativi testScript product JustLastOne.
@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/test.catalog.mjs — loadOverlayPolicy quando PRJ_NAME=JustLastOne
+ *   - admin.portal.lib/test.catalog.mjs — loadOverlayPolicy quando PRJ_NAME=JustLastOne
  *
  * Export principali:
  *   - BLOCKED_SCRIPTS — Set path non eseguibili

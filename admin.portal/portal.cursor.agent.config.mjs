@@ -41,7 +41,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getPortalRoot, getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 

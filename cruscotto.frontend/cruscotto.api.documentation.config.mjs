@@ -41,8 +41,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
-import { getProductRepoPath, getPortalRoot } from "../lib/portal.paths.resolver.mjs";
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProductRepoPath, getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 
 // --- costanti di modulo (badge/card UI per id servizio noti) ---
 /**

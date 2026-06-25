@@ -31,7 +31,7 @@
 
 const DASHBOARD_PORT = "3998";
 
-/** @type {import("../lib/project.config.mjs").ProjectConfig} */
+/** @type {import("../admin.portal.lib/project.config.mjs").ProjectConfig} */
 export const PROJECT_CONFIG_VALUES = {
   PRJ_REPO             : "PortalAdmin"
 , PRJ_NAME             : "AdminDashboard"

@@ -50,8 +50,8 @@ import {
 , resolveCruscottoDbPath
 } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { loadJiraBacklogFromDb } from "../admin.portal.JiraCORE/jiraCORE.backlog.load.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
-import { resolveProjectOverlayName } from "../lib/project.config.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { resolveProjectOverlayName } from "../admin.portal.lib/project.config.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 

@@ -50,10 +50,10 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 import { fetchJiraBacklog } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { getWorkingPlan } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
-import { resolveJiraBoardId } from "../lib/project.config.mjs";
+import { resolveJiraBoardId } from "../admin.portal.lib/project.config.mjs";
 
 const MOVE_BATCH_SIZE = 50;
 

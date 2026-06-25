@@ -54,9 +54,9 @@ import {
 , projectHasProductDatabase
 , resolveProductSeedPath
 , resolveProjectOverlayName
-} from "../lib/project.config.mjs";
-import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
-import { JIRA_KEY_RE, scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
+} from "../admin.portal.lib/project.config.mjs";
+import { getPortalRoot, getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { JIRA_KEY_RE, scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 

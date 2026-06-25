@@ -26,8 +26,8 @@
  *   - —
  *
  * Consumatori:
- *   - lib/test.match-fixtures.mjs — import dinamico con fallback su PROJECT_Base
- *   - lib/test.run.all.mjs — setup e reset prima dell'esecuzione test
+ *   - admin.portal.lib/test.match-fixtures.mjs — import dinamico con fallback su PROJECT_Base
+ *   - admin.portal.lib/test.run.all.mjs — setup e reset prima dell'esecuzione test
  *
  * Export principali:
  *   - setupDefaultDatabaseUrl — ritorna root checkout product (nessun DATABASE_URL Prisma)
@@ -37,7 +37,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 /**
  * Root checkout product repo — usato da run-all quando non c'è DB Prisma.

@@ -38,7 +38,7 @@
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { mergeWorkflowRawFields } from "../lib/jira.issue.workflow.raw.mjs";
+import { mergeWorkflowRawFields } from "./jira.issue.workflow.raw.mjs";
 
 const ISSUE_KEY_RE = /^(ADMIN|JLO)-\d+$/;
 

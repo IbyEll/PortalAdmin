@@ -36,14 +36,14 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 import { pathToFileURL } from "node:url";
 import { findPillarsForKey, generatePillarMatrixHtml } from "./generate-confluence-pillar-matrix.mjs";
 import {
   buildAggregateChangelogPanel
 , prepareMatrixBodyWithDiff
 , summarizeDiff
-} from "../lib/pillar-matrix-diff.mjs";
+} from "./pillar-matrix-diff.mjs";
 
 const CLOUD_ID = process.env.JIRA_CLOUD_ID ?? "3caddd74-469e-4ca3-adf8-926f79c98e7c";
 const API_BASE = `https://api.atlassian.com/ex/confluence/${CLOUD_ID}`;
@@ -475,7 +475,7 @@ async function publishTargetedUpdate(ticketKey, opts = {}) {
 async function publishUpdate(bundle) {
   const indexId     = EXISTING_PAGES.index;
   const updatedAt   = bundle.fetchedAt ?? new Date().toISOString();
-  /** @type {Array<{ label: string, diff: import("../lib/pillar-matrix-diff.mjs").MatrixDiff }>} */
+  /** @type {Array<{ label: string, diff: import("./pillar-matrix-diff.mjs").MatrixDiff }>} */
   const diffSections = [];
 
   console.log(`Updating index page ${indexId}…`);
@@ -508,7 +508,7 @@ async function publishUpdate(bundle) {
   ].filter(Boolean).join("\n\n");
 
   const { version: indexVersion } = await fetchPageStorage(indexId);
-  /** @type {import("../lib/pillar-matrix-diff.mjs").MatrixDiff} */
+  /** @type {import("./pillar-matrix-diff.mjs").MatrixDiff} */
   const totalDiff = diffSections.reduce((acc, row) => {
     acc.added.push(...row.diff.added);
     acc.removed.push(...row.diff.removed);

@@ -14,7 +14,7 @@
  *
  *   Perché esiste:
  *   - run-all, dashboard e seed devono sapere se lo stack dev è raggiungibile prima di procedere.
- *   - Un solo probe HTTP condiviso evita duplicazione tra cruscotto.health e lib/test.run-all.
+ *   - Un solo probe HTTP condiviso evita duplicazione tra cruscotto.health e admin.portal.lib/test.run-all.
  *
  *   A cosa serve:
  *   - probeUrl — GET con esito up e latencyMs.
@@ -30,7 +30,7 @@
  *   - authHealthUrl, apiHealthUrl, webUrl — override opzionali in checkServices
  *
  * Consumatori:
- *   - lib/test.run-all.mjs — checkProjectServices prima dei test funzionali
+ *   - admin.portal.lib/test.run-all.mjs — checkProjectServices prima dei test funzionali
  *   - server/cruscotto.health.mjs — checkDevStackServices per GET /api/health
  *
  * Export principali:
@@ -42,7 +42,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { resolveDevStackProbeUrls } from "../lib/project.config.mjs";
+import { resolveDevStackProbeUrls } from "../admin.portal.lib/project.config.mjs";
 import { resolveDevServices } from "./cruscotto.runner.stack.config.overlay.mjs";
 
 /** Timeout default probe HTTP (ms). */

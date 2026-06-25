@@ -37,7 +37,7 @@
  */
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtFromRaw } from "../lib/jira.issue.workflow.raw.mjs";
+import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtFromRaw } from "../admin.portal.JiraCORE/jira.issue.workflow.raw.mjs";
 
 /** @typedef {{ checked: boolean, text: string }} WipCheckItem */
 

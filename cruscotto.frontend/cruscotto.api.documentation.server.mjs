@@ -35,12 +35,12 @@
  *
  * Consumatori:
  *   - cruscotto.frontend/cruscotto.process.start.api.documentation.mjs — spawn processo dev
- *   - lib/discovery.services.repo.mjs — id api-documentation nel piano Process cruscotto
+ *   - admin.portal.lib/discovery.services.repo.mjs — id api-documentation nel piano Process cruscotto
  *   - cruscotto.frontend/cruscotto.api.documentation.js — fetch /config.json e spec servizi
  *
  * Dipendenze:
  *   - cruscotto.api.documentation.config.mjs — buildApiDocumentationConfig
- *   - lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath
+ *   - admin.portal.lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath
  *
  * Variabili d'ambiente:
  *   - PRODUCT_REPO_PATH, API_DOCUMENTATION_PORT, PORTAL_PORT
@@ -54,7 +54,7 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildApiDocumentationConfig } from "./cruscotto.api.documentation.config.mjs";
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 // --- path statici (sorgenti in cruscotto.frontend/, non cartella api-documentation/) ---
 const SERVER_DIR   = dirname(fileURLToPath(import.meta.url));

@@ -16,7 +16,7 @@
  *   - Suite admin.portal.testscript ha script che non vanno in run-all automatico o CI.
  *
  *   A cosa serve:
- *   - Espone BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS e BLOCKED_REASONS per lib/test.catalog.mjs.
+ *   - Espone BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS e BLOCKED_REASONS per admin.portal.lib/test.catalog.mjs.
  *
  * Generalizzazione:
  *   No — policy fissa su path admin.portal.testscript relativi a PRJ_TEST_SCRIPT overlay.
@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/test.catalog.mjs — loadOverlayPolicy merge con discovery generica
+ *   - admin.portal.lib/test.catalog.mjs — loadOverlayPolicy merge con discovery generica
  *
  * Export principali:
  *   - BLOCKED_SCRIPTS — Set path non eseguibili da run-all

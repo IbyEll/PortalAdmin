@@ -34,7 +34,7 @@
         <li><a href="#oneliner">In una riga</a></li>
         <li><a href="#stato">Stato attuale — tre pipeline</a></li>
         <li><a href="#gap">Gap e limiti</a></li>
-        <li><a href="#proposta">Proposta — <code>lib/portal.log.mjs</code></a></li>
+        <li><a href="#proposta">Proposta — <code>admin.portal.lib/portal.log.mjs</code></a></li>
         <li><a href="#schema">Schema record</a></li>
         <li><a href="#api">API e consumer</a></li>
         <li><a href="#jira">Backlog Jira</a></li>
@@ -44,7 +44,7 @@
 
     <div class="oneliner" id="oneliner">
       <strong>In una riga:</strong>
-      introdurre <code>lib/portal.log.mjs</code> (ring buffer + livelli + <code>source</code>),
+      introdurre <code>admin.portal.lib/portal.log.mjs</code> (ring buffer + livelli + <code>source</code>),
       migrare Process e Cursor Agent, esporre <code>GET /api/logs</code> unificato, poi allineare
       la console HOME e la UI cruscotto — story backend <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-158">ADMIN-158</a>
       prima della UI <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-157">ADMIN-157</a>.
@@ -120,8 +120,8 @@ flowchart TB
 
     <h3>Assente oggi</h3>
     <p>
-      Non esiste <code>lib/portal.log.mjs</code> né altro modulo log condiviso nel repo.
-      I launcher product in <code>lib/portal.launch.dashboard.mjs</code> usano
+      Non esiste <code>admin.portal.lib/portal.log.mjs</code> né altro modulo log condiviso nel repo.
+      I launcher product in <code>admin.portal.lib/portal.launch.dashboard.mjs</code> usano
       <code>stdio: "ignore"</code> di default — l'output dello stack product non entra in nessun buffer
       centralizzato.
     </p>
@@ -169,7 +169,7 @@ flowchart TB
       </tbody>
     </table>
 
-    <h2 id="proposta">Proposta — <code>lib/portal.log.mjs</code></h2>
+    <h2 id="proposta">Proposta — <code>admin.portal.lib/portal.log.mjs</code></h2>
 
     <p>Modulo unico esportante <code>createLogger(source)</code> e un bus condiviso:</p>
 
@@ -187,7 +187,7 @@ flowchart TB
     </ul>
 
     <pre><code>// Uso previsto
-import { createLogger } from "../lib/portal.log.mjs";
+import { createLogger } from "../admin.portal.lib/portal.log.mjs";
 
 const log = createLogger("process");
 log.info("avvio unità auth", { unitId: "auth" });
@@ -270,7 +270,7 @@ log.stderr("errore bind porta 4000");</code></pre>
       </thead>
       <tbody>
         <tr>
-          <td>Modulo <code>lib/portal.log.mjs</code></td>
+          <td>Modulo <code>admin.portal.lib/portal.log.mjs</code></td>
           <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-159">ADMIN-159</a></td>
           <td><code>createLogger</code>, ring buffer, <code>PORTAL_LOG_LEVEL</code></td>
         </tr>

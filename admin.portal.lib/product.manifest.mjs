@@ -27,7 +27,7 @@
  *
  * Consumatori:
  *   - server/dev-api.mjs — tab Requisiti e Servizi
- *   - lib/discovery.services.repo.mjs — piano avvio Process
+ *   - admin.portal.lib/discovery.services.repo.mjs — piano avvio Process
  *   - test.smoke/smoke-portal-paths.mjs — smoke path e parse
  *
  * Export principali:

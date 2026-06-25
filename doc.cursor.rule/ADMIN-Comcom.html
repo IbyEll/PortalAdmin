@@ -32,7 +32,7 @@
 <ol><li><strong>Scegli il template</strong> — tabella in <code>.cursor/templates/comments/README.md</code>.</li><li><strong>Leggi il template scelto</strong> con il tool Read — <strong>obbligatorio</strong>, prima di modificare il target:</li></ol>
 <table><thead><tr><th>Tipo file</th><th>Path template (relativo repo PortalAdmin)</th></tr></thead><tbody><tr><td>Testscript (<code>testScript/</code>, <code>test.smoke/</code>, <code>admin.portal.testscript/</code>, <code>runTest</code>/<code>assert</code>)</td><td><code>.cursor/templates/comments/testscript.mjs</code></td></tr>
 <tr><td>Entrypoint CLI (<code>#!/usr/bin/env node</code>, <code>main</code> implicito, argv, non test)</td><td><code>.cursor/templates/comments/script-entrypoint.mjs</code></td></tr>
-<tr><td>Libreria (<code>lib/</code>, <code>cruscotto.database/</code>, <code>runner/*-lib.mjs</code>, export senza argv)</td><td><code>.cursor/templates/comments/lib-module.mjs</code></td></tr>
+<tr><td>Libreria (<code>admin.portal.lib/</code>, <code>cruscotto.database/</code>, <code>runner/*-lib.mjs</code>, export senza argv)</td><td><code>.cursor/templates/comments/lib-module.mjs</code></td></tr>
 <tr><td>Server / handler HTTP Node (<code>runner/<em>server</em>.mjs</code>, <code>server/</code>)</td><td><code>.cursor/templates/comments/app-module.mjs</code></td></tr>
 <tr><td>Pagina HTML statica (<code>cruscotto.frontend/</code>, <code>admin.portal/</code>, pillar-matrix, Jira HTML)</td><td><code>.cursor/templates/comments/page-html.html</code></td></tr>
 <tr><td>Script client companion di una HTML (<code>.js</code>/<code>.mjs</code> senza Node: fetch DOM, tab, bootstrap)</td><td><code>.cursor/templates/comments/page-html.mjs</code></td></tr>

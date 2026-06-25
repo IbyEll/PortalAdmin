@@ -18,7 +18,7 @@
  *   - Verifica che run-all trovi almeno uno script testScript nel product repo attivo.
  *
  *   A cosa serve:
- *   - Spawn lib/test.run.all.mjs --list e controlla stdout e path reports sotto portal.
+ *   - Spawn admin.portal.lib/test.run.all.mjs --list e controlla stdout e path reports sotto portal.
  *
  * Generalizzazione:
  *   Si — requireTestScriptDir e env product da overlay PRJ_NAME.
@@ -40,14 +40,14 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { requireTestScriptDir } from "../lib/portal.paths.resolver.mjs";
-import { REPORTS_DIR } from "../lib/reporter.mjs";
+import { requireTestScriptDir } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { REPORTS_DIR } from "../admin.portal.lib/reporter.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 requireTestScriptDir();
 
-const child = spawn(process.execPath, ["lib/test.run.all.mjs", "--list"], {
+const child = spawn(process.execPath, ["admin.portal.lib/test.run.all.mjs", "--list"], {
   cwd       : PORTAL_ROOT
 , stdio     : ["ignore", "pipe", "pipe"]
 , env       : process.env

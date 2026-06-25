@@ -6,8 +6,8 @@ import { execFileSync } from "node:child_process";
 
 import { isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { getProjectConfig } from "../lib/project.config.mjs";
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.wip.mjs";
 import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";

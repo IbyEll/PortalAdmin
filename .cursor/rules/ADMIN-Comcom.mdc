@@ -25,7 +25,7 @@ alwaysApply: true
 | --- | --- |
 | Testscript (`testScript/`, `test.smoke/`, `admin.portal.testscript/`, `runTest`/`assert`) | `.cursor/templates/comments/testscript.mjs` |
 | Entrypoint CLI (`#!/usr/bin/env node`, `main` implicito, argv, non test) | `.cursor/templates/comments/script-entrypoint.mjs` |
-| Libreria (`lib/`, `cruscotto.database/`, `runner/*-lib.mjs`, export senza argv) | `.cursor/templates/comments/lib-module.mjs` |
+| Libreria (`admin.portal.lib/`, `cruscotto.database/`, `runner/*-lib.mjs`, export senza argv) | `.cursor/templates/comments/lib-module.mjs` |
 | Server / handler HTTP Node (`runner/*server*.mjs`, `server/`) | `.cursor/templates/comments/app-module.mjs` |
 | Pagina HTML statica (`cruscotto.frontend/`, `admin.portal/`, pillar-matrix, Jira HTML) | `.cursor/templates/comments/page-html.html` |
 | Script client companion di una HTML (`.js`/`.mjs` senza Node: fetch DOM, tab, bootstrap) | `.cursor/templates/comments/page-html.mjs` |

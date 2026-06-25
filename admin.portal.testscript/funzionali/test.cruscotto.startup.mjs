@@ -69,8 +69,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   loadOverlayConfig
 , resolveOverlayDashboardPort
-} from "../../lib/portal.instance.mjs";
-import { isFullDashboardUp } from "../../lib/portal.launch.dashboard.mjs";
+} from "../../admin.portal.lib/portal.instance.mjs";
+import { isFullDashboardUp } from "../../admin.portal.lib/portal.launch.dashboard.mjs";
 import { portalFetch } from "../lib/http.mjs";
 import { resolveProductRepoPathForOverlay } from "../lib/portal-context.mjs";
 

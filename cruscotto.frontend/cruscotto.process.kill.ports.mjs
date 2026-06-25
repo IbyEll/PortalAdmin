@@ -26,7 +26,7 @@
  *   - pids opzionali — kill mirato se già noti
  *
  * Consumatori:
- *   - lib/portal.launch.dashboard.mjs — killDashboardOnPort prima spawn cruscotto
+ *   - admin.portal.lib/portal.launch.dashboard.mjs — killDashboardOnPort prima spawn cruscotto
  *   - cruscotto.frontend/cruscotto.process.services.manager.mjs — stop-one e Kill All
  *
  * Export principali:

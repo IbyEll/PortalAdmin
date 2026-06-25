@@ -43,7 +43,7 @@ import {
   START_DEV_SERVICE_PS1
 } from "./cruscotto.runner.stack.config.overlay.mjs";
 import { syncDatabase } from "../cruscotto.database/product.database.seed.run.mjs";
-import { projectHasProductDatabase } from "../lib/project.config.mjs";
+import { projectHasProductDatabase } from "../admin.portal.lib/project.config.mjs";
 import {
   ensureNodeModules
 , ensureProductEnvFiles

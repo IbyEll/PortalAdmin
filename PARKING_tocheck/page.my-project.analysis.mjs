@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — resolveProjectOverlayFilePath fallback Base
+ *   - admin.portal.lib/dashboard.project.mjs — resolveProjectOverlayFilePath fallback Base
  *   - cruscotto.frontend/cruscotto.server.mjs — handler API my-project
  *
  * Export principali:

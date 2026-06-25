@@ -281,7 +281,7 @@ export function killProductNestService(serviceId, productRoot, options = {}) {
 
 // --- CLI npm run stop:all — import dinamico manager per evitare ciclo statico ---
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  await import("../lib/portal.load.env.mjs");
+  await import("../admin.portal.lib/portal.load.env.mjs");
 
   const includeDashboard = process.argv.includes("--include-dashboard");
   const { stopRepoServices } = await import("./cruscotto.process.services.manager.mjs");

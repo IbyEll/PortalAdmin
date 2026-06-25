@@ -21,17 +21,17 @@
  *     su path noti, ultimo report test e sezioni per cruscotto.jira.my-project.html.
  *
  * Generalizzazione:
- *   Si — caricato da lib/dashboard.project.mjs quando overlay espone page.my-project.analysis.mjs;
+ *   Si — caricato da admin.portal.lib/dashboard.project.mjs quando overlay espone page.my-project.analysis.mjs;
  *   fallback generico in cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs.
  *
  * Input:
  *   - PRJ_NAME=JustLastOne — overlay PROJECT_JustLastOne
- *   - lib/test.catalog.mjs — REPO_ROOT, discoverTestScripts, BLOCKED_SCRIPTS
+ *   - admin.portal.lib/test.catalog.mjs — REPO_ROOT, discoverTestScripts, BLOCKED_SCRIPTS
  *   - Credenziali Jira — fetchJiraBacklog (project JLO)
  *   - data/reports/latest.json — riepilogo ultimo run test
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — re-export analyzeMyProject
+ *   - admin.portal.lib/dashboard.project.mjs — re-export analyzeMyProject
  *   - cruscotto.frontend/cruscotto.server.mjs — GET /api/my-project/analyze
  *
  * Export principali:
@@ -44,16 +44,16 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
-import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../lib/test.catalog.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../admin.portal.lib/test.catalog.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   fetchJiraBacklog
 , isEpicType
 , isJiraStatusDone
 , isStoryLikeType
 } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
-import { scanRepoJiraReferences, walkRepoTextFiles } from "../lib/function.repo.jira.refs.mjs";
-import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
+import { scanRepoJiraReferences, walkRepoTextFiles } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
+import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../admin.portal.lib/reporter.mjs";
 
 // --- costanti Jira browse (link in tree/list) ---
 /** Base URL browse issue Jira Cloud (link in tree/list). */
@@ -622,7 +622,7 @@ function repoExists(rel) {
 /**
  * Macro-aree prodotto dedotte da path noti (controller, page, schema) — non da Jira.
  *
- * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
+ * @param {import("../admin.portal.lib/test.catalog.mjs").ScriptEntry[]} testScripts
  */
 function scanRepoCapabilities(testScripts) {
   // 1. Per dominio (auth, match, tornei, …) — existsSync su path canonici
@@ -791,7 +791,7 @@ function scanRepoCapabilities(testScripts) {
     adminItems.push("dashboard dev :3999 — run test, report HTML, export, health servizi");
   }
 
-  if (repoExists("lib/test.run.all.mjs")) {
+  if (repoExists("admin.portal.lib/test.run.all.mjs")) {
     adminItems.push("runner testScript orchestrato + report latest.json/html");
   }
 
@@ -853,7 +853,7 @@ function scanRepoCapabilities(testScripts) {
  * Prosa markdown «Sintesi By Repo» per sezione repo-summary.
  *
  * @param {ReturnType<typeof scanRepoCapabilities>} capabilities
- * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
+ * @param {import("../admin.portal.lib/test.catalog.mjs").ScriptEntry[]} testScripts
  * @param {{ generatedAt: string | null, passed: number, failed: number, scripts: number }} testReport
  * @returns {string}
  */

@@ -71,7 +71,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 import {
   runDataSeeds

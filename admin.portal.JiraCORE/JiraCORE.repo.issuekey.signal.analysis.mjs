@@ -84,7 +84,7 @@ export const REPO_ANALYSIS_AREAS = [
 , {
     id    : "admin"
   , label : "Admin / cruscotto"
-  , paths : ["lib/", "cruscotto.frontend/", "scripts/"]
+  , paths : ["admin.portal.lib/", "cruscotto.frontend/", "scripts/"]
   }
 , {
     id    : "test"
@@ -94,7 +94,7 @@ export const REPO_ANALYSIS_AREAS = [
 , {
     id    : "catalog"
   , label : "Catalogo segnali"
-  , paths : ["portal.config.mjs", "lib/repo.implementation.signals.catalog.mjs"]
+  , paths : ["portal.config.mjs", "PROJECT_AdminDashBoard/signals.catalog.AdminDashBoard.mjs"]
   }
 , {
     id    : "backlog-doc"

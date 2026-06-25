@@ -52,7 +52,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import "../lib/portal.load.env.mjs"; 
+import "../admin.portal.lib/portal.load.env.mjs"; 
 
 const MODULE_DIR  = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT = join(MODULE_DIR, "..");

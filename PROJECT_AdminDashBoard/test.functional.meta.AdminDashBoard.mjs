@@ -25,7 +25,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — import test.functional.meta.AdminDashBoard.mjs
+ *   - admin.portal.lib/dashboard.project.mjs — import test.functional.meta.AdminDashBoard.mjs
  *   - cruscotto.frontend/cruscotto.server.mjs — GET meta test funzionali
  *
  * Export principali:
@@ -35,7 +35,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { buildFunzionaliMetaPayload } from "../lib/test.functional.meta.mjs";
+import { buildFunzionaliMetaPayload } from "../admin.portal.lib/test.functional.meta.mjs";
 
 export const FUNZIONALI_IMPLEMENTATION = {
   title         : "Test funzionali PortalAdmin"
@@ -47,7 +47,7 @@ export const FUNZIONALI_IMPLEMENTATION = {
   ]
 , architecture  : [
     "admin.portal.testscript/lib — HTTP e contesto overlay"
-  , "Discovery catalogo — suite funzionali in lib/test.catalog.mjs"
+  , "Discovery catalogo — suite funzionali in admin.portal.lib/test.catalog.mjs"
   ]
 , runOrder      : [
     "funzionali/test.cruscotto.startup.mjs"

@@ -54,7 +54,7 @@ import { fileURLToPath } from "node:url";
 import {
   loadOverlayConfig
 , resolveOverlayDashboardPort
-} from "../../lib/portal.instance.mjs";
+} from "../../admin.portal.lib/portal.instance.mjs";
 
 import { stripTrailingSlash } from "./http.mjs";
 
@@ -74,7 +74,7 @@ const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * @typedef {{
  *   base    : string
  * , overlay : string | null
- * , config  : import("../../lib/project.config.mjs").ProjectConfig | null
+ * , config  : import("../../admin.portal.lib/project.config.mjs").ProjectConfig | null
  * }} CruscottoTestContext
  */
 
@@ -135,7 +135,7 @@ export function parseOverlayCli(argv) {
  * Path assoluto repo product — override CLI/env o sibling da cfg.PRJ_REPO.
  *
  * @param {string | null} override
- * @param {import("../../lib/project.config.mjs").ProjectConfig} cfg
+ * @param {import("../../admin.portal.lib/project.config.mjs").ProjectConfig} cfg
  * @returns {string}
  */
 export function resolveProductRepoPathForOverlay(cfg, override) {

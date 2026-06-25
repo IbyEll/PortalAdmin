@@ -37,7 +37,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 const CLOUD_ID = process.env.JIRA_CLOUD_ID ?? "3caddd74-469e-4ca3-adf8-926f79c98e7c";
 const API_BASE = `https://api.atlassian.com/ex/jira/${CLOUD_ID}`;

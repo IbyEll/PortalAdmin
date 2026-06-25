@@ -45,10 +45,10 @@ import {
 , getProductRepoPath
 , getTestScriptDir
 , resolveProductRepoPath
-} from "../lib/portal.paths.resolver.mjs";
-import { scanRepoJiraReferences } from "../lib/function.repo.jira.refs.mjs";
-import { loadProductManifest, PRODUCT_MANIFEST_PATH } from "../lib/product.manifest.mjs";
-import { REPORTS_DIR } from "../lib/reporter.mjs";
+} from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
+import { loadProductManifest, PRODUCT_MANIFEST_PATH } from "../admin.portal.lib/product.manifest.mjs";
+import { REPORTS_DIR } from "../admin.portal.lib/reporter.mjs";
 
 const portal = getPortalRoot();
 

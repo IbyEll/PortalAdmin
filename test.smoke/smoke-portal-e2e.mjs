@@ -45,7 +45,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const ROOT     = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT     = Number(process.env.DASHBOARD_PORT ?? 3999);

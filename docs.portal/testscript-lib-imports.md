@@ -15,9 +15,9 @@ Analisi ADMIN-133 — gap G1 (ADMIN-97).
 
 | File | Modulo | Note |
 | --- | --- | --- |
-| `lib/dev.stack.probe.mjs` | `lib/test-script-http.mjs` | wrapper verso product repo |
-| `server/health.mjs` | `lib/test-script-http.mjs` | idem |
-| `runner/JustLastOne___run-all.mjs` | `lib/test-script-http.mjs` | `importTestScriptModule("lib/JustLastOne___match-fixtures.mjs")` runtime |
+| `lib/dev.stack.probe.mjs` | `admin.portal.lib/test-script-http.mjs` | wrapper verso product repo |
+| `server/health.mjs` | `admin.portal.lib/test-script-http.mjs` | idem |
+| `runner/JustLastOne___run-all.mjs` | `admin.portal.lib/test-script-http.mjs` | `importTestScriptModule("lib/JustLastOne___match-fixtures.mjs")` runtime |
 
 ## Target post ADMIN-97
 

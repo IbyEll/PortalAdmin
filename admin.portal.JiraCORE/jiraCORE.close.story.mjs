@@ -55,7 +55,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 import {
   commitCatalogUpdate
@@ -68,7 +68,7 @@ import {
 , syncChiudiParentToJira
 } from "./jiraCORE.workflow.description.mjs";
 
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const REPO_ROOT = getPortalRoot();
 

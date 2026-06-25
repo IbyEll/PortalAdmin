@@ -35,8 +35,8 @@
  *   - fetchJiraSprints, fetchBoardSprintKeysByName — sprint board Jira
  */
 
-import "../lib/portal.load.env.mjs";
-import { getProjectConfig, resolveJiraBoardId } from "../lib/project.config.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
+import { getProjectConfig, resolveJiraBoardId } from "../admin.portal.lib/project.config.mjs";
   
 import {
   resolveRelatedTicketKeys

@@ -66,7 +66,7 @@ import {
 import { printOverlayCliHelp, resolveHomeBase } from "../lib/portal-context.mjs";
 
 /** Accumulatore esiti runTest per riepilogo finale. */
-/** @type {import("../lib/http.mjs").TestResult[]} */
+/** @type {import("../admin.portal.lib/http.mjs").TestResult[]} */
 const results = [];
 
 async function main() {

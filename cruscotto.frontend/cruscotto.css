@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** STYLESHEET ** -- commentato il: 2026-06-23 23:30
+ * ** STYLESHEET ** -- ** STYLESHEET ** -- commentato il: 2026-06-24 00:15
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-17 00:00   by: IbyEll
- * modificato il: 2026-06-23 23:30   by: IbyEll
+ * modificato il: 2026-06-24 00:15   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -37,7 +37,7 @@
  * - cruscotto.frontend/cruscotto.server.mjs — alias statico `/cruscotto.css`
  *
  * Asset correlati:
- * - jira-issue-display.css, expand-collapse-toolbar.css, insight-toolbar.css — fogli companion
+ * - expand.collapse.toolbar.js, cruscotto.jira.issue.display.client.js — companion senza CSS separati
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
@@ -238,15 +238,15 @@ body {
   border-radius: 0;
   background: var(--bg);
   overflow: hidden;
-}
-
-.panel {
+}.panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem 1.15rem;
   margin-bottom: 1rem;
+  margin: 1rem 0;
 }
+
 
 .panel h2 {
   margin: 0 0 0.75rem;
@@ -344,6 +344,7 @@ a.action.is-disabled {
 button.action.primary {
   border-color: var(--accent);
   color: var(--accent);
+  background: rgba(61, 156, 245, 0.15);
 }
 
 button.action:disabled {
@@ -2774,6 +2775,10 @@ a.jira-link {
   color: var(--accent);
   text-decoration: none;
   font-weight: 600;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
 }
 
 a.jira-link:hover { text-decoration: underline; }
@@ -4803,4 +4808,453 @@ tr.tier-subtask .key-main { overflow: visible; }
 tr.tier-subtask .key-main .jira-link {
   font-size: 0.78rem;
   font-weight: 500;
+}
+
+/* --- fogli CSS inglobati — issue display, toolbar, insight, pillar-matrix --- */
+
+/* --- cruscotto.jira.issue.display.css --- */
+
+.issue-type {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+}
+
+.issue-type-epic {
+  color: var(--purple);
+  border-color: rgba(183, 148, 246, 0.45);
+  background: rgba(183, 148, 246, 0.12);
+}
+
+.issue-type-story {
+  color: var(--pass);
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.issue-type-bug {
+  color: var(--fail, #f87171);
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.issue-type-sub {
+  color: var(--turquoise, #2ee8d6);
+  border-color: rgba(46, 232, 214, 0.45);
+  background: rgba(46, 232, 214, 0.08);
+}
+
+.issue-type-todo {
+  color: var(--accent);
+  border-color: rgba(61, 156, 245, 0.45);
+  background: rgba(61, 156, 245, 0.1);
+}
+
+.issue-type-other { color: var(--muted); }
+
+.jira-key-wrap .issue-type { flex-shrink: 0; }
+
+.col-key .issue-type { margin-right: 0.3rem; }
+
+/* --- expand.collapse.toolbar.css --- */
+
+.tree-bulk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+button.action.btn-tree-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--accent, #3d9cf5);
+  border-color: rgba(61, 156, 245, 0.35);
+  background: rgba(61, 156, 245, 0.08);
+}
+button.action.btn-tree-icon:hover:not(:disabled) {
+  color: #6bb5ff;
+  border-color: var(--accent, #3d9cf5);
+  background: rgba(61, 156, 245, 0.16);
+}
+button.action.btn-tree-icon:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+button.action.btn-tree-icon .tree-toolbar-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* --- cruscotto.jira.toolbar.insight.css --- */
+
+button.action.btn-insight-analyze, button.action.btn-insight-clear {
+  color: rgba(240, 188, 104, 0.68);
+  border-color: rgba(240, 188, 104, 0.36);
+  background: transparent;
+}
+button.action.btn-insight-analyze .insight-toolbar-icon, button.action.btn-insight-clear .insight-toolbar-icon {
+  flex-shrink: 0;
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: rgba(240, 188, 104, 0.68);
+}
+button.action.btn-insight-analyze:hover:not(:disabled), button.action.btn-insight-clear:hover:not(:disabled) {
+  color: #f0bc68;
+  border-color: rgba(240, 188, 104, 0.55);
+  background: transparent;
+  box-shadow: none;
+}
+button.action.btn-insight-analyze:hover:not(:disabled) .insight-toolbar-icon, button.action.btn-insight-clear:hover:not(:disabled) .insight-toolbar-icon { color: #f0bc68; }
+button.action.btn-insight-analyze:disabled, button.action.btn-insight-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- pillar-matrix/pillar-matrix.css --- */
+
+h2 {
+  margin: 1.5rem 0 0.65rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+h2.pillar-title { color: var(--pillar-title); }
+main > h2:first-child { color: var(--pillar-title); }
+.pillar-index-list a {
+  color: var(--pillar-title);
+  text-decoration: none;
+  font-weight: 500;
+}
+.pillar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.pillar-nav a {
+  display: inline-block;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.78rem;
+  text-decoration: none;
+}
+.pillar-nav a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pillar-nav a.active {
+  border-color: var(--accent);
+  background: rgba(61, 156, 245, 0.15);
+  color: var(--accent);
+}
+.pillar-index-list {
+  margin: 0.5rem 0 1.25rem;
+  padding-left: 1.5rem;
+  line-height: 1.65;
+}
+.pillar-index-list li + li { margin-top: 0.2rem; }
+.pillar-index-list a:hover { text-decoration: underline; }
+.matrix-table tbody td:first-child > a {
+  color: var(--pillar-title);
+  font-weight: 500;
+}
+.pillar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+button.action.primary:hover:not(:disabled) { background: rgba(61, 156, 245, 0.28); }
+button.action:disabled, button.action.is-loading {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.pillar-version {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.pillar-regen-status {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.pillar-regen-status.is-ok { color: var(--pass); }
+.pillar-regen-status.is-error { color: var(--danger); }
+.panel-info {
+  background: rgba(61, 156, 245, 0.08);
+  border-color: rgba(61, 156, 245, 0.35);
+}
+main table, .matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0.75rem 0 1rem;
+}
+.matrix-table-wrap {
+  width: 100%;
+  max-width: none;
+  overflow-x: auto;
+}
+.matrix-table-resizable {
+  table-layout: fixed;
+  width: 100%;
+}
+main {
+  width: 100%;
+  max-width: none;
+  overflow-x: visible;
+}
+main table th.col-resize-head, .matrix-table th.col-resize-head {
+  position: relative;
+  padding-right: 0.55rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+main table td:not(.matrix-tree-issue-col), .matrix-table td:not(.matrix-tree-issue-col) { overflow-wrap: anywhere; }
+main table th, main table td, .matrix-table th, .matrix-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.42rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+main table th, .matrix-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+main table tbody tr:hover, .matrix-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+main table a, .matrix-table a { color: var(--accent); }
+.git-commit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.git-commit-item small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.git-commit-branch, .git-commit-via {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.status {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-ok {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--pass);
+}
+.status-warn {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warn);
+}
+.status-danger {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--danger);
+}
+.status-muted {
+  background: rgba(139, 156, 179, 0.12);
+  color: var(--muted);
+}
+.status-purple {
+  background: rgba(183, 148, 246, 0.15);
+  color: var(--purple);
+}
+.page-footer {
+  margin-top: 2rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.page-footer a { color: var(--accent); }
+main ul {
+  margin: 0.5rem 0 1rem;
+  padding: 0 0 0 1.2rem;
+}
+main code {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.matrix-grouped {
+  border-collapse: separate;
+  border-spacing: 0 0.45rem;
+}
+.matrix-issue-group tr.matrix-group-head td {
+  background: rgba(61, 156, 245, 0.1);
+  border-top: 1px solid rgba(61, 156, 245, 0.35);
+  border-bottom: 1px solid rgba(61, 156, 245, 0.2);
+  font-weight: 500;
+}
+.matrix-issue-group tr.matrix-group-head td:first-child { border-left: 3px solid var(--accent); }
+.matrix-issue-group tr.matrix-group-child td:first-child { border-left: 3px solid transparent; }
+.matrix-issue-group tr.matrix-group-child[data-depth="1"] td:first-child { padding-left: 1.35rem; }
+.matrix-issue-group tr.matrix-group-child[data-depth="2"] td:first-child { padding-left: 2.35rem; }
+.matrix-issue-group tr.matrix-group-child[data-depth="3"] td:first-child { padding-left: 3.35rem; }
+.matrix-issue-group.is-collapsed tr.matrix-group-child { display: none; }
+.matrix-group-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.75rem 0 0.35rem;
+}
+.matrix-group-toolbar-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.matrix-group-issue-col { padding-left: 0.35rem; }
+.matrix-group-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.matrix-group-toggle {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.35rem;
+  text-align: center;
+}
+.matrix-group-toggle:hover {
+  border-color: var(--accent);
+  background: rgba(61, 156, 245, 0.12);
+}
+.matrix-grouped td.matrix-group-issue-col { min-width: 6.5rem; }
+.matrix-grouped td.matrix-group-issue-col .matrix-group-cell { align-items: center; }
+.matrix-group-content { min-width: 0; }
+.matrix-issue-group:not(.has-children) tr.matrix-group-head td:first-child { border-left-color: var(--border); }
+/* Albero issue — Epic → Story → Subtask (come backlog) */ .matrix-table.matrix-tree tbody.matrix-tree-body tr.matrix-tree-row td:first-child { border-left: 3px solid var(--border); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic td:first-child { border-left-color: var(--purple); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic td { background: rgba(183, 148, 246, 0.1); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic:hover td { background: rgba(183, 148, 246, 0.16); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-epic .status-purple { background: rgba(183, 148, 246, 0.22); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-task td:first-child { border-left-color: var(--accent); }
+.matrix-table.matrix-tree tr.matrix-tree-row.tier-subtask td:first-child { border-left-color: transparent; }
+.matrix-table.matrix-tree tr.matrix-tree-row.is-tree-hidden { display: none; }
+.matrix-tree-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.75rem 0 0.35rem;
+}
+.matrix-tree-toolbar-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.matrix-tree-issue-col {
+  padding-left: 0.35rem;
+  min-width: 6.5rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.matrix-tree-cell {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.matrix-tree-toggle {
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.35rem;
+  text-align: center;
+}
+.matrix-tree-toggle:hover {
+  border-color: var(--accent);
+  background: rgba(61, 156, 245, 0.12);
+}
+.matrix-tree-toggle.matrix-tree-leaf {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+}
+.matrix-tree-content {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.matrix-tree-content .status, .matrix-tree-content a {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+.matrix-diff-star {
+  color: #f5a623;
+  font-weight: 700;
+}
+.matrix-diff-before {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+tr[data-matrix-diff="modified"] .matrix-diff-before { color: #b45309; }
+tr[data-matrix-diff="removed"] .matrix-diff-star { color: var(--danger); }
+@media (max-width: 720px) {
+  .pillar-nav {
+    max-height: 8rem;
+    overflow-y: auto;
+  }
+
+  .matrix-table-wrap {
+    overflow-x: auto;
+  }
 }

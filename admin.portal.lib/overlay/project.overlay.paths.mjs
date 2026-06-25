@@ -28,9 +28,9 @@
  *   - portalRoot — root PortalAdmin (default da import.meta.url)
  *
  * Consumatori:
- *   - lib/overlay/dashboard.project.mjs — path pagine e config overlay
- *   - lib/test.match-fixtures.mjs — resolveProjectOverlayFilePath per fixture test
- *   - lib/portal.instance.mjs — elenco overlay istanziabili
+ *   - admin.portal.lib/overlay/dashboard.project.mjs — path pagine e config overlay
+ *   - admin.portal.lib/test.match-fixtures.mjs — resolveProjectOverlayFilePath per fixture test
+ *   - admin.portal.lib/portal.instance.mjs — elenco overlay istanziabili
  *
  * Export principali:
  *   - PROJECT_BASE_OVERLAY_NAME — costante "Base" (non istanziabile in HOME)

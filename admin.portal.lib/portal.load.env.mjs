@@ -27,8 +27,8 @@
  *   - process.env già impostate — non sovrascritte (override false)
  *
  * Consumatori:
- *   - lib/test.run.all.mjs, runner/runner.config.stack.mjs, cruscotto.frontend/cruscotto.server.mjs
- *   - lib/project.config.mjs, lib/portal.paths.resolver.mjs — import per PRJ_NAME
+ *   - admin.portal.lib/test.run.all.mjs, runner/runner.config.stack.mjs, cruscotto.frontend/cruscotto.server.mjs
+ *   - admin.portal.lib/project.config.mjs, admin.portal.lib/portal.paths.resolver.mjs — import per PRJ_NAME
  *   - test.smoke e script Jira — variabili stack e credenziali
  *
  * Export principali:

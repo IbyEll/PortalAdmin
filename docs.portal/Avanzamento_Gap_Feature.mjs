@@ -193,7 +193,7 @@ export async function analyzePortalAdvancement(portalRoot) {
   // —— Avanzamento / architettura completata ——
   const archDone = [
     { id: "arch-dual-server", title: "Dual entrypoint HOME + Dashboard", paths: ["admin.portal/portal.home.server.mjs", "cruscotto.frontend/cruscotto.server.mjs"], ok: true }
-  , { id: "arch-overlay-lib", title: "Overlay in lib/overlay/", paths: ["lib/overlay/"], ok: existsSync(join(portalRoot, "lib/overlay/cruscotto.config.overlay.mjs")) }
+  , { id: "arch-overlay-lib", title: "Overlay in admin.portal.lib/overlay/", paths: ["admin.portal.lib/overlay/"], ok: existsSync(join(portalRoot, "admin.portal.lib/overlay/cruscotto.config.overlay.mjs")) }
   , { id: "arch-health-fe", title: "Health/dev API in cruscotto.frontend", paths: ["cruscotto.frontend/cruscotto.health.mjs"], ok: base.checks.healthInFrontend?.ok }
   , { id: "arch-jira-core", title: "Jira tooling canonico admin.portal.JiraCORE", paths: ["admin.portal.JiraCORE/"], ok: existsSync(join(portalRoot, "admin.portal.JiraCORE/jira.project.config.mjs")) }
   , { id: "arch-jira-dup-removed", title: "cruscotto.frontend/jira/ eliminato", paths: ["cruscotto.frontend/jira/"], ok: !existsSync(join(portalRoot, "cruscotto.frontend/jira")) }
@@ -202,7 +202,7 @@ export async function analyzePortalAdvancement(portalRoot) {
   , { id: "arch-smoke-files", title: "Smoke spostati in test.smoke/", paths: ["test.smoke/"], ok: existsSync(join(portalRoot, "test.smoke/smoke-ci.mjs")) }
   , { id: "arch-project-base", title: "PROJECT_Base fallback", paths: ["PROJECT_Base/"], ok: base.checks.projectBaseFallback?.ok }
   , { id: "arch-jira-working-parked", title: "Jira Working de-integata (PARKING)", paths: ["PARKING_tocheck/cruscotto.jira.working.html"], ok: base.checks.jiraWorkingParked?.ok }
-  , { id: "arch-portal-paths-resolver", title: "portal.paths.resolver canonico", paths: ["lib/portal.paths.resolver.mjs"], ok: existsSync(join(portalRoot, "lib/portal.paths.resolver.mjs")) }
+  , { id: "arch-portal-paths-resolver", title: "portal.paths.resolver canonico", paths: ["admin.portal.lib/portal.paths.resolver.mjs"], ok: existsSync(join(portalRoot, "admin.portal.lib/portal.paths.resolver.mjs")) }
   , { id: "arch-server-legacy-gone", title: "server/ legacy rimosso", paths: ["server/"], ok: !existsSync(join(portalRoot, "server/cruscotto.health.mjs")) }
   ];
 
@@ -302,19 +302,19 @@ export async function analyzePortalAdvancement(portalRoot) {
     , category : "bug"
     , severity : "P1"
     , title    : "pillar-matrix-diff solo in PARKING"
-    , detail   : "publish importa ../lib/pillar-matrix-diff.mjs assente; copia in PARKING_tocheck/pillar-matrix-diff.mjs."
+    , detail   : "publish importa ../admin.portal.lib/pillar-matrix-diff.mjs assente; copia in PARKING_tocheck/pillar-matrix-diff.mjs."
     , paths    : ["admin.script.standalone/confluence.pillar.matrix.publish.mjs", "PARKING_tocheck/pillar-matrix-diff.mjs"]
     , status   : "open"
     });
   }
 
-  if (readText(".github/workflows/portal-smoke.yml").includes("portal-paths.mjs") && !existsSync(join(portalRoot, "lib/portal-paths.mjs"))) {
+  if (readText(".github/workflows/portal-smoke.yml").includes("portal-paths.mjs") && !existsSync(join(portalRoot, "admin.portal.lib/portal-paths.mjs"))) {
     add({
       id       : "bug-ci-portal-paths"
     , category : "bug"
     , severity : "P1"
     , title    : "CI workflow importa portal-paths.mjs rimosso"
-    , detail   : "portal-smoke.yml inline node -e usa lib/portal-paths.mjs; usare portal.paths.resolver.mjs."
+    , detail   : "portal-smoke.yml inline node -e usa admin.portal.lib/portal-paths.mjs; usare portal.paths.resolver.mjs."
     , paths    : [".github/workflows/portal-smoke.yml"]
     , status   : "open"
     });
@@ -362,7 +362,7 @@ export async function analyzePortalAdvancement(portalRoot) {
     });
   }
 
-  const shimPortal = grepFiles(String.raw`portal-paths\.mjs`, ".").filter((p) => p !== "lib/portal-paths.mjs");
+  const shimPortal = grepFiles(String.raw`portal-paths\.mjs`, ".").filter((p) => p !== "admin.portal.lib/portal-paths.mjs");
 
   if (shimPortal.length > 0) {
     add({
@@ -370,7 +370,7 @@ export async function analyzePortalAdvancement(portalRoot) {
     , category : "deprecation"
     , severity : "P2"
     , title    : "Consumer residui su portal-paths (shim rimosso)"
-    , detail   : `${shimPortal.length} file importano lib/portal-paths.mjs non più presente.`
+    , detail   : `${shimPortal.length} file importano admin.portal.lib/portal-paths.mjs non più presente.`
     , paths    : shimPortal.slice(0, 8)
     , status   : "open"
     });
@@ -393,7 +393,7 @@ export async function analyzePortalAdvancement(portalRoot) {
   , severity : "info"
   , title    : "Multi-istanza overlay da HOME"
   , detail   : "portal.instance.mjs + card PROJECT_* + persistenza .env PRJ_NAME / PRODUCT_REPO_PATH."
-  , paths    : ["lib/portal.instance.mjs", "admin.portal/portal.home.html"]
+  , paths    : ["admin.portal.lib/portal.instance.mjs", "admin.portal/portal.home.html"]
   , status   : "done"
   });
 
@@ -414,7 +414,7 @@ export async function analyzePortalAdvancement(portalRoot) {
   , severity : "P2"
   , title    : "Promuovere moduli PARKING ancora live"
   , detail   : "my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING."
-  , paths    : ["PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs", "lib/overlay/dashboard.project.mjs"]
+  , paths    : ["PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs", "admin.portal.lib/overlay/dashboard.project.mjs"]
   , status   : "open"
   });
 

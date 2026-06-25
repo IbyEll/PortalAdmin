@@ -219,7 +219,7 @@ node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY
 
 Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
 
-**Aree** da `PRJ_NAME` / overlay — es. JustLastOne: `apps/`, `packages/`, `testScript/` · AdminDashBoard: `lib/`, `cruscotto/`, `admin.portal.testscript/`
+**Aree** da `PRJ_NAME` / overlay — es. JustLastOne: `apps/`, `packages/`, `testScript/` · AdminDashBoard: `admin.portal.lib/`, `cruscotto/`, `admin.portal.testscript/`
 
 ---
 

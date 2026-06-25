@@ -44,9 +44,9 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
-import { getProjectConfig, resolveProjectOverlayName } from "../lib/project.config.mjs";
+import { getProjectConfig, resolveProjectOverlayName } from "../admin.portal.lib/project.config.mjs";
 
 /**
  * Nome file overlay runner.config.NOME.mjs — allineato a project.config.

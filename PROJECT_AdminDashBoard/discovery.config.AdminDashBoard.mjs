@@ -26,7 +26,7 @@
  *   - —
  *
  * Consumatori:
- *   - lib/discovery.config.mjs — import dinamico PROJECT_AdminDashBoard/discovery.config
+ *   - admin.portal.lib/discovery.config.mjs — import dinamico PROJECT_AdminDashBoard/discovery.config
  *
  * Export principali:
  *   - DISCOVERY_CONFIG_VALUES — ids servizi, path runner, descrizioni UI
@@ -34,7 +34,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-/** @type {import("../lib/overlay/discovery.config.mjs").DiscoveryConfigValues} */
+/** @type {import("../admin.portal.lib/overlay/discovery.config.mjs").DiscoveryConfigValues} */
 export const DISCOVERY_CONFIG_VALUES = {
   // Servizi PortalAdmin — da product.manifest.AdminDashBoard.json
   coreServiceIds         : ["dashboard", "home", "api-documentation"]

@@ -19,13 +19,13 @@
  *   - Normalizza URL, documenta exit code UV su Windows e policy shell:false per child_process.
  *
  * Generalizzazione:
- *   Si — riusabile da lib/project.config, runner e test host senza dipendenza overlay.
+ *   Si — riusabile da admin.portal.lib/project.config, runner e test host senza dipendenza overlay.
  *
  * Input:
  *   - —
  *
  * Consumatori:
- *   - lib/project.config.mjs — stripTrailingSlash in resolveDevStackProbeUrls
+ *   - admin.portal.lib/project.config.mjs — stripTrailingSlash in resolveDevStackProbeUrls
  *   - runner e testscript host — spawnShellOption, WINDOWS_UV_CRASH_EXIT
  *
  * Export principali:

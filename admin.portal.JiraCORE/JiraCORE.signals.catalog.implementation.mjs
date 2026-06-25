@@ -60,9 +60,9 @@ import {
   getProjectConfig
 , getProjectGithubUrl
 , resolveProjectOverlayName
-} from "../lib/project.config.mjs";
+} from "../admin.portal.lib/project.config.mjs";
 import { scanRepoJiraReferences } from "./jira.function.repo.refs.mjs";
-import { getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { getPortalRoot, getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   GIT_EVIDENCE_COMMIT_LIMIT
 , REPO_SIGNALS_CATALOG_CONFIG

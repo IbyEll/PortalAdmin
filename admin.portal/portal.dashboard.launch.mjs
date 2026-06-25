@@ -43,16 +43,16 @@
  *   - PRJ_NAME — overlay product se --overlay assente
  *
  * npm (se applicabile):
- *   - spawn da lib/portal.launch.dashboard.mjs (portal.home.server open-cruscotto)
+ *   - spawn da admin.portal.lib/portal.launch.dashboard.mjs (portal.home.server open-cruscotto)
  *
  * Prerequisiti:
- *   - lib/portal.launch.dashboard.mjs — isFullDashboardUp, openSystemBrowser
+ *   - admin.portal.lib/portal.launch.dashboard.mjs — isFullDashboardUp, openSystemBrowser
  *   - server/dashboard-server.mjs o npm run admin:dashboard
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 import { setTimeout as delay } from "node:timers/promises";
 import { dirname, join } from "node:path";
@@ -63,7 +63,7 @@ import {
 , openSystemBrowser
 , resolveDashboardPort
 , spawnDashboardServerProcess
-} from "../lib/portal.launch.dashboard.mjs";
+} from "../admin.portal.lib/portal.launch.dashboard.mjs";
 import { findListeningPids } from "../cruscotto.frontend/cruscotto.process.kill.ports.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");

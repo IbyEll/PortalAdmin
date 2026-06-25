@@ -6,7 +6,7 @@
 
 import { syncVeveDescriptionToJira } from "./jiraCORE.workflow.description.mjs";
 
-await import("../lib/portal.load.env.mjs");
+await import("../admin.portal.lib/portal.load.env.mjs");
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -16,7 +16,7 @@ const BACKLOG = [
     key : "ADMIN-158"
   , kind: "story"
   , ctx : {
-      objective: "Introdurre un modulo di logging condiviso (`lib/portal.log.mjs`) e un'API di lettura unificata, sostituendo i ring buffer duplicati oggi in cruscotto process e Cursor agent."
+      objective: "Introdurre un modulo di logging condiviso (`admin.portal.lib/portal.log.mjs`) e un'API di lettura unificata, sostituendo i ring buffer duplicati oggi in cruscotto process e Cursor agent."
     , sprintNote: "Backlog [LOG] — backend prima della UI"
     , analysisDate: "2026-06-23"
     , repoAreas: [
@@ -27,7 +27,7 @@ const BACKLOG = [
       ]
     , responsibility: "Backend e API — non UI filtri né cattura stdio product (story sorella ADMIN-157)."
     , acceptanceCriteria: [
-        { text: "`lib/portal.log.mjs` espone `createLogger(source)`, `log.info/warn/error/debug`, ring buffer configurabile", checked: false }
+        { text: "`admin.portal.lib/portal.log.mjs` espone `createLogger(source)`, `log.info/warn/error/debug`, ring buffer configurabile", checked: false }
       , { text: "Schema riga unificato: `{ seq, at, source, stream, level, text }`", checked: false }
       , { text: "`PORTAL_LOG_LEVEL` in `.env.example` filtra livelli server-side", checked: false }
       , { text: "`GET /api/logs?cursor=&source=&level=` su cruscotto (e proxy HOME se serve)", checked: false }
@@ -39,7 +39,7 @@ const BACKLOG = [
       , { text: "Smoke portal senza regressioni su tab Process e Cursor Agent", checked: false }
       ]
     , subtasks: [
-        { key: "ADMIN-159", summary: "[LOG] lib/portal.log.mjs — createLogger, livelli e ring buffer" }
+        { key: "ADMIN-159", summary: "[LOG] admin.portal.lib/portal.log.mjs — createLogger, livelli e ring buffer" }
       , { key: "ADMIN-160", summary: "[LOG] Migrazione process.services.manager al modulo log" }
       , { key: "ADMIN-161", summary: "[LOG] API GET /api/logs unificata e tail prepare/dashboard" }
       , { key: "ADMIN-162", summary: "[LOG] Migrazione cursor.agent.manager al modulo log" }
@@ -87,7 +87,7 @@ const BACKLOG = [
       ]
     , outOfScope: [
         "Export log verso Datadog/Sentry"
-      , "Modulo backend `lib/portal.log.mjs` (story sorella ADMIN-158)"
+      , "Modulo backend `admin.portal.lib/portal.log.mjs` (story sorella ADMIN-158)"
       ]
     , successor: "—"
     }
@@ -96,7 +96,7 @@ const BACKLOG = [
     key : "ADMIN-159"
   , kind: "subtask"
   , ctx : {
-      objective: "Creare `lib/portal.log.mjs` con `createLogger(source)`, livelli, ring buffer condiviso e filtro `PORTAL_LOG_LEVEL`."
+      objective: "Creare `admin.portal.lib/portal.log.mjs` con `createLogger(source)`, livelli, ring buffer condiviso e filtro `PORTAL_LOG_LEVEL`."
     , parentKey: "ADMIN-158"
     , repoAreas: [{ area: "Modulo log", esito: "❌", note: "File assente" }]
     , acceptanceCriteria: [
@@ -109,7 +109,7 @@ const BACKLOG = [
         { text: "Export testabile da smoke o unit minimo", checked: false }
       , { text: "Nessuna regressione su import esistenti", checked: false }
       ]
-    , files: ["lib/portal.log.mjs", ".env.example"]
+    , files: ["admin.portal.lib/portal.log.mjs", ".env.example"]
     , dependencies: "—"
     , order: { n: 1, total: 4 }
     }
@@ -138,7 +138,7 @@ const BACKLOG = [
     key : "ADMIN-161"
   , kind: "subtask"
   , ctx : {
-      objective: "Esporre `GET /api/logs?cursor=&source=&level=` e ingest tail prepare/dashboard da `lib/portal.instance.mjs`."
+      objective: "Esporre `GET /api/logs?cursor=&source=&level=` e ingest tail prepare/dashboard da `admin.portal.lib/portal.instance.mjs`."
     , parentKey: "ADMIN-158"
     , repoAreas: [{ area: "API logs", esito: "❌", note: "Solo endpoint separati process/agent" }]
     , acceptanceCriteria: [
@@ -149,7 +149,7 @@ const BACKLOG = [
     , definitionOfDone: [
         { text: "curl/fetch su `/api/logs` restituisce JSON con cursor", checked: false }
       ]
-    , files: ["cruscotto.frontend/cruscotto.server.mjs", "lib/portal.instance.mjs", "admin.portal/portal.home.server.mjs"]
+    , files: ["cruscotto.frontend/cruscotto.server.mjs", "admin.portal.lib/portal.instance.mjs", "admin.portal/portal.home.server.mjs"]
     , dependencies: "ADMIN-159"
     , order: { n: 3, total: 4 }
     }
@@ -226,7 +226,7 @@ const BACKLOG = [
     , definitionOfDone: [
         { text: "Documentato in docs.portal/logging-centralizzato.html", checked: false }
       ]
-    , files: ["cruscotto.frontend/cruscotto.process.services.manager.mjs", "lib/portal.launch.dashboard.mjs"]
+    , files: ["cruscotto.frontend/cruscotto.process.services.manager.mjs", "admin.portal.lib/portal.launch.dashboard.mjs"]
     , dependencies: "ADMIN-160"
     , order: { n: 3, total: 5 }
     }
@@ -264,7 +264,7 @@ const BACKLOG = [
     , definitionOfDone: [
         { text: "Documentato in docs.portal", checked: false }
       ]
-    , files: ["lib/portal.log.mjs"]
+    , files: ["admin.portal.lib/portal.log.mjs"]
     , dependencies: "ADMIN-159"
     , order: { n: 5, total: 5 }
     }

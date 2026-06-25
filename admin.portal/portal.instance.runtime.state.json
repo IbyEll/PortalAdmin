@@ -10,7 +10,7 @@
       ]
     },
     "consumatori": [
-      "lib/portal.instance.mjs — registry canonico admin.portal/portal-instances.json",
+      "admin.portal.admin.portal.lib/portal.instance.mjs — registry canonico admin.portal/portal-instances.json",
       "admin.portal/portal.home.server.mjs — API stato istanze e attivazione overlay",
       "runner/cruscotto.server.mjs — getPortalInstance, getPrepareStatus"
     ],

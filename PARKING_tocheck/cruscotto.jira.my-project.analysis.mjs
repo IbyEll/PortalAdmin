@@ -23,7 +23,7 @@
  *   - getPortalRoot — path PortalAdmin per asset e manifest
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — delega analyzeMyProject all'overlay o a questo modulo
+ *   - admin.portal.lib/dashboard.project.mjs — delega analyzeMyProject all'overlay o a questo modulo
  *   - runner/cruscotto.server.mjs — GET /api/my-project via dashboard.project
  *   - cruscotto.frontend/jira/jira.function.repo.refs.mjs — scanRepoJiraReferences condiviso
  *
@@ -35,9 +35,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
-import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../lib/test.catalog.mjs";
-import { getProjectConfig } from "../lib/project.config.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { discoverTestScripts, REPO_ROOT, BLOCKED_SCRIPTS, BLOCKED_REASONS } from "../admin.portal.lib/test.catalog.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   fetchJiraBacklog
 , isEpicType
@@ -45,7 +45,7 @@ import {
 , isStoryLikeType
 } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { scanRepoJiraReferences, walkRepoTextFiles } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../lib/reporter.mjs";
+import { LATEST_JSON, computeTestCountsBySuite, normalizeReport } from "../admin.portal.lib/reporter.mjs";
 
 const JIRA_BOARD_ID = Number(process.env.JIRA_BOARD_ID ?? 68);
 const JIRA_SITE_HOST = String(process.env.JIRA_SITE ?? "myfuturejobsearch.atlassian.net").replace(/^https?:\/\//, "");
@@ -618,7 +618,7 @@ function repoExists(rel) {
 }
 
 /**
- * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
+ * @param {import("../admin.portal.lib/test.catalog.mjs").ScriptEntry[]} testScripts
  */
 function scanRepoCapabilities(testScripts) {
   /** @type {Array<{ area: string, items: string[] }>} */
@@ -786,7 +786,7 @@ function scanRepoCapabilities(testScripts) {
     adminItems.push("dashboard dev :3999 — run test, report HTML, export, health servizi");
   }
 
-  if (repoExists("lib/test.run.all.mjs")) {
+  if (repoExists("admin.portal.lib/test.run.all.mjs")) {
     adminItems.push("runner testScript orchestrato + report latest.json/html");
   }
 
@@ -849,7 +849,7 @@ function scanRepoCapabilities(testScripts) {
 
 /**
  * @param {ReturnType<typeof scanRepoCapabilities>} capabilities
- * @param {import("../lib/test.catalog.mjs").ScriptEntry[]} testScripts
+ * @param {import("../admin.portal.lib/test.catalog.mjs").ScriptEntry[]} testScripts
  * @param {{ generatedAt: string | null, passed: number, failed: number, scripts: number }} testReport
  * @returns {string}
  */

@@ -47,7 +47,7 @@
  *   - runner/cruscotto.process.start.all.services.mjs (opzionale, se runner.config overlay)
  *
  * Consumatori:
- *   - lib/portal.instance.mjs — spawn dopo activatePortalInstance
+ *   - admin.portal.lib/portal.instance.mjs — spawn dopo activatePortalInstance
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
@@ -56,7 +56,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -125,7 +125,7 @@ console.log(
 
 const { spawnSync } = await import("node:child_process");
 
-// 5. Catalogo test overlay (opzionale — policy blocked/excluded; discovery in lib/test.catalog.mjs)
+// 5. Catalogo test overlay (opzionale — policy blocked/excluded; discovery in admin.portal.lib/test.catalog.mjs)
 const catalogPath = join(
   PORTAL_ROOT
 , `PROJECT_${overlay}`

@@ -22,16 +22,16 @@
  *     (implementation statica + scenari da discovery catalogo e dipendenze test case).
  *
  * Generalizzazione:
- *   Si — caricato da lib/dashboard.project.mjs quando PRJ_NAME=JustLastOne; altri overlay
+ *   Si — caricato da admin.portal.lib/dashboard.project.mjs quando PRJ_NAME=JustLastOne; altri overlay
  *   possono fornire test.technical.meta.{Nome}.mjs con stessa API export.
  *
  * Input:
  *   - PRJ_NAME=JustLastOne — risolve test.technical.meta.mjs nell'overlay PROJECT_JustLastOne
  *   - test.catalog.JustLastOne.mjs — discoverTestScripts, BLOCKED_SCRIPTS
- *   - lib/test.dipendenze.mjs — discoverTestCasesForScript, discoverScriptDescription
+ *   - admin.portal.lib/test.dipendenze.mjs — discoverTestCasesForScript, discoverScriptDescription
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — re-export getTecniciMetaPayload
+ *   - admin.portal.lib/dashboard.project.mjs — re-export getTecniciMetaPayload
  *   - cruscotto.frontend/cruscotto.server.mjs — GET /api/test/tecnici/meta
  *
  * Export principali:
@@ -43,7 +43,7 @@
 
 import {
   buildTecniciMetaPayload
-} from "../lib/test.technical.meta.mjs";
+} from "../admin.portal.lib/test.technical.meta.mjs";
 
 // --- implementazione suite — overview per tab Test tecnici ---
 export const TECNICI_IMPLEMENTATION = {
@@ -56,10 +56,10 @@ export const TECNICI_IMPLEMENTATION = {
   , "Per test web: Next.js su WEB_BASE (es. :3000)"
   ]
 , architecture: [
-    "lib/test.run.all.mjs — orchestratore discovery + run sequenziale"
+    "admin.portal.lib/test.run.all.mjs — orchestratore discovery + run sequenziale"
   , "lib/JustLastOne___prj_testScript_catalog.mjs — discovery script, blocked/excluded"
   , "PROJECT_JustLastOne/test-deps.mjs — catena test case (dependencies/chain)"
-  , "lib/reporter.mjs — merge report → latest.json + HTML"
+  , "admin.portal.lib/reporter.mjs — merge report → latest.json + HTML"
   ]
 , runOrder: [
     "Preflight servizi + reset host test state"

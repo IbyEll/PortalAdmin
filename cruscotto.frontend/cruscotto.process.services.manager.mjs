@@ -42,8 +42,8 @@ import { spawn } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
-import { getProjectConfig, projectHasProductDatabase } from "../lib/project.config.mjs";
-import { getDiscoveryConfig } from "../lib/overlay/discovery.config.mjs";
+import { getProjectConfig, projectHasProductDatabase } from "../admin.portal.lib/project.config.mjs";
+import { getDiscoveryConfig } from "../admin.portal.lib/overlay/discovery.config.mjs";
 import { resolveSqliteDbFiles } from "../cruscotto.database/product.database.seed.run.mjs";
 
 import {
@@ -79,19 +79,19 @@ import {
 , PRODUCT_STACK_COMPLETE_EXTRAS
 , REPO_EXTRAS_ALL
 , resolveServiceStartUnit
-} from "../lib/discovery.services.repo.mjs";
-import { getPortalDataDir, getPortalRoot, getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+} from "../admin.portal.lib/discovery.services.repo.mjs";
+import { getPortalDataDir, getPortalRoot, getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   isFullDashboardUp
 , killDashboardOnPort
 , spawnDashboardLauncher
-} from "../lib/portal.launch.dashboard.mjs";
+} from "../admin.portal.lib/portal.launch.dashboard.mjs";
 import {
   listProjectNodeProcesses
 , matchNodeProcessToServiceId
 , shortenNodeCommand
 } from "../admin.portal/portal.list.project.node.processes.mjs";
-import { spawnShellOption } from "../lib/portal.utils.mjs";
+import { spawnShellOption } from "../admin.portal.lib/portal.utils.mjs";
 
 const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();
 const HAS_PRODUCT_DATABASE                     = projectHasProductDatabase();
@@ -229,7 +229,7 @@ let dbJobRunning = false;
 /**
  * Avvia un comando StartUnit in background; stdout/stderr finiscono nel ring buffer log.
  *
- * @param {import("../lib/discovery.services.repo.mjs").StartUnit} unit
+ * @param {import("../admin.portal.lib/discovery.services.repo.mjs").StartUnit} unit
  * @returns {import("node:child_process").ChildProcess}
  */
 function spawnDetachedStartUnit(unit) {

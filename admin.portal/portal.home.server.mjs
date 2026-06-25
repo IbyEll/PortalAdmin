@@ -21,7 +21,7 @@
  *   - Serve portal.home.html e asset admin.portal/; API istanziazione e apertura cruscotto post-prepare.
  *
  * Generalizzazione:
- *   Si — overlay e porte da lib/portal.instance; static da admin.portal e cruscotto.frontend (favicon).
+ *   Si — overlay e porte da admin.portal.lib/portal.instance; static da admin.portal e cruscotto.frontend (favicon).
  *
  * Input:
  *   - req.url, req.method, body JSON — API documentation/instance e open-cruscotto
@@ -51,8 +51,8 @@
  *   - admin.portal/portal.home.html, portal.home.js — UI istanziazione
  *
  * Dipendenze:
- *   - lib/portal.instance.mjs — istanze overlay e prepare
- *   - lib/portal.launch.dashboard.mjs — spawn dashboard e browser
+ *   - admin.portal.lib/portal.instance.mjs — istanze overlay e prepare
+ *   - admin.portal.lib/portal.launch.dashboard.mjs — spawn dashboard e browser
  *   - admin.portal/ (questo modulo), cruscotto.frontend/PortalAdmin.icona..svg
  *
  * Variabili d'ambiente:
@@ -61,7 +61,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -79,13 +79,13 @@ import {
 , listAvailableProjects
 , readInstanceForOverlay
 , startPortalDashboard
-} from "../lib/portal.instance.mjs";
+} from "../admin.portal.lib/portal.instance.mjs";
 import {
   isFullDashboardUp
 , openSystemBrowser
 , resolveCruscottoUrl
-} from "../lib/portal.launch.dashboard.mjs";
-import { resolveProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+} from "../admin.portal.lib/portal.launch.dashboard.mjs";
+import { resolveProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   analyzeRepository
 , getDocsDir

@@ -57,7 +57,7 @@
  */
 
 // import dipendenze Node e moduli locali
-// import { fn } from "../lib/modulo.mjs";
+// import { fn } from "../admin.portal.lib/modulo.mjs";
 
 const HELP    = process.argv.includes("--help");
 const DRY_RUN = process.argv.includes("--dry-run");

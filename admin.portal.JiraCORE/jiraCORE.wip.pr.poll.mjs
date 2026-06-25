@@ -5,8 +5,8 @@
 import { execFileSync } from "node:child_process";
 
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { hasWorkflowAdvancementData } from "../lib/jira.issue.workflow.raw.mjs";
-import { getProductRepoPath } from "../lib/portal.paths.resolver.mjs";
+import { hasWorkflowAdvancementData } from "./jira.issue.workflow.raw.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import {
   loadWipPushBundle
 , normalizeIssueKey

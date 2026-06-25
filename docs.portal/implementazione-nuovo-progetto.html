@@ -55,7 +55,7 @@ flowchart LR
   end
 
   subgraph runtime["Runtime PortalAdmin"]
-    LIB["lib/project.config.mjs"]
+    LIB["admin.portal.lib/project.config.mjs"]
     HOME["HOME cruscotto"]
     CRU["cruscotto.server.mjs"]
   end
@@ -102,7 +102,7 @@ JIRA_BOARD_ID=...</code></pre>
 
     <p>
       Tutti i valori specifici del product vivono sotto
-      <code>PortalAdmin/PROJECT_{Nome}/</code>. I moduli in <code>lib/</code> importano
+      <code>PortalAdmin/PROJECT_{Nome}/</code>. I moduli in <code>admin.portal.lib/</code> importano
       dinamicamente in base a <code>PRJ_NAME</code>.
     </p>
 
@@ -119,7 +119,7 @@ JIRA_BOARD_ID=...</code></pre>
           <td>
             Costanti <code>PRJ_*</code>: Jira prefix, GitHub, path DB Prisma, testScript,
             URL health auth/api/web, porta dashboard, manifest stack.
-            Schema completo in <code>lib/project.config.mjs</code> →
+            Schema completo in <code>admin.portal.lib/project.config.mjs</code> →
             <code>PROJECT_CONFIG_KEYS</code> (tutte obbligatorie).
           </td>
         </tr>
@@ -128,7 +128,7 @@ JIRA_BOARD_ID=...</code></pre>
           <td>catalogo test</td>
           <td>
             Elenco testScript per tab Test del cruscotto. Richiesto da
-            <code>lib/portal.instance.mjs</code> per considerare l'overlay valido in HOME.
+            <code>admin.portal.lib/portal.instance.mjs</code> per considerare l'overlay valido in HOME.
           </td>
         </tr>
       </tbody>
@@ -146,7 +146,7 @@ JIRA_BOARD_ID=...</code></pre>
           <td><code>DISCOVERY_CONFIG_VALUES</code></td>
           <td>
             Servizi tab Servizi/Process, path script avvio, extras (friendbot, dashboard),
-            descrizioni UI. Caricato da <code>lib/discovery.config.mjs</code>.
+            descrizioni UI. Caricato da <code>admin.portal.lib/discovery.config.mjs</code>.
           </td>
         </tr>
         <tr>
@@ -177,7 +177,7 @@ JIRA_BOARD_ID=...</code></pre>
         </tr>
         <tr>
           <td><code>test.custom.match-fixtures.{Nome}.mjs</code></td>
-          <td>Fixture test match (re-export da <code>lib/test.match-fixtures.mjs</code>).</td>
+          <td>Fixture test match (re-export da <code>admin.portal.lib/test.match-fixtures.mjs</code>).</td>
         </tr>
         <tr>
           <td><code>test.technical.meta.{Nome}.mjs</code>, <code>test.functional.meta.{Nome}.mjs</code>, …</td>
@@ -247,7 +247,7 @@ JIRA_BOARD_ID=...</code></pre>
 
     <p>
       Per ordinare le card nella HOME multi-istanza, aggiungi il nome overlay in
-      <code>HOME_PROJECT_ORDER</code> dentro <code>lib/portal.instance.mjs</code>.
+      <code>HOME_PROJECT_ORDER</code> dentro <code>admin.portal.lib/portal.instance.mjs</code>.
       Porte di fallback in <code>DEFAULT_OVERLAY_PORTS</code> se
       <code>PRJ_DASHBOARD_PORT</code> non è valida.
     </p>
@@ -305,23 +305,23 @@ JIRA_BOARD_ID=...</code></pre>
       </thead>
       <tbody>
         <tr>
-          <td><code>lib/project.config.mjs</code></td>
+          <td><code>admin.portal.lib/project.config.mjs</code></td>
           <td>Carica <code>PROJECT_CONFIG_VALUES</code> da overlay; valida chiavi obbligatorie</td>
         </tr>
         <tr>
-          <td><code>lib/discovery.config.mjs</code></td>
+          <td><code>admin.portal.lib/discovery.config.mjs</code></td>
           <td>Carica <code>DISCOVERY_CONFIG_VALUES</code></td>
         </tr>
         <tr>
-          <td><code>lib/test.catalog.mjs</code></td>
+          <td><code>admin.portal.lib/test.catalog.mjs</code></td>
           <td>Facade → <code>PROJECT_{Nome}/test.catalog.{Nome}.mjs</code></td>
         </tr>
         <tr>
-          <td><code><del class="resolved" data-docs-check="overlayInLibOverlay">lib/cruscotto.config.overlay.mjs</del><span class="audit-resolution" data-docs-check="overlayInLibOverlay" data-docs-sig="ok|Spostato in lib/overlay/cruscotto.config.overlay.mjs.">✅ 2026-06-24 09:28 — Spostato in lib/overlay/cruscotto.config.overlay.mjs.</span></code></td>
+          <td><code><del class="resolved" data-docs-check="overlayInLibOverlay">admin.portal.admin.portal.lib/overlay/cruscotto.config.overlay.mjs</del><span class="audit-resolution" data-docs-check="overlayInLibOverlay" data-docs-sig="ok|Spostato in admin.portal.lib/overlay/cruscotto.config.overlay.mjs.">✅ 2026-06-24 09:28 — Spostato in admin.portal.lib/overlay/cruscotto.config.overlay.mjs.</span></code></td>
           <td>Payload <code>window.__CRUSCOTTO_PROJECT__</code> (jiraPrefix, titoli, path DB)</td>
         </tr>
         <tr>
-          <td><code>lib/portal.instance.mjs</code></td>
+          <td><code>admin.portal.lib/portal.instance.mjs</code></td>
           <td>Elenco overlay, porte, prepare istanza, validazione file richiesti</td>
         </tr>
         <tr>
@@ -350,13 +350,13 @@ JIRA_BOARD_ID=...</code></pre>
 <p class="meta">Titolo documento: <em>PortalAdmin — Implementazione nuovo progetto</em> · ambito dedotto dal titolo:
 project, overlay, onboarding, architecture, portal · 14 controlli rieseguiti ·
 14 OK · 0 aperti.</p>
-<h3 data-docs-key="arch-table" data-docs-sig="arch-home:ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)|arch-health:ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/|arch-overlay:ok|✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs">Stato architettura</h3><table class="docs-verify-table"><thead><tr><th>Area</th><th>Esito</th><th>Dettaglio analisi</th></tr></thead><tbody><tr class="" data-docs-key="arch-home" data-docs-sig="ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)"><td>HOME portal</td><td class="sev-ok">✅</td><td>✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="arch-health" data-docs-sig="ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/"><td>Health / dev API</td><td class="sev-ok">✅</td><td>✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/</td></tr><tr class="" data-docs-key="arch-overlay" data-docs-sig="ok|✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs"><td>Overlay config</td><td class="sev-ok">✅</td><td>✅ Config overlay in lib/overlay/: cruscotto.config.overlay.mjs sotto lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs</td></tr></tbody></table>
+<h3 data-docs-key="arch-table" data-docs-sig="arch-home:ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)|arch-health:ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/|arch-overlay:ok|✅ Config overlay in admin.portal.lib/overlay/: cruscotto.config.overlay.mjs sotto admin.portal.lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs">Stato architettura</h3><table class="docs-verify-table"><thead><tr><th>Area</th><th>Esito</th><th>Dettaglio analisi</th></tr></thead><tbody><tr class="" data-docs-key="arch-home" data-docs-sig="ok|✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)"><td>HOME portal</td><td class="sev-ok">✅</td><td>✅ Documenti in HOME: Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="arch-health" data-docs-sig="ok|✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/"><td>Health / dev API</td><td class="sev-ok">✅</td><td>✅ Health in cruscotto.frontend: cruscotto.health.mjs in frontend · ✅ server/ legacy: Nessuna copia health in server/</td></tr><tr class="" data-docs-key="arch-overlay" data-docs-sig="ok|✅ Config overlay in admin.portal.lib/overlay/: cruscotto.config.overlay.mjs sotto admin.portal.lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs"><td>Overlay config</td><td class="sev-ok">✅</td><td>✅ Config overlay in admin.portal.lib/overlay/: cruscotto.config.overlay.mjs sotto admin.portal.lib/overlay/ · ✅ PROJECT_Base fallback: PROJECT_Base con file condivisi · ✅ Alias portal-paths rimosso: Consumer su portal.paths.resolver.mjs</td></tr></tbody></table>
 <h3 data-docs-key="checks-heading" data-docs-sig="14/14/0">
 
 Verifica completa (14 controlli)</h3>
 <table class="docs-verify-table">
 <thead><tr><th>Controllo</th><th>Esito</th><th>Dettaglio</th></tr></thead>
-<tbody><tr class="" data-docs-key="check:jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><td>Jira Working in PARKING, fuori SPA</td><td class="sev-ok">✅</td><td>HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr><tr class="" data-docs-key="check:overlayInLibOverlay" data-docs-sig="ok|cruscotto.config.overlay.mjs sotto lib/overlay/"><td>Config overlay in lib/overlay/</td><td class="sev-ok">✅</td><td>cruscotto.config.overlay.mjs sotto lib/overlay/</td></tr><tr class="" data-docs-key="check:projectBaseFallback" data-docs-sig="ok|PROJECT_Base con file condivisi"><td>PROJECT_Base fallback</td><td class="sev-ok">✅</td><td>PROJECT_Base con file condivisi</td></tr><tr class="" data-docs-key="check:packageJsonSmokePaths" data-docs-sig="ok|Path smoke allineati a test.smoke/"><td>package.json smoke → test.smoke/</td><td class="sev-ok">✅</td><td>Path smoke allineati a test.smoke/</td></tr><tr class="" data-docs-key="check:smokeCiSteps" data-docs-sig="ok|STEPS su test.smoke/"><td>smoke-ci.mjs STEPS</td><td class="sev-ok">✅</td><td>STEPS su test.smoke/</td></tr><tr class="" data-docs-key="check:healthInFrontend" data-docs-sig="ok|cruscotto.health.mjs in frontend"><td>Health in cruscotto.frontend</td><td class="sev-ok">✅</td><td>cruscotto.health.mjs in frontend</td></tr><tr class="" data-docs-key="check:serverFolderOrphan" data-docs-sig="ok|Nessuna copia health in server/"><td>server/ legacy</td><td class="sev-ok">✅</td><td>Nessuna copia health in server/</td></tr><tr class="" data-docs-key="check:portalPathsMigrated" data-docs-sig="ok|Consumer su portal.paths.resolver.mjs"><td>Alias portal-paths rimosso</td><td class="sev-ok">✅</td><td>Consumer su portal.paths.resolver.mjs</td></tr><tr class="" data-docs-key="check:documentiTab" data-docs-sig="ok|Sezione documenti in portal.home.html (HOME :3990)"><td>Documenti in HOME</td><td class="sev-ok">✅</td><td>Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="check:docsChrome" data-docs-sig="ok|docs/docs-chrome.html + CSS/JS"><td>Chrome docs condiviso</td><td class="sev-ok">✅</td><td>docs/docs-chrome.html + CSS/JS</td></tr><tr class="" data-docs-key="check:startDevCanonical" data-docs-sig="ok|package.json → admin.script.standalone/start-dev.mjs"><td>start:dev canonico</td><td class="sev-ok">✅</td><td>package.json → admin.script.standalone/start-dev.mjs</td></tr><tr class="" data-docs-key="check:testRunAllPresent" data-docs-sig="ok|Modulo presente; smoke-run-all può spawnarlo"><td>lib/test.run.all.mjs</td><td class="sev-ok">✅</td><td>Modulo presente; smoke-run-all può spawnarlo</td></tr><tr class="" data-docs-key="check:jiraFrontendDupRemoved" data-docs-sig="ok|Cartella eliminata; canonico solo admin.portal.JiraCORE/"><td>cruscotto.frontend/jira/ rimosso</td><td class="sev-ok">✅</td><td>Cartella eliminata; canonico solo admin.portal.JiraCORE/</td></tr><tr class="" data-docs-key="check:parkingJiraCopy" data-docs-sig="ok|Nessuna copia jira in PARKING"><td>PARKING jira/ copia</td><td class="sev-ok">✅</td><td>Nessuna copia jira in PARKING</td></tr></tbody>
+<tbody><tr class="" data-docs-key="check:jiraWorkingParked" data-docs-sig="ok|HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo"><td>Jira Working in PARKING, fuori SPA</td><td class="sev-ok">✅</td><td>HTML in PARKING_tocheck; tab e API working rimosse dal cruscotto attivo</td></tr><tr class="" data-docs-key="check:overlayInLibOverlay" data-docs-sig="ok|cruscotto.config.overlay.mjs sotto admin.portal.lib/overlay/"><td>Config overlay in admin.portal.lib/overlay/</td><td class="sev-ok">✅</td><td>cruscotto.config.overlay.mjs sotto admin.portal.lib/overlay/</td></tr><tr class="" data-docs-key="check:projectBaseFallback" data-docs-sig="ok|PROJECT_Base con file condivisi"><td>PROJECT_Base fallback</td><td class="sev-ok">✅</td><td>PROJECT_Base con file condivisi</td></tr><tr class="" data-docs-key="check:packageJsonSmokePaths" data-docs-sig="ok|Path smoke allineati a test.smoke/"><td>package.json smoke → test.smoke/</td><td class="sev-ok">✅</td><td>Path smoke allineati a test.smoke/</td></tr><tr class="" data-docs-key="check:smokeCiSteps" data-docs-sig="ok|STEPS su test.smoke/"><td>smoke-ci.mjs STEPS</td><td class="sev-ok">✅</td><td>STEPS su test.smoke/</td></tr><tr class="" data-docs-key="check:healthInFrontend" data-docs-sig="ok|cruscotto.health.mjs in frontend"><td>Health in cruscotto.frontend</td><td class="sev-ok">✅</td><td>cruscotto.health.mjs in frontend</td></tr><tr class="" data-docs-key="check:serverFolderOrphan" data-docs-sig="ok|Nessuna copia health in server/"><td>server/ legacy</td><td class="sev-ok">✅</td><td>Nessuna copia health in server/</td></tr><tr class="" data-docs-key="check:portalPathsMigrated" data-docs-sig="ok|Consumer su portal.paths.resolver.mjs"><td>Alias portal-paths rimosso</td><td class="sev-ok">✅</td><td>Consumer su portal.paths.resolver.mjs</td></tr><tr class="" data-docs-key="check:documentiTab" data-docs-sig="ok|Sezione documenti in portal.home.html (HOME :3990)"><td>Documenti in HOME</td><td class="sev-ok">✅</td><td>Sezione documenti in portal.home.html (HOME :3990)</td></tr><tr class="" data-docs-key="check:docsChrome" data-docs-sig="ok|docs/docs-chrome.html + CSS/JS"><td>Chrome docs condiviso</td><td class="sev-ok">✅</td><td>docs/docs-chrome.html + CSS/JS</td></tr><tr class="" data-docs-key="check:startDevCanonical" data-docs-sig="ok|package.json → admin.script.standalone/start-dev.mjs"><td>start:dev canonico</td><td class="sev-ok">✅</td><td>package.json → admin.script.standalone/start-dev.mjs</td></tr><tr class="" data-docs-key="check:testRunAllPresent" data-docs-sig="ok|Modulo presente; smoke-run-all può spawnarlo"><td>admin.portal.lib/test.run.all.mjs</td><td class="sev-ok">✅</td><td>Modulo presente; smoke-run-all può spawnarlo</td></tr><tr class="" data-docs-key="check:jiraFrontendDupRemoved" data-docs-sig="ok|Cartella eliminata; canonico solo admin.portal.JiraCORE/"><td>cruscotto.frontend/jira/ rimosso</td><td class="sev-ok">✅</td><td>Cartella eliminata; canonico solo admin.portal.JiraCORE/</td></tr><tr class="" data-docs-key="check:parkingJiraCopy" data-docs-sig="ok|Nessuna copia jira in PARKING"><td>PARKING jira/ copia</td><td class="sev-ok">✅</td><td>Nessuna copia jira in PARKING</td></tr></tbody>
 </table>
 <p class="meta docs-fresh"><span class="docs-fresh-mark" title="Inserito o aggiornato in questo refresh">★</span> Nessun gap aperto nei controlli automatici.</p>
 </section>

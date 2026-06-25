@@ -36,7 +36,7 @@
  *   - formatJiraKeyListsInNoteHtml — virgole IssueKEY → elenco puntato HTML
  */
 
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 
 /**
  * @param {string} value

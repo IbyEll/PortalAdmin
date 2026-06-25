@@ -26,9 +26,8 @@
     - cruscotto.frontend/cruscotto.server.mjs — URL /backlog.html (file cruscotto.jira.backlog.html)
 
   Asset collegati:
-    - jira-issue-display.css — stili issue e tabella condivisi
-    - expand-collapse-toolbar.css, insight-toolbar.css — toolbar tree e insight
-    - jira-issue-display.js, insight-validate.js — display issue e validazione insight lato client
+    - cruscotto.css — stili centralizzati
+        - jira-issue-display.js, insight-validate.js — display issue e validazione insight lato client
     - cruscotto.css — stili pagina centralizzati
 
   Sezioni DOM principali:
@@ -49,11 +48,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title data-cruscotto-bind="document.title" data-cruscotto-template="Backlog {jiraPrefix} — Epic · Sprint · Pilastri">Backlog — Epic · Sprint · Pilastri</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/jira-issue-display.css" />
   <link rel="stylesheet" href="/cruscotto.css" />
-  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
-  <link rel="stylesheet" href="/insight-toolbar.css" />
-  </head>
+</head>
 <body>
   <div class="page">
     <header>
@@ -704,7 +700,7 @@
     }
 
     /**
-     * Story, Bug, Todo (incl. "To Do") — allineato a lib/jira-backlog.mjs
+     * Story, Bug, Todo (incl. "To Do") — allineato a cruscotto.frontend/cruscotto.jira.backlog.mjs
      *
      * @param {string} type
      * @returns {boolean}

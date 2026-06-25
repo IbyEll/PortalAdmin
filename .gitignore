@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Track shared portal library (global gitignore has *.lib)
+!admin.portal.lib/
+!admin.portal.lib/**
+
 # Local env (never commit secrets)
 .env
 .env.local

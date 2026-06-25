@@ -48,9 +48,9 @@ import {
 , parseWipRawFields
 , normalizeIssueKey
 } from "./jiraCORE.wip.db.mjs";
-import { getPortalRoot } from "../lib/portal.paths.resolver.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 /**
  * @param {string[]} argv

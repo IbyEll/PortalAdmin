@@ -25,9 +25,8 @@
     - cruscotto.frontend/cruscotto.server.mjs — URL /project-overview.html
 
   Asset collegati:
-    - jira-issue-display.css — stili issue e albero
-    - expand-collapse-toolbar.css — icone espandi/collassa
-    - jira-issue-display.js — helper display issue Jira
+    - cruscotto.css — stili centralizzati
+        - jira-issue-display.js — helper display issue Jira
     - cruscotto.css — stili pagina centralizzati
 
   Sezioni DOM principali:
@@ -45,11 +44,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Project Overview — panoramica progetto</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/jira-issue-display.css" />
-  <link rel="stylesheet" href="/cruscotto.css" />
-  <link rel="stylesheet" href="/expand-collapse-toolbar.css" />
-  </head>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="stylesheet" href="/cruscotto.css" /></head>
 <body>
   <div class="page">
     <header>
@@ -847,7 +842,7 @@
       } else if (!suites.length) {
         const meta = document.createElement("p");
         meta.className = "test-run-meta";
-        meta.textContent = "Nessun report in data/reports/latest.json — esegui node lib/test.run.all.mjs";
+        meta.textContent = "Nessun report in data/reports/latest.json — esegui node admin.portal.lib/test.run.all.mjs";
         wrap.appendChild(meta);
       }
 

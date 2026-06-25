@@ -24,7 +24,7 @@
  *
  * Input:
  *   - argv --json-only — salta generazione Excel
- *   - file latest.json — report normalizzato da lib/reporter.mjs
+ *   - file latest.json — report normalizzato da admin.portal.lib/reporter.mjs
  *
  * Uso:
  *   - node admin.script.standalone/export-report.mjs
@@ -47,7 +47,7 @@ import {
   historyStamp
 , LATEST_JSON
 , normalizeReport
-} from "../lib/reporter.mjs";
+} from "../admin.portal.lib/reporter.mjs";
 
 const EXPORT_DIR = join(
   dirname(fileURLToPath(import.meta.url))

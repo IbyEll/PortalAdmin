@@ -58,15 +58,15 @@
  *   - package.json admin:dashboard · admin.portal/portal.dashboard.launch.mjs — spawn dashboard
  *
  * Dipendenze:
- *   - lib/test.catalog.mjs, test.dipendenze.mjs, reporter.mjs, portal.instance.mjs
- *   - lib/overlay/cruscotto.config.overlay.mjs, lib/overlay/dashboard.project.mjs
+ *   - admin.portal.lib/test.catalog.mjs, test.dipendenze.mjs, reporter.mjs, portal.instance.mjs
+ *   - admin.portal.lib/overlay/cruscotto.config.overlay.mjs, admin.portal.lib/overlay/dashboard.project.mjs
  *   - cruscotto.health.mjs, cruscotto.dev.api.mjs, cruscotto.testscript.manager.mjs
  *   - cruscotto.process.services.manager.mjs, cruscotto.jira.*.mjs, admin.portal.JiraCORE/
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import "../lib/portal.load.env.mjs";
+import "../admin.portal.lib/portal.load.env.mjs";
 
 import { createServer } from "node:http";
 import { execFileSync } from "node:child_process";
@@ -80,14 +80,14 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 , REPO_ROOT
-} from "../lib/test.catalog.mjs";
+} from "../admin.portal.lib/test.catalog.mjs";
 import { getHealthStatus } from "../cruscotto.frontend/cruscotto.health.mjs";
 import { getDevRequirements, getDevServicesWithHealth } from "./cruscotto.dev.api.mjs";
 import {
   discoverScriptDescription
 , discoverScriptDocHeader
 , discoverTestCasesForScript
-} from "../lib/test.dipendenze.mjs";
+} from "../admin.portal.lib/test.dipendenze.mjs";
 import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
 import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
@@ -104,7 +104,7 @@ import {
 , loadAndAnalyzeTestTecnici
 , TECNICI_ANALYSIS_HTML
 , TECNICI_ANALYSIS_JSON
-} from "../lib/overlay/dashboard.project.mjs";
+} from "../admin.portal.lib/overlay/dashboard.project.mjs";
 import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./cruscotto.testscript.manager.mjs";
 import {
   cancelCursorAgent
@@ -142,16 +142,16 @@ import {
 , generateHtml
 , LATEST_HTML
 , LATEST_JSON
-} from "../lib/reporter.mjs";
-import { REPO_EXTRAS_ALL } from "../lib/discovery.services.repo.mjs";
+} from "../admin.portal.lib/reporter.mjs";
+import { REPO_EXTRAS_ALL } from "../admin.portal.lib/discovery.services.repo.mjs";
 import {
   activatePortalInstance
 , getPortalInstance
 , getPrepareStatus
 , listAvailableProjects
-} from "../lib/portal.instance.mjs";
-import { buildCruscottoProjectPayload } from "../lib/overlay/cruscotto.config.overlay.mjs";
-import { resolveDashboardListenPort } from "../lib/portal.launch.dashboard.mjs";
+} from "../admin.portal.lib/portal.instance.mjs";
+import { buildCruscottoProjectPayload } from "../admin.portal.lib/overlay/cruscotto.config.overlay.mjs";
+import { resolveDashboardListenPort } from "../admin.portal.lib/portal.launch.dashboard.mjs";
 import {
   describeCruscottoDbLayout
 , resolveCruscottoDbPath
@@ -164,9 +164,9 @@ const SERVER_DIR    = dirname(fileURLToPath(import.meta.url));
 const PORTAL_ROOT   = join(SERVER_DIR, "..");
 const CRUSCOTTO_DIR = join(PORTAL_ROOT, "cruscotto.frontend");
 
-/** Asset insight — URL brevi in HTML cruscotto (file in cruscotto.frontend/). */
+/** Asset insight — URL brevi in HTML cruscotto (inglobati in cruscotto.css). */
 const INSIGHT_STATIC_FILES = {
-  "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.css")
+  "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.css")
 , "insight-validate.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.validate.js")
 };
 
@@ -174,12 +174,15 @@ const INSIGHT_STATIC_FILES = {
 const CRUSCOTTO_STATIC_ALIASES = {
   "cruscotto.js"            : "cruscotto.home.js"
 , "favicon.svg"             : "PortalAdmin.icona..svg"
-, "jira-issue-display.css"  : "cruscotto.jira.issue.display.css"
+, "jira-issue-display.css"  : "cruscotto.css"
 , "jira-issue-display.js"   : "cruscotto.jira.issue.display.client.js"
 , "home.html"               : "cruscotto.home.html"
 , "index.html"              : "cruscotto.home.html"
 , "expand-collapse-ui.js"   : "expand.collapse.toolbar.js"
-, "expand-collapse-ui.css"  : "expand.collapse.toolbar.css"
+, "expand-collapse-ui.css"  : "cruscotto.css"
+, "expand-collapse-toolbar.css": "cruscotto.css"
+, "insight-toolbar.css"     : "cruscotto.css"
+, "pillar-matrix.css"       : "cruscotto.css"
 , "backlog.html"            : "cruscotto.jira.backlog.html"
 , "my-backlog.html"         : "cruscotto.jira.my-backlog.html"
 , "issue.html"              : "cruscotto.jira.issue.html"

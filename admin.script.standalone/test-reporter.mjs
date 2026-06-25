@@ -8,13 +8,13 @@
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *                         Smoke fixture — lib/reporter.mjs parse, normalize e HTML report.
+ *                         Smoke fixture — admin.portal.lib/reporter.mjs parse, normalize e HTML report.
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - lib/reporter.mjs alimenta latest.json e latest.html dopo run-all; serve regressione senza stack live.
+ *   - admin.portal.lib/reporter.mjs alimenta latest.json e latest.html dopo run-all; serve regressione senza stack live.
  *   - JLO-860 richiede assert su parse stdout misto, fallback report script falliti e HTML offline.
  *
  *   A cosa serve:
@@ -40,13 +40,13 @@
  *   - Input: —
  *
  * Prerequisiti:
- *   - lib/reporter.mjs presente (nessun API :4000 né run-all richiesto)
+ *   - admin.portal.lib/reporter.mjs presente (nessun API :4000 né run-all richiesto)
  *
  * Consumatori:
  *   - PROJECT_JustLastOne/signals.catalog.JustLastOne.mjs — path segnale implementazione
  *
  * Dipendenze:
- *   - lib/reporter.mjs — parseScriptJsonReport, normalizeReport, computeSummary, generateHtml
+ *   - admin.portal.lib/reporter.mjs — parseScriptJsonReport, normalizeReport, computeSummary, generateHtml
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
@@ -58,7 +58,7 @@ import {
 , generateHtml
 , normalizeReport
 , parseScriptJsonReport
-} from "../lib/reporter.mjs";
+} from "../admin.portal.lib/reporter.mjs";
 
 // --- fixture report run-all (passed / failed / skipped) ---
 const FIXTURE = {

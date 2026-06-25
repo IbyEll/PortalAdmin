@@ -30,7 +30,7 @@
  *   - getProjectConfig — label product e metadati portal per merge cache
  *
  * Consumatori:
- *   - lib/discovery.services.repo.mjs — discoverRepoServices, piano avvio servizi dev
+ *   - admin.portal.lib/discovery.services.repo.mjs — discoverRepoServices, piano avvio servizi dev
  *   - PROJECT_NOME/discovery.config.NOME.mjs — definizione valori overlay per product
  *
  * Export principali:

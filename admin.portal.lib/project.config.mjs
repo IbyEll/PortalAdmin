@@ -28,8 +28,8 @@
  *   - AUTH_HEALTH_URL, API_HEALTH_URL, WEB_OPEN_URL — override probe stack dev
  *
  * Consumatori:
- *   - lib/portal.paths.resolver.mjs — PRJ_REPO, PRJ_TEST_SCRIPT
- *   - lib/overlay/cruscotto.config.overlay.mjs — payload UI cruscotto
+ *   - admin.portal.lib/portal.paths.resolver.mjs — PRJ_REPO, PRJ_TEST_SCRIPT
+ *   - admin.portal.lib/overlay/cruscotto.config.overlay.mjs — payload UI cruscotto
  *   - runner, cruscotto.server, workflow Jira — costanti product ovunque
  *
  * Export principali:

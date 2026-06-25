@@ -54,7 +54,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { collectWorkingPlanTicketKeys } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 import {
   ensureRepoImplementationSignalByKey

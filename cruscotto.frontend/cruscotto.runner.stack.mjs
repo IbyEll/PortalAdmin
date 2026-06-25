@@ -44,7 +44,7 @@
  *
  * Dipendenze:
  *   - cruscotto.runner.stack.base.mjs, cruscotto.runner.stack.config.overlay.mjs
- *   - lib/project.config.mjs, lib/common.database.args.parse.mjs
+ *   - admin.portal.lib/project.config.mjs, admin.portal.lib/common.database.args.parse.mjs
  *   - PROJECT_NOME/runner.config.NOME.mjs — overlay stack per PRJ_NAME
  *
  * ------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import {
   getRunnerConfig
 , npmWorkspace
@@ -68,7 +68,7 @@ import {
 , resolveStackRunnerEntries
 , resolveWorkspaceBuildOrder
 } from "./cruscotto.runner.stack.config.overlay.mjs";
-import { parseSeedIds } from "../lib/common.database.args.parse.mjs";
+import { parseSeedIds } from "../cruscotto.lib/common.database.args.parse.mjs";
 
 import {
   ensureEnvFiles

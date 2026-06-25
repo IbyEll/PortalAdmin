@@ -7,13 +7,13 @@
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *              Valori progetto product — JustLastOne (PRJ_* per lib/project.config).
+ *              Valori progetto product — JustLastOne (PRJ_* per admin.portal.lib/project.config).
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
  *
  *   Perché esiste:
- *   - Costanti product JLO non devono essere hardcoded in lib/project.config.mjs del host.
+ *   - Costanti product JLO non devono essere hardcoded in admin.portal.lib/project.config.mjs del host.
  *
  *   A cosa serve:
  *   - PROJECT_CONFIG_VALUES caricato dinamicamente quando PRJ_NAME=JustLastOne.
@@ -25,7 +25,7 @@
  *   - PRJ_NAME=JustLastOne in env — seleziona questo overlay all'import project.config
  *
  * Consumatori:
- *   - lib/project.config.mjs — validateProjectConfig e getter PRJ_*
+ *   - admin.portal.lib/project.config.mjs — validateProjectConfig e getter PRJ_*
  *
  * Export principali:
  *   - PROJECT_CONFIG_VALUES — repo, Jira JLO, GitHub, DB Prisma, health URL, manifest
@@ -33,7 +33,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-/** @type {import("../lib/project.config.mjs").ProjectConfig} */
+/** @type {import("../admin.portal.lib/project.config.mjs").ProjectConfig} */
 export const PROJECT_CONFIG_VALUES = {
   PRJ_REPO          : "JustLastOne"
 , PRJ_NAME          : "JustLastOne"

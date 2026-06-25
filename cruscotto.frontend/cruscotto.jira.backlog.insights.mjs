@@ -38,11 +38,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { REPO_ROOT } from "../lib/test.catalog.mjs";
+import { REPO_ROOT } from "../admin.portal.lib/test.catalog.mjs";
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone, isStoryLikeType } from "./cruscotto.jira.backlog.mjs";
 import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
 import { scanRepoJiraReferences, truncateIssueSummary } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { LATEST_JSON } from "../lib/reporter.mjs";
+import { LATEST_JSON } from "../admin.portal.lib/reporter.mjs";
 
 /**
  * @typedef {"ok" | "suggestion" | "warning" | "comment" | "info"} InsightKind
@@ -367,7 +367,7 @@ export function buildBacklogInsights(issues, at = new Date().toISOString(), opti
     insights.push({
       at,
       kind : "comment",
-      text : "Nessun report test in data/reports/latest.json — esegui «node lib/test.run.all.mjs» per insight sui test",
+      text : "Nessun report test in data/reports/latest.json — esegui «node admin.portal.lib/test.run.all.mjs» per insight sui test",
     });
   }
 

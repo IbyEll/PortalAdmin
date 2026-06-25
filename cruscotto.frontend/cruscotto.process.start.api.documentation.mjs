@@ -48,7 +48,7 @@
  *   - Per indice path completo: API Auth (:4001) e API Project (:4000) devono essere in ascolto
  *
  * Consumatori:
- *   - lib/discovery.services.repo.mjs — discoverPortalApiPortal, id api-documentation
+ *   - admin.portal.lib/discovery.services.repo.mjs — discoverPortalApiPortal, id api-documentation
  *   - PROJECT_AdminDashBoard/discovery.config.AdminDashBoard.mjs — apiDocumentationRunnerRel
  *   - cruscotto.frontend/cruscotto.process.start.api.documentation.ps1 — wrapper PowerShell
  *

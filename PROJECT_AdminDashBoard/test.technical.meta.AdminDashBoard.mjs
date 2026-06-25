@@ -22,16 +22,16 @@
  *     (implementation statica + scenari da discovery catalogo e dipendenze test case).
  *
  * Generalizzazione:
- *   Si — caricato da lib/dashboard.project.mjs quando PRJ_NAME=AdminDashBoard; altri overlay
+ *   Si — caricato da admin.portal.lib/dashboard.project.mjs quando PRJ_NAME=AdminDashBoard; altri overlay
  *   possono fornire test.technical.meta.{Nome}.mjs con stessa API export.
  *
  * Input:
  *   - PRJ_NAME=AdminDashBoard — risolve test.technical.meta.mjs nell'overlay PROJECT_AdminDashBoard
  *   - test.catalog.AdminDashBoard.mjs — discoverTestScripts, BLOCKED_SCRIPTS, EXCLUDED_SCRIPTS
- *   - lib/test.dipendenze.mjs — discoverTestCasesForScript, discoverScriptDescription
+ *   - admin.portal.lib/test.dipendenze.mjs — discoverTestCasesForScript, discoverScriptDescription
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — re-export getTecniciMetaPayload
+ *   - admin.portal.lib/dashboard.project.mjs — re-export getTecniciMetaPayload
  *   - cruscotto.frontend/cruscotto.server.mjs — GET /api/test/tecnici/meta
  *
  * Export principali:
@@ -43,7 +43,7 @@
 
 import {
   buildTecniciMetaPayload
-} from "../lib/test.technical.meta.mjs";
+} from "../admin.portal.lib/test.technical.meta.mjs";
 
 // --- implementazione suite — overview per tab Test tecnici ---
 export const TECNICI_IMPLEMENTATION = {
@@ -58,9 +58,9 @@ export const TECNICI_IMPLEMENTATION = {
   ]
 , architecture  : [
     "admin.portal.testscript/run-portal-api.mjs — orchestratore sequenziale suite tecnica"
-  , "lib/test.catalog.mjs + PROJECT_AdminDashBoard/test.catalog.AdminDashBoard.mjs — discovery, blocked/excluded"
-  , "lib/test.dipendenze.mjs — test case per script"
-  , "lib/reporter.mjs — merge report → cruscotto.frontend/reports/latest.json"
+  , "admin.portal.lib/test.catalog.mjs + PROJECT_AdminDashBoard/test.catalog.AdminDashBoard.mjs — discovery, blocked/excluded"
+  , "admin.portal.lib/test.dipendenze.mjs — test case per script"
+  , "admin.portal.lib/reporter.mjs — merge report → cruscotto.frontend/reports/latest.json"
   ]
 , runOrder      : [
     "Preflight cruscotto (health, status)"

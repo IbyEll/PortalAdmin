@@ -40,12 +40,12 @@ import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/crusco
 import { inspectRepoSignal } from "../cruscotto.frontend/cruscotto.jira.backlog.insights.mjs";
 import { buildWorkingInsights, buildKeyToBlockMap } from "./cruscotto.jira.working.insights.mjs";
 import { formatJiraKeyListsInNoteHtml, jiraLinkHtml } from "../cruscotto.frontend/cruscotto.jira.issue.display.mjs";
-import { getProjectConfig } from "../lib/project.config.mjs";
+import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import {
   getWorkingJiraBoardUrl
 , getWorkingJiraBrowseBase
 , getWorkingSprintBoardTitle
-} from "../lib/overlay/working.plan.overlay.mjs";
+} from "../admin.portal.lib/overlay/working.plan.overlay.mjs";
 import {
   getWorkingPlan
 , getWorkingPlanOverlay

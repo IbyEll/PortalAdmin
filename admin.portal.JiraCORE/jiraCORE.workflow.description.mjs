@@ -597,7 +597,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1);
   }
 
-  await import("../lib/portal.load.env.mjs");
+  await import("../admin.portal.lib/portal.load.env.mjs");
   const ctx = await buildChiudiParentContextFromIssue(key, { branch, commit, prUrl });
   const out = await syncChiudiParentToJira(key, ctx, { transition: false });
   console.log(JSON.stringify({ ok: true, key, updated: out.description.updated }, null, 2));

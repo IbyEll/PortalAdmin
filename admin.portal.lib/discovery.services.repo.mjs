@@ -25,7 +25,7 @@
  *
  * Input:
  *   - PRODUCT_REPO_PATH — root product per manifest locale e scan apps turbo
- *   - PRJ_NAME — overlay per getDiscoveryConfig in lib/overlay/discovery.config.mjs
+ *   - PRJ_NAME — overlay per getDiscoveryConfig in admin.portal.lib/overlay/discovery.config.mjs
  *   - options.extras, options.withPortal — extra friendbot e servizi PortalAdmin in discovery
  *
  * Consumatori:

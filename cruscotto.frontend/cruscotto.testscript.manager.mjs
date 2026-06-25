@@ -17,12 +17,12 @@
  *   - La UI polling /api/status ha bisogno di script corrente, progress e exit code.
  *
  *   A cosa serve:
- *   - Spawn lib/test.run.all.mjs (tutti, suite, singolo script o test case) nel product repo.
+ *   - Spawn admin.portal.lib/test.run.all.mjs (tutti, suite, singolo script o test case) nel product repo.
  *   - Spawn funzionali/run-funzionali.mjs per la suite funzionale dedicata.
  *   - Parser stdout per aggiornare stato in-memory tra una richiesta e l'altra.
  *
  * Generalizzazione:
- *   Si — catalogo script da lib/test.catalog.mjs; PRODUCT_REPO_PATH e portal root da env/overlay.
+ *   Si — catalogo script da admin.portal.lib/test.catalog.mjs; PRODUCT_REPO_PATH e portal root da env/overlay.
  *
  * Input:
  *   - PRODUCT_REPO_PATH — cwd/env per run-all verso il product repo attivo
@@ -38,9 +38,9 @@
  *   - cruscotto.frontend — avvio run e barra progresso
  *
  * Dipendenze:
- *   - lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
- *   - lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
- *   - lib/test.run-all.mjs — child process per run tecnici
+ *   - admin.portal.lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
+ *   - admin.portal.lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
+ *   - admin.portal.lib/test.run-all.mjs — child process per run tecnici
  *
  * Export principali:
  *   - getRunStatus, isRunActive — snapshot stato run
@@ -56,13 +56,13 @@ import {
   BLOCKED_REASONS
 , BLOCKED_SCRIPTS
 , discoverTestScripts
-} from "../lib/test.catalog.mjs";
+} from "../admin.portal.lib/test.catalog.mjs";
 import {
   getPortalRoot
 , getProductRepoPath
 , getTestScriptDir
 , requireTestScriptDir
-} from "../lib/portal.paths.resolver.mjs";
+} from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 /**
  * @typedef {{
@@ -154,7 +154,7 @@ export function getRunStatus() {
 }
 
 /**
- * Avvia lib/test.run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
+ * Avvia admin.portal.lib/test.run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
  *
  * @param {string} [productRepoRoot] — legacy; default da PRODUCT_REPO_PATH
  * @param {{ scriptRel?: string, suite?: string, testCase?: string }} [options]

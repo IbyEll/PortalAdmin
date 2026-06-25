@@ -22,10 +22,10 @@
  *   Si — titoli e backlog embed parametrizzati su PRJ_NAME overlay attivo.
  *
  * Input:
- *   - Payload analyzeMyProject — da lib/dashboard.project.mjs overlay-aware
+ *   - Payload analyzeMyProject — da admin.portal.lib/dashboard.project.mjs overlay-aware
  *
  * Consumatori:
- *   - lib/dashboard.project.mjs — GET /api/project-overview/analyze
+ *   - admin.portal.lib/dashboard.project.mjs — GET /api/project-overview/analyze
  *   - PROJECT_Base/page.project.overview.mjs — re-export overlay Base
  *   - cruscotto.frontend/cruscotto.project.overview.html — render sezioni
  *
