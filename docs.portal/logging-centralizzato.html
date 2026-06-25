@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PortalAdmin — Log centralizzato</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Log centralizzato PortalAdmin</h1>
+      <p class="meta">
+        Analisi repo · giugno 2026 · label Jira <code>[LOG]</code>
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="implementazione-nuovo-progetto.html">Implementazione nuovo progetto</a> ·
+        <a href="db-cruscotto-proposta.html">DB cruscotto</a> ·
+        <a href="Avanzamento_Gap_Feature.html">Avanzamento gap</a>
+      </nav>
+      <p class="lead">
+        Oggi i log del portale sono frammentati in tre pipeline indipendenti (Process/Servizi,
+        Cursor Agent, console HOME) senza modulo condiviso, senza livelli e senza persistenza su disco.
+        Questa pagina riassume lo stato attuale, i gap e il backlog Jira proposto.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#oneliner">In una riga</a></li>
+        <li><a href="#stato">Stato attuale — tre pipeline</a></li>
+        <li><a href="#gap">Gap e limiti</a></li>
+        <li><a href="#proposta">Proposta — <code>lib/portal.log.mjs</code></a></li>
+        <li><a href="#schema">Schema record</a></li>
+        <li><a href="#api">API e consumer</a></li>
+        <li><a href="#jira">Backlog Jira</a></li>
+        <li><a href="#ordine">Ordine di implementazione</a></li>
+      </ul>
+    </nav>
+
+    <div class="oneliner" id="oneliner">
+      <strong>In una riga:</strong>
+      introdurre <code>lib/portal.log.mjs</code> (ring buffer + livelli + <code>source</code>),
+      migrare Process e Cursor Agent, esporre <code>GET /api/logs</code> unificato, poi allineare
+      la console HOME e la UI cruscotto — story backend <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-158">ADMIN-158</a>
+      prima della UI <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-157">ADMIN-157</a>.
+    </div>
+
+    <h2 id="stato">Stato attuale — tre pipeline</h2>
+
+    <div class="mermaid">
+flowchart TB
+  subgraph process["Process / Servizi"]
+    PSM["cruscotto.process.services.manager.mjs"]
+    PSM --> RB1["ring buffer in-memory<br/>MAX_LOG_LINES = 3000"]
+    RB1 --> API1["GET /api/repo/services/logs"]
+  end
+
+  subgraph agent["Cursor Agent"]
+    CAM["portal.cursor.agent.manager.mjs"]
+    CAM --> RB2["ring buffer in-memory<br/>trim 4000 → 3000"]
+    RB2 --> API2["GET /api/cursor/agent/logs"]
+  end
+
+  subgraph home["HOME PortalAdmin"]
+    PH["portal.home.js"]
+    PH --> UI["#prepare-log — merge client"]
+    UI --> T1["azioni UI (max 100)"]
+    UI --> T2["tail prepare Istanzia"]
+    UI --> T3["tail avvio cruscotto"]
+    UI --> T4["tail processi Node"]
+  end
+
+  PSM -.->|spawn StartUnit| STD["stdout/stderr piped"]
+  CAM -.->|worker JSON| WRK["stream assistant/system/workflow"]
+    </div>
+
+    <h3>1. Process / Servizi</h3>
+    <p>
+      File: <code>cruscotto.frontend/cruscotto.process.services.manager.mjs</code> (~1700 righe di
+      orchestrazione stack dev).
+    </p>
+    <ul>
+      <li>Ring buffer <code>logLines</code> con <code>MAX_LOG_LINES = 3000</code>.</li>
+      <li>Record: <code>{ seq, stream, text, at }</code> — stream <code>stdout</code> |
+        <code>stderr</code> | <code>system</code>.</li>
+      <li>Spawn <code>StartUnit</code> e job Prisma: <code>stdio: ["ignore", "pipe", "pipe"]</code>.</li>
+      <li>Export: <code>getRepoServicesLogs(cursor)</code>, <code>clearRepoServicesLogs()</code>.</li>
+      <li>API cruscotto: <code>GET /api/repo/services/logs</code>,
+        <code>DELETE /api/repo/services/logs</code> (svuota buffer).</li>
+    </ul>
+
+    <h3>2. Cursor Agent</h3>
+    <p>
+      File: <code>admin.portal/portal.cursor.agent.manager.mjs</code>.
+    </p>
+    <ul>
+      <li>Ring buffer separato, stessa idea (seq + cursor polling).</li>
+      <li>Stream aggiuntivi: <code>assistant</code>, <code>workflow</code> (blocchi END gogo/procedi).</li>
+      <li>Persistenza solo dello <em>stato</em> job su file JSON — <strong>non</strong> delle righe log.</li>
+      <li>API: <code>GET /api/cursor/agent/logs</code>,
+        <code>POST /api/cursor/agent/clear-logs</code>.</li>
+    </ul>
+
+    <h3>3. Console HOME</h3>
+    <p>
+      File: <code>admin.portal/portal.home.js</code> + <code>#prepare-log</code> in
+      <code>portal.home.html</code>.
+    </p>
+    <ul>
+      <li>Buffer client <code>uiConsoleLines</code> (max 100) per click Avvia/Kill/Apri.</li>
+      <li>Tre tail testuali da polling API: prepare (Istanzia), avvio cruscotto, elenco processi Node.</li>
+      <li><code>refreshConsoleDisplay()</code> concatena sezioni con header <code>--- … ---</code>.</li>
+      <li>Nessun formato strutturato, nessun livello, nessun filtro per sorgente.</li>
+    </ul>
+
+    <h3>Assente oggi</h3>
+    <p>
+      Non esiste <code>lib/portal.log.mjs</code> né altro modulo log condiviso nel repo.
+      I launcher product in <code>lib/portal.launch.dashboard.mjs</code> usano
+      <code>stdio: "ignore"</code> di default — l'output dello stack product non entra in nessun buffer
+      centralizzato.
+    </p>
+
+    <h2 id="gap">Gap e limiti</h2>
+
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Problema</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Duplicazione</td>
+          <td>Due implementazioni quasi identiche di ring buffer + cursor (Process vs Agent).</td>
+        </tr>
+        <tr>
+          <td>Livelli</td>
+          <td>Nessun <code>debug</code> / <code>info</code> / <code>warn</code> / <code>error</code>;
+            tutto è testo grezzo.</td>
+        </tr>
+        <tr>
+          <td>Sorgente</td>
+          <td>Record senza campo <code>source</code> (es. <code>process</code>, <code>agent</code>,
+            <code>home</code>, <code>prepare</code>).</td>
+        </tr>
+        <tr>
+          <td>Persistenza</td>
+          <td>Log solo in RAM — riavvio processo = perdita storico.</td>
+        </tr>
+        <tr>
+          <td>API</td>
+          <td>Due endpoint distinti; HOME non consuma API log strutturate.</td>
+        </tr>
+        <tr>
+          <td>Product stack</td>
+          <td>Spawn con <code>stdio: ignore</code> — visibilità limitata su servizi product.</td>
+        </tr>
+        <tr>
+          <td>Filtro</td>
+          <td>Nessuna env tipo <code>PORTAL_LOG_LEVEL</code> per ridurre rumore in dev/CI.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="proposta">Proposta — <code>lib/portal.log.mjs</code></h2>
+
+    <p>Modulo unico esportante <code>createLogger(source)</code> e un bus condiviso:</p>
+
+    <ul>
+      <li><strong>Ring buffer</strong> globale (configurabile, es. 5000 righe) con eviction FIFO.</li>
+      <li><strong>Schema uniforme</strong> per ogni riga (vedi sotto).</li>
+      <li><strong>Livelli</strong> e filtro via <code>PORTAL_LOG_LEVEL</code> (default <code>info</code>).</li>
+      <li><strong>Adapter</strong> per sostituire i buffer locali in
+        <code>cruscotto.process.services.manager.mjs</code> e
+        <code>portal.cursor.agent.manager.mjs</code>.</li>
+      <li><strong>API unificata</strong> <code>GET /api/logs?cursor=&amp;source=&amp;level=</code> sul
+        server cruscotto (e proxy opzionale da HOME).</li>
+      <li><strong>Persistenza opzionale</strong> (fase 2): tail file rotante sotto
+        <code>data/portal.log</code> — non nel MVP backend.</li>
+    </ul>
+
+    <pre><code>// Uso previsto
+import { createLogger } from "../lib/portal.log.mjs";
+
+const log = createLogger("process");
+log.info("avvio unità auth", { unitId: "auth" });
+log.stderr("errore bind porta 4000");</code></pre>
+
+    <h2 id="schema">Schema record</h2>
+
+    <pre><code>{
+  "seq"    : 1842,
+  "at"     : "2026-06-23T14:32:01.123Z",
+  "source" : "process",          // process | agent | home | prepare | system
+  "stream" : "stderr",          // stdout | stderr | system | assistant | workflow
+  "level"  : "error",           // debug | info | warn | error
+  "text"   : "EADDRINUSE :4000"
+}</code></pre>
+
+    <p>
+      Compatibilità: i consumer attuali che leggono solo <code>seq</code>, <code>stream</code>,
+      <code>text</code>, <code>at</code> restano validi; <code>source</code> e <code>level</code> sono
+      additive.
+    </p>
+
+    <h2 id="api">API e consumer</h2>
+
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th>Oggi</th>
+          <th>Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET /api/repo/services/logs</code></td>
+          <td>Process buffer</td>
+          <td>Deprecare → proxy verso <code>/api/logs?source=process</code></td>
+        </tr>
+        <tr>
+          <td><code>GET /api/cursor/agent/logs</code></td>
+          <td>Agent buffer</td>
+          <td>Deprecare → proxy verso <code>/api/logs?source=agent</code></td>
+        </tr>
+        <tr>
+          <td><code>GET /api/logs</code></td>
+          <td>—</td>
+          <td>Nuovo — cursor + filtri source/level</td>
+        </tr>
+        <tr>
+          <td>HOME <code>#prepare-log</code></td>
+          <td>Merge testuale client</td>
+          <td>Polling <code>/api/logs</code> o SSE (story UI)</td>
+        </tr>
+        <tr>
+          <td>Tab Process cruscotto</td>
+          <td>Polling <code>/api/repo/services/logs</code></td>
+          <td>Stesso componente log condiviso</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="jira">Backlog Jira</h2>
+
+    <p>
+      Story create con label <code>[LOG]</code> su progetto ADMIN (giugno 2026).
+    </p>
+
+    <h3>Backend — modulo log e API</h3>
+    <p>
+      <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-158">ADMIN-158</a>
+      — Log centralizzato: modulo condiviso e API
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Subtask</th>
+          <th>Key</th>
+          <th>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Modulo <code>lib/portal.log.mjs</code></td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-159">ADMIN-159</a></td>
+          <td><code>createLogger</code>, ring buffer, <code>PORTAL_LOG_LEVEL</code></td>
+        </tr>
+        <tr>
+          <td>Migrazione Process manager</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-160">ADMIN-160</a></td>
+          <td>Sostituire buffer locale in <code>cruscotto.process.services.manager.mjs</code></td>
+        </tr>
+        <tr>
+          <td>Migrazione Cursor Agent</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-161">ADMIN-161</a></td>
+          <td>Sostituire buffer in <code>portal.cursor.agent.manager.mjs</code></td>
+        </tr>
+        <tr>
+          <td>API <code>GET /api/logs</code></td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-162">ADMIN-162</a></td>
+          <td>Handler in <code>cruscotto.server.mjs</code>, proxy legacy</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>UI e visibilità HOME / cruscotto</h3>
+    <p>
+      <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-157">ADMIN-157</a>
+      — Log centralizzato: UI e visibilità HOME e cruscotto
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Subtask</th>
+          <th>Key</th>
+          <th>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Componente log condiviso (JS)</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-163">ADMIN-163</a></td>
+          <td>Viewer riusabile, cursor polling, filtri</td>
+        </tr>
+        <tr>
+          <td>Tab Process cruscotto</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-164">ADMIN-164</a></td>
+          <td>Integrare componente su pagina Process/Servizi</td>
+        </tr>
+        <tr>
+          <td>Console HOME</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-165">ADMIN-165</a></td>
+          <td>Sostituire merge testuale <code>#prepare-log</code></td>
+        </tr>
+        <tr>
+          <td>Tab Cursor Agent</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-166">ADMIN-166</a></td>
+          <td>Allineare UI agent al componente condiviso</td>
+        </tr>
+        <tr>
+          <td>Stili e accessibilità</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-167">ADMIN-167</a></td>
+          <td>Colori stream/level, scroll, <code>aria-live</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="ordine">Ordine di implementazione</h2>
+
+    <ol>
+      <li>
+        <strong>ADMIN-158</strong> (backend) — partire da
+        <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-159">ADMIN-159</a>
+        (modulo core).
+      </li>
+      <li>
+        <strong>ADMIN-160</strong> + <strong>ADMIN-161</strong> — migrare i due manager esistenti
+        senza cambiare ancora la UI.
+      </li>
+      <li>
+        <strong>ADMIN-162</strong> — esporre <code>/api/logs</code>; mantenere endpoint legacy come
+        thin proxy per non rompere il cruscotto.
+      </li>
+      <li>
+        <strong>ADMIN-157</strong> (UI) — solo dopo che il backend è stabile; ordine suggerito:
+        ADMIN-163 → 164 → 165 → 166 → 167.
+      </li>
+    </ol>
+
+    <blockquote class="doc-note">
+      <strong>Nota:</strong> la persistenza su disco e l'ingest dello stack product
+      (<code>stdio: ignore</code> in <code>portal.launch.dashboard.mjs</code>) possono essere story
+      successive — non sono incluse nelle subtask ADMIN-159…167.
+    </blockquote>
+  </div>
+  <script src="/docs/docs-chrome.js" defer></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+  </script>
+</body>
+</html>
