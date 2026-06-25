@@ -1426,13 +1426,21 @@ async function handleApi(req, res, urlPath) {
       const prompt  = typeof body.prompt === "string" ? body.prompt.trim() : "";
       const runtime = body.runtime === "cloud" || body.runtime === "local" ? body.runtime : undefined;
       const resume  = Boolean(body.resume);
+      const resumeRunId = typeof body.resumeRunId === "string" ? body.resumeRunId.trim() : "";
+      const resumeAgentId = typeof body.resumeAgentId === "string" ? body.resumeAgentId.trim() : "";
 
       if (!prompt) {
         sendJson(res, 400, { error: "prompt obbligatorio" }, req);
         return;
       }
 
-      const result = await startCursorAgent({ prompt, runtime, resume });
+      const result = await startCursorAgent({
+        prompt
+      , runtime
+      , resume
+      , resumeRunId: resumeRunId || undefined
+      , resumeAgentId: resumeAgentId || undefined
+      });
 
       if (!result.started) {
         sendJson(res, result.error?.includes("CURSOR_API_KEY") ? 503 : 409, {

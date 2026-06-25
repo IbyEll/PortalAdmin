@@ -184,11 +184,15 @@ async function main() {
     , runId : run.id
     });
 
+    /** @type {string[]} */
+    const assistantChunks = [];
+
     for await (const event of run.stream()) {
       if (event.type === "assistant") {
         const text = extractAssistantText(event);
 
         if (text) {
+          assistantChunks.push(text);
           emit({ type: "log", stream: "assistant", text });
         }
       } else if (event.type === "tool_use") {
@@ -200,16 +204,23 @@ async function main() {
     const result = await run.wait();
 
     if (result.status === "error") {
+      const detail = typeof result.result === "string" && result.result.trim()
+        ? result.result.trim()
+        : assistantChunks.join("").trim();
+
       emit({
         type   : "log"
       , stream : "stderr"
-      , text   : `Run terminato con errore (runId=${run.id})`
+      , text   : detail
+        ? `Run terminato con errore (runId=${run.id}): ${detail.slice(0, 2000)}`
+        : `Run terminato con errore (runId=${run.id}) — nessun messaggio assistant nel run`
       });
       emit({
         type   : "done"
       , status : "error"
       , runId  : run.id
       , agentId: agent.agentId
+      , error  : detail ? detail.slice(0, 500) : null
       });
       process.exit(2);
       return;

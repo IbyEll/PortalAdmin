@@ -274,12 +274,20 @@ function handleWorkerLine(line) {
     state.pid        = null;
     child            = null;
 
+    if (line.status !== "finished" && typeof line.error === "string" && line.error.trim()) {
+      state.error = line.error.trim();
+    }
+
     if (typeof line.agentId === "string") {
       state.agentId = line.agentId;
     }
 
     if (typeof line.runId === "string") {
       state.runId = line.runId;
+    }
+
+    if (typeof line.error === "string" && line.error.trim()) {
+      state.error = line.error.trim();
     }
 
     const workflowKey = state.workflowKey;
@@ -295,9 +303,66 @@ function handleWorkerLine(line) {
 
 /**
  * @param {{
+ *   resume?: boolean
+ *   resumeAgentId?: string | null
+ *   resumeRunId?: string | null
+ * }} options
+ * @returns {Promise<string | null>}
+ */
+async function resolveResumeAgentId(options) {
+  const explicit = typeof options.resumeAgentId === "string"
+    ? options.resumeAgentId.trim()
+    : "";
+
+  if (explicit) {
+    return explicit;
+  }
+
+  const runId = typeof options.resumeRunId === "string"
+    ? options.resumeRunId.trim()
+    : "";
+
+  if (runId) {
+    const path = getCursorAgentStatePath();
+
+    try {
+      const raw  = await readFile(path, "utf8");
+      const data = JSON.parse(raw);
+      const savedRunId   = typeof data?.lastRunId === "string" ? data.lastRunId : data?.state?.runId;
+      const savedAgentId = typeof data?.lastAgentId === "string"
+        ? data.lastAgentId
+        : data?.state?.agentId;
+
+      if (savedRunId === runId && typeof savedAgentId === "string" && savedAgentId.trim()) {
+        return savedAgentId.trim();
+      }
+    } catch {
+      // stato assente
+    }
+
+    return null;
+  }
+
+  if (options.resume && state.agentId) {
+    return state.agentId;
+  }
+
+  if (options.resume) {
+    await loadPersistedState();
+
+    return state.agentId;
+  }
+
+  return null;
+}
+
+/**
+ * @param {{
  *   prompt: string
  *   runtime?: "local" | "cloud"
  *   resume?: boolean
+ *   resumeAgentId?: string | null
+ *   resumeRunId?: string | null
  * }} options
  */
 export async function startCursorAgent(options) {
@@ -339,7 +404,16 @@ export async function startCursorAgent(options) {
     return { started: false, error: "CURSOR_API_KEY mancante" };
   }
 
-  const portalRoot = getPortalRoot();
+  const portalRoot     = getPortalRoot();
+  const resumeAgentId  = await resolveResumeAgentId(options);
+
+  if ((options.resume || options.resumeRunId || options.resumeAgentId) && !resumeAgentId) {
+    return {
+      started : false
+    , error   : "resume non disponibile — agentId assente o runId non trovato nello stato"
+    };
+  }
+
   const jobPath    = join(ADMIN_PORTAL_DIR, `.cursor-agent-job.${randomUUID()}.json`);
   const job        = {
     runtime       : runtime
@@ -349,7 +423,7 @@ export async function startCursorAgent(options) {
   , localCwd      : getCursorLocalCwd()
   , cloudRepos    : getCursorCloudRepos()
   , autoCreatePR  : process.env.CURSOR_CLOUD_AUTO_PR !== "0"
-  , resumeAgentId : options.resume && state.agentId ? state.agentId : null
+  , resumeAgentId
   , name          : `PortalAdmin cruscotto ${runtime}`
   };
 
