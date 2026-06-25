@@ -30,6 +30,35 @@ const JIRA_BROWSE = "https://myfuturejobsearch.atlassian.net/browse";
  */
 
 /**
+ * @typedef {{
+ *   objective: string
+ *   epicKey?: string | null
+ *   sprintNote?: string
+ *   analysisDate?: string
+ *   repoAreas?: Array<{ area: string, esito: string, note: string }>
+ *   responsibility?: string
+ *   acceptanceCriteria?: Array<{ text: string, checked?: boolean }>
+ *   definitionOfDone?: Array<{ text: string, checked?: boolean }>
+ *   subtasks?: Array<{ key: string, summary: string }>
+ *   outOfScope?: string | string[]
+ *   successor?: string | null
+ * }} VeveStoryParentContext
+ */
+
+/**
+ * @typedef {{
+ *   objective: string
+ *   parentKey: string
+ *   repoAreas?: Array<{ area: string, esito: string, note: string }>
+ *   acceptanceCriteria?: Array<{ text: string, checked?: boolean }>
+ *   definitionOfDone?: Array<{ text: string, checked?: boolean }>
+ *   files?: string[]
+ *   dependencies?: string | string[]
+ *   order?: { n: number, total: number }
+ * }} VeveSubtaskContext
+ */
+
+/**
  * @param {Array<{ text: string, checked?: boolean }>} items
  * @returns {string[]}
  */
@@ -133,6 +162,242 @@ export function buildChiudiParentMarkdown(ctx) {
   }
 
   return lines.join("\n").trimEnd();
+}
+
+/**
+ * @param {string | string[] | undefined} block
+ * @returns {string[]}
+ */
+function renderOutOfScopeLines(block) {
+  if (!block) {
+    return ["—"];
+  }
+
+  const items = Array.isArray(block) ? block : String(block).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+  if (items.length === 0) {
+    return ["—"];
+  }
+
+  return items.map((line) => (line.startsWith("- ") ? line : `- ${line}`));
+}
+
+/**
+ * Template veve story parent → markdown (sync ADF via updateIssueDescriptionMarkdown).
+ *
+ * @param {VeveStoryParentContext} ctx
+ * @returns {string}
+ */
+export function buildVeveStoryParentMarkdown(ctx) {
+  const date = ctx.analysisDate ?? new Date().toISOString().slice(0, 10);
+  const lines = [
+    "## Obiettivo"
+  , ""
+  , ctx.objective.trim()
+  , ""
+  ];
+
+  if (ctx.epicKey) {
+    const sprint = ctx.sprintNote ? ` · ${ctx.sprintNote}` : "";
+    lines.push(`**Epic:** [${ctx.epicKey}](${JIRA_BROWSE}/${ctx.epicKey})${sprint}`, "");
+  }
+
+  lines.push(
+    "---"
+  , ""
+  , "## Sprint / fase"
+  , ""
+  , ctx.sprintNote?.trim() || "—"
+  , ""
+  , "---"
+  , ""
+  , "## Stato repo"
+  , ""
+  , `_Data analisi: ${date}_`
+  , ""
+  );
+
+  const areas = ctx.repoAreas ?? [];
+
+  if (areas.length > 0) {
+    lines.push("| Area | Esito | Note |", "| --- | --- | --- |");
+
+    for (const row of areas) {
+      lines.push(`| ${row.area} | ${row.esito} | ${row.note} |`);
+    }
+
+    lines.push("");
+    lines.push("_Esiti: ✅ implementato · ⚠️ parziale/stub · ❌ assente_", "");
+  }
+
+  if (ctx.responsibility?.trim()) {
+    lines.push(
+      "---"
+    , ""
+    , "## Divisione responsabilità"
+    , ""
+    , ctx.responsibility.trim()
+    , ""
+    );
+  }
+
+  lines.push(
+    "---"
+  , ""
+  , "## Acceptance Criteria"
+  , ""
+  , ...renderCheckboxLines(ctx.acceptanceCriteria ?? [])
+  , ""
+  , "---"
+  , ""
+  , "## Definition of Done"
+  , ""
+  , ...renderCheckboxLines(ctx.definitionOfDone ?? [])
+  , ""
+  , "---"
+  , ""
+  , "## Ordine subtask"
+  , ""
+  );
+
+  const subtasks = ctx.subtasks ?? [];
+
+  if (subtasks.length === 0) {
+    lines.push("_Nessun subtask — fix atomico su parent_", "");
+  } else {
+    lines.push("| # | Key | Summary |", "| --- | --- | --- |");
+    subtasks.forEach((sub, index) => {
+      lines.push(`| ${index + 1} | ${sub.key} | ${sub.summary} |`);
+    });
+    lines.push("");
+  }
+
+  lines.push(
+    "---"
+  , ""
+  , "## Fuori scope"
+  , ""
+  , ...renderOutOfScopeLines(ctx.outOfScope)
+  , ""
+  , "---"
+  , ""
+  , "## Successore"
+  , ""
+  , ctx.successor?.trim() || "—"
+  , ""
+  );
+
+  return lines.join("\n").trimEnd();
+}
+
+/**
+ * Template veve subtask → markdown.
+ *
+ * @param {VeveSubtaskContext} ctx
+ * @returns {string}
+ */
+export function buildVeveSubtaskMarkdown(ctx) {
+  const lines = [
+    "## Obiettivo"
+  , ""
+  , ctx.objective.trim()
+  , ""
+  , `**Parent:** [${ctx.parentKey}](${JIRA_BROWSE}/${ctx.parentKey})`
+  , ""
+  ];
+
+  const areas = ctx.repoAreas ?? [];
+
+  if (areas.length > 0) {
+    lines.push(
+      "---"
+    , ""
+    , "## Stato repo"
+    , ""
+    , "| Area | Esito | Note |"
+    , "| --- | --- | --- |"
+    );
+
+    for (const row of areas) {
+      lines.push(`| ${row.area} | ${row.esito} | ${row.note} |`);
+    }
+
+    lines.push("");
+  }
+
+  lines.push(
+    "---"
+  , ""
+  , "## Acceptance Criteria"
+  , ""
+  , ...renderCheckboxLines(ctx.acceptanceCriteria ?? [])
+  , ""
+  , "---"
+  , ""
+  , "## Definition of Done"
+  , ""
+  , ...renderCheckboxLines(ctx.definitionOfDone ?? [])
+  , ""
+  , "---"
+  , ""
+  , "## File coinvolti"
+  , ""
+  );
+
+  const files = ctx.files ?? [];
+
+  if (files.length === 0) {
+    lines.push("—", "");
+  } else {
+    for (const file of files) {
+      lines.push(`- \`${file}\``);
+    }
+
+    lines.push("");
+  }
+
+  lines.push(
+    "---"
+  , ""
+  , "## Dipendenze"
+  , ""
+  );
+
+  if (!ctx.dependencies || (Array.isArray(ctx.dependencies) && ctx.dependencies.length === 0)) {
+    lines.push("—", "");
+  } else if (Array.isArray(ctx.dependencies)) {
+    lines.push(ctx.dependencies.join(" · "), "");
+  } else {
+    lines.push(String(ctx.dependencies).trim(), "");
+  }
+
+  if (ctx.order) {
+    lines.push(
+      "---"
+    , ""
+    , "## Ordine"
+    , ""
+    , `${ctx.order.n}/${ctx.order.total}`
+    , ""
+    );
+  }
+
+  return lines.join("\n").trimEnd();
+}
+
+/**
+ * @param {string} issueKey
+ * @param {VeveStoryParentContext | VeveSubtaskContext} ctx
+ * @param {"story" | "subtask"} kind
+ * @param {{ dryRun?: boolean }} [opts]
+ */
+export async function syncVeveDescriptionToJira(issueKey, ctx, kind, opts = {}) {
+  const markdown = kind === "subtask"
+    ? buildVeveSubtaskMarkdown(/** @type {VeveSubtaskContext} */ (ctx))
+    : buildVeveStoryParentMarkdown(/** @type {VeveStoryParentContext} */ (ctx));
+  const desc = await updateIssueDescriptionMarkdown(issueKey, markdown, opts);
+
+  return { markdown, description: desc };
 }
 
 /**
