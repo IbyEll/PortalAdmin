@@ -17,6 +17,8 @@ alwaysApply: true
 
 `.cursor/templates/veve/veve-story-parent.md` — compila placeholder da Leggi Jira + Analizza repo prima di `editJiraIssue`.
 
+**Stato repo:** una sola tabella markdown; includere **solo** righe con esito ✅/⚠️/❌ — **non** inserire aree non contemplate (⬜, N/A, trattino).
+
 Sezioni e **checkbox AC/DoD (B poi A)**: vedi `JLO-Veve-AggiornaStory.mdc` (canonico).
 
 **Vietato:** edit subtask, branch, commit, Fatto parent.

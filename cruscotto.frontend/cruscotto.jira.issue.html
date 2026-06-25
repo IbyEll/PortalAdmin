@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-cruscotto-bind="document.title" data-cruscotto-template="Issue — {jiraPrefix}">Issue Jira</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/jira-issue-display.css" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface-2: #141c28;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d9cf5;
+      --ok: #48bb78;
+      --amber: #f0b429;
+      --danger: #f56565;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .issue-page {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 1rem 1.25rem 2.5rem;
+    }
+    .issue-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .issue-toolbar label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .issue-key-field {
+      display: flex;
+      align-items: stretch;
+      flex: 0 1 auto;
+      min-width: 7.5rem;
+      max-width: 12rem;
+    }
+    .issue-key-prefix {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.4rem 0.4rem 0.55rem;
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 6px 0 0 6px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .issue-key-field input {
+      min-width: 4.5rem;
+      flex: 1 1 auto;
+      padding: 0.4rem 0.55rem;
+      border-radius: 0 6px 6px 0;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .issue-toolbar button,
+    .issue-toolbar a.btn {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.38rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .issue-toolbar button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0f1419;
+    }
+    .issue-toolbar button.db-load {
+      border-color: rgba(240, 180, 41, 0.55);
+      color: var(--amber);
+    }
+    .issue-toolbar button.db-load:hover {
+      background: rgba(240, 180, 41, 0.12);
+    }
+    .issue-source-banner {
+      font-size: 0.8rem;
+      margin: -0.35rem 0 0.85rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+    .issue-source-banner.is-jira {
+      border-color: rgba(61, 156, 245, 0.4);
+      color: var(--accent);
+    }
+    .issue-source-banner.is-db {
+      border-color: rgba(240, 180, 41, 0.45);
+      color: var(--amber);
+    }
+    .issue-toolbar button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+    .issue-header {
+      margin-bottom: 1.25rem;
+    }
+    .issue-header__keyline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem;
+      margin-bottom: 0.45rem;
+    }
+    .issue-header h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .issue-wip-advancement {
+      margin-top: 0.85rem;
+      border: 1px solid rgba(61, 156, 245, 0.35);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(61, 156, 245, 0.08), rgba(61, 156, 245, 0.03));
+      padding: 0.75rem 0.85rem;
+    }
+    .issue-wip-advancement.is-awaiting-push {
+      border-color: rgba(240, 180, 41, 0.5);
+      background: linear-gradient(180deg, rgba(240, 180, 41, 0.1), rgba(240, 180, 41, 0.03));
+    }
+    .issue-wip-advancement.is-published {
+      border-color: rgba(72, 187, 120, 0.45);
+      background: linear-gradient(180deg, rgba(72, 187, 120, 0.1), rgba(72, 187, 120, 0.03));
+    }
+    .issue-wip-advancement.is-not-wip {
+      border-color: rgba(61, 156, 245, 0.55);
+      background: linear-gradient(180deg, rgba(61, 156, 245, 0.14), rgba(61, 156, 245, 0.05));
+    }
+    .issue-wip-advancement.is-not-wip .issue-wip-advancement__title {
+      color: var(--accent);
+    }
+    .issue-wip-advancement__type {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .issue-wip-advancement__type .issue-type {
+      margin: 0;
+    }
+    .issue-wip-advancement__head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem 0.65rem;
+      margin-bottom: 0.55rem;
+    }
+    .issue-wip-advancement__title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+    .issue-wip-advancement.is-awaiting-push .issue-wip-advancement__title {
+      color: var(--amber);
+    }
+    .issue-wip-advancement.is-published .issue-wip-advancement__title {
+      color: var(--ok);
+    }
+    .issue-wip-advancement__phase {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.12rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .issue-wip-advancement__grid {
+      display: grid;
+      grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr) minmax(6.5rem, auto) minmax(0, 1fr);
+      gap: 0 0.65rem;
+      column-gap: 0.65rem;
+      margin: 0;
+    }
+    .issue-wip-advancement__grid dt,
+    .issue-wip-advancement__grid dd {
+      margin: 0;
+      padding: 0.32rem 0;
+      border-bottom: 1px solid rgba(45, 58, 79, 0.55);
+      font-size: 0.82rem;
+      align-self: center;
+    }
+    .issue-wip-advancement__grid dt {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .issue-wip-advancement__grid dd {
+      color: var(--text);
+      word-break: break-word;
+      min-width: 0;
+    }
+    .issue-wip-advancement__grid dd a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .issue-wip-advancement__grid dd a:hover { text-decoration: underline; }
+    .pr-state-pill {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .pr-state-pill.is-merged {
+      color: var(--ok);
+      border-color: rgba(72, 187, 120, 0.45);
+      background: rgba(72, 187, 120, 0.1);
+    }
+    .pr-state-pill.is-closed {
+      color: var(--muted);
+      border-color: rgba(139, 156, 179, 0.45);
+    }
+    .pr-state-pill.is-open {
+      color: var(--amber);
+      border-color: rgba(240, 180, 41, 0.45);
+      background: rgba(240, 180, 41, 0.08);
+    }
+    @media (max-width: 860px) {
+      .issue-wip-advancement__grid {
+        grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
+      }
+    }
+    .issue-wip-advancement__checks {
+      margin-top: 0.55rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      gap: 0.55rem;
+    }
+    .issue-wip-advancement__checks section {
+      font-size: 0.82rem;
+    }
+    .issue-wip-advancement__checks h4 {
+      margin: 0 0 0.25rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .issue-wip-advancement__checks ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .issue-wip-advancement__checks li {
+      margin: 0.15rem 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .issue-wip-advancement__checks li.is-checked { color: var(--text); }
+    .bool-yes { color: var(--ok); font-weight: 700; }
+    .bool-no { color: var(--muted); }
+    .status-pill {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+    .status-pill.is-done {
+      color: var(--ok);
+      border-color: rgba(72, 187, 120, 0.45);
+      background: rgba(72, 187, 120, 0.1);
+    }
+    .status-pill.is-todo {
+      color: var(--accent);
+      border-color: rgba(61, 156, 245, 0.45);
+      background: rgba(61, 156, 245, 0.1);
+    }
+    .issue-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 520px);
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .issue-layout { grid-template-columns: 1fr; }
+    }
+    .issue-panel {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .issue-panel__title {
+      margin: 0;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .issue-panel__body {
+      padding: 0.85rem 1rem;
+    }
+    .issue-description {
+      font-size: 0.95rem;
+      min-height: 4rem;
+      line-height: 1.55;
+    }
+    .issue-description.is-empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+    .issue-description h1,
+    .issue-description h2,
+    .issue-description h3,
+    .issue-description h4 {
+      margin: 1.1rem 0 0.45rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text);
+    }
+    .issue-description h2 { font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+    .issue-description h3 { font-size: 0.98rem; }
+    .issue-description p { margin: 0.45rem 0; }
+    .issue-description hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0.85rem 0;
+    }
+    .issue-description ul,
+    .issue-description ol {
+      margin: 0.35rem 0 0.65rem;
+      padding-left: 1.35rem;
+    }
+    .issue-description li { margin: 0.2rem 0; }
+    .issue-description table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.55rem 0 0.85rem;
+      font-size: 0.88rem;
+    }
+    .issue-description table.stato-repo-table {
+      table-layout: fixed;
+    }
+    .issue-description table.ordine-subtask-table,
+    .issue-description table.jira-merged-table {
+      table-layout: fixed;
+    }
+    .issue-description table.stato-repo-table th:nth-child(1),
+    .issue-description table.stato-repo-table td.stato-repo-1 {
+      width: 28%;
+    }
+    .issue-description table.stato-repo-table th:nth-child(2),
+    .issue-description table.stato-repo-table td.stato-repo-2 {
+      width: 12%;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .issue-description table.stato-repo-table th:nth-child(3),
+    .issue-description table.stato-repo-table td.stato-repo-3 {
+      width: 60%;
+    }
+    .issue-description table.ordine-subtask-table th:nth-child(1),
+    .issue-description table.ordine-subtask-table td.ordine-subtask-1 {
+      width: 8%;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .issue-description table.ordine-subtask-table th:nth-child(2),
+    .issue-description table.ordine-subtask-table td.ordine-subtask-2 {
+      width: 18%;
+      white-space: nowrap;
+    }
+    .issue-description table.ordine-subtask-table th:nth-child(3),
+    .issue-description table.ordine-subtask-table td.ordine-subtask-3 {
+      width: 54%;
+    }
+    .issue-description table.ordine-subtask-table th:nth-child(4),
+    .issue-description table.ordine-subtask-table td.ordine-subtask-4 {
+      width: 20%;
+      white-space: nowrap;
+    }
+    .issue-description .veve-empty-note {
+      margin: 0.45rem 0 0.85rem;
+      color: var(--muted);
+    }
+    .issue-description th,
+    .issue-description td {
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    .issue-description th {
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .issue-description a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .issue-description a:hover { text-decoration: underline; }
+    .issue-description tt,
+    .issue-description code {
+      font-family: ui-monospace, monospace;
+      font-size: 0.88em;
+      background: var(--bg);
+      padding: 0.08em 0.3em;
+      border-radius: 4px;
+    }
+    .issue-description pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.65rem 0.75rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+    .issue-description em,
+    .issue-description i { color: var(--muted); font-style: italic; }
+    .issue-description table:not(.stato-repo-table):not(.ordine-subtask-table) td:nth-child(2) {
+      text-align: center;
+      white-space: nowrap;
+      width: 4.25rem;
+    }
+    .repo-esito {
+      display: inline-block;
+      font-size: 1rem;
+      line-height: 1.2;
+      vertical-align: middle;
+    }
+    .repo-esito-ok { filter: none; }
+    .repo-esito-warn { filter: none; }
+    .repo-esito-miss { filter: none; }
+    .repo-esito-na {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.12rem 0.38rem;
+      background: var(--bg);
+    }
+    .issue-description img { max-width: 100%; height: auto; }
+    .subtask-progress {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+    .meta-list {
+      display: grid;
+      grid-template-columns: minmax(5.25rem, auto) minmax(0, 1fr) minmax(5.25rem, auto) minmax(0, 1fr);
+      gap: 0 0.65rem;
+      column-gap: 0.65rem;
+      margin: 0;
+      padding: 0;
+    }
+    .meta-list dt,
+    .meta-list dd {
+      margin: 0;
+      padding: 0.38rem 0;
+      border-bottom: 1px solid rgba(45, 58, 79, 0.55);
+      font-size: 0.86rem;
+      align-self: center;
+    }
+    .meta-list dt {
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .meta-list dd {
+      word-break: break-word;
+      min-width: 0;
+    }
+    @media (max-width: 860px) {
+      .meta-list {
+        grid-template-columns: minmax(5.25rem, auto) minmax(0, 1fr);
+      }
+    }
+    .meta-list dt.is-wip-field,
+    .issue-panel__title.is-wip-field,
+    .issue-header h1.is-wip-field,
+    .issue-table th.is-wip-field {
+      color: var(--accent);
+    }
+    #issue-view.issue-wip-phase-awaiting-push .meta-list dt.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-panel__title.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-header h1.is-wip-field,
+    #issue-view.issue-wip-phase-awaiting-push .issue-table th.is-wip-field {
+      color: var(--amber);
+    }
+    #issue-view.issue-wip-phase-published .meta-list dt.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-panel__title.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-header h1.is-wip-field,
+    #issue-view.issue-wip-phase-published .issue-table th.is-wip-field {
+      color: var(--ok);
+    }
+    .label-chip {
+      display: inline-block;
+      margin: 0 0.25rem 0.25rem 0;
+      padding: 0.08rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 0.75rem;
+    }
+    .issue-links,
+    .issue-subtasks {
+      margin-top: 1rem;
+    }
+    .issue-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .issue-table th,
+    .issue-table td {
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    .issue-table th {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      background: var(--surface-2);
+    }
+    .issue-key-cell {
+      white-space: nowrap;
+    }
+    .issue-key-cell a.jira-link {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .issue-key-cell a.jira-link:hover { text-decoration: underline; }
+    .wip-block {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(61, 156, 245, 0.06);
+      padding: 0.75rem 0.85rem;
+    }
+    .wip-block h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+    .wip-checklist {
+      margin: 0.35rem 0 0;
+      padding-left: 0;
+      list-style: none;
+      font-size: 0.88rem;
+    }
+    .wip-checklist li {
+      margin: 0.2rem 0;
+      color: var(--muted);
+    }
+    .wip-checklist li.is-checked { color: var(--text); }
+    .state-box {
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--muted);
+    }
+    .state-box.error { color: var(--danger); border-color: rgba(245, 101, 101, 0.45); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="issue-page">
+    <form class="issue-toolbar" id="issue-search-form">
+      <label for="issue-key-input">Issue</label>
+      <div class="issue-key-field">
+        <span class="issue-key-prefix" id="issue-key-prefix" data-cruscotto-bind="text" data-cruscotto-template="{jiraPrefix}-">…</span>
+        <input id="issue-key-input" type="text" inputmode="numeric" placeholder="154" autocomplete="off" spellcheck="false" aria-label="Numero issue Jira" />
+      </div>
+      <button type="submit" class="primary" id="btn-load">Apri da Jira</button>
+      <button type="button" class="db-load" id="btn-load-db">Apri da DB</button>
+      <a class="btn hidden" id="btn-jira" href="#" target="_blank" rel="noopener noreferrer">Apri su Jira ↗</a>
+    </form>
+
+    <p id="issue-source-banner" class="issue-source-banner hidden" aria-live="polite"></p>
+
+    <div id="issue-state" class="state-box">Inserisci il numero issue (es. 154) e premi Apri da Jira o Apri da DB.</div>
+
+    <article id="issue-view" class="hidden" aria-live="polite">
+      <header class="issue-header">
+        <div class="issue-header__keyline" id="issue-keyline"></div>
+        <h1 id="issue-summary"></h1>
+        <div id="issue-wip-advancement" class="issue-wip-advancement hidden" aria-label="Avanzamento WIP cruscotto"></div>
+      </header>
+
+      <div class="issue-layout">
+        <div class="issue-main">
+          <section class="issue-panel">
+            <h2 class="issue-panel__title" id="issue-description-title">Description</h2>
+            <div class="issue-panel__body issue-description" id="issue-description"></div>
+          </section>
+
+          <div class="issue-subtasks hidden" id="issue-subtasks-wrap">
+            <section class="issue-panel">
+              <h2 class="issue-panel__title" id="issue-subtasks-title">Sub-task</h2>
+              <div class="issue-panel__body" id="issue-subtasks"></div>
+            </section>
+          </div>
+
+          <div class="issue-links hidden" id="issue-links-wrap">
+            <section class="issue-panel">
+              <h2 class="issue-panel__title">Linked issues</h2>
+              <div class="issue-panel__body" id="issue-links"></div>
+            </section>
+          </div>
+
+          <div class="wip-block hidden" id="issue-wip-wrap">
+            <h3>WIP cruscotto (veve)</h3>
+            <div id="issue-wip-ac"></div>
+            <div id="issue-wip-dod"></div>
+          </div>
+        </div>
+
+        <aside class="issue-panel">
+          <h2 class="issue-panel__title">Details</h2>
+          <div class="issue-panel__body">
+            <dl class="meta-list" id="issue-meta"></dl>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+
+  <script src="/cruscotto.project.bootstrap.js"></script>
+  <script src="/jira-issue-display.js"></script>
+  <script>
+    const ISSUE_KEY_RE = /^(ADMIN|JLO)-\d+$/i;
+
+    const formEl       = document.getElementById("issue-search-form");
+    const prefixEl     = document.getElementById("issue-key-prefix");
+    const inputEl      = document.getElementById("issue-key-input");
+    const btnLoad      = document.getElementById("btn-load");
+    const btnLoadDb    = document.getElementById("btn-load-db");
+    const sourceBanner = document.getElementById("issue-source-banner");
+    const btnJira      = document.getElementById("btn-jira");
+    const stateEl      = document.getElementById("issue-state");
+    const viewEl       = document.getElementById("issue-view");
+    const keylineEl    = document.getElementById("issue-keyline");
+    const summaryEl    = document.getElementById("issue-summary");
+    const descriptionEl = document.getElementById("issue-description");
+    const metaEl       = document.getElementById("issue-meta");
+    const subtasksWrap = document.getElementById("issue-subtasks-wrap");
+    const subtasksEl   = document.getElementById("issue-subtasks");
+    const subtasksTitle = document.getElementById("issue-subtasks-title");
+    const linksWrap    = document.getElementById("issue-links-wrap");
+    const linksEl      = document.getElementById("issue-links");
+    const wipWrap      = document.getElementById("issue-wip-wrap");
+    const wipAcEl      = document.getElementById("issue-wip-ac");
+    const wipDodEl     = document.getElementById("issue-wip-dod");
+    const wipAdvancementEl = document.getElementById("issue-wip-advancement");
+    const descriptionTitleEl = document.getElementById("issue-description-title");
+
+    /**
+     * @returns {string}
+     */
+    function jiraPrefix() {
+      const project = window.__CRUSCOTTO_PROJECT__ ?? window.CRUSCOTTO_PROJECT ?? {};
+
+      return String(project.jiraPrefix ?? project.PRJ_JIRA_PREFIX ?? "ADMIN").toUpperCase();
+    }
+
+    function refreshPrefixLabel() {
+      if (prefixEl) {
+        prefixEl.textContent = `${jiraPrefix()}-`;
+      }
+    }
+
+    /**
+     * @param {string} key
+     */
+    function setInputFromKey(key) {
+      const prefix = jiraPrefix();
+      const upper = String(key ?? "").trim().toUpperCase();
+      const match = upper.match(/^([A-Z]+)-(\d+)$/);
+
+      if (match && match[1] === prefix) {
+        inputEl.value = match[2];
+        return;
+      }
+
+      if (/^\d+$/.test(upper)) {
+        inputEl.value = upper;
+      }
+    }
+
+    /**
+     * @param {string} raw
+     * @returns {string | null}
+     */
+    function resolveIssueKey(raw) {
+      const text = String(raw ?? "").trim().toUpperCase();
+
+      if (!text) {
+        return null;
+      }
+
+      if (ISSUE_KEY_RE.test(text)) {
+        return text;
+      }
+
+      if (/^\d+$/.test(text)) {
+        return `${jiraPrefix()}-${text}`;
+      }
+
+      return null;
+    }
+
+    /**
+     * @param {string | null | undefined} iso
+     * @returns {string}
+     */
+    function formatDate(iso) {
+      if (!iso) {
+        return "—";
+      }
+
+      try {
+        return new Date(iso).toLocaleString("it-IT");
+      } catch {
+        return iso;
+      }
+    }
+
+    /**
+     * @param {string} message
+     * @param {boolean} [isError]
+     */
+    function boolHtml(value) {
+      return value
+        ? '<span class="bool-yes">Sì</span>'
+        : '<span class="bool-no">No</span>';
+    }
+
+    /**
+     * @param {string | null | undefined} iso
+     * @returns {string}
+     */
+    function formatShortDate(iso) {
+      if (!iso) {
+        return "—";
+      }
+
+      try {
+        return new Date(iso).toLocaleString("it-IT");
+      } catch {
+        return iso;
+      }
+    }
+
+    /**
+     * @param {string} [issueType]
+     * @returns {string}
+     */
+    function issueTypeBadgeHtml(issueType) {
+      const badge = window.JiraIssueDisplay?.createIssueTypeBadge?.(issueType);
+
+      if (!badge) {
+        return issueType ? escHtml(issueType) : "—";
+      }
+
+      const wrap = document.createElement("span");
+
+      wrap.appendChild(badge);
+
+      return wrap.innerHTML;
+    }
+
+    /**
+     * @param {{
+     *   workflowPhase?: string
+     *   workflowPhaseLabel?: string
+     *   inWip?: boolean
+     *   status?: string | null
+     *   developmentComplete?: boolean
+     *   awaitingPush?: boolean
+     *   subtasksDone?: number
+     *   subtasksTotal?: number
+     *   acSummary?: string | null
+     *   dodSummary?: string | null
+     *   prUrl?: string | null
+     *   prState?: string | null
+     *   prAppliedAt?: string | null
+     *   prPollComplete?: boolean
+     *   gitPushed?: boolean
+     *   jiraSynced?: boolean
+     *   jiraSyncedAt?: string | null
+     *   pushedAt?: string | null
+     *   wipClosedAt?: string | null
+     *   commitHash?: string | null
+     *   branch?: string | null
+     *   wipUpdatedAt?: string | null
+     *   ac?: Array<{ checked: boolean, text: string }>
+     *   dod?: Array<{ checked: boolean, text: string }>
+     * } | null | undefined} advancement
+     * @param {{
+     *   key: string
+     *   issueType: string
+     *   status: string
+     *   done: boolean
+     *   viewSource?: string
+     *   dbMeta?: { syncedAt?: string | null, descriptionFrom?: string, hasWip?: boolean }
+     * }} issue
+     */
+    function renderWipAdvancement(advancement, issue) {
+      if (!wipAdvancementEl || !issue) {
+        return;
+      }
+
+      const inWip       = Boolean(advancement?.inWip);
+      const typeBadge   = issueTypeBadgeHtml(issue.issueType);
+      const typeHead    = typeBadge && typeBadge !== "—"
+        ? `<span class="issue-wip-advancement__type">${typeBadge}</span>`
+        : "";
+
+      wipAdvancementEl.classList.remove(
+        "hidden"
+      , "is-awaiting-push"
+      , "is-published"
+      , "is-not-wip"
+      );
+
+      if (!inWip) {
+        wipAdvancementEl.classList.add("is-not-wip");
+
+        const sourceLabel = issue.viewSource === "db" ? "Cache DB" : "Jira live";
+        const syncedAt    = issue.dbMeta?.syncedAt
+          ? formatShortDate(issue.dbMeta.syncedAt)
+          : "—";
+        const descFrom    = issue.dbMeta?.descriptionFrom === "jira-cache"
+          ? "Description in cache"
+          : issue.dbMeta?.descriptionFrom === "wip"
+            ? "Description WIP"
+            : issue.dbMeta?.descriptionFrom === "jira-live"
+              ? "Description live"
+              : "—";
+
+        wipAdvancementEl.innerHTML = [
+          "<div class=\"issue-wip-advancement__head\">"
+        , typeHead
+        , "<span class=\"issue-wip-advancement__title\">Avanzamento issue</span>"
+        , "<span class=\"issue-wip-advancement__phase\">Non in WIP</span>"
+        , "</div>"
+        , "<dl class=\"issue-wip-advancement__grid\">"
+        , `<dt>Stato</dt><dd>${statusPillHtml(issue.status, issue.done)}</dd>`
+        , `<dt>In coda WIP</dt><dd>${boolHtml(false)}</dd>`
+        , `<dt>Fonte vista</dt><dd>${escHtml(sourceLabel)}</dd>`
+        , `<dt>Sync cache</dt><dd>${escHtml(syncedAt)}</dd>`
+        , `<dt>Description</dt><dd>${escHtml(descFrom)}</dd>`
+        , `<dt>Sviluppo completato</dt><dd>${boolHtml(Boolean(issue.done))}</dd>`
+        , `<dt>PR</dt><dd>—</dd>`
+        , `<dt>Branch</dt><dd>—</dd>`
+        , "</dl>"
+        ].join("");
+
+        return;
+      }
+
+      if (advancement.workflowPhase === "awaiting_push") {
+        wipAdvancementEl.classList.add("is-awaiting-push");
+      } else if (advancement.workflowPhase === "published") {
+        wipAdvancementEl.classList.add("is-published");
+      }
+
+      const prCell = advancement.prUrl
+        ? `<a href="${escHtml(advancement.prUrl)}" target="_blank" rel="noopener noreferrer">PR ↗</a>`
+        : "—";
+
+      const prStateHtml = (() => {
+        const state = advancement.prState;
+
+        if (!state) {
+          return advancement.prUrl ? '<span class="pr-state-pill is-open">Aperta</span>' : "—";
+        }
+
+        if (state === "MERGED") {
+          return '<span class="pr-state-pill is-merged">Mergiata</span>';
+        }
+
+        if (state === "CLOSED") {
+          return '<span class="pr-state-pill is-closed">Chiusa</span>';
+        }
+
+        if (state === "OPEN") {
+          return '<span class="pr-state-pill is-open">Aperta</span>';
+        }
+
+        return escHtml(state);
+      })();
+
+      const prAppliedCell = advancement.prAppliedAt
+        ? escHtml(formatShortDate(advancement.prAppliedAt))
+        : "—";
+
+      const subtasksCell = advancement.subtasksTotal > 0
+        ? `${advancement.subtasksDone}/${advancement.subtasksTotal} Fatto`
+        : "—";
+
+      const gridHtml = [
+        "<dl class=\"issue-wip-advancement__grid\">"
+      , `<dt>Stato WIP</dt><dd>${escHtml(advancement.status ?? "—")}</dd>`
+      , `<dt>Sviluppo completato</dt><dd>${boolHtml(Boolean(advancement.developmentComplete))}</dd>`
+      , `<dt>Subtask WIP</dt><dd>${escHtml(subtasksCell)}</dd>`
+      , `<dt>In attesa PUSH</dt><dd>${boolHtml(Boolean(advancement.awaitingPush))}</dd>`
+      , `<dt>Git pushato</dt><dd>${boolHtml(Boolean(advancement.gitPushed))}</dd>`
+      , `<dt>Jira sincronizzato</dt><dd>${advancement.jiraSynced
+          ? escHtml(formatShortDate(advancement.jiraSyncedAt))
+          : boolHtml(false)}</dd>`
+      , `<dt>PR</dt><dd>${prCell}</dd>`
+      , `<dt>PR stato</dt><dd>${prStateHtml}</dd>`
+      , `<dt>PR applicata</dt><dd>${prAppliedCell}</dd>`
+      , `<dt>Commit</dt><dd>${advancement.commitHash
+          ? `<code>${escHtml(advancement.commitHash.slice(0, 12))}</code>`
+          : "—"}</dd>`
+      , `<dt>Branch</dt><dd>${advancement.branch
+          ? `<code>${escHtml(advancement.branch)}</code>`
+          : "—"}</dd>`
+      , `<dt>Chiusura WIP</dt><dd>${escHtml(formatShortDate(advancement.wipClosedAt))}</dd>`
+      , `<dt>Push</dt><dd>${escHtml(formatShortDate(advancement.pushedAt))}</dd>`
+      , `<dt>AC</dt><dd>${escHtml(advancement.acSummary ?? "—")}</dd>`
+      , `<dt>DoD</dt><dd>${escHtml(advancement.dodSummary ?? "—")}</dd>`
+      , `<dt>Aggiornato WIP</dt><dd>${escHtml(formatShortDate(advancement.wipUpdatedAt))}</dd>`
+      , "</dl>"
+      ].join("");
+
+      /**
+       * @param {string} label
+       * @param {Array<{ checked: boolean, text: string }>} items
+       */
+      function checksSection(label, items) {
+        if (!items?.length) {
+          return "";
+        }
+
+        const lines = items.map((item) => (
+          `<li class="${item.checked ? "is-checked" : ""}">`
+          + `${item.checked ? "☑" : "☐"} ${escHtml(item.text)}`
+          + `</li>`
+        )).join("");
+
+        return `<section><h4>${escHtml(label)}</h4><ul>${lines}</ul></section>`;
+      }
+
+      const checksHtml = (advancement.ac?.length || advancement.dod?.length)
+        ? `<div class="issue-wip-advancement__checks">${
+            checksSection("Acceptance Criteria", advancement.ac ?? [])
+          }${checksSection("Definition of Done", advancement.dod ?? [])}</div>`
+        : "";
+
+      wipAdvancementEl.innerHTML = [
+        "<div class=\"issue-wip-advancement__head\">"
+      , typeHead
+      , "<span class=\"issue-wip-advancement__title\">Avanzamento WIP (cruscotto DB)</span>"
+      , `<span class="issue-wip-advancement__phase">${escHtml(advancement.workflowPhaseLabel ?? "")}</span>`
+      , "</div>"
+      , gridHtml
+      , checksHtml
+      ].join("");
+    }
+
+    /**
+     * @param {string} message
+     * @param {boolean} [isError]
+     */
+    function showState(message, isError = false) {
+      if (wipAdvancementEl) {
+        wipAdvancementEl.classList.add("hidden");
+        wipAdvancementEl.replaceChildren();
+      }
+
+      stateEl.textContent = message;
+      stateEl.classList.toggle("error", isError);
+      stateEl.classList.remove("hidden");
+      viewEl.classList.add("hidden");
+
+      if (sourceBanner) {
+        sourceBanner.classList.add("hidden");
+        sourceBanner.textContent = "";
+      }
+    }
+
+    /**
+     * @param {{ viewSource?: string, dbMeta?: { syncedAt?: string | null, descriptionFrom?: string, hasWip?: boolean } }} issue
+     */
+    function updateSourceBanner(issue) {
+      if (!sourceBanner) {
+        return;
+      }
+
+      if (issue.viewSource === "db") {
+        const syncedAt = issue.dbMeta?.syncedAt
+          ? new Date(issue.dbMeta.syncedAt).toLocaleString("it-IT")
+          : "—";
+        const descFrom = issue.dbMeta?.descriptionFrom === "wip"
+          ? "description WIP (veve o sync Jira)"
+          : issue.dbMeta?.descriptionFrom === "cache"
+            ? "description veve in raw_fields cache"
+            : issue.dbMeta?.descriptionFrom === "jira-cache"
+              ? "description Jira in raw_fields (sync DB)"
+              : issue.dbMeta?.descriptionFrom === "jira-live"
+              ? "description Jira live (fallback)"
+              : "solo metadati (nessuna description in DB)";
+        const wipNote  = issue.dbMeta?.hasWip ? " · riga WIP presente" : "";
+
+        sourceBanner.className = "issue-source-banner is-db";
+        sourceBanner.textContent = `Visualizzazione: cache DB · sync ${syncedAt} · ${descFrom}${wipNote}`;
+      } else {
+        sourceBanner.className = "issue-source-banner is-jira";
+        sourceBanner.textContent = "Visualizzazione: Jira live (API Atlassian)";
+      }
+
+      sourceBanner.classList.remove("hidden");
+    }
+
+    /**
+     * @param {HTMLElement} parent
+     * @param {string} key
+     * @param {string} [issueType]
+     */
+    function renderIssueKey(parent, key, issueType) {
+      parent.replaceChildren();
+
+      const badge = window.JiraIssueDisplay?.createIssueTypeBadge?.(issueType);
+
+      if (badge) {
+        parent.appendChild(badge);
+      }
+
+      const link = document.createElement("a");
+      link.className = "jira-link";
+      link.href = `?key=${encodeURIComponent(key)}`;
+      link.textContent = key;
+      parent.appendChild(link);
+    }
+
+    /**
+     * @param {string} label
+     * @param {string} valueHtml
+     * @param {string} [fieldKey]
+     * @param {string[]} [wipOverrides]
+     * @returns {string}
+     */
+    function metaRow(label, valueHtml, fieldKey, wipOverrides) {
+      const keys  = Array.isArray(fieldKey) ? fieldKey : (fieldKey ? [fieldKey] : []);
+      const isWip = keys.length > 0
+        && Array.isArray(wipOverrides)
+        && keys.some((key) => wipOverrides.includes(key));
+      const dtCls = isWip ? ' class="is-wip-field"' : "";
+
+      return `<dt${dtCls}>${label}</dt><dd>${valueHtml}</dd>`;
+    }
+
+    /**
+     * @param {{ wipFieldOverrides?: string[] }} issue
+     * @param {string} fieldKey
+     * @returns {boolean}
+     */
+    function isWipField(issue, fieldKey) {
+      return Array.isArray(issue.wipFieldOverrides) && issue.wipFieldOverrides.includes(fieldKey);
+    }
+
+    /**
+     * @param {{ wipAdvancement?: { workflowPhase?: string, inWip?: boolean } | null, wip?: { workflowPhase?: string, inWip?: boolean } | null, wipFieldOverrides?: string[] }} issue
+     */
+    function applyWipPhaseClass(issue) {
+      if (!viewEl) {
+        return;
+      }
+
+      viewEl.classList.remove(
+        "issue-wip-phase-default"
+      , "issue-wip-phase-awaiting-push"
+      , "issue-wip-phase-published"
+      );
+
+      const advancement = issue.wipAdvancement ?? issue.wip;
+      const phase       = advancement?.workflowPhase;
+
+      if (phase === "awaiting_push") {
+        viewEl.classList.add("issue-wip-phase-awaiting-push");
+      } else if (phase === "published") {
+        viewEl.classList.add("issue-wip-phase-published");
+      } else if (advancement?.inWip || (issue.wipFieldOverrides?.length ?? 0) > 0) {
+        viewEl.classList.add("issue-wip-phase-default");
+      }
+    }
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    /**
+     * @param {string} status
+     * @param {boolean} done
+     * @returns {string}
+     */
+    function statusPillHtml(status, done) {
+      const cls = done ? "is-done" : "is-todo";
+
+      return `<span class="status-pill ${cls}">${escHtml(status)}</span>`;
+    }
+
+    /**
+     * @param {{ key: string, summary: string, status: string, done?: boolean, issueType: string, wipOverrides?: string[] }[]} subtasks
+     * @returns {string}
+     */
+    function renderSubtasksTable(subtasks) {
+      const doneCount = subtasks.filter((row) => row.done).length;
+      const anySummaryWip = subtasks.some((row) => row.wipOverrides?.includes("summary"));
+      const anyStatusWip  = subtasks.some((row) => row.wipOverrides?.includes("status"));
+      const summaryThCls  = anySummaryWip ? ' class="is-wip-field"' : "";
+      const statusThCls   = anyStatusWip ? ' class="is-wip-field"' : "";
+
+      const rows = subtasks.map((row) => {
+        const keyCell = document.createElement("span");
+        renderIssueKey(keyCell, row.key, row.issueType);
+        const keyHtml = keyCell.innerHTML;
+
+        return `<tr>
+          <td class="issue-key-cell">${keyHtml}</td>
+          <td>${escHtml(row.summary)}</td>
+          <td>${statusPillHtml(row.status, Boolean(row.done))}</td>
+        </tr>`;
+      }).join("");
+
+      return [
+        `<p class="subtask-progress">${doneCount} / ${subtasks.length} completati</p>`
+      , "<table class=\"issue-table\"><thead><tr><th>Key</th>"
+      , `<th${summaryThCls}>Summary</th>`
+      , `<th${statusThCls}>Stato</th>`
+      , "</tr></thead><tbody>"
+      , rows
+      , "</tbody></table>"
+      ].join("");
+    }
+
+    /**
+     * @param {{ key: string, summary: string, status: string, done: boolean, issueType: string, parentKey: string | null, parentSummary: string | null, labels: string[], assignee: string | null, reporter: string | null, created: string | null, updated: string | null, descriptionText: string, descriptionHtml?: string, sprints: Array<{ name: string, state: string }>, subtasks: Array<{ key: string, summary: string, status: string, done?: boolean, issueType: string }>, links: Array<{ type: string, direction: string, key: string, summary: string, issueType: string }>, browseUrl: string, wip: { ac: Array<{ checked: boolean, text: string }>, dod: Array<{ checked: boolean, text: string }> } | null }} issue
+     */
+    function renderIssue(issue) {
+      document.title = `${issue.key} — ${issue.summary}`;
+
+      applyWipPhaseClass(issue);
+
+      keylineEl.replaceChildren();
+      renderIssueKey(keylineEl, issue.key, issue.issueType);
+
+      const status = document.createElement("span");
+      status.className = `status-pill ${issue.done ? "is-done" : "is-todo"}`;
+      status.textContent = issue.status;
+      keylineEl.appendChild(status);
+
+      summaryEl.textContent = issue.summary;
+      summaryEl.classList.toggle("is-wip-field", isWipField(issue, "summary"));
+
+      if (descriptionTitleEl) {
+        descriptionTitleEl.classList.toggle("is-wip-field", isWipField(issue, "description"));
+      }
+
+      renderWipAdvancement(issue.wipAdvancement ?? issue.wip ?? null, issue);
+
+      if (issue.descriptionHtml) {
+        descriptionEl.innerHTML = issue.descriptionHtml;
+        descriptionEl.classList.remove("is-empty");
+      } else if (issue.descriptionText) {
+        descriptionEl.textContent = issue.descriptionText;
+        descriptionEl.classList.remove("is-empty");
+      } else {
+        descriptionEl.replaceChildren();
+        descriptionEl.textContent = issue.dbMeta?.hasWip
+          ? "Nessuna description in WIP — esegui veve db o verifica credenziali Jira."
+          : issue.viewSource === "db"
+            ? "Nessuna description in cache DB."
+            : "Nessuna description su Jira.";
+        descriptionEl.classList.add("is-empty");
+      }
+
+      descriptionEl.querySelectorAll("a[href^='?key=']").forEach((anchor) => {
+        anchor.addEventListener("click", (ev) => {
+          const href = anchor.getAttribute("href") ?? "";
+          const match = href.match(/[?&]key=((?:ADMIN|JLO)-\d+)/i);
+
+          if (match) {
+            ev.preventDefault();
+            void loadIssue(match[1]);
+          }
+        });
+      });
+
+      const sprintHtml = issue.sprints.length
+        ? issue.sprints.map((s) => `<span class="label-chip">${s.name} (${s.state})</span>`).join("")
+        : "—";
+
+      const labelsHtml = issue.labels.length
+        ? issue.labels.map((l) => `<span class="label-chip">${l}</span>`).join("")
+        : "—";
+
+      const parentHtml = issue.parentKey
+        ? `<a class="jira-link" href="?key=${encodeURIComponent(issue.parentKey)}">${issue.parentKey}</a>`
+          + (issue.parentSummary ? ` — ${issue.parentSummary}` : "")
+        : "—";
+
+      const wipO = issue.wipFieldOverrides ?? [];
+
+      /** @type {string[]} */
+      const metaRows = [
+        metaRow("Tipo", issueTypeBadgeHtml(issue.issueType), "issueType", wipO)
+      , metaRow("Stato", statusPillHtml(issue.status, issue.done), "status", wipO)
+      , metaRow("Parent", parentHtml)
+      , metaRow("Sprint", sprintHtml)
+      , metaRow("Labels", labelsHtml)
+      , metaRow("Assignee", escHtml(issue.assignee ?? "—"))
+      , metaRow("Reporter", escHtml(issue.reporter ?? "—"))
+      , metaRow("Creato", escHtml(formatDate(issue.created)))
+      , metaRow("Aggiornato", escHtml(formatDate(issue.updated)))
+      ];
+
+      if (issue.viewSource === "db" && issue.dbFields) {
+        const db = issue.dbFields;
+
+        metaRows.push(
+          metaRow("Tier", escHtml(db.tier || "—"), "tier", wipO)
+        , metaRow("Story-like", boolHtml(Boolean(db.isStoryLike)), "isStoryLike", wipO)
+        , metaRow("Fatto (DB)", boolHtml(Boolean(issue.done)), "isDone", wipO)
+        , metaRow("Dev order", escHtml(db.devOrder ?? "—"), "devOrder", wipO)
+        , metaRow(
+            "Sprint dev"
+          , escHtml(db.devSprintName ?? (db.devSprint != null ? String(db.devSprint) : "—"))
+          , ["devSprintName", "devSprint"]
+          , wipO
+          )
+        , metaRow("Dev sort", db.devSort != null ? escHtml(String(db.devSort)) : "—", "devSort", wipO)
+        , metaRow("Sync WIP", escHtml(formatDate(db.wipSyncedAt)), "syncedAt", wipO)
+        );
+      }
+
+      metaEl.innerHTML = metaRows.join("");
+
+      if (issue.subtasks.length > 0) {
+        subtasksWrap.classList.remove("hidden");
+
+        if (subtasksTitle) {
+          subtasksTitle.textContent = `Sub-task (${issue.subtasks.length})`;
+        }
+
+        subtasksEl.innerHTML = renderSubtasksTable(issue.subtasks);
+      } else {
+        subtasksWrap.classList.add("hidden");
+        subtasksEl.replaceChildren();
+      }
+
+      if (issue.links.length > 0) {
+        linksWrap.classList.remove("hidden");
+        linksEl.innerHTML = [
+          "<table class=\"issue-table\"><thead><tr><th>Key</th><th>Tipo link</th><th>Summary</th></tr></thead><tbody>"
+        , issue.links.map((row) => {
+            return `<tr>
+              <td class="issue-key-cell"><a class="jira-link" href="?key=${encodeURIComponent(row.key)}">${row.key}</a></td>
+              <td>${row.type} (${row.direction})</td>
+              <td>${row.summary}</td>
+            </tr>`;
+          }).join("")
+        , "</tbody></table>"
+        ].join("");
+      } else {
+        linksWrap.classList.add("hidden");
+        linksEl.replaceChildren();
+      }
+
+      wipWrap.classList.add("hidden");
+      wipAcEl.replaceChildren();
+      wipDodEl.replaceChildren();
+
+      btnJira.href = issue.browseUrl;
+      btnJira.classList.remove("hidden");
+
+      updateSourceBanner(issue);
+
+      stateEl.classList.add("hidden");
+      viewEl.classList.remove("hidden");
+    }
+
+    /**
+     * @param {string} key
+     * @param {"jira" | "db"} [source]
+     * @returns {Promise<void>}
+     */
+    async function loadIssue(key, source = "jira") {
+      const normalized = resolveIssueKey(key);
+
+      if (!normalized) {
+        showState("Numero issue non valido — inserisci solo cifre (es. 154)", true);
+        return;
+      }
+
+      const fromDb = source === "db";
+      const endpoint = fromDb
+        ? `/api/jira/issue/${encodeURIComponent(normalized)}/db`
+        : `/api/jira/issue/${encodeURIComponent(normalized)}`;
+
+      btnLoad.disabled = true;
+
+      if (btnLoadDb) {
+        btnLoadDb.disabled = true;
+      }
+
+      showState(`Caricamento ${normalized} da ${fromDb ? "cache DB" : "Jira"}…`);
+
+      const controller = new AbortController();
+      const timeoutId  = window.setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const res = await fetch(endpoint, { signal: controller.signal });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+
+        const issue = await res.json();
+        setInputFromKey(issue.key);
+        const url = new URL(window.location.href);
+        url.searchParams.set("key", issue.key);
+        url.searchParams.set("source", fromDb ? "db" : "jira");
+        history.replaceState(null, "", url);
+        renderIssue(issue);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+
+        if (err instanceof DOMException && err.name === "AbortError") {
+          showState(
+            "Timeout caricamento (30s) — il DB potrebbe essere bloccato: riavvia il cruscotto e riprova"
+          , true
+          );
+        } else {
+          showState(message, true);
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+        btnLoad.disabled = false;
+
+        if (btnLoadDb) {
+          btnLoadDb.disabled = false;
+        }
+      }
+    }
+
+    formEl?.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      void loadIssue(inputEl?.value ?? "", "jira");
+    });
+
+    btnLoadDb?.addEventListener("click", () => {
+      void loadIssue(inputEl?.value ?? "", "db");
+    });
+
+    document.addEventListener("cruscotto:project-ready", refreshPrefixLabel);
+    refreshPrefixLabel();
+
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialKey = initialParams.get("key")
+      ?? (window.location.hash.match(ISSUE_KEY_RE)?.[0] ?? "")
+      ?? (() => {
+        const hashNum = window.location.hash.replace(/^#/, "").match(/^\d+$/);
+
+        return hashNum ? `${jiraPrefix()}-${hashNum[0]}` : "";
+      })();
+    const initialSource = initialParams.get("source") === "db" ? "db" : "jira";
+
+    if (initialKey) {
+      setInputFromKey(initialKey);
+      void loadIssue(initialKey, initialSource);
+    }
+  </script>
+</body>
+</html>

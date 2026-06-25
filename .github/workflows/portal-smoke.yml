@@ -52,7 +52,7 @@ jobs:
           PRODUCT_REPO_PATH: /tmp/portal-admin-missing-product-repo
         run: |
           node --input-type=module -e "
-          import { resolveProductRepoPath } from './lib/portal-paths.mjs';
+          import { resolveProductRepoPath } from './lib/portal.paths.resolver.mjs';
           try {
             resolveProductRepoPath({ required: true });
             console.error('FAIL: expected throw for invalid PRODUCT_REPO_PATH');

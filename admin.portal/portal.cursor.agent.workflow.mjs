@@ -30,6 +30,7 @@
  *
  * Export principali:
  *   - parseWorkflowPrompt — estrae kind e parentKey da prompt
+ *   - listOpenPullRequests, checkNoOpenPullRequests, assertNoOpenPullRequests — gate PR open
  *   - buildWorkflowStartBlock, buildWorkflowEndBlock — markdown log workflow
  *
  * ------------------------------------------------------------------------------------------------------------------------
@@ -194,6 +195,86 @@ export function resolvePrUrlForIssueKey(parentKey) {
 }
 
 /**
+ * @typedef {{ number: number, title: string, headRefName: string, url: string }} OpenPullRequest
+ */
+
+/**
+ * @param {string} [repo]
+ * @returns {OpenPullRequest[]}
+ */
+export function listOpenPullRequests(repo = getProductRepoPath()) {
+  const raw = execFileSync(
+    "gh"
+  , ["pr", "list", "--state", "open", "--json", "number,title,headRefName,url", "--limit", "200"]
+  , { cwd: repo, encoding: "utf8" }
+  ).trim();
+
+  if (!raw) {
+    return [];
+  }
+
+  const parsed = JSON.parse(raw);
+
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+/**
+ * @param {OpenPullRequest[]} prs
+ * @returns {string}
+ */
+function formatOpenPullRequestsMessage(prs) {
+  const lines = prs.map(
+    (pr) => `  - #${pr.number} ${pr.headRefName} — ${pr.title} — ${pr.url}`
+  );
+
+  return [
+    `PR aperte sul repo (${prs.length}) — merge o chiudi prima di gogo/procedi:`
+  , ...lines
+  ].join("\n");
+}
+
+/**
+ * Gate pre-gogo — nessuna PR open sul product repo (qualsiasi ticket).
+ *
+ * @param {string} [repo]
+ * @returns {{ ok: true, openPrs: [] } | { ok: false, openPrs: OpenPullRequest[], error: string }}
+ */
+export function checkNoOpenPullRequests(repo = getProductRepoPath()) {
+  try {
+    const openPrs = listOpenPullRequests(repo);
+
+    if (openPrs.length === 0) {
+      return { ok: true, openPrs: [] };
+    }
+
+    return {
+      ok      : false
+    , openPrs
+    , error   : formatOpenPullRequestsMessage(openPrs)
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    return {
+      ok      : false
+    , openPrs : []
+    , error   : `Impossibile verificare PR aperte (gh): ${message}`
+    };
+  }
+}
+
+/**
+ * @param {string} [repo]
+ */
+export function assertNoOpenPullRequests(repo = getProductRepoPath()) {
+  const gate = checkNoOpenPullRequests(repo);
+
+  if (!gate.ok) {
+    throw new Error(gate.error);
+  }
+}
+
+/**
  * @param {string} status
  */
 function isTodoJiraStatus(status) {
@@ -207,6 +288,8 @@ function isTodoJiraStatus(status) {
  * @returns {Promise<string>}
  */
 export async function buildWorkflowStartBlock(workflow) {
+  assertNoOpenPullRequests();
+
   const { kind, parentKey } = workflow;
   const ctx                 = await analyzeParentForWorkflow(parentKey);
   const git           = readGitWorkflowInfo(parentKey);

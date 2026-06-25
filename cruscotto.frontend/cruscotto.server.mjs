@@ -45,7 +45,9 @@
  *   - GET  /api/jira/my-backlog — backlog cache cruscotto DB (dbOnly)
  *   - POST /api/jira/my-backlog/sync — fetch Jira → persist DB
  *   - GET  /api/jira/backlog/insights
- *   - GET  /api/jira/wip/status · POST /api/jira/wip/push — workflow database
+ *   - GET  /api/jira/issue/:KEY — dettaglio issue live (ADMIN-*, JLO-*)
+ *   - GET  /api/jira/issue/:KEY/db — dettaglio issue da cache cruscotto DB
+ *   - GET  /api/jira/wip/status · POST /api/jira/wip/push · POST /api/jira/wip/pr-poll — workflow database
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
  *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
@@ -86,11 +88,14 @@ import {
 , discoverScriptDocHeader
 , discoverTestCasesForScript
 } from "../lib/test.dipendenze.mjs";
-import { fetchJiraBacklog, fetchJiraIssueStatus, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
+import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
+import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
+import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
+import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import {
   analyzeMyProject
 , analyzeProjectOverview
@@ -110,7 +115,7 @@ import {
 , isCursorAgentActive
 , startCursorAgent
 } from "../admin.portal/portal.cursor.agent.manager.mjs";
-import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
+import { resolvePrUrlForIssueKey, checkNoOpenPullRequests } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import {
   clearRepoServicesLogs
 , getProductDatabaseStatus
@@ -177,6 +182,7 @@ const CRUSCOTTO_STATIC_ALIASES = {
 , "expand-collapse-ui.css"  : "expand.collapse.toolbar.css"
 , "backlog.html"            : "cruscotto.jira.backlog.html"
 , "my-backlog.html"         : "cruscotto.jira.my-backlog.html"
+, "issue.html"              : "cruscotto.jira.issue.html"
 , "my-project.html"         : "cruscotto.jira.my-project.html"
 , "project-overview.html"   : "cruscotto.project.overview.html"
 };
@@ -1274,6 +1280,12 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/workflow/gogo-preflight" && req.method === "GET") {
+    const gate = checkNoOpenPullRequests();
+    sendJson(res, gate.ok ? 200 : 409, gate, req);
+    return;
+  }
+
   if (urlPath === "/api/jira/wip/status" && req.method === "GET") {
     const url = new URL(req.url ?? "", "http://localhost");
     const keysParam = String(url.searchParams.get("keys") ?? "").trim();
@@ -1287,6 +1299,51 @@ async function handleApi(req, res, urlPath) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/enroll" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key  = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const result = await enrollIssueInWip(key);
+      sendJson(res, 200, { ok: true, ...result }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 404, { ok: false, error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/finalize-gogo" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key  = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const advancement = await finalizeWipAfterGogo(key);
+      sendJson(res, 200, {
+        ok          : true
+      , key
+      , advancement
+      , wip         : advancement
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { ok: false, error: message }, req);
     }
 
     return;
@@ -1310,6 +1367,26 @@ async function handleApi(req, res, urlPath) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 409, { ok: false, error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/pr-poll" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { ok: false, error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const result = await pollWipPullRequest(key);
+      sendJson(res, result.ok === false && result.complete !== true ? 502 : 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { ok: false, error: message }, req);
     }
 
     return;
@@ -1359,7 +1436,8 @@ async function handleApi(req, res, urlPath) {
 
       if (!result.started) {
         sendJson(res, result.error?.includes("CURSOR_API_KEY") ? 503 : 409, {
-          error: result.error ?? "avvio fallito"
+          error   : result.error ?? "avvio fallito"
+        , openPrs : Array.isArray(result.openPrs) ? result.openPrs : undefined
         }, req);
         return;
       }
@@ -1378,15 +1456,38 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  const issueMatch = urlPath.match(/^\/api\/jira\/issue\/(JLO-\d+)$/);
+  const issueMatch = urlPath.match(/^\/api\/jira\/issue\/((?:ADMIN|JLO)-\d+)$/i);
 
   if (issueMatch && req.method === "GET") {
     try {
-      const data = await fetchJiraIssueStatus(issueMatch[1]);
+      const data = await fetchJiraIssueDetail(issueMatch[1]);
       sendJson(res, 200, data, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  const issueDbMatch = urlPath.match(/^\/api\/jira\/issue\/((?:ADMIN|JLO)-\d+)\/db$/i);
+
+  if (issueDbMatch && req.method === "GET") {
+    try {
+      const data = await Promise.race([
+        fetchJiraIssueDetailFromDb(issueDbMatch[1])
+      , new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("Timeout lettura cache DB (25s) — riavvia il cruscotto"))
+          , 25000
+          );
+        })
+      ]);
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status  = /assente in cache|non disponibile|Nessun sync/i.test(message) ? 404 : 502;
+      sendJson(res, status, { error: message }, req);
     }
 
     return;
@@ -1440,6 +1541,7 @@ async function handleRequest(req, res) {
     , "jiraproject"
     , "backlog"
     , "mybacklog"
+    , "issue"
     , "process"
     , "cursor"
     ]);

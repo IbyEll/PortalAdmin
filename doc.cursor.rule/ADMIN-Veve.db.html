@@ -5,130 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
     <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
       <h1>ADMIN-Veve.db</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.db.mdc</code> ·
-        <span class="tag tag--db">veve DB</span> ·
-        <span class="tag tag--workflow">workflow database</span>
+        <span class="tag tag--db">database</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Variante <strong>cruscotto SQLite</strong>: legge cache <code>jira_issue</code>, analizza repo,
-        persiste la coda WIP in <code>jira_issue_wip</code> — <strong>senza</strong> MCP Jira.
-      </p>
-      <div class="revision-banner">
-        Step 3: <code>jira_issue</code> → <code>jira_issue_wip</code> ·
-        Step 7: parent WIP → backlog PUSH · Step 8: Jira + PR (cruscotto).
-      </div>
+      <p class="lead">Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database</p>
     </header>
 
-    <section>
-      <h2>Scopo</h2>
-      <p>Grooming backlog locale: allinea story + subtask «da elaborare» nel DB cruscotto invece di
-      aggiornare Jira live. Utile quando la cache è fresca (<code>db:sync</code>) e si vuole evitare MCP.</p>
-    </section>
-
-    <section>
-      <h2>Trigger</h2>
-      <table>
-        <thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead>
-        <tbody>
-          <tr><td><code>veve db {KEY}</code></td><td>Standalone — chat libera, sequenza 1→4</td></tr>
-          <tr><td><code>procedi</code> / <code>gogo {KEY}</code> + workflow database</td><td>Step 3 silenzioso</td></tr>
-          <tr><td><code>chiudi</code></td><td>Non esegue veve db</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Sequenza (4 sotto-step)</h2>
-      <table>
-        <thead><tr><th>Step</th><th>Regola</th><th>Lettura / scrittura</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td><a href="ADMIN-Veve.db-LeggiJira.html">Leggi DB</a></td><td><code>jira_issue</code></td></tr>
-          <tr><td>2</td><td><a href="ADMIN-Veve.db-AnalizzaRepo.html">Analizza repo</a></td><td>CLI gap (repo workflow)</td></tr>
-          <tr><td>3</td><td><a href="ADMIN-Veve.db-AggiornaStory.html">Aggiorna story WIP</a></td><td>upsert <code>jira_issue_wip</code> parent</td></tr>
-          <tr><td>4</td><td><a href="ADMIN-Veve.db-AggiornaSubtask.html">Aggiorna subtask WIP</a></td><td>upsert <code>jira_issue_wip</code> subtask</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Prerequisito DB</h2>
-      <table>
-        <thead><tr><th>Controllo</th><th>Stop se</th></tr></thead>
-        <tbody>
-          <tr><td><code>cruscotto.db</code></td><td>Assente o non migrato</td></tr>
-          <tr><td>Sync cache</td><td>Nessun <code>sync_run</code> success con <code>{KEY}</code> in <code>jira_issue</code></td></tr>
-          <tr><td>Overlay</td><td><code>CRUSCOTTO_DB_PATH</code> / <code>PRJ_NAME</code> non allineati</td></tr>
-        </tbody>
-      </table>
-      <p>Prima sync: <code>npm run db:sync</code> · migrate: <code>node cruscotto.database/migrate.mjs</code></p>
-    </section>
-
-    <section>
-      <h2>Persistenza WIP</h2>
-      <table>
-        <thead><tr><th>Operazione</th><th>Tabella Prisma</th></tr></thead>
-        <tbody>
-          <tr><td>Lettura parent/subtask</td><td><code>JiraIssue</code> → <code>jira_issue</code></td></tr>
-          <tr><td>Scrittura groomed</td><td><code>JiraIssueWip</code> → <code>jira_issue_wip</code></td></tr>
-        </tbody>
-      </table>
-      <p>Testo veve (Obiettivo, AC/DoD) → <code>raw_fields</code> JSON:
-        <code>{ "veveDescription": "…", "gapSummary": "…" }</code></p>
-    </section>
-
-    <section>
-      <h2>Veve MCP vs Veve DB</h2>
-      <table>
-        <thead><tr><th></th><th>ADMIN-Veve</th><th>ADMIN-Veve.db</th></tr></thead>
-        <tbody>
-          <tr><td>Lettura</td><td>MCP Atlassian</td><td><code>jira_issue</code> cache</td></tr>
-          <tr><td>Scrittura</td><td><code>editJiraIssue</code></td><td><code>jira_issue_wip</code> upsert</td></tr>
-          <tr><td>Workflow</td><td><a href="ADMIN-Workflow.html">ADMIN-Workflow</a></td><td><a href="ADMIN-Workflow database.html">ADMIN-Workflow database</a></td></tr>
-          <tr><td>Comando</td><td><code>veve {KEY}</code></td><td><code>veve db {KEY}</code></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Diagramma</h2>
-      <div class="diagram">
-        <pre class="mermaid">
-flowchart LR
-  SYNC["db:sync"] --> JI["jira_issue"]
-  JI --> V1["3.1 Leggi DB"]
-  V1 --> V2["3.2 Gap repo"]
-  V2 --> V3["3.3 Story WIP"]
-  V3 --> V4["3.4 Subtask WIP"]
-  V4 --> WIP["jira_issue_wip"]
-        </pre>
-      </div>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden">MCP Jira, <code>editJiraIssue</code></li>
-        <li class="forbidden">Branch, commit, codice</li>
-        <li class="forbidden">Transizioni Fatto (salvo richiesta)</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>Veve DB — <code>veve db {KEY}</code> e workflow database step 3</h2>
+<p>Variante <strong>cruscotto SQLite</strong>: legge cache <code>jira_issue</code>, analizza repo, persiste coda WIP in <code>jira_issue_wip</code> — <strong>senza</strong> MCP Jira.</p>
+<p>Sequenza: <strong>Leggi DB</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna story WIP</strong> → <strong>Aggiorna subtask WIP</strong>.</p>
+<table><thead><tr><th>Step veve db</th><th>Regola</th></tr></thead><tbody><tr><td>1</td><td><code>ADMIN-Veve.db-LeggiJira.mdc</code></td></tr>
+<tr><td>2</td><td><code>ADMIN-AnalizzaRepo.mdc</code> (stessa di veve MCP)</td></tr>
+<tr><td>3</td><td><code>ADMIN-Veve.db-AggiornaStory.mdc</code> · <code>.cursor/templates/veve/veve-story-parent.md</code></td></tr>
+<tr><td>4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> · <code>.cursor/templates/veve/veve-subtask.md</code></td></tr></tbody></table>
+<h3>Trigger</h3>
+<table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve db {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
+<tr><td><code>procedi</code> / <code>gogo {KEY}</code> con <code>ADMIN-Workflow database.mdc</code></td><td><strong>Step 3</strong> — silenzioso (<code>ADMIN-Silence.mdc</code>)</td></tr>
+<tr><td><code>chiudi</code></td><td><strong>Non</strong> esegue veve db</td></tr></tbody></table>
+<p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code> del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
+<h3>Prerequisito DB</h3>
+<table><thead><tr><th>Controllo</th><th>Stop se</th></tr></thead><tbody><tr><td><code>cruscotto.db</code></td><td>Assente o non migrato (<code>node cruscotto.database/migrate.mjs</code>)</td></tr>
+<tr><td>Sync cache</td><td>Nessun <code>sync_run</code> success con <code>jira_issue</code> per <code>{KEY}</code></td></tr>
+<tr><td>Overlay</td><td><code>CRUSCOTTO_DB_PATH</code> / <code>PRJ_NAME</code> non allineati</td></tr></tbody></table>
+<p>Sync backlog: <code>npm run db:sync</code> (host PortalAdmin) prima del primo <code>veve db</code> su key assente in cache.</p>
+<h3>Persistenza WIP</h3>
+<p>Tabella <code>jira_issue_wip</code> (modello Prisma <code>JiraIssueWip</code>) — stessa struttura di <code>jira_issue</code>.</p>
+<table><thead><tr><th>Operazione</th><th>Tabella</th></tr></thead><tbody><tr><td>Lettura parent/subtask</td><td><code>jira_issue</code> (ultimo sync success)</td></tr>
+<tr><td>Scrittura groomed</td><td><code>jira_issue_wip</code> — upsert per <code>jira_key</code></td></tr></tbody></table>
+<p>Testo veve (Obiettivo, AC/DoD, …) da template → campo <code>raw_fields</code> JSON: <code>{ &quot;veveDescription&quot;: &quot;…&quot;, &quot;gap&quot;: {…} }</code>.</p>
+<p><strong>Vietato:</strong> <code>CallMcpTool</code> Jira, <code>editJiraIssue</code>, branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).</p>
+    </article>
 
     <footer>
-      Step:
-      <a href="ADMIN-Veve.db-LeggiJira.html">LeggiJira</a> ·
-      <a href="ADMIN-Veve.db-AnalizzaRepo.html">AnalizzaRepo</a> ·
-      <a href="ADMIN-Veve.db-AggiornaStory.html">AggiornaStory</a> ·
-      <a href="ADMIN-Veve.db-AggiornaSubtask.html">AggiornaSubtask</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve.db.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
-  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
 </body>
 </html>

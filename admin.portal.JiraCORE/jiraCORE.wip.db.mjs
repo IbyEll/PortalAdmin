@@ -130,6 +130,8 @@ export async function markWipPushed(parentKey, opts = {}) {
   , awaitingPush : false
   , jiraSyncedAt : now
   , pushedAt     : now
+  , prState      : "OPEN"
+  , prPollActive : true
   , ...(opts.prUrl ? { prUrl: opts.prUrl } : {})
   };
 

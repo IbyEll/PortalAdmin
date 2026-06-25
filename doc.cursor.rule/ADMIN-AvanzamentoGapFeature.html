@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADMIN-AvanzamentoGapFeature — Regola Cursor</title>
+  <link rel="stylesheet" href="common.css" />
+</head>
+<body>
+  <!-- CURSOR-RULES-CHROME -->
+  <div class="page">
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
+    <header>
+      <h1>ADMIN-AvanzamentoGapFeature</h1>
+      <p class="meta">
+        <code>.cursor/rules/ADMIN-AvanzamentoGapFeature.mdc</code> ·
+        Aggiornato 2026-06-25 07:32
+      </p>
+      <p class="lead">Analisi avanzamento PortalAdmin — architettura, gap, bug, feature. Script docs/Avanzamento_Gap_Feature.mjs</p>
+    </header>
+
+    <article class="mdc-body">
+<h2>ADMIN — Avanzamento Gap Feature</h2>
+<h3>Trigger</h3>
+<table><thead><tr><th>Comando / richiesta</th><th>Effetto</th></tr></thead><tbody><tr><td><code>analizza avanzamento</code> · <code>avanzamento gap feature</code></td><td>Esegui analisi + rigenera HTML</td></tr>
+<tr><td>Modifica architettura host significativa</td><td>Rigenerare pagina dopo implementazione</td></tr>
+<tr><td><code>node docs/Avanzamento_Gap_Feature.mjs</code></td><td>CLI diretta</td></tr></tbody></table>
+<h3>Artefatti</h3>
+<table><thead><tr><th>Path</th><th>Ruolo</th></tr></thead><tbody><tr><td><code>docs/Avanzamento_Gap_Feature.mjs</code></td><td>Script analisi + render HTML</td></tr>
+<tr><td><code>docs/Avanzamento_Gap_Feature.html</code></td><td>Output servito su HOME <code>/docs/</code></td></tr>
+<tr><td><code>lib/docs.portal.analysis.mjs</code></td><td>15 controlli automatici base (importato dallo script)</td></tr></tbody></table>
+<h3>Sequenza agente</h3>
+<ol><li><strong>Esegui</strong> <code>node docs/Avanzamento_Gap_Feature.mjs</code> dalla root PortalAdmin.</li><li><strong>Leggi</strong> metriche stdout (arch %, gap, bug).</li><li><strong>Apri</strong> <code>docs/Avanzamento_Gap_Feature.html</code> — verifica sezioni per categoria.</li><li>Se gap P0/P1 toccati dal task corrente → aggiorna finding o risolvilo nel codice, poi <strong>rigenera</strong>.</li></ol>
+<h3>Cosa analizza lo script</h3>
+<table><thead><tr><th>Area</th><th>Metodo</th></tr></thead><tbody><tr><td>Architettura target</td><td>existsSync + checklist migrazioni (overlay, dual server, JiraCORE, docs, smoke path file)</td></tr>
+<tr><td>Gap</td><td><code>analyzeRepository</code> + PARKING import grep</td></tr>
+<tr><td>Bug</td><td>grep import mancanti (tree regenerate, Confluence, CI portal-paths, npm path)</td></tr>
+<tr><td>Deprecation</td><td>runner/ comment drift, stub start-dev, portal-paths consumer</td></tr>
+<tr><td>Feature / miglioramenti</td><td>catalogo curato nel script (docs refresh, istanze, JiraCORE)</td></tr></tbody></table>
+<h3>Categorie output HTML</h3>
+<p><code>avanzamento</code> · <code>architettura</code> · <code>gap</code> · <code>bug</code> · <code>deprecation</code> · <code>feature</code> · <code>miglioramento</code></p>
+<p>Severità: <code>P0</code> · <code>P1</code> · <code>P2</code> · <code>info</code></p>
+<h3>Distinction vs Aggiorna (docs chrome)</h3>
+<table><thead><tr><th></th><th><strong>Aggiorna</strong> (toolbar docs)</th><th><strong>Avanzamento_Gap_Feature</strong></th></tr></thead><tbody><tr><td>Trigger</td><td>UI Documenti</td><td>CLI / regola / agente</td></tr>
+<tr><td>Output</td><td>Sezione auto in ogni doc esistente</td><td>Pagina dedicata completa</td></tr>
+<tr><td>Scope</td><td>Controlli + tabella per titolo pagina</td><td>Report trasversale categorizzato</td></tr></tbody></table>
+<h3>Vietato</h3>
+<ul><li>Assumere path legacy (<code>scripts/</code>, <code>cruscotto.frontend/jira/</code>) senza verifica <code>existsSync</code></li><li>Edit manuale solo HTML senza rigenerare da script (drift garantito)</li></ul>
+    </article>
+
+    <footer>
+      Generato da <code>.cursor/rules/ADMIN-AvanzamentoGapFeature.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
+    </footer>
+  </div>
+</body>
+</html>

@@ -7,63 +7,34 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice regole</a> · <a href="ADMIN-Veve.html">ADMIN-Veve</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>ADMIN-Veve — Leggi Jira</h1>
+      <h1>ADMIN-Veve-LeggiJira</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve-LeggiJira.mdc</code> ·
-        <span class="tag tag--veve">veve step 1</span>
+        <span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--veve">veve</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Lettura read-only del parent ADMIN-xxx e delle subtask collegate — primo passo della sequenza veve.
-      </p>
+      <p class="lead">Veve step 1 — leggi parent ADMIN-xxx e subtask (read-only Jira)</p>
     </header>
 
-    <section>
-      <h2>Trigger</h2>
-      <ul>
-        <li><code>leggi jira ADMIN-xxx</code></li>
-        <li><code>veve ADMIN-xxx</code> (step 1 automatico)</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li><strong>Invoca MCP</strong> — <code>CallMcpTool</code> server <code>user-atlassian</code>,
-          cloudId <code>3caddd74-469e-4ca3-adf8-926f79c98e7c</code>.</li>
-        <li><strong>Leggi parent</strong> — key, issuetype, stato, summary.</li>
-        <li><strong>Elenca subtask</strong> — tabella con key, summary, stato.</li>
-        <li><strong>Segnala anomalie</strong> — subtask orphan (senza parent), key invalide o fuori scope.</li>
-        <li><strong>Output chat</strong> — riepilogo strutturato per step 2 (Analizza repo).</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Output atteso</h2>
-      <table>
-        <thead><tr><th>Elemento</th><th>Contenuto</th></tr></thead>
-        <tbody>
-          <tr><td>Parent</td><td>key, tipo, stato, summary</td></tr>
-          <tr><td>Subtask</td><td>Tabella completa</td></tr>
-          <tr><td>Orphan</td><td>Issue collegate ma non in gerarchia attesa</td></tr>
-          <tr><td>Key invalide</td><td>Prefisso errato o issue inesistenti</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Vietato</h2>
-      <ul>
-        <li class="forbidden"><code>editJiraIssue</code> o qualsiasi modifica Jira</li>
-        <li class="forbidden">Branch, commit, codice</li>
-        <li class="forbidden">Task «Jira Auto» (veve usa MCP diretto)</li>
-      </ul>
-    </section>
+    <article class="mdc-body">
+<h2>ADMIN Veve — Leggi Jira</h2>
+<h3>Trigger</h3>
+<p><code>leggi jira ADMIN-xxx</code> · <code>veve ADMIN-xxx</code></p>
+<h3>MCP</h3>
+<p><code>CallMcpTool</code> <code>user-atlassian</code>, cloudId <code>3caddd74-469e-4ca3-adf8-926f79c98e7c</code>.</p>
+<h3>Output</h3>
+<p>Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide.</p>
+<p><strong>Vietato:</strong> edit, branch, commit.</p>
+    </article>
 
     <footer>
-      Prossimo step: <a href="ADMIN-Veve-AnalizzaRepo.html">Analizza repo</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve-LeggiJira.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

@@ -16,7 +16,7 @@ Sostituisci `{…}` con valori reali da Leggi Jira + Analizza repo. Rimuovi sezi
 | `{KEY}` | Issue parent |
 | `{EPIC-KEY}` | Epic link |
 | `{DATE}` | Data analisi (oggi) |
-| `{AREA}` / `{ESITO}` / `{NOTE}` | Tabella Stato repo da gap analysis |
+| `{AREA-n}` / `{ESITO-n}` / `{NOTE-n}` | Tabella Stato repo — **solo** aree con ✅/⚠️/❌; omettere ⬜/N/A |
 | `{N}` / `{TOTAL}` | Ordine subtask |
 
 ## Regole veve

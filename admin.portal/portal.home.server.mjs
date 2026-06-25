@@ -41,6 +41,9 @@
  *   - GET  /api/docs/list, /api/docs/analysis — documentazione docs/
  *   - POST /api/docs/refresh — analisi repo e aggiornamento HTML barrato + commento
  *   - GET  /docs/* — pagine HTML docs/ con toolbar condivisa
+ *   - GET  /api/doc.cursor.rule/list — elenco HTML regole Cursor
+ *   - POST /api/doc.cursor.rule/refresh — rigenera HTML da .cursor/rules/*.mdc
+ *   - GET  /doc.cursor.rule/* — pagine doc.cursor.rule/ con toolbar condivisa
  *
  * Consumatori:
  *   - npm run admin:home — entrypoint package.json
@@ -91,6 +94,14 @@ import {
 , refreshDocs
 , resolveDocsFile
 } from "../docs.portal.lib/docs.portal.mjs";
+import {
+  CURSOR_RULES_PUBLIC_PREFIX
+, getCursorRulesDir
+, injectCursorRulesChrome
+, listCursorRulePages
+, refreshCursorRulesFromMdc
+, resolveCursorRulesFile
+} from "../doc.cursor.rule.lib/doc.cursor.rule.mjs";
 import { createAdvancementFindingIssue } from "../docs.portal.lib/docs.portal.advancement.create.mjs";
 import { loadFindingIssueLinksObject } from "../docs.portal.lib/docs.portal.advancement.finding-issues.store.mjs";
 import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
@@ -362,6 +373,66 @@ async function serveDocs(req, res, urlPath) {
 }
 
 /**
+ * @param {import("node:http").IncomingMessage} req
+ * @param {import("node:http").ServerResponse} res
+ * @param {string} urlPath
+ * @returns {Promise<boolean>}
+ */
+async function serveCursorRules(req, res, urlPath) {
+  let rulesPath = urlPath;
+
+  if (rulesPath.startsWith("/docs.cursor.rule")) {
+    rulesPath = rulesPath.replace("/docs.cursor.rule", CURSOR_RULES_PUBLIC_PREFIX);
+  }
+
+  if (rulesPath === CURSOR_RULES_PUBLIC_PREFIX) {
+    applyCors(res, req);
+    res.writeHead(302, { Location: `${CURSOR_RULES_PUBLIC_PREFIX}/index.html` });
+    res.end();
+    return true;
+  }
+
+  if (!rulesPath.startsWith(`${CURSOR_RULES_PUBLIC_PREFIX}/`)) {
+    return false;
+  }
+
+  const rel  = decodeURIComponent(rulesPath.replace(`${CURSOR_RULES_PUBLIC_PREFIX}/`, ""));
+  const file = resolveCursorRulesFile(rel);
+  const rulesDir = getCursorRulesDir();
+
+  if (!file) {
+    sendJson(res, 404, { error: "Regola non trovata" }, req);
+    return true;
+  }
+
+  const ext = extname(file);
+  applyCors(res, req);
+
+  if (ext === ".html") {
+    const raw  = await readFile(file, "utf8");
+    const html = await injectCursorRulesChrome(raw, rel);
+    res.writeHead(200, {
+      "Content-Type"  : "text/html; charset=utf-8"
+    , "Cache-Control" : "no-cache, must-revalidate"
+    });
+    res.end(html);
+    return true;
+  }
+
+  if (!file.startsWith(rulesDir)) {
+    sendJson(res, 404, { error: "Not found" }, req);
+    return true;
+  }
+
+  res.writeHead(200, {
+    "Content-Type"  : MIME[ext] ?? "application/octet-stream"
+  , "Cache-Control" : "no-cache, must-revalidate"
+  });
+  createReadStream(file).pipe(res);
+  return true;
+}
+
+/**
  * Router API /api/* — istanze, progetti, open-cruscotto.
  *
  * @param {import("node:http").IncomingMessage} req
@@ -388,6 +459,34 @@ async function handleApi(req, res, urlPath) {
     try {
       const pages = listDocPages(PORTAL_ROOT);
       sendJson(res, 200, { pages }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/doc.cursor.rule/list" && req.method === "GET") {
+    try {
+      const pages = listCursorRulePages(PORTAL_ROOT);
+      sendJson(res, 200, { pages }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/doc.cursor.rule/refresh" && req.method === "POST") {
+    try {
+      const body     = await readJsonBody(req);
+      const filename = typeof body.file === "string" && body.file.trim()
+        ? body.file.trim()
+        : undefined;
+      const result   = await refreshCursorRulesFromMdc(PORTAL_ROOT, filename);
+      sendJson(res, 200, result, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -897,7 +996,12 @@ async function handleRequest(req, res) {
     return;
   }
 
-  // 5. Altri asset static whitelisted
+  // 5. Regole Cursor doc.cursor.rule/
+  if (await serveCursorRules(req, res, urlPath)) {
+    return;
+  }
+
+  // 6. Altri asset static whitelisted
   const rel = urlPath.replace(/^\//, "");
 
   if (HOME_STATIC.has(rel)) {

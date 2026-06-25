@@ -5,93 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Silence — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
     <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
       <h1>ADMIN-Silence</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Silence.mdc</code> ·
-        Aggiornato 2026-06-22
+        <span class="tag tag--always">alwaysApply</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Durante <code>procedi</code>, <code>gogo</code> e <code>chiudi</code> l'agente comunica solo tramite
-        template START, END e messaggi blocker.
-      </p>
-      <div class="revision-banner">
-        <strong>Revisione 2026-06-22:</strong> anche lo <strong>step 3 veve</strong> in workflow è silenzioso in chat.
-      </div>
+      <p class="lead">ADMIN procedi — START + silenzio + END; tra START e END zero narrativa tecnica</p>
     </header>
 
-    <section>
-      <h2>Silenzio — cosa copre</h2>
-      <div class="revision-block">
-        <div class="revision-label">Fasi silenziose in procedi/gogo (prima di START)</div>
-        <ul>
-          <li>Step 1 — verifica branch</li>
-          <li>Step 2 — pre-flight git</li>
-          <li><strong>Step 3 — veve</strong> (MCP Jira + gap + edit description)</li>
-          <li>Step 4 — Step 0 Task Jira Auto</li>
-        </ul>
-        <p>Primo messaggio utente strutturato: <strong>START</strong> (dopo step 4).</p>
-      </div>
-    </section>
-
-    <section>
-      <h2>Jira nel workflow</h2>
-      <div class="obsolete-block">
-        <div class="obsolete-label">Prima</div>
-        <p class="obsolete">procedi/gogo: solo Jira Auto; MCP solo su <code>veve</code> esplicito fuori workflow.</p>
-      </div>
-      <div class="revision-block">
-        <div class="revision-label">Adesso</div>
-        <table>
-          <thead><tr><th>Contesto</th><th>Jira</th><th>Chat</th></tr></thead>
-          <tbody>
-            <tr><td>Step 3 veve in workflow</td><td>MCP <code>user-atlassian</code></td><td>Silenziosa</td></tr>
-            <tr><td>Step 0, ok chiudi, chiudi</td><td>Task «Jira Auto»</td><td>Silenziosa fino a END</td></tr>
-            <tr><td><code>veve {KEY}</code> standalone</td><td>MCP</td><td>Libera</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section>
-      <h2>Testo chat ammesso</h2>
-      <table>
-        <thead><tr><th>#</th><th>Quando</th><th>Contenuto</th></tr></thead>
-        <tbody>
-          <tr><td><strong>START</strong></td><td>Dopo step 4 (Step 0)</td><td>AC, DoD, BRANCH, subtask, macrostep</td></tr>
-          <tr><td><strong>PROGRESS</strong></td><td>Macrostep</td><td>Tabella stati</td></tr>
-          <tr><td><strong>END</strong></td><td>Fine / chiudi</td><td>Template + PR/Jira</td></tr>
-          <tr><td><strong>Blocker</strong></td><td>Errori</td><td>END parziale + <code>Errori:</code></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Diagramma</h2>
-      <div class="diagram">
-        <pre class="mermaid">
-sequenceDiagram
-  participant U as Utente
-  participant A as Agente
-  U->>A: gogo {KEY}
-  Note over A: 1–4 silenzio (incl. veve step 3)
-  A->>U: START
-  Note over A: 5 implementazione silenzio
-  A->>U: END-A
-        </pre>
-      </div>
-    </section>
+    <article class="mdc-body">
+<h2>ADMIN — Silenzio su «procedi» / «gogo» / «chiudi»</h2>
+<h3>Trigger</h3>
+<p><code>procedi</code>, <strong><code>gogo admin-xxx</code></strong> / <strong><code>gogo ADMIN-xxx</code></strong>, <code>chiudi Story/Bug/Todo</code>, <strong><code>chiudi fast</code></strong>, <code>ok chiudi</code>, <code>fai commit</code> durante ticket ADMIN già avviato.</p>
+<h3>Testo chat ammesso</h3>
+<table><thead><tr><th>#</th><th>Quando</th></tr></thead><tbody><tr><td><strong>START</strong></td><td>Una volta dopo Step 0</td></tr>
+<tr><td><strong>END</strong> / <strong>END-B-FAST</strong></td><td>Fine lavoro o chiudi</td></tr>
+<tr><td><strong>Blocker</strong></td><td>Solo errori commit/Jira/git</td></tr></tbody></table>
+<p><strong>Vietato</strong> tra START e END: narrativa, path file, diff, dump Jira, domande.</p>
+<h3>Jira nel workflow</h3>
+<ul><li><strong>Step 3 veve</strong> (<code>procedi</code>/<code>gogo</code>): <code>CallMcpTool</code> <code>user-atlassian</code> ammesso — silenzioso in chat</li><li><strong>Step 0, ok chiudi, chiudi:</strong> solo Task «Jira Auto» — mai MCP diretto</li><li><strong><code>veve {KEY}</code> standalone:</strong> MCP ammesso — chat libera (non è workflow)</li></ul>
+<h3>Blocker</h3>
+<p>Working tree sporco, push/PR/Jira falliti → END parziale con <code>Errori:</code> — stop fino a fix utente.</p>
+    </article>
 
     <footer>
-      <a href="ADMIN-Workflow.html">ADMIN-Workflow</a> ·
-      <a href="ADMIN-Veve.html">ADMIN-Veve</a>
+      Generato da <code>.cursor/rules/ADMIN-Silence.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
-  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
 </body>
 </html>

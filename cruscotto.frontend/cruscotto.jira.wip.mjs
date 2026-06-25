@@ -43,6 +43,10 @@ import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 /** @typedef {{
  *   awaitingPush: boolean
  *   prUrl: string | null
+ *   prState: string | null
+ *   prMergedAt: string | null
+ *   prAppliedAt: string | null
+ *   prPollComplete: boolean
  *   ac: WipCheckItem[]
  *   dod: WipCheckItem[]
  *   acSummary: string | null
@@ -50,6 +54,29 @@ import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
  *   isDone: boolean
  *   status: string | null
  * }} WipStatusEntry */
+
+/** @typedef {'in_progress' | 'subtasks_complete' | 'awaiting_push' | 'published'} WipWorkflowPhase */
+
+/** @typedef {WipStatusEntry & {
+ *   inWip: true
+ *   jiraKey: string
+ *   workflowPhase: WipWorkflowPhase
+ *   workflowPhaseLabel: string
+ *   developmentComplete: boolean
+ *   subtasksDone: number
+ *   subtasksTotal: number
+ *   gitPushed: boolean
+ *   jiraSynced: boolean
+ *   wipClosedAt: string | null
+ *   closedAt: string | null
+ *   pushedAt: string | null
+ *   jiraSyncedAt: string | null
+ *   commitHash: string | null
+ *   branch: string | null
+ *   chiudiParent: boolean
+ *   gapTest: string | null
+ *   wipUpdatedAt: string | null
+ * }} WipAdvancementEntry */
 
 const ISSUE_KEY_RE = /^(ADMIN|JLO)-\d+$/;
 
@@ -124,10 +151,23 @@ export function buildWipStatusEntry(row) {
   const prUrl = typeof raw.prUrl === "string" && raw.prUrl.startsWith("http")
     ? raw.prUrl
     : null;
+  const prMergedAt = typeof raw.prMergedAt === "string" ? raw.prMergedAt : null;
+  const prClosedAt = typeof raw.prClosedAt === "string" ? raw.prClosedAt : null;
+  const prState = typeof raw.prState === "string" ? raw.prState : null;
+  const prPollComplete = raw.prPollComplete === true || Boolean(prMergedAt);
+  const prAppliedAt = typeof raw.prAppliedAt === "string" && raw.prAppliedAt.trim()
+    ? raw.prAppliedAt.trim()
+    : prPollComplete
+      ? (prMergedAt ?? prClosedAt ?? (typeof raw.prLastPolledAt === "string" ? raw.prLastPolledAt : null))
+      : null;
 
   return {
     awaitingPush: raw.awaitingPush === true
   , prUrl
+  , prMergedAt
+  , prState
+  , prAppliedAt
+  , prPollComplete
   , ac
   , dod
   , acSummary: ac.length > 0 ? `${acDone}/${ac.length}` : null
@@ -135,6 +175,126 @@ export function buildWipStatusEntry(row) {
   , isDone    : row.isDone === true
   , status    : row.status ?? null
   };
+}
+
+/**
+ * @param {WipWorkflowPhase} phase
+ * @returns {string}
+ */
+export function workflowPhaseLabel(phase) {
+  const labels = {
+    in_progress      : "In sviluppo"
+  , subtasks_complete: "Subtask completate"
+  , awaiting_push    : "In attesa PUSH"
+  , published        : "Pubblicato (PR / Jira)"
+  };
+
+  return labels[phase] ?? String(phase);
+}
+
+/**
+ * @param {{ isDone?: boolean, rawFields?: string | null }} row
+ * @param {Array<{ isDone?: boolean }>} subtaskRows
+ * @returns {WipWorkflowPhase}
+ */
+export function resolveWipWorkflowPhase(row, subtaskRows) {
+  const raw = parseRawFields(row.rawFields);
+  const subtasksTotal = subtaskRows.length;
+  const subtasksDone  = subtaskRows.filter((sub) => sub.isDone === true).length;
+  const prUrl         = typeof raw.prUrl === "string" && raw.prUrl.startsWith("http")
+    ? raw.prUrl
+    : null;
+
+  if (raw.pushedAt || (prUrl && raw.awaitingPush !== true)) {
+    return "published";
+  }
+
+  if (raw.awaitingPush === true || (row.isDone === true && raw.wipClosedAt)) {
+    return "awaiting_push";
+  }
+
+  if (subtasksTotal > 0 && subtasksDone === subtasksTotal) {
+    return "subtasks_complete";
+  }
+
+  return "in_progress";
+}
+
+/**
+ * @param {{ jiraKey: string, rawFields?: string | null, isDone?: boolean, status?: string | null, syncedAt?: Date | null }} row
+ * @param {Array<{ isDone?: boolean, rawFields?: string | null }>} [subtaskRows]
+ * @returns {WipAdvancementEntry}
+ */
+export function buildWipAdvancementEntry(row, subtaskRows = []) {
+  const raw       = parseRawFields(row.rawFields);
+  const status    = buildWipStatusEntry(row);
+  const subtasks  = subtaskRows ?? [];
+  const phase     = resolveWipWorkflowPhase(row, subtasks);
+  const commits   = subtasks
+    .map((sub) => parseRawFields(sub.rawFields).commitHash)
+    .filter((hash) => typeof hash === "string" && hash.trim());
+
+  const commitHash = typeof raw.commitHash === "string" && raw.commitHash.trim()
+    ? raw.commitHash.trim()
+    : (commits[commits.length - 1] ?? null);
+
+  const prUrl = status.prUrl;
+
+  return {
+    ...status
+  , inWip               : true
+  , jiraKey             : row.jiraKey
+  , workflowPhase       : phase
+  , workflowPhaseLabel  : workflowPhaseLabel(phase)
+  , developmentComplete : row.isDone === true
+  , subtasksDone        : subtasks.filter((sub) => sub.isDone === true).length
+  , subtasksTotal       : subtasks.length
+  , gitPushed           : Boolean(raw.pushedAt) || Boolean(prUrl)
+  , jiraSynced          : Boolean(raw.jiraSyncedAt)
+  , wipClosedAt         : typeof raw.wipClosedAt === "string" ? raw.wipClosedAt : null
+  , closedAt            : typeof raw.closedAt === "string" ? raw.closedAt : null
+  , pushedAt            : typeof raw.pushedAt === "string" ? raw.pushedAt : null
+  , jiraSyncedAt        : typeof raw.jiraSyncedAt === "string" ? raw.jiraSyncedAt : null
+  , commitHash
+  , branch              : typeof raw.branch === "string" && raw.branch.trim()
+    ? raw.branch.trim()
+    : null
+  , chiudiParent        : raw.chiudiParent === true
+  , gapTest             : typeof raw.gapTest === "string" ? raw.gapTest : null
+  , wipUpdatedAt        : row.syncedAt instanceof Date
+    ? row.syncedAt.toISOString()
+    : null
+  };
+}
+
+/**
+ * Avanzamento WIP per issue key — parent + subtask in coda `jira_issue_wip`.
+ *
+ * @param {string} issueKey
+ * @returns {Promise<WipAdvancementEntry | null>}
+ */
+export async function fetchWipAdvancementForIssue(issueKey) {
+  const key = String(issueKey ?? "").trim().toUpperCase();
+
+  if (!ISSUE_KEY_RE.test(key)) {
+    return null;
+  }
+
+  const db  = await openCruscottoDb();
+  const row = await db.jiraIssueWip.findUnique({
+    where: { jiraKey: key }
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  const subtasks = await db.jiraIssueWip.findMany({
+    where  : { parentJiraKey: key }
+  , orderBy: [{ devSort: "asc" }, { jiraKey: "asc" }]
+  });
+
+  return buildWipAdvancementEntry(row, subtasks);
 }
 
 /**

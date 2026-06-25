@@ -489,7 +489,6 @@
     .insight-note-star {
       display: inline-block;
       flex-shrink: 0;
-      margin-left: 0.28rem;
       color: var(--turquoise);
       font-size: 0.88rem;
       line-height: 1;
@@ -506,7 +505,8 @@
     .sprint-related-open-mark {
       display: inline-block;
       flex-shrink: 0;
-      margin-left: 0.35rem;
+      margin-right: 0.28rem;
+      margin-left: 0;
       color: var(--skip);
       font-size: 0.88rem;
       line-height: 1;
@@ -534,6 +534,23 @@
     tr.is-sprint-complete.tier-sprint .sprint-related-open-mark {
       color: var(--skip);
       opacity: 1;
+    }
+
+    .pr-merged-mark {
+      display: inline-block;
+      flex-shrink: 0;
+      margin-right: 0.28rem;
+      margin-left: 0;
+      color: var(--accent);
+      font-size: 0.88rem;
+      line-height: 1;
+      vertical-align: middle;
+      text-shadow: 0 0 10px rgba(46, 232, 214, 0.4);
+      cursor: help;
+    }
+
+    tr.has-pr-merged > td {
+      background: rgba(46, 232, 214, 0.05);
     }
 
     tr.has-insight-key > td {
@@ -587,19 +604,46 @@
       color: var(--muted);
     }
 
-    tr.tier-subtask.is-done .col-key a,
+    tr.tier-subtask.is-done .col-key a {
+      text-decoration: none;
+      color: var(--muted);
+      opacity: 0.72;
+    }
+
     tr.tier-subtask.is-done .col-title {
       text-decoration: line-through;
     }
 
     .col-key {
-      width: 17%;
+      width: 18%;
       max-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       overflow-wrap: normal;
       word-break: keep-all;
+    }
+
+    .col-svil {
+      width: 6%;
+      max-width: 0;
+      white-space: nowrap;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .svil-cell {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      min-width: 0;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .col-svil.is-empty {
+      color: var(--muted);
     }
 
     .key-cell {
@@ -962,11 +1006,42 @@
       align-items: center;
       flex-wrap: nowrap;
       flex-shrink: 0;
-      gap: 0.25rem;
+      gap: 0.15rem;
       white-space: nowrap;
     }
 
+    .tree-cell.is-header {
+      gap: 0.1rem;
+    }
+
     .tree-indent { flex-shrink: 0; display: inline-block; }
+
+    .tree-prefix {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-shrink: 0;
+      gap: 0.15rem;
+      width: 2.15rem;
+      min-width: 2.15rem;
+      max-width: 2.15rem;
+      overflow: visible;
+    }
+
+    .tree-prefix.is-compact {
+      width: 0.9rem;
+      min-width: 0.9rem;
+      max-width: 0.9rem;
+    }
+
+    tr.tier-subtask .key-main {
+      overflow: visible;
+    }
+
+    tr.tier-subtask .key-main .jira-link {
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
 
     .tree-toggle {
       flex-shrink: 0;
@@ -1597,6 +1672,7 @@
       <table>
         <colgroup>
           <col class="col-key" />
+          <col class="col-svil" />
           <col class="col-title" />
           <col class="col-sprint" />
           <col class="col-status" />
@@ -1623,6 +1699,9 @@
                   </div>
                 </div>
               </div>
+            </th>
+            <th class="col-filter-head col-svil">
+              <span class="col-filter-label">Svil</span>
             </th>
             <th class="col-filter-head">
               <div class="col-filter" data-col="title" data-mode="search">
@@ -1727,26 +1806,29 @@
 
     const JIRA_BASE = "https://myfuturejobsearch.atlassian.net/browse/";
     const INDENT = 1.1;
+    /** Larghezza visiva parent (prefix + toggle + gap) — subtask indenta sotto badge STORY. */
+    const TREE_BRANCH_INDENT = 3.35;
     const STORAGE_KEY = "jlo-my-backlog-subtask-v1";
     const VIEW_STORAGE_KEY = "jlo-my-backlog-view-mode-v1";
     const INSIGHTS_STORAGE_KEY = "jlo-my-backlog-insights-v1";
     const SNAPSHOT_STORAGE_KEY = "jlo-my-backlog-insights-snapshot-v1";
-    const COL_WIDTHS_STORAGE_KEY = "jlo-my-backlog-col-widths-v2";
+    const COL_WIDTHS_STORAGE_KEY = "jlo-my-backlog-col-widths-v4";
     const GOGO_ACTIVE_ROW_KEY = "jlo-backlog-gogo-active-v1";
     const GOGO_PR_STORAGE_KEY = "jlo-mybacklog-gogo-pr-v1";
     const DEV_ORDER_COL_MIN_CH = 11;
-    const TABLE_COL_COUNT = 7;
-    const COL_ORDER = ["key", "title", "sprint", "status", "related", "relatedSprint", "devOrder"];
+    const TABLE_COL_COUNT = 8;
+    const COL_ORDER = ["key", "svil", "title", "sprint", "status", "related", "relatedSprint", "devOrder"];
 
     /** @type {Record<string, number>} */
     const DEFAULT_COL_WIDTHS = {
-      key           : 14
-    , title         : 23
-    , sprint        : 15
-    , related       : 12
-    , relatedSprint : 12
-    , status        : 11
-    , devOrder      : 13
+      key           : 18
+    , svil          : 6
+    , title         : 20
+    , sprint        : 14
+    , related       : 11
+    , relatedSprint : 11
+    , status        : 10
+    , devOrder      : 14
     };
 
     const MIN_COL_WIDTH_PCT = 4;
@@ -1762,6 +1844,9 @@
 
     /** @type {Record<string, { awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }>} */
     let wipStatusMap = {};
+    const PR_POLL_INTERVAL_MS = 45000;
+    /** @type {Map<string, number>} */
+    const prPollTimers = new Map();
 
     /**
      * @returns {Map<string, string>}
@@ -2454,7 +2539,7 @@
             btn.classList.remove("is-error");
           }, 2200);
         } else {
-          void tryShowPrAfterGogo(btn, issueKey);
+          void refreshRowControlAfterGogo(btn, issueKey);
         }
       };
 
@@ -2548,8 +2633,136 @@
 
         const data = await res.json();
         wipStatusMap = data.byKey && typeof data.byKey === "object" ? data.byKey : {};
+        registerPrPollingFromWipMap();
       } catch {
         wipStatusMap = {};
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     */
+    function stopPrPolling(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const timerId = prPollTimers.get(key);
+
+      if (timerId != null) {
+        window.clearInterval(timerId);
+        prPollTimers.delete(key);
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     * @returns {boolean}
+     */
+    function issueNeedsPrPolling(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const wip = getWipStatus(key);
+
+      if (wip?.prPollComplete || wip?.prMergedAt) {
+        return false;
+      }
+
+      if (typeof wip?.prUrl === "string" && wip.prUrl.startsWith("http")) {
+        return true;
+      }
+
+      const stored = loadGogoPrUrl(key);
+
+      return typeof stored === "string" && stored.startsWith("http");
+    }
+
+    /**
+     * @param {Record<string, { jiraKey?: string, status?: string, isDone?: boolean, summary?: string }>} cacheByKey
+     */
+    function patchBacklogIssuesFromCache(cacheByKey) {
+      if (!backlog?.issues || !cacheByKey || typeof cacheByKey !== "object") {
+        return;
+      }
+
+      for (const patch of Object.values(cacheByKey)) {
+        const key = String(patch?.jiraKey ?? "").trim().toUpperCase();
+
+        if (!key) {
+          continue;
+        }
+
+        const idx = backlog.issues.findIndex((row) => row.key === key);
+
+        if (idx < 0) {
+          continue;
+        }
+
+        backlog.issues[idx] = {
+          ...backlog.issues[idx]
+        , status  : typeof patch.status === "string" ? patch.status : backlog.issues[idx].status
+        , isDone  : patch.isDone === true
+        , summary : typeof patch.summary === "string" ? patch.summary : backlog.issues[idx].summary
+        };
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     */
+    async function pollPrOnce(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      if (!issueNeedsPrPolling(key)) {
+        stopPrPolling(key);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/jira/wip/pr-poll", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (data.complete === true) {
+          stopPrPolling(key);
+          patchBacklogIssuesFromCache(data.cacheByKey);
+          await refreshWipStatusMap(backlog?.issues ?? []);
+          applyFilters();
+          return;
+        }
+
+        if (data.prState === "OPEN") {
+          await refreshWipStatusMap(backlog?.issues ?? []);
+        }
+      } catch {
+        /* retry al prossimo tick */
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     */
+    function startPrPolling(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      if (prPollTimers.has(key) || !issueNeedsPrPolling(key)) {
+        return;
+      }
+
+      void pollPrOnce(key);
+
+      const timerId = window.setInterval(() => {
+        void pollPrOnce(key);
+      }, PR_POLL_INTERVAL_MS);
+
+      prPollTimers.set(key, timerId);
+    }
+
+    function registerPrPollingFromWipMap() {
+      for (const key of Object.keys(wipStatusMap)) {
+        if (issueNeedsPrPolling(key)) {
+          startPrPolling(key);
+        }
       }
     }
 
@@ -2604,7 +2817,7 @@
     }
 
     /**
-     * Step 8 PUSH — sync Jira da WIP + close-story via API cruscotto.
+     * Step 8 PUSH — sync Jira da WIP, poi close-story (catalogo → push branch → PR).
      *
      * @param {string} issueKey
      * @returns {Promise<{ ok: boolean, mode: "push", prUrl?: string | null, error?: string }>}
@@ -2688,6 +2901,7 @@
 
           if (result.prUrl) {
             saveGogoPrUrl(issueKey, result.prUrl);
+            startPrPolling(issueKey);
           }
 
           await refreshWipStatusMap(backlog?.issues ?? []);
@@ -2736,6 +2950,48 @@
     }
 
     /**
+     * Iscrive il ticket in jira_issue_wip — solo all'avvio gogo (click utente).
+     *
+     * @param {string} issueKey
+     */
+    async function enrollWipForGogo(issueKey) {
+      try {
+        await fetch("/api/jira/wip/enroll", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+      } catch {
+        /* non blocca avvio agent */
+      }
+    }
+
+    /**
+     * Gate step 2.3 — nessuna PR open sul product repo prima di gogo.
+     *
+     * @returns {Promise<{ ok: boolean, error?: string }>}
+     */
+    async function fetchGogoPreflight() {
+      try {
+        const res  = await fetch("/api/workflow/gogo-preflight");
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.ok === true) {
+          return { ok: true };
+        }
+
+        return {
+          ok    : false
+        , error : typeof data.error === "string" ? data.error : "PR aperte sul repo — merge o chiudi prima di gogo"
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+
+        return { ok: false, error: message };
+      }
+    }
+
+    /**
      * Avvia Cursor Agent interno (POST /api/cursor/agent) con prompt gogo.
      *
      * @param {string} issueKey
@@ -2743,6 +2999,14 @@
      */
     async function launchGogoAgent(issueKey) {
       const prompt = buildGogoCommand(issueKey);
+
+      const preflight = await fetchGogoPreflight();
+
+      if (!preflight.ok) {
+        return { ok: false, mode: "api", error: preflight.error };
+      }
+
+      await enrollWipForGogo(issueKey);
 
       try {
         const res = await fetch("/api/cursor/agent", {
@@ -2883,46 +3147,81 @@
     }
 
     /**
+     * Dopo fine gogo — finalizza WIP, aggiorna mappa e sostituisce gogo con PUSH/PR.
+     *
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     */
+    async function refreshRowControlAfterGogo(btn, issueKey) {
+      setGogoButtonRunningState(btn, false);
+
+      try {
+        await fetch("/api/jira/wip/finalize-gogo", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key: issueKey })
+        });
+      } catch {
+        /* fallback su refresh stato */
+      }
+
+      await refreshWipStatusMap(backlog?.issues ?? []);
+
+      const wip   = getWipStatus(issueKey);
+      const prUrl = wip?.prUrl ?? await fetchPrUrlForIssue(issueKey);
+
+      if (prUrl) {
+        saveGogoPrUrl(issueKey, prUrl);
+        replaceGogoControlWithPr(btn, issueKey, prUrl);
+        startPrPolling(issueKey);
+        return;
+      }
+
+      if (wip?.awaitingPush) {
+        const pushWrap = createPushRowButton(issueKey, wip);
+        btn.replaceWith(pushWrap);
+      }
+    }
+
+    /**
      * Dopo fine agent — cerca PR su GitHub e sostituisce il bottone.
      *
      * @param {HTMLButtonElement} btn
      * @param {string} issueKey
      */
     async function tryShowPrAfterGogo(btn, issueKey) {
-      const prUrl = await fetchPrUrlForIssue(issueKey);
-
-      if (prUrl) {
-        saveGogoPrUrl(issueKey, prUrl);
-        replaceGogoControlWithPr(btn, issueKey, prUrl);
-      }
+      await refreshRowControlAfterGogo(btn, issueKey);
     }
 
     /**
-     * Bottone gogo o link PR — sprint, story aperte.
+     * Colonna Svil — gogo, PUSH o PR solo se WIP già iscritto (nessun enroll al render).
      *
-     * @param {HTMLElement} keyCell
+     * @param {HTMLElement} svilCell
      * @param {string} issueKey
      * @param {{ status?: string }} row
+     * @returns {boolean} true se è stato aggiunto un controllo
      */
-    function appendGogoRowControl(keyCell, issueKey, row) {
+    function appendGogoRowControl(svilCell, issueKey, row) {
       const wip = getWipStatus(issueKey);
       const prUrl = wip?.prUrl ?? loadGogoPrUrl(issueKey);
 
       if (prUrl) {
-        keyCell.appendChild(createGogoPrLink(issueKey, prUrl));
-        return;
+        svilCell.appendChild(createGogoPrLink(issueKey, prUrl));
+        startPrPolling(issueKey);
+        return true;
       }
 
       if (wip?.awaitingPush) {
-        keyCell.appendChild(createPushRowButton(issueKey, wip));
-        return;
+        svilCell.appendChild(createPushRowButton(issueKey, wip));
+        return true;
       }
 
       if (isJiraRowDone(row)) {
-        return;
+        return false;
       }
 
-      keyCell.appendChild(createGogoRowButton(issueKey));
+      svilCell.appendChild(createGogoRowButton(issueKey));
+      return true;
     }
 
     /**
@@ -2993,6 +3292,45 @@
       }
 
       return row.key;
+    }
+
+    /**
+     * Righe header sprint / pilastro / gruppi — solo freccia (+ stellina nel label).
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @returns {boolean}
+     */
+    function isCompactTreeHeaderRow(row) {
+      return row.tier === "sprint"
+        || row.tier === "pillar"
+        || row.tier === "obsolete-group"
+        || row.tier === "related-carryover-group";
+    }
+
+    /**
+     * Indentazione tree — le subtask partono sotto badge/key del parent, non sotto la freccia.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @returns {number}
+     */
+    function treeIndentRem(row) {
+      const depth = Number(row.depth ?? 0);
+
+      if (isCompactTreeHeaderRow(row)) {
+        if (row.tier === "sprint" || row.tier === "pillar") {
+          return 0;
+        }
+
+        return depth * 0.75;
+      }
+
+      if (row.tier === "subtask") {
+        const parentDepth = Math.max(0, depth - 1);
+
+        return parentDepth * INDENT + TREE_BRANCH_INDENT;
+      }
+
+      return depth * INDENT;
     }
 
     /**
@@ -5045,6 +5383,35 @@
     }
 
     /**
+     * Stellina backlog — PR mergiata/chiusa e cache jira_issue sincronizzata da WIP.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {HTMLElement} container
+     */
+    function appendPrMergedMark(row, container) {
+      if (row.tier !== "task" || !isStoryLikeRow(row)) {
+        return;
+      }
+
+      const wip = getWipStatus(row.key);
+
+      if (!wip?.prPollComplete && !wip?.prMergedAt) {
+        return;
+      }
+
+      const mark = document.createElement("span");
+      const stateLabel = wip.prState === "CLOSED" ? "chiusa" : "mergiata";
+
+      mark.className = "pr-merged-mark";
+      mark.textContent = "★";
+      mark.title = `PR ${stateLabel} — cache backlog aggiornata da WIP${
+        wip.prAppliedAt ? ` (${wip.prAppliedAt})` : (wip.prMergedAt ? ` (${wip.prMergedAt})` : "")
+      }`;
+      mark.setAttribute("aria-label", mark.title);
+      container.appendChild(mark);
+    }
+
+    /**
      * @param {string[]} sourceKeys
      * @returns {HTMLSpanElement}
      */
@@ -5079,10 +5446,17 @@
 
     /**
      * @param {typeof backlog.issues[number]} row
-     * @param {HTMLElement} keyMain
+     * @param {HTMLElement} container
      */
-    function appendRepoAlignMark(row, keyMain) {
-      if (row.tier === "sprint" || row.tier === "pillar" || row.isSynthetic || row.tier === "epic") {
+    function appendRepoAlignMark(row, container) {
+      if (
+        row.tier === "subtask"
+        || row.tier === "sprint"
+        || row.tier === "pillar"
+        || row.isSynthetic
+        || row.tier === "epic"
+        || (row.tier === "task" && !isStoryLikeRow(row))
+      ) {
         return;
       }
 
@@ -5106,7 +5480,7 @@
         mark.setAttribute("aria-label", "Jira Fatto ma repo incompleto");
       }
 
-      keyMain.appendChild(mark);
+      container.appendChild(mark);
     }
 
     /**
@@ -5142,10 +5516,17 @@
 
     /**
      * @param {typeof backlog.issues[number]} row
-     * @param {HTMLElement} keyMain
+     * @param {HTMLElement} container
      */
-    function appendInsightKeyMark(row, keyMain) {
-      if (row.tier === "sprint" || row.tier === "pillar" || row.isSynthetic || row.tier === "epic") {
+    function appendInsightKeyMark(row, container) {
+      if (
+        row.tier === "subtask"
+        || row.tier === "sprint"
+        || row.tier === "pillar"
+        || row.isSynthetic
+        || row.tier === "epic"
+        || (row.tier === "task" && !isStoryLikeRow(row))
+      ) {
         return;
       }
 
@@ -5153,7 +5534,7 @@
         return;
       }
 
-      keyMain.appendChild(createInsightMark(`Insight: ${row.key}`));
+      container.appendChild(createInsightMark(`Insight: ${row.key}`));
     }
 
     /**
@@ -5252,11 +5633,71 @@
         keyCell.className = "key-cell";
 
         const treeWrap = document.createElement("div");
-        treeWrap.className = "tree-cell";
+        treeWrap.className = `tree-cell${isCompactTreeHeaderRow(row) ? " is-header" : ""}`;
         const indent = document.createElement("span");
         indent.className = "tree-indent";
-        indent.style.width = `${row.depth * INDENT}rem`;
+        indent.style.width = `${treeIndentRem(row)}rem`;
         treeWrap.appendChild(indent);
+
+        /** @type {HTMLElement | null} */
+        let treePrefix = null;
+
+        if (!isCompactTreeHeaderRow(row)) {
+          treePrefix = document.createElement("span");
+          treePrefix.className = "tree-prefix";
+
+          if (row.tier === "subtask") {
+            treePrefix.classList.add("is-compact");
+          }
+
+          treeWrap.appendChild(treePrefix);
+
+          if (row.tier === "subtask") {
+            const checkWrap = document.createElement("label");
+            checkWrap.className = "subtask-check";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = isSubtaskDone(row.key, row.status);
+            checkbox.setAttribute("aria-label", `Fatto: ${row.key}`);
+
+            checkbox.addEventListener("change", () => {
+              if (checkbox.checked) {
+                doneSet.add(row.key);
+                tr.classList.add("is-done");
+              } else {
+                doneSet.delete(row.key);
+                tr.classList.remove("is-done");
+              }
+
+              saveDoneSet();
+            });
+
+            const mark = document.createElement("span");
+            mark.className = "subtask-mark";
+            mark.setAttribute("aria-hidden", "true");
+
+            checkWrap.append(checkbox, mark);
+            treePrefix.appendChild(checkWrap);
+          } else if (
+            row.status.toLowerCase() === "fatto"
+            && (row.tier === "epic" || isStoryLikeRow(row))
+          ) {
+            const mark = document.createElement("span");
+            mark.className = "jira-done-mark";
+            mark.textContent = "✓";
+            mark.setAttribute("aria-label", "Fatto in Jira");
+            treePrefix.appendChild(mark);
+          }
+
+          appendRepoAlignMark(row, treePrefix);
+          appendInsightKeyMark(row, treePrefix);
+          appendPrMergedMark(row, treePrefix);
+
+          if (getWipStatus(row.key)?.prPollComplete) {
+            tr.classList.add("has-pr-merged");
+          }
+        }
 
         const toggle = document.createElement("button");
         toggle.type = "button";
@@ -5282,57 +5723,19 @@
 
         treeWrap.appendChild(toggle);
 
-        if (row.tier === "subtask") {
-          const checkWrap = document.createElement("label");
-          checkWrap.className = "subtask-check";
-
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.checked = isSubtaskDone(row.key, row.status);
-          checkbox.setAttribute("aria-label", `Fatto: ${row.key}`);
-
-          checkbox.addEventListener("change", () => {
-            if (checkbox.checked) {
-              doneSet.add(row.key);
-              tr.classList.add("is-done");
-            } else {
-              doneSet.delete(row.key);
-              tr.classList.remove("is-done");
-            }
-
-            saveDoneSet();
-          });
-
-          const mark = document.createElement("span");
-          mark.className = "subtask-mark";
-          mark.setAttribute("aria-hidden", "true");
-
-          checkWrap.append(checkbox, mark);
-          treeWrap.appendChild(checkWrap);
-        } else if (
-          row.status.toLowerCase() === "fatto"
-          && (row.tier === "epic" || isStoryLikeRow(row))
-        ) {
-          const mark = document.createElement("span");
-          mark.className = "jira-done-mark";
-          mark.textContent = "✓";
-          mark.setAttribute("aria-label", "Fatto in Jira");
-          treeWrap.appendChild(mark);
-        }
-
-        keyCell.appendChild(treeWrap);
-
         const keyMain = document.createElement("span");
         keyMain.className = "key-main";
 
         if (row.tier === "sprint") {
-          keyMain.textContent = row.devSprint ? `Sprint ${row.devSprint}` : "—";
-
           const openRelated = sprintOpenRelated.get(row.key);
 
           if (openRelated?.length) {
             keyMain.appendChild(createSprintRelatedOpenMark(openRelated));
           }
+
+          keyMain.appendChild(
+            document.createTextNode(row.devSprint ? `Sprint ${row.devSprint}` : "—")
+          );
         } else if (row.tier === "pillar") {
           keyMain.textContent = row.devOrder ? `#${row.devOrder}` : "Pilastro";
           keyMain.title = `${row.summary ?? "Pilastro"} · ${row.pillarIssueCount ?? 0} issue`;
@@ -5365,9 +5768,6 @@
           if (row.isRelatedCarryover) {
             keyMain.appendChild(createRelatedCarryoverMark(row.relatedCarryoverSources ?? []));
           }
-
-          appendRepoAlignMark(row, keyMain);
-          appendInsightKeyMark(row, keyMain);
         }
 
         if (
@@ -5384,16 +5784,30 @@
           keyMain.appendChild(obsoleteLabel);
         }
 
-        const keyStack = document.createElement("div");
-        keyStack.className = "key-stack";
-        keyStack.appendChild(keyMain);
-        keyCell.appendChild(keyStack);
-
-        if (shouldShowWorkflowButton(row)) {
-          appendGogoRowControl(keyStack, row.key, row);
-        }
+        keyCell.appendChild(treeWrap);
+        keyCell.appendChild(keyMain);
 
         keyTd.appendChild(keyCell);
+
+        const svilTd = document.createElement("td");
+        svilTd.className = "col-svil";
+
+        const svilCell = document.createElement("div");
+        svilCell.className = "svil-cell";
+
+        if (shouldShowWorkflowButton(row)) {
+          const hasSvilControl = appendGogoRowControl(svilCell, row.key, row);
+
+          if (hasSvilControl) {
+            svilTd.appendChild(svilCell);
+          } else {
+            svilTd.classList.add("is-empty");
+            svilTd.textContent = "—";
+          }
+        } else {
+          svilTd.classList.add("is-empty");
+          svilTd.textContent = "—";
+        }
 
         const devTd = document.createElement("td");
         devTd.className = "col-dev-order";
@@ -5587,7 +6001,7 @@
 
         statusTd.textContent = sprintRowStatusLabel(row, sprintComplete);
 
-        tr.append(keyTd, sumTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
+        tr.append(keyTd, svilTd, sumTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
         tbody.appendChild(tr);
       }
 
@@ -5746,7 +6160,7 @@
       }
 
       const lines = [
-        "Livello,Tipo,Identificativo,Titolo,Sprint,Ticket correlati,Sprint correlati,Parent,Epic,Stato,Ordine Sviluppo"
+        "Livello,Tipo,Identificativo,Svil,Titolo,Sprint,Ticket correlati,Sprint correlati,Parent,Epic,Stato,Ordine Sviluppo"
       ];
 
       for (const row of getDisplayRows()) {
@@ -5762,10 +6176,27 @@
           .join("; ");
         const parentExport = row.jiraParentKey ?? row.parentKey ?? "";
         const epicExport = row.epicKey ?? "";
+        const svilExport = shouldShowWorkflowButton(row)
+          ? (() => {
+              const wip = getWipStatus(row.key);
+              const prUrl = wip?.prUrl ?? loadGogoPrUrl(row.key);
+
+              if (prUrl) {
+                return "PR";
+              }
+
+              if (wip?.awaitingPush) {
+                return "PUSH";
+              }
+
+              return isJiraRowDone(row) ? "" : "gogo";
+            })()
+          : "";
         lines.push([
           esc(row.depth),
           esc(row.type),
           esc(row.tier === "sprint" ? (row.devSprint ? `Sprint ${row.devSprint}` : "—") : row.key),
+          esc(svilExport),
           esc(row.summary),
           esc(sprintExport),
           esc(relatedExport),

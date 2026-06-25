@@ -7,47 +7,30 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice</a> · <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>Veve DB — Analizza repo</h1>
+      <h1>ADMIN-Veve.db-AnalizzaRepo</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.db-AnalizzaRepo.mdc</code> ·
-        <span class="tag tag--db">veve db step 2 / workflow 3.2</span>
+        <span class="tag tag--db">database</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <p class="lead">
-        Stessa gap analysis di veve MCP — regola canonica
-        <a href="ADMIN-AnalizzaRepo.html">ADMIN-AnalizzaRepo</a>.
-      </p>
+      <p class="lead">Veve db step 2 — analizza repo per {KEY} (adattatore ADMIN-AnalizzaRepo)</p>
     </header>
 
-    <section>
-      <h2>Prerequisito</h2>
-      <p><a href="ADMIN-Veve.db-LeggiJira.html">Leggi DB</a> nella stessa sessione (step 3.1).</p>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li>Conferma key parent da step 3.1.</li>
-        <li>Esegui <a href="ADMIN-AnalizzaRepo.html">ADMIN-AnalizzaRepo</a> + skill <code>jlo-analizza-repo</code>.</li>
-        <li>CLI:
-          <pre>node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY} --format md</pre>
-        </li>
-        <li>Tabella Subtask vs repo: Key | Esito | File | Gap.</li>
-        <li>Output usato da step 3.3–3.4 (WIP) e Step 0 workflow database.</li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Nota</h2>
-      <p>In questo step <strong>non</strong> si scrive su <code>jira_issue_wip</code> — solo analisi repo.
-      Identico a <a href="ADMIN-Veve-AnalizzaRepo.html">ADMIN-Veve-AnalizzaRepo</a>.</p>
-    </section>
+    <article class="mdc-body">
+<h2>Veve DB — Analizza repo</h2>
+<p>Esegui regola canonica <code>.cursor/rules/ADMIN-AnalizzaRepo.mdc</code> + skill <code>jlo-analizza-repo</code>.</p>
+<p>Prerequisito: <strong>Leggi DB</strong> (<code>ADMIN-Veve.db-LeggiJira.mdc</code>) nella stessa sessione.</p>
+<p>Output: tabella Stato repo + <strong>Subtask vs repo</strong> (Key | Esito | File | Gap) — identico a veve MCP.</p>
+<p><strong>Vietato:</strong> scrittura su <code>jira_issue_wip</code> in questo step (solo step 3–4 db).</p>
+    </article>
 
     <footer>
-      Precedente: <a href="ADMIN-Veve.db-LeggiJira.html">Leggi DB</a> ·
-      Successivo: <a href="ADMIN-Veve.db-AggiornaStory.html">Aggiorna story WIP</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve.db-AnalizzaRepo.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

@@ -16,8 +16,7 @@ import { enrichFindingsWithProject } from "../docs.portal.lib/docs.portal.advanc
 import { refreshAdvancementPageHtml } from "../docs.portal.lib/docs.portal.advancement.mjs";
 import { isFreshEntry, parsePreviousAutoStates } from "../docs.portal.lib/docs.portal.refresh.mjs";
 import {
-  ADVANCEMENT_FINDINGS_CSS
-, esc
+  esc
 , renderAdvancementChecksCard
 , renderAdvancementMetricsCard
 , renderAllAdvancementFindingSections
@@ -481,12 +480,11 @@ export function renderAdvancementHtml(report) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PortalAdmin — Avanzamento, gap e feature</title>
-  <link rel="stylesheet" href="/docs/docs-chrome.css" />
-  <style>${ADVANCEMENT_FINDINGS_CSS}</style>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
 </head>
 <body>
   <!-- DOCS-CHROME -->
-  <div class="page">
+  <div class="page page--wide">
     <header>
       <h1>Avanzamento, gap e feature — PortalAdmin</h1>
       <p class="meta">Generato: ${esc(date)} · script <code>docs/Avanzamento_Gap_Feature.mjs</code></p>

@@ -10,7 +10,9 @@
 
 | Area | Esito | Note |
 | --- | --- | --- |
-| {area} | ⬜ | {path or gap note} |
+| {area} | {ESITO} | {path or gap note} |
+
+_Solo se l'area è contemplata dal subtask con esito **✅**, **⚠️** o **❌** — altrimenti omettere l'intera sezione Stato repo._
 
 _Esiti: ✅ · ⚠️ · ❌_
 

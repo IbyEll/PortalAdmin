@@ -40,6 +40,7 @@ import { getProjectConfig, resolveJiraBoardId } from "../lib/project.config.mjs"
   
 import {
   resolveRelatedTicketKeys
+, adfToPlainText
 } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 
 const JIRA_SPRINT_FIELD = "customfield_10020";
@@ -191,6 +192,7 @@ export function backlogTier(type) {
  *   devSort?: number | null,
  *   jiraSprints?: Array<{ id: number, name: string, state: string }>,
  *   relatedKeys?: string[],
+ *   jiraDescription?: string | null,
  *   isSprint6Obsolete?: boolean,
  * }} JiraBacklogRow
  */
@@ -278,6 +280,7 @@ export function buildBacklogTree(issues) {
       hasChildren : node.hasChildren,
       jiraSprints : node.jiraSprints ?? [],
       relatedKeys : node.relatedKeys ?? [],
+      jiraDescription: node.jiraDescription ?? null,
       isSprint6Obsolete: node.isSprint6Obsolete ?? false,
     });
 
@@ -319,7 +322,7 @@ export function isJiraStatusDone(statusName, statusCategoryKey) {
 export async function fetchJiraIssueStatus(issueKey) {
   const key = String(issueKey).trim().toUpperCase();
 
-  if (!/^JLO-\d+$/.test(key)) {
+  if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
     throw new Error(`Issue key non valida: ${issueKey}`);
   }
 
@@ -479,12 +482,15 @@ export async function fetchJiraBacklog() {
     });
 
     for (const issue of page.issues ?? []) {
+      const jiraDescription = adfToPlainText(issue.fields?.description).trim() || null;
+
       raw.push({
         key        : issue.key,
         type       : issue.fields?.issuetype?.name ?? "—",
         summary    : issue.fields?.summary ?? "",
         status     : issue.fields?.status?.name ?? "—",
         parentKey  : issue.fields?.parent?.key ?? null,
+        jiraDescription,
         relatedKeys: resolveRelatedTicketKeys(
           issue.key
         , issue.fields?.description

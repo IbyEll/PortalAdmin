@@ -7,38 +7,30 @@
   <link rel="stylesheet" href="common.css" />
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
-    <p class="nav-top"><a href="index.html">← Indice regole</a> · <a href="ADMIN-Veve.html">ADMIN-Veve</a></p>
+    <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
-      <h1>ADMIN-Veve — Analizza repo</h1>
+      <h1>ADMIN-Veve-AnalizzaRepo</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve-AnalizzaRepo.mdc</code> ·
-        <span class="tag tag--veve">veve step 2 / workflow 3.2</span>
+        <span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--veve">veve</span> ·
+        Aggiornato 2026-06-25 07:32
       </p>
-      <div class="revision-banner">
-        In workflow: sotto-step <strong>3.2</strong> di <a href="ADMIN-Workflow.html">ADMIN-Workflow</a>
-        (dopo Leggi Jira 3.1, prima di Aggiorna story 3.3).
-      </div>
+      <p class="lead">Veve step 2 — analizza repo per ADMIN-xxx (adattatore ADMIN-AnalizzaRepo)</p>
     </header>
 
-    <section>
-      <h2>Prerequisito</h2>
-      <p><a href="ADMIN-Veve-LeggiJira.html">Leggi Jira</a> nella stessa sessione (veve step 1 / workflow 3.1).</p>
-    </section>
-
-    <section>
-      <h2>Applicazione step-by-step</h2>
-      <ol class="steps">
-        <li>Conferma key parent da step 1.</li>
-        <li>Esegui <a href="ADMIN-AnalizzaRepo.html">ADMIN-AnalizzaRepo</a> + skill <code>jlo-analizza-repo</code>.</li>
-        <li>CLI gap analysis sul repo workflow.</li>
-        <li>Tabella Subtask vs repo: Key | Esito | File | Gap.</li>
-        <li>Output usato da step 3.3–3.4 veve e da Step 0 workflow (step 4).</li>
-      </ol>
-    </section>
+    <article class="mdc-body">
+<h2>ADMIN Veve — Analizza repo</h2>
+<p>Esegui regola canonica <code>.cursor/rules/ADMIN-AnalizzaRepo.mdc</code> + skill <code>jlo-analizza-repo</code>.</p>
+<p>Prerequisito: <strong>Leggi Jira</strong> nella stessa sessione.</p>
+<p>Output: tabella Stato repo + <strong>Subtask vs repo</strong> (Key | Esito | File | Gap).</p>
+    </article>
 
     <footer>
-      <a href="ADMIN-Veve-AggiornaStory.html">Aggiorna Story (3.3)</a>
+      Generato da <code>.cursor/rules/ADMIN-Veve-AnalizzaRepo.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
 </body>

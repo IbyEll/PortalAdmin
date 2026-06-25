@@ -134,6 +134,48 @@ export function esitoSymbol(esito) {
 }
 
 /**
+ * Esito Stato repo contemplato nella description veve (✅/⚠️/❌).
+ *
+ * @param {string} symbol
+ * @returns {boolean}
+ */
+export function isRepoEsitoContemplated(symbol) {
+  const s = String(symbol ?? "").trim();
+
+  return s === "✅" || s === "⚠️" || s === "❌";
+}
+
+/**
+ * Tabella markdown Stato repo — solo righe con esito reale (no ⬜/N/A).
+ *
+ * @param {Array<{ area: string, symbol: string, note?: string }>} rows
+ * @returns {string}
+ */
+export function formatStatoRepoTableMarkdown(rows) {
+  const kept = (rows ?? []).filter((row) => isRepoEsitoContemplated(row.symbol));
+
+  if (kept.length === 0) {
+    return "";
+  }
+
+  const lines = [
+    "| Area | Esito | Note |"
+  , "| --- | --- | --- |"
+  ];
+
+  for (const row of kept) {
+    lines.push(`| ${row.area} | ${row.symbol} | ${row.note ?? ""} |`);
+  }
+
+  lines.push(
+    ""
+  , "_Esiti: ✅ implementato · ⚠️ parziale/stub · ❌ assente_"
+  );
+
+  return lines.join("\n");
+}
+
+/**
  * Mappa risultato inspect backlog → ok | partial | absent.
  *
  * @param {ReturnType<typeof assessIssueRepoInspect>} inspect

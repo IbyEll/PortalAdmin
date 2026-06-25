@@ -5,157 +5,202 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Workflow database — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
 <body>
+  <!-- CURSOR-RULES-CHROME -->
   <div class="page">
     <p class="nav-top"><a href="index.html">← Indice regole</a></p>
     <header>
       <h1>ADMIN-Workflow database</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Workflow database.mdc</code> ·
-        <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-06-22
+        <span class="tag tag--workflow">workflow</span> ·
+        Aggiornato 2026-06-25 07:37
       </p>
-      <p class="lead">
-        Step 1–7 su <code>jira_issue_wip</code> (agente). Step 8 <strong>PUSH</strong> dal cruscotto:
-        sync Jira + PR — solo a story completata.
-      </p>
-      <div class="revision-banner">
-        <strong>Step 7</strong> = chiusura WIP locale → backlog con pulsante <strong>PUSH</strong> ·
-        <strong>Step 8</strong> = Jira da WIP + <code>close-story.mjs</code> (PR).
-      </div>
+      <p class="lead">Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)</p>
     </header>
 
-    <section>
-      <h2>Pipeline — ordine fisso</h2>
-      <table>
-        <thead><tr><th>Step</th><th>Fase</th><th>Chi / dove</th></tr></thead>
-        <tbody>
-          <tr><td>1–2</td><td>Git</td><td>Agente</td></tr>
-          <tr><td>3</td><td>Veve DB</td><td><a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a></td></tr>
-          <tr><td>4</td><td>Step 0 — piano</td><td>Legge WIP → START</td></tr>
-          <tr><td>5</td><td>Implementazione</td><td>commit + ok chiudi WIP</td></tr>
-          <tr><td>6</td><td>END-A</td><td>parent Da fare in WIP</td></tr>
-          <tr><td><strong>7</strong></td><td><strong>Chiusura locale</strong></td><td><code>chiudi</code> → parent WIP → END-B → <strong>backlog</strong></td></tr>
-          <tr><td><strong>8</strong></td><td><strong>PUSH</strong></td><td><strong>Cruscotto</strong> — Jira + PR</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Cruscotto — GOGO → PUSH</h2>
-      <table>
-        <thead><tr><th>Stato riga backlog</th><th>Pulsante</th><th>Azione</th></tr></thead>
-        <tbody>
-          <tr><td>Story da lavorare</td><td><strong>GOGO</strong></td><td>Step 1–6 (<code>gogo {KEY}</code>)</td></tr>
-          <tr><td>Dopo step 7 (WIP chiuso, <code>awaitingPush: true</code>)</td><td><strong>PUSH</strong></td><td>Step 8 — sync Jira + PR</td></tr>
-          <tr><td>Dopo step 8 (<code>awaitingPush: false</code>, PR URL)</td><td>—</td><td>Story completata su Jira + GitHub</td></tr>
-        </tbody>
-      </table>
-      <p>Al termine step 7 l'agente torna al backlog; il cruscotto aggiorna la riga e sostituisce GOGO con PUSH.</p>
-    </section>
-
-    <section>
-      <h2>Step 7 — Chiusura locale (solo WIP)</h2>
-
-      <div class="obsolete-block">
-        <div class="obsolete-label">Prima (step 7 includeva PR)</div>
-        <p class="obsolete"><code>close-story.mjs</code> + parent WIP + PR nello stesso step agente.</p>
-      </div>
-
-      <div class="revision-block">
-        <div class="revision-label">Adesso</div>
-        <ol class="steps">
-          <li>Verifica tutte le subtask <code>is_done = true</code> in WIP.</li>
-          <li>Gap test (solo <code>chiudi</code>, non <code>chiudi fast</code>).</li>
-          <li>Update parent WIP: <code>is_done</code>, <code>status=Fatto</code>, <code>raw_fields.awaitingPush=true</code>.</li>
-          <li><strong>END-B</strong> con <code>PR: —</code> — niente push, niente Jira.</li>
-          <li>Ritorno backlog — UI mostra <strong>PUSH</strong>.</li>
-        </ol>
-      </div>
-      <p><strong>Niente</strong> <code>close-story.mjs</code> · <strong>niente</strong> Jira live in step 7.</p>
-    </section>
-
-    <section>
-      <h2>Step 8 — PUSH (Jira da WIP + PR)</h2>
-      <p>Solo dal cruscotto, quando l'utente clicca <strong>PUSH</strong> sulla riga (post step 7).</p>
-
-      <ol class="steps">
-        <li>
-          <strong>Prerequisito</strong> — parent WIP con <code>is_done=true</code> e <code>awaitingPush=true</code>.
-        </li>
-        <li>
-          <strong>Leggi WIP</strong> — parent + subtask; contenuto da <code>raw_fields</code>.
-        </li>
-        <li>
-          <strong>Sync Jira live</strong> — da WIP verso Atlassian:
-          <ul>
-            <li>Subtask: description + transizione Fatto (<code>ok-chiudi-subtask.md</code>)</li>
-            <li>Parent: description + transizione Fatto (<code>chiudi-parent.md</code>)</li>
-          </ul>
-          Task «Jira Auto» o MCP — <strong>unico step con Jira</strong>.
-        </li>
-        <li>
-          <strong>Git / PR / catalogo</strong>:
-          <pre>node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}</pre>
-        </li>
-        <li>
-          <strong>Update WIP</strong> — <code>prUrl</code>, <code>jiraSyncedAt</code>, <code>awaitingPush=false</code>.
-        </li>
-      </ol>
-    </section>
-
-    <section>
-      <h2>Comandi</h2>
-      <table>
-        <thead><tr><th>Comando / UI</th><th>Step</th></tr></thead>
-        <tbody>
-          <tr><td><code>gogo {KEY}</code></td><td>1–6</td></tr>
-          <tr><td><code>chiudi Story {KEY}</code></td><td>7 (+ gap test)</td></tr>
-          <tr><td><code>chiudi fast Story {KEY}</code></td><td>7</td></tr>
-          <tr><td><strong>PUSH</strong> (cruscotto)</td><td><strong>8</strong></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>DB / Jira per fase</h2>
-      <table>
-        <thead><tr><th>Step</th><th>WIP</th><th>Jira</th><th>Git/PR</th></tr></thead>
-        <tbody>
-          <tr><td>3–5</td><td>read/write</td><td>—</td><td>commit locale</td></tr>
-          <tr><td>7</td><td>parent Fatto</td><td>—</td><td>—</td></tr>
-          <tr><td><strong>8</strong></td><td>read + post-push</td><td><strong>sync Fatto</strong></td><td><strong>PR</strong></td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Diagramma</h2>
-      <div class="diagram">
-        <pre class="mermaid">
-flowchart TD
-  G["6 END-A"] --> H["7 chiudi WIP"]
-  H --> HB["END-B → backlog"]
-  HB --> UI["GOGO → PUSH"]
-  UI -->|click PUSH| S8["8 Jira sync"]
-  S8 --> PR["close-story PR"]
-  PR --> DONE["WIP + Jira ok"]
-        </pre>
-      </div>
-    </section>
-
-    <div class="summary-box">
-      <strong>In sintesi:</strong> l'agente chiude la story in WIP (step 7) e torna al backlog;
-      l'utente lancia PUSH dal cruscotto quando è pronto a pubblicare su Jira e aprire la PR (step 8).
-    </div>
+    <article class="mdc-body">
+<h2>Workflow — progetto istanziato + <code>{JIRA_KEY}</code></h2>
+<p>Il workflow <strong>git</strong> (branch, commit, push, PR) opera <strong>solo</strong> sul <strong>repo del progetto istanziato</strong>, non sul checkout PortalAdmin in sé.</p>
+<table><thead><tr><th>Ruolo</th><th>Path / env</th></tr></thead><tbody><tr><td><strong>Host tooling</strong></td><td>Checkout PortalAdmin — cruscotto, regole <code>.cursor/</code>, script <code>admin.portal.JiraCORE/</code></td></tr>
+<tr><td><strong>Repo workflow</strong></td><td><code>PRODUCT_REPO_PATH</code> del progetto <strong>istanziato</strong> (<code>PRJ_NAME</code> in <code>.env</code> allineato)</td></tr>
+<tr><td><strong>Default path</strong></td><td>Sibling <code>../{PRJ_REPO}</code> da <code>PROJECT_{PRJ_NAME}/project.config.{overlay}.mjs</code></td></tr></tbody></table>
+<p>Esempi: overlay <code>JustLastOne</code> → repo workflow <code>…/JustLastOne</code> · overlay <code>AdminDashBoard</code> → <code>…/PortalAdmin</code> (product = stesso repo).</p>
+<hr />
+<h3>Prerequisito — istanziazione</h3>
+<p>Prima di <code>procedi</code> / <code>gogo</code> / <code>chiudi</code> su <code>{KEY}</code>:</p>
+<table><thead><tr><th>Controllo</th><th>Stop se</th></tr></thead><tbody><tr><td><code>PRJ_NAME</code></td><td>Assente o non corrisponde all'overlay del ticket</td></tr>
+<tr><td><code>PRODUCT_REPO_PATH</code></td><td>Assente, path inesistente o non allineato all'istanza portal</td></tr>
+<tr><td><code>JIRA_KEY</code> del ticket</td><td>Diverso da <code>PRJ_JIRA_PREFIX</code> del progetto istanziato</td></tr>
+<tr><td><strong>Cwd git</strong></td><td>Non è la root del <strong>repo workflow</strong> (<code>git rev-parse --show-toplevel</code> ≠ <code>PRODUCT_REPO_PATH</code>)</td></tr></tbody></table>
+<p>Istanza portal: <code>activatePortalInstance</code> / HOME <code>POST /api/portal/instance</code> · stato in <code>.env</code> (<code>PRJ_NAME</code>, <code>PRODUCT_REPO_PATH</code>).</p>
+<p><strong>Non</strong> avviare workflow su ticket il cui prefisso Jira non appartiene al progetto attualmente istanziato (es. <code>JLO-507</code> con solo overlay <code>AdminDashBoard</code> e product non puntato a JustLastOne).</p>
+<hr />
+<h3>Parametri</h3>
+<table><thead><tr><th>Simbolo</th><th>Significato</th><th>Fonte</th></tr></thead><tbody><tr><td><strong><code>PRJ_NAME</code></strong></td><td>Overlay attivo</td><td><code>.env</code> / istanza portal</td></tr>
+<tr><td><strong><code>JIRA_KEY</code></strong></td><td>Prefisso Jira = <code>PRJ_JIRA_PREFIX</code> overlay</td><td><code>project.config.{overlay}.mjs</code></td></tr>
+<tr><td><strong><code>{KEY}</code></strong></td><td>Ticket completo</td><td><code>JLO-507</code> · <code>ADMIN-96</code></td></tr>
+<tr><td><strong><code>{num}</code></strong></td><td>Numero issue</td><td><code>507</code> · <code>96</code></td></tr>
+<tr><td><strong><code>{TIPO}</code></strong></td><td>Branch tipo</td><td><code>STORY</code> · <code>BUG</code> · <code>TODO</code></td></tr>
+<tr><td><strong><code>{slug}</code></strong></td><td>Branch slug kebab-case</td><td><code>export-excel-latest-json</code></td></tr></tbody></table>
+<p><strong>Ticket parent</strong> = Story, Bug o Todo <strong><code>{JIRA_KEY}-{num}</code></strong>. Nei testi «story» include <strong>Bug</strong> e <strong>Todo</strong> salvo dove escluso.</p>
+<h4>Determinazione <code>JIRA_KEY</code></h4>
+<table><thead><tr><th>Fonte</th><th>Regola</th></tr></thead><tbody><tr><td>Progetto istanziato</td><td><strong><code>PRJ_JIRA_PREFIX</code></strong> dell'overlay <code>PRJ_NAME</code> (autoritativo per repo workflow)</td></tr>
+<tr><td>Comando utente</td><td>Key esplicita — deve <strong>coincidere</strong> con <code>PRJ_JIRA_PREFIX</code> istanza</td></tr>
+<tr><td><code>gogo JLO-507</code> / <code>procedi ADMIN-96</code></td><td>Prefisso dalla key; <strong>stop</strong> se ≠ <code>PRJ_JIRA_PREFIX</code></td></tr>
+<tr><td>Step 0 ambiguo</td><td><code>issuetype</code> Jira + verifica allineamento overlay</td></tr></tbody></table>
+<h4>Branch</h4>
+<p><strong>Pattern:</strong> <code>{TIPO}---{JIRA_KEY}-{num}-{slug}</code> — tre trattini <code>---</code>, <code>TIPO</code> maiuscolo.</p>
+<p><strong>Legacy (solo ripresa):</strong> <code>{JIRA_KEY}-{num}-*</code> senza prefisso tipo — non crearne di nuove.</p>
+<h4>Catalogo segnali (chiudi)</h4>
+<p>Aggiornamento <code>REPO_IMPLEMENTATION_SIGNALS</code> in chiusura parent — <strong>solo</strong> sul progetto istanziato:</p>
+<table><thead><tr><th>Elemento</th><th>Regola</th></tr></thead><tbody><tr><td>File catalogo</td><td><code>PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs</code> (overlay attivo)</td></tr>
+<tr><td>Script</td><td><code>admin.portal.JiraCORE/jiraCORE.close.story.mjs</code> — deriva key/branch dal ticket nel <strong>repo workflow</strong></td></tr>
+<tr><td>Scrittura</td><td>Commit catalogo nel <strong>repo workflow</strong> <strong>prima</strong> di <code>git push</code> branch; script <code>close-story</code></td></tr></tbody></table>
+<p>Nessun mapping fisso <code>ADMIN</code> → PortalAdmin / <code>JLO</code> → JustLastOne: vale <strong><code>PRJ_NAME</code></strong> e <code>PRJ_JIRA_PREFIX</code> dell’istanza corrente.</p>
+<hr />
+<h3>Comandi</h3>
+<p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code>. Case-insensitive sulla key.</p>
+<table><thead><tr><th>Comando</th><th>Effetto</th></tr></thead><tbody><tr><td><strong><code>gogo {KEY}</code></strong></td><td>Step 1–6 — START → subtask → ok chiudi WIP → END-A</td></tr>
+<tr><td><code>procedi Story {KEY}</code></td><td>Piano → implementazione → confirm</td></tr>
+<tr><td><code>chiudi Story {KEY}</code></td><td><strong>Step 7</strong> — parent WIP + gap test → END-B → backlog</td></tr>
+<tr><td><strong><code>chiudi fast Story {KEY}</code></strong></td><td><strong>Step 7</strong> — parent WIP (no gap test) → END-B-FAST → backlog</td></tr>
+<tr><td><strong><code>PUSH {KEY}</code></strong> (cruscotto)</td><td><strong>Step 8</strong> — sync Jira da WIP + PR — solo post step 7</td></tr></tbody></table>
+<p>Varianti: <code>FULL silent</code>, <code>chiudi fast</code>, <code>ok chiudi</code> — regole silenzio/output correlate.</p>
+<p><strong>Cruscotto:</strong> al termine step 7 la riga backlog si aggiorna — pulsante <strong>GOGO</strong> → <strong>PUSH</strong>; PUSH invoca step 8.</p>
+<hr />
+<h3>Pipeline — ordine fisso</h3>
+<table><thead><tr><th>Step</th><th>Fase</th><th>Regola</th></tr></thead><tbody><tr><td>1</td><td>Verifica branch</td><td>§ sotto</td></tr>
+<tr><td>2</td><td>Pre-flight git</td><td>§ sotto (+ gate PR aperte)</td></tr>
+<tr><td>3</td><td><strong>Veve DB</strong></td><td><code>ADMIN-Veve.db.mdc</code></td></tr>
+<tr><td>4</td><td>Step 0 — piano</td><td>Leggi <code>jira_issue_wip</code> + START</td></tr>
+<tr><td>5</td><td>Implementazione</td><td>subtask + commit + <strong>ok chiudi → WIP</strong></td></tr>
+<tr><td>6</td><td>END-A</td><td>parent ancora Da fare in WIP</td></tr>
+<tr><td>7</td><td>Chiusura locale</td><td><code>chiudi</code> → <strong>parent WIP</strong> → END-B → <strong>backlog</strong></td></tr>
+<tr><td>8</td><td><strong>PUSH</strong> (cruscotto)</td><td>Sync <strong>Jira</strong> da WIP + <code>close-story.mjs</code> (PR)</td></tr></tbody></table>
+<p>Step <strong>1–7</strong> = agente chat (<code>gogo</code> / <code>procedi</code> / <code>chiudi</code>). Step <strong>8</strong> = <strong>solo</strong> da cruscotto (PUSH post step 7).</p>
+<p><code>FULL</code> / <code>gogo</code> cambiano solo confirm vs silent su step 5 — <strong>non</strong> saltano step 1–4.</p>
+<hr />
+<h3>Verifica branch (step 1)</h3>
+<p>Eseguire nel <strong>repo workflow</strong> (<code>cd</code> su <code>PRODUCT_REPO_PATH</code>):</p>
+<pre><code class="language-bash">git rev-parse --show-toplevel   # deve coincidere con PRODUCT_REPO_PATH
+git branch --show-current
+git branch --list 'STORY---{JIRA_KEY}-{num}-*'
+git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
+# Idem BUG--- / TODO---</code></pre>
+<table><thead><tr><th>Situazione</th><th>Azione</th></tr></thead><tbody><tr><td>Non sul repo workflow</td><td><strong>Stop</strong> — <code>cd</code> su <code>PRODUCT_REPO_PATH</code> o istanzia overlay</td></tr>
+<tr><td>Sei sulla branch del ticket</td><td><strong>Ripresa</strong></td></tr>
+<tr><td>Branch esiste, sei altrove (stesso repo)</td><td><strong>Stop</strong> — <code>git checkout {branch}</code> e ripeti <code>procedi</code></td></tr>
+<tr><td>Nessuna branch</td><td>Pre-flight → nuova branch da <code>main</code></td></tr></tbody></table>
+<hr />
+<h3>Pre-flight git (step 2)</h3>
+<p>Nel <strong>repo workflow</strong> (<code>PRODUCT_REPO_PATH</code>):</p>
+<ol><li><code>git status --porcelain</code> — vuoto (no stash automatico agente)</li><li><code>git fetch origin</code> · <code>main</code> allineato a <code>origin/main</code></li><li><strong>Nessuna PR aperta</strong> sul repo workflow — <code>gh pr list --state open</code>; se ≥1 → <strong>Stop</strong> (merge o chiudi prima di <code>gogo</code> / <code>procedi</code>)</li><li><code>git checkout main &amp;&amp; git pull &amp;&amp; git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}</code> (solo se nuova branch)</li></ol>
+<p>Vedi gate PR in <code>ADMIN-Workflow.mdc</code> § Pre-flight git (step 2.3).</p>
+<hr />
+<h3>Step 3 — Veve DB (grooming → <code>jira_issue_wip</code>)</h3>
+<p><strong>Obbligatorio</strong> su <code>procedi</code> / <code>gogo</code> su <code>{KEY}</code> — dopo pre-flight git, <strong>prima</strong> di Step 0.</p>
+<p>Esegui regola <code>ADMIN-Veve.db.mdc</code> (e sotto-regole <code>ADMIN-Veve.db-*.mdc</code>) su <code>{KEY}</code>:</p>
+<table><thead><tr><th>Sotto-step</th><th>Regola</th></tr></thead><tbody><tr><td>3.1</td><td><code>ADMIN-Veve.db-LeggiJira.mdc</code> — leggi parent + subtask da <code>jira_issue</code></td></tr>
+<tr><td>3.2</td><td><code>ADMIN-AnalizzaRepo.mdc</code> — gap analysis repo workflow</td></tr>
+<tr><td>3.3</td><td><code>ADMIN-Veve.db-AggiornaStory.mdc</code> — upsert parent in <code>jira_issue_wip</code></td></tr>
+<tr><td>3.4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> — upsert ogni subtask in <code>jira_issue_wip</code></td></tr></tbody></table>
+<table><thead><tr><th>Aspetto</th><th>Regola</th></tr></thead><tbody><tr><td>Chat</td><td><strong>Silenzioso</strong> — <code>ADMIN-Silence.mdc</code>; output veve solo in sessione per Step 0</td></tr>
+<tr><td>Jira</td><td><strong>Vietato MCP</strong> — lettura cache DB; scrittura solo <code>jira_issue_wip</code></td></tr>
+<tr><td>Git / codice</td><td><strong>Vietato</strong> — no commit, no branch, no implementazione</td></tr>
+<tr><td>Prerequisito</td><td><code>jira_issue</code> popolata (<code>npm run db:sync</code>) per <code>{KEY}</code></td></tr>
+<tr><td>Standalone</td><td><code>veve db {KEY}</code> — chat libera, stessa sequenza</td></tr>
+<tr><td>Veve MCP</td><td><code>ADMIN-Veve.mdc</code> — percorso alternativo se DB non disponibile</td></tr></tbody></table>
+<p><strong>Ripresa:</strong> se veve db già eseguito nella stessa sessione su <code>{KEY}</code> → salta step 3.</p>
+<hr />
+<h3>Step 0 — Piano (step 4)</h3>
+<p>Dopo veve db, <strong>prima</strong> dell'implementazione — <strong>legge DB</strong>, non Jira live:</p>
+<ol><li><strong>Leggi WIP</strong> — <code>jira_issue_wip</code> parent <code>{KEY}</code> + subtask (<code>parent_jira_key = {KEY}</code>) via <code>openCruscottoDb()</code> / Prisma <code>jiraIssueWip</code></li><li><strong>Piano</strong> — estrae da <code>raw_fields</code> JSON (<code>veveDescription</code>, <code>gapSummary</code>, AC/DoD compilati in step 3.3–3.4); <strong>non</strong> Task «Jira Auto» · <strong>non</strong> MCP</li><li><strong>Gap</strong> — riusa output step 3.2; <strong>non</strong> ripetere CLI gap salvo ripresa senza veve db in sessione</li><li>Filtra subtask <strong>Da fare</strong> (<code>is_done</code>, <code>status</code> da righe WIP), ordina (schema → API → web → test → manuale)</li><li>Compila template <strong>START</strong> da WIP + gap (mai description Jira grezza)</li></ol>
+<p><strong>Output chat unico:</strong> blocco START (<code>ADMIN-Silence.mdc</code>).</p>
+<p><strong>Stop se:</strong> parent assente in <code>jira_issue_wip</code> → rieseguire step 3 veve db.</p>
+<hr />
+<h3>Step 5 — Implementazione + ok chiudi (WIP)</h3>
+<p>Una subtask alla volta. Sequenza obbligatoria a fine subtask <code>{subkey}</code>:</p>
+<ol><li><strong>Codice</strong> — implementazione nel repo workflow</li><li><strong>Commit</strong> — <code>git add</code> + commit messaggio <code>{subkey} …</code> (repo workflow)</li><li><strong>Ok chiudi</strong> — chiusura subtask su <strong><code>jira_issue_wip</code></strong>, <strong>non</strong> Task «Jira Auto» · <strong>non</strong> MCP Jira</li></ol>
+<h4>Ok chiudi — update <code>jira_issue_wip</code></h4>
+<p>Upsert/update riga <code>jira_key = {subkey}</code>:</p>
+<table><thead><tr><th>Campo</th><th>Valore</th></tr></thead><tbody><tr><td><code>is_done</code></td><td><code>true</code></td></tr>
+<tr><td><code>status</code></td><td><code>Fatto</code> (o equivalente chiuso)</td></tr>
+<tr><td><code>raw_fields</code></td><td>Merge JSON: <code>statoRepo</code>, <code>doD</code>, <code>commitHash</code>, <code>closedAt</code> (ISO), aggiorna <code>veveDescription</code> se serve</td></tr>
+<tr><td><code>synced_at</code></td><td>now</td></tr></tbody></table>
+<p>Prisma: <code>db.jiraIssueWip.update({ where: { jiraKey: subkey }, data: { … } })</code>.</p>
+<p>Template testo chiusura (opzionale in <code>raw_fields</code>): <code>.cursor/templates/workflow/ok-chiudi-subtask.md</code> — compilato da gap post-commit, <strong>senza</strong> <code>editJiraIssue</code>.</p>
+<table><thead><tr><th>Modalità</th><th>Dopo implementazione</th></tr></thead><tbody><tr><td><strong>Confirm</strong> (default <code>procedi</code>)</td><td>Silenzio fino a «ok chiudi», poi update WIP</td></tr>
+<tr><td><strong>Silent</strong> (<code>gogo</code>, FULL silent)</td><td>Update WIP subito dopo commit</td></tr></tbody></table>
+<p><strong>Stop se:</strong> subtask assente in <code>jira_issue_wip</code> → stop flusso, END parziale con <code>Errori:</code>.</p>
+<p>Push <strong>non</strong> automatico dopo ok chiudi — push/PR solo in <strong>step 8 PUSH</strong>.</p>
+<hr />
+<h3>Step 7 — Chiusura locale (solo WIP)</h3>
+<p>Su <code>chiudi Story {KEY}</code> / <code>chiudi fast</code> — <strong>dopo</strong> END-A, tutte le subtask <strong>Fatto</strong> in WIP:</p>
+<ol><li><strong>Verifica WIP</strong> — ogni subtask <code>{subkey}</code>: <code>is_done = true</code>; stop altrimenti</li><li><strong>Gap test</strong> (solo <code>chiudi</code> completo, non <code>chiudi fast</code>) — <code>ADMIN-AnalizzaRepo.mdc</code></li><li><strong>Chiudi parent WIP</strong> — update riga <code>jira_key = {KEY}</code>:</li></ol>
+<table><thead><tr><th>Campo</th><th>Valore</th></tr></thead><tbody><tr><td><code>is_done</code></td><td><code>true</code></td></tr>
+<tr><td><code>status</code></td><td><code>Fatto</code></td></tr>
+<tr><td><code>raw_fields</code></td><td>Merge JSON: <code>chiudiParent</code>, <code>gapTest</code> (se applicabile), <code>wipClosedAt</code> (ISO), <strong><code>awaitingPush: true</code></strong></td></tr>
+<tr><td><code>synced_at</code></td><td>now</td></tr></tbody></table>
+<p><strong>Niente</strong> push git · <strong>niente</strong> PR · <strong>niente</strong> Jira live · <strong>niente</strong> <code>close-story.mjs</code>.</p>
+<ol><li><strong>END-B / END-B-FAST</strong> — template workflow; <strong>PR: —</strong> (PR allo step 8)</li><li><strong>Ritorno backlog cruscotto</strong> — aggiorna riga <code>{KEY}</code>: stato WIP chiuso, pulsante <strong>GOGO</strong> → <strong>PUSH</strong></li></ol>
+<p>Template testo locale (in <code>raw_fields</code>): <code>.cursor/templates/workflow/chiudi-parent.md</code> — senza <code>prUrl</code>.</p>
+<hr />
+<h3>Step 8 — PUSH (Jira da WIP + PR)</h3>
+<p><strong>Solo cruscotto</strong> — invocato dal pulsante <strong>PUSH</strong> sulla riga backlog <strong>dopo</strong> step 7 completato.</p>
+<p><strong>Prerequisito:</strong> parent <code>{KEY}</code> in <code>jira_issue_wip</code> con <code>is_done = true</code> e <code>raw_fields.awaitingPush = true</code>.</p>
+<ol><li><strong>Leggi WIP</strong> — parent + tutte le subtask <code>{KEY}</code> / <code>parent_jira_key = {KEY}</code></li><li><strong>Sync Jira live</strong> — da <code>raw_fields</code> WIP verso Atlassian:</li></ol>
+<p>   - Subtask: <code>editJiraIssue</code> description + transizione <strong>Fatto</strong> (template <code>ok-chiudi-subtask.md</code>)    - Parent: <code>editJiraIssue</code> + transizione <strong>Fatto</strong> (template <code>chiudi-parent.md</code>)    - Invocazione: <strong>Task «Jira Auto»</strong> o MCP <code>user-atlassian</code> — <strong>solo</strong> in step 8</p>
+<ol><li><strong>Git / PR</strong> — <code>close-story.mjs</code> sul <strong>repo workflow</strong> (ordine fisso):</li></ol>
+<p>   ``<code>bash    node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}    </code>`<code>    a. <strong>Catalogo segnali</strong> — </code>REPO_IMPLEMENTATION_SIGNALS<code> + commit su branch ticket      b. <strong>Push branch</strong> — </code>git push -u origin {branch}<code> (se ahead o assente su remote)      c. <strong>PR</strong> — riusa PR aperta o </code>gh pr create<code> su </code>main`</p>
+<ol><li><strong>Update WIP post-push</strong> — merge <code>raw_fields</code>: <code>prUrl</code>, <code>jiraSyncedAt</code>, <strong><code>awaitingPush: false</code></strong>, <code>pushedAt</code> (ISO)</li></ol>
+<table><thead><tr><th>Trigger UI</th><th>Effetto</th></tr></thead><tbody><tr><td>Pulsante <strong>PUSH</strong> backlog</td><td>Avvia step 8 per <code>{KEY}</code></td></tr>
+<tr><td>GOGO / procedi / chiudi</td><td><strong>Non</strong> esegue step 8</td></tr></tbody></table>
+<p><strong>Output cruscotto:</strong> riga aggiornata con PR URL; parent Jira + WIP allineati.</p>
+<hr />
+<h3>Script chiudi / PUSH (step 8)</h3>
+<p><code>jiraCORE.close.story.mjs</code> — <strong>solo step 8 PUSH</strong>, non step 7:</p>
+<pre><code class="language-bash">node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
+node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run</code></pre>
+<ul><li>Key: <code>{JIRA_KEY}-xxx</code> coerente con progetto istanziato</li><li>Pillar matrix: <code>--pillar</code> (opt-in)</li><li>Ordine interno: <strong>catalogo</strong> (commit) → <strong>push branch</strong> → <strong>PR</strong>; invocato da step 8 <strong>dopo</strong> sync Jira da WIP</li></ul>
+<hr />
+<h3>Analizza repo</h3>
+<p>Gap analysis sul <strong>repo workflow</strong> del progetto istanziato:</p>
+<pre><code class="language-bash">node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY} --format md</code></pre>
+<p>Regola: <code>ADMIN-AnalizzaRepo.mdc</code> · skill <code>jlo-analizza-repo</code></p>
+<p><strong>Aree</strong> da <code>PRJ_NAME</code> / overlay — es. JustLastOne: <code>apps/</code>, <code>packages/</code>, <code>testScript/</code> · AdminDashBoard: <code>lib/</code>, <code>cruscotto/</code>, <code>admin.portal.testscript/</code></p>
+<hr />
+<h3>Jira — invocazione</h3>
+<table><thead><tr><th>Fase workflow</th><th>Jira / DB</th></tr></thead><tbody><tr><td>Step 3 veve db</td><td><code>jira_issue</code> read · <code>jira_issue_wip</code> write</td></tr>
+<tr><td>Step 0 piano</td><td><code>jira_issue_wip</code> read</td></tr>
+<tr><td>Ok chiudi subtask</td><td><code>jira_issue_wip</code> update subtask</td></tr>
+<tr><td><strong>Step 7 chiudi</strong></td><td><strong><code>jira_issue_wip</code> update parent</strong> — no Jira · no PR</td></tr>
+<tr><td><strong>Step 8 PUSH</strong></td><td><strong>Jira sync da WIP</strong> + <code>close-story.mjs</code> (PR)</td></tr></tbody></table>
+<table><thead><tr><th>Fase</th><th>Invocazione</th></tr></thead><tbody><tr><td>Step 0–7</td><td>Solo DB WIP — nessun Jira Auto / MCP</td></tr>
+<tr><td>Step 8 PUSH</td><td>Leggi WIP → Jira Auto / MCP (subtask + parent Fatto) → <code>close-story.mjs</code></td></tr></tbody></table>
+<hr />
+<h3>Output chat (procedi / gogo)</h3>
+<table><thead><tr><th>Fase</th><th>Contenuto</th></tr></thead><tbody><tr><td><strong>START</strong></td><td>AC, DoD, STATO, BRANCH, subtask, Macrostep</td></tr>
+<tr><td><strong>PROGRESS</strong></td><td>Tabella Macrostep</td></tr>
+<tr><td><strong>END-A</strong></td><td>Implementazione WIP completata; parent <code>awaitingPush</code> false</td></tr>
+<tr><td><strong>END-B / END-B-FAST</strong></td><td>Step 7 — WIP chiuso; <strong>PR: —</strong>; backlog mostra <strong>PUSH</strong></td></tr>
+<tr><td><strong>Post PUSH (step 8)</strong></td><td>END con PR URL + Jira allineato</td></tr></tbody></table>
+<p>Formato END step 7 — repo = <strong>progetto istanziato</strong> (PR vuoto fino a PUSH):</p>
+<pre><code class="language-text">PR: {url}
+Jira: https://myfuturejobsearch.atlassian.net/browse/{KEY}
+Repo: [{PRJ_GITHUB_REPO}](https://github.com/{owner}/{repo}) · branch `{branch}` · commit `{hash}`</code></pre>
+<p><code>owner</code>/<code>repo</code> da <code>PRJ_GITHUB_OWNER</code> / <code>PRJ_GITHUB_REPO</code> dell'overlay attivo — <strong>non</strong> assumere sempre PortalAdmin.</p>
+<hr />
+<h3>Commit</h3>
+<p>Messaggio: <code>{subkey} …</code> nel <strong>repo workflow</strong>.</p>
+<p>Un commit per subtask; <strong>push/PR solo step 8 PUSH</strong> (cruscotto).</p>
+    </article>
 
     <footer>
-      <a href="ADMIN-Workflow.html">ADMIN-Workflow (MCP)</a> ·
-      <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a>
+      Generato da <code>.cursor/rules/ADMIN-Workflow database.mdc</code> ·
+      pulsante <strong>AGGIORNA</strong> in toolbar
     </footer>
   </div>
-  <script>mermaid.initialize({ startOnLoad: true, theme: "dark", securityLevel: "loose" });</script>
 </body>
 </html>

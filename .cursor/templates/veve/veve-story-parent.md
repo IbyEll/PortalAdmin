@@ -18,12 +18,9 @@ _Data analisi: {DATE}_
 
 | Area | Esito | Note |
 | --- | --- | --- |
-| Schema | ⬜ | |
-| API | ⬜ | |
-| Web | ⬜ | |
-| Shared / i18n | ⬜ | |
-| Admin / cruscotto | ⬜ | |
-| Test | ⬜ | |
+| {AREA-1} | {ESITO-1} | {NOTE-1} |
+
+_Solo righe con esito **✅**, **⚠️** o **❌** da gap analysis — **non** inserire aree non contemplate (⬜ / N/A / trattino). Una tabella markdown unica._
 
 _Esiti: ✅ implementato · ⚠️ parziale/stub · ❌ assente_
 
@@ -59,6 +56,8 @@ _Checkbox: regola **B** (Stato repo ✅) poi **A** (subtask Fatto / parent Fatto
 | --- | --- | --- |
 | 1 | {SUB-KEY-1} | {summary} |
 | 2 | {SUB-KEY-2} | {summary} |
+
+_Solo subtask reali — **non** inserire righe `—` o placeholder. Se non ci sono subtask: una riga di testo sotto il titolo (es. _Nessun subtask — fix atomico su parent_) invece della tabella._
 
 ---
 

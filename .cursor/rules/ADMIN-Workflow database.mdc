@@ -70,7 +70,7 @@ Aggiornamento `REPO_IMPLEMENTATION_SIGNALS` in chiusura parent — **solo** sul 
 | --- | --- |
 | File catalogo | `PROJECT_{PRJ_NAME}/signals.catalog.{PRJ_NAME}.mjs` (overlay attivo) |
 | Script | `admin.portal.JiraCORE/jiraCORE.close.story.mjs` — deriva key/branch dal ticket nel **repo workflow** |
-| Scrittura | Commit catalogo nel **repo workflow** se il file segnali vive lì; path da `PRJ_NAME` + implementazione `close-story` |
+| Scrittura | Commit catalogo nel **repo workflow** **prima** di `git push` branch; script `close-story` |
 
 Nessun mapping fisso `ADMIN` → PortalAdmin / `JLO` → JustLastOne: vale **`PRJ_NAME`** e `PRJ_JIRA_PREFIX` dell’istanza corrente.
 
@@ -99,7 +99,7 @@ Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output c
 | Step | Fase | Regola |
 | --- | --- | --- |
 | 1 | Verifica branch | § sotto |
-| 2 | Pre-flight git | § sotto |
+| 2 | Pre-flight git | § sotto (+ gate PR aperte) |
 | 3 | **Veve DB** | `ADMIN-Veve.db.mdc` |
 | 4 | Step 0 — piano | Leggi `jira_issue_wip` + START |
 | 5 | Implementazione | subtask + commit + **ok chiudi → WIP** |
@@ -140,7 +140,10 @@ Nel **repo workflow** (`PRODUCT_REPO_PATH`):
 
 1. `git status --porcelain` — vuoto (no stash automatico agente)
 2. `git fetch origin` · `main` allineato a `origin/main`
-3. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}`
+3. **Nessuna PR aperta** sul repo workflow — `gh pr list --state open`; se ≥1 → **Stop** (merge o chiudi prima di `gogo` / `procedi`)
+4. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}` (solo se nuova branch)
+
+Vedi gate PR in `ADMIN-Workflow.mdc` § Pre-flight git (step 2.3).
 
 ---
 
@@ -255,11 +258,13 @@ Template testo locale (in `raw_fields`): `.cursor/templates/workflow/chiudi-pare
    - Subtask: `editJiraIssue` description + transizione **Fatto** (template `ok-chiudi-subtask.md`)
    - Parent: `editJiraIssue` + transizione **Fatto** (template `chiudi-parent.md`)
    - Invocazione: **Task «Jira Auto»** o MCP `user-atlassian` — **solo** in step 8
-3. **Git / PR / catalogo** — host PortalAdmin:
+3. **Git / PR** — `close-story.mjs` sul **repo workflow** (ordine fisso):
    ```bash
    node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
    ```
-   Push branch, catalogo segnali, apertura PR su `main`
+   a. **Catalogo segnali** — `REPO_IMPLEMENTATION_SIGNALS` + commit su branch ticket  
+   b. **Push branch** — `git push -u origin {branch}` (se ahead o assente su remote)  
+   c. **PR** — riusa PR aperta o `gh pr create` su `main`
 4. **Update WIP post-push** — merge `raw_fields`: `prUrl`, `jiraSyncedAt`, **`awaitingPush: false`**, `pushedAt` (ISO)
 
 | Trigger UI | Effetto |
@@ -282,7 +287,7 @@ node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run
 
 - Key: `{JIRA_KEY}-xxx` coerente con progetto istanziato
 - Pillar matrix: `--pillar` (opt-in)
-- Precede o segue sync Jira step 8 secondo implementazione cruscotto; Jira parent/subtask **Fatto** da WIP prima o insieme al push
+- Ordine interno: **catalogo** (commit) → **push branch** → **PR**; invocato da step 8 **dopo** sync Jira da WIP
 
 ---
 
