@@ -3,9 +3,13 @@
  */
 
 // 1. Elementi DOM toolbar
-const selectEl   = document.getElementById("docs-chrome-select");
-const refreshBtn = document.getElementById("docs-chrome-refresh");
-const statusEl   = document.getElementById("docs-chrome-status");
+const selectEl      = document.getElementById("docs-chrome-select");
+const refreshBtn    = document.getElementById("docs-chrome-refresh");
+const regenerateBtn = document.getElementById("docs-chrome-regenerate");
+const statusEl      = document.getElementById("docs-chrome-status");
+
+/** @type {Record<string, { script: string, label: string }>} */
+let regenerateRegistry = {};
 
 /**
  * @returns {string}
@@ -13,7 +17,7 @@ const statusEl   = document.getElementById("docs-chrome-status");
 function currentDocRel() {
   const path = window.location.pathname.replace(/^\/docs(?:\.portal)?\//, "");
 
-  return path || "index.html";
+  return path || "1.document.index.html";
 }
 
 /**
@@ -72,16 +76,95 @@ async function loadDocList() {
 /**
  * @returns {Promise<void>}
  */
+async function loadRegenerateRegistry() {
+  const res = await fetch("/api/docs/regenerate/registry");
+
+  if (!res.ok) {
+    return;
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  regenerateRegistry = data.pages && typeof data.pages === "object" ? data.pages : {};
+
+  if (!regenerateBtn) {
+    return;
+  }
+
+  const cur = currentDocRel();
+  const cfg = regenerateRegistry[cur];
+
+  if (cfg) {
+    regenerateBtn.hidden = false;
+    regenerateBtn.title  = `node ${cfg.script}`;
+  } else {
+    regenerateBtn.hidden = true;
+  }
+}
+
+/**
+ * @returns {Promise<void>}
+ */
+async function runRegenerate() {
+  if (!regenerateBtn) {
+    return;
+  }
+
+  regenerateBtn.disabled = true;
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+  }
+
+  setStatus("Rigenerazione…");
+
+  const cur = currentDocRel();
+
+  try {
+    const res = await fetch("/api/docs/regenerate", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ file: cur })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error ?? `regenerate ${res.status}`);
+    }
+
+    setStatus(`Rigenerato — ${data.label ?? cur}`, "ok");
+    sessionStorage.setItem("docs-scroll-fresh", "1");
+    window.setTimeout(() => window.location.reload(), 600);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    setStatus(message, "err");
+  } finally {
+    regenerateBtn.disabled = false;
+
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+    }
+  }
+}
+
+/**
+ * @returns {Promise<void>}
+ */
 async function runRefresh() {
   if (!refreshBtn) {
     return;
   }
 
   refreshBtn.disabled = true;
+
+  if (regenerateBtn) {
+    regenerateBtn.disabled = true;
+  }
+
   setStatus("Analisi…");
 
   const cur  = currentDocRel();
-  const body = cur === "index.html" ? {} : { file: cur };
+  const body = cur === "1.document.index.html" || cur === "index.html" ? {} : { file: cur };
 
   try {
     const res = await fetch("/api/docs/refresh", {
@@ -110,6 +193,10 @@ async function runRefresh() {
     setStatus(message, "err");
   } finally {
     refreshBtn.disabled = false;
+
+    if (regenerateBtn) {
+      regenerateBtn.disabled = false;
+    }
   }
 }
 
@@ -130,8 +217,18 @@ if (refreshBtn) {
   });
 }
 
+if (regenerateBtn) {
+  regenerateBtn.addEventListener("click", () => {
+    void runRegenerate();
+  });
+}
+
 void loadDocList().catch((err) => {
   setStatus(err instanceof Error ? err.message : String(err), "err");
+});
+
+void loadRegenerateRegistry().catch(() => {
+  // registry assente — nascondi Rigenera
 });
 
 void restorePersistedFindingIssues().catch(() => {
@@ -169,15 +266,42 @@ function createdIssueTypeBadge(issueType) {
     return { slug: "epic", label: "epic" };
   }
 
-  if (raw.includes("task")) {
-    return { slug: "task", label: "task" };
+  if (raw.includes("sub-task") || raw.includes("subtask")) {
+    return { slug: "sub", label: "sub" };
   }
 
-  if (raw.includes("todo")) {
+  if (raw.includes("todo") || raw.includes("to do")) {
     return { slug: "todo", label: "todo" };
   }
 
+  if (raw.includes("task")) {
+    return { slug: "other", label: "task" };
+  }
+
   return { slug: "other", label: "issue" };
+}
+
+/**
+ * @param {HTMLElement} menu
+ */
+function resetIssueCreateMenuPosition(menu) {
+  menu.classList.remove("is-fixed");
+  menu.style.left = "";
+  menu.style.top = "";
+  menu.style.minWidth = "";
+}
+
+/**
+ * @param {HTMLElement} menu
+ * @param {HTMLButtonElement} btn
+ */
+function positionIssueCreateMenu(menu, btn) {
+  const rect = btn.getBoundingClientRect();
+
+  menu.classList.add("is-fixed");
+  menu.style.left = `${Math.max(8, rect.left)}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.minWidth = `${Math.max(rect.width, 176)}px`;
 }
 
 /**
@@ -187,6 +311,7 @@ function closeIssueCreateMenus(wrap) {
   for (const menu of document.querySelectorAll(".issue-ref-create-menu")) {
     if (menu instanceof HTMLElement) {
       menu.hidden = true;
+      resetIssueCreateMenuPosition(menu);
     }
   }
 }
@@ -206,6 +331,7 @@ function paintCreatedIssueCell(btn, data) {
   const badge           = `<span class="issue-type issue-type-${slug}">${label}</span>`;
   const url             = `${JIRA_BROWSE_BASE}/${encodeURIComponent(data.key)}`;
 
+  cell.classList.add("issue-refinement--linked");
   cell.dataset.issueKey = data.key;
   cell.innerHTML = `${badge}<a class="issue-ref" href="${url}" target="_blank" rel="noopener noreferrer">${data.key}</a>`;
 
@@ -225,7 +351,7 @@ async function restorePersistedFindingIssues() {
     return;
   }
 
-  const res = await fetch("/api/docs/advancement/finding-issues");
+  const res = await fetch("/api/docs/matrix/finding-issues");
 
   if (!res.ok) {
     return;
@@ -267,7 +393,7 @@ async function restorePersistedFindingIssues() {
   }
 }
 
-// 4. Crea issue Jira da finding Avanzamento (colonna Issue refinement)
+// 4. Crea issue Jira da finding matrice (colonna Issue refinement)
 document.addEventListener("click", (ev) => {
   const target = ev.target;
 
@@ -303,7 +429,7 @@ document.addEventListener("click", (ev) => {
       }
 
       try {
-        const res = await fetch("/api/docs/advancement/create-issue", {
+        const res = await fetch("/api/docs/matrix/create-issue", {
           method  : "POST"
         , headers : { "Content-Type": "application/json" }
         , body    : JSON.stringify({
@@ -356,6 +482,7 @@ document.addEventListener("click", (ev) => {
 
     if (willOpen) {
       menu.hidden = false;
+      positionIssueCreateMenu(menu, btn);
     }
 
     return;

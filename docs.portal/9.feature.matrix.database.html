@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>9. FEATURE - PortalAdmin — Matrici su database cruscotto</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Matrici PortalAdmin su database cruscotto</h1>
+      <p class="meta">
+        Proposta architetturale · giugno 2026 · label Jira proposta <code>[MATRIX]</code>
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="matrix.portal.gap.html">Matrice unificata (HTML)</a> ·
+        <a href="matrix.portal.gap.definition.html">Script gap analysis</a> ·
+        <a href="3.info.cruscotto.db.schema.html">Schema DB cruscotto</a> ·
+        <a href="2.info.cruscotto.db.proposta.html">Proposta DB (origine)</a>
+      </nav>
+      <p class="lead">
+        Oggi le matrici avanzamento/gap/audit/test vivono in file JSON + HTML con merge incrementale e
+        un piccolo store <code>matrix.finding-issues.json</code> per i link Issue refinement.
+        La proposta sposta <strong>righe, snapshot, storico e correlazioni Jira</strong> nel DB SQLite
+        del cruscotto (<code>PROJECT_{overlay}/cruscotto_{overlay}.db</code>), mantenendo HTML/JSON
+        come artefatti di export e non più come sorgente di verità.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#oneliner">In una riga</a></li>
+        <li><a href="#stato">Stato attuale</a></li>
+        <li><a href="#problemi">Problemi da risolvere</a></li>
+        <li><a href="#obiettivi">Obiettivi e principi</a></li>
+        <li><a href="#modello">Modello dati proposto</a></li>
+        <li><a href="#coerenza-jira">Coerenza con issue Jira</a></li>
+        <li><a href="#flusso">Flusso scan → DB → HTML</a></li>
+        <li><a href="#migrazione">Migrazione da JSON</a></li>
+        <li><a href="#api">API e consumer</a></li>
+        <li><a href="#jira">Backlog Jira (proposta)</a></li>
+        <li><a href="#ordine">Ordine di implementazione</a></li>
+        <li><a href="#fuori-scope">Fuori scope / fase 2</a></li>
+      </ul>
+    </nav>
+
+    <div class="oneliner" id="oneliner">
+      <strong>In una riga:</strong>
+      introdurre tabelle <code>matrix_*</code> in Prisma, layer
+      <code>cruscotto.database/matrix.db.mjs</code>, adattare
+      <code>matrix.portal.gap.analysis.mjs</code> e <code>matrix.unified.mjs</code> per
+      upsert righe + snapshot ad ogni scan, collegare <code>finding_id ↔ jira_key</code> via FK logica
+      a <code>jira_issue</code>, generare HTML da DB — story schema prima del layer persistence, poi
+      integrazione scan/API.
+    </div>
+
+    <h2 id="stato">Stato attuale</h2>
+
+    <div class="mermaid">
+flowchart LR
+  subgraph scan["Scan repo"]
+    S1["matrix.gap.scan.mjs"]
+    S2["matrix.unified.mjs"]
+  end
+
+  subgraph files["File system (sorgente di verità oggi)"]
+    J1["matrix.portal.gap.json"]
+    J2["repo-audit-ridondanze-gap.json"]
+    J3["matrix.finding-issues.json"]
+    H1["matrix.portal.gap.html"]
+  end
+
+  subgraph jira["Cache Jira (già su DB)"]
+    DB1["jira_issue"]
+    DB2["jira_issue_wip"]
+  end
+
+  S1 --> S2
+  S2 --> J1
+  S2 --> J2
+  S2 --> H1
+  J3 -.->|merge link Crea| S2
+  DB1 -.->|enrich opzionale| S2
+    </div>
+
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th>Artefatto</th>
+          <th>Ruolo oggi</th>
+          <th>Limite</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>matrix.portal.gap.json</code></td>
+          <td>Payload unificato (operational + audit + metriche)</td>
+          <td>Riscritto a ogni scan; storico solo via merge manuale JSON</td>
+        </tr>
+        <tr>
+          <td><code>repo-audit-ridondanze-gap.json</code></td>
+          <td>Sottoinsieme audit per merge catalogo legacy</td>
+          <td>Duplicazione parziale rispetto al JSON unificato</td>
+        </tr>
+        <tr>
+          <td><code>matrix.finding-issues.json</code></td>
+          <td><code>findingId → { key, issueType }</code> da pulsante Crea</td>
+          <td>File lib; nessun join con <code>jira_issue</code>; no audit trail</td>
+        </tr>
+        <tr>
+          <td><code>matrix.portal.gap.html</code></td>
+          <td>UI matrice + Issue refinement</td>
+          <td>Merge HTML preserva stati issue parsing DOM; fragile su refactor sezioni</td>
+        </tr>
+        <tr>
+          <td><code>jira_issue</code></td>
+          <td>Snapshot backlog Jira (sync)</td>
+          <td>Non referenzia finding matrice; arricchimento best-effort a runtime</td>
+        </tr>
+        <tr>
+          <td><code>jira_issue_wip</code></td>
+          <td>Veve db / workflow gogo</td>
+          <td>Scope ticket WIP, non righe matrice avanzamento</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="meta">
+      Matrici correlate: <code>matrix.test.coverage.html</code> (+ JSON MD) segue lo stesso pattern
+      file-based; la proposta estende lo stesso modello <code>matrix_kind = test_coverage</code>.
+    </p>
+
+    <h2 id="problemi">Problemi da risolvere</h2>
+
+    <ul>
+      <li>
+        <strong>Storicità incompleta</strong> — lo stato <code>obsoleto</code> è gestito via merge JSON;
+        non c’è traccia append-only di quando una voce è sparita dallo scan o è stata risolta.
+      </li>
+      <li>
+        <strong>Coerenza Issue refinement</strong> — link finding↔Jira in JSON separato; rischio drift
+        rispetto a <code>jira_issue.status</code> e a issue chiuse su Jira ma ancora <code>open</code> in matrice.
+      </li>
+      <li>
+        <strong>Doppia sorgente</strong> — HTML merge, JSON scan e store link non transazionali;
+        rigenerazione parziale può perdere stati manuali.
+      </li>
+      <li>
+        <strong>Multi-matrice</strong> — gap unificato, test coverage e futuri audit condividono renderer
+        ma non un catalogo righe centralizzato queryabile (API, cruscotto UI, report).
+      </li>
+      <li>
+        <strong>Overlay istanziato</strong> — il DB cruscotto è già per overlay
+        (<code>PRJ_NAME</code>); le matrici restano solo su file sotto PortalAdmin host.
+      </li>
+    </ul>
+
+    <h2 id="obiettivi">Obiettivi e principi</h2>
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>Principio</th><th>Dettaglio</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>DB = sorgente di verità</strong></td>
+          <td>Righe matrice, link issue, snapshot metriche persistiti in SQLite cruscotto</td>
+        </tr>
+        <tr>
+          <td><strong>Scan = detector</strong></td>
+          <td>Lo scan repo propone delta; upsert non cancella storico (obsoleto, non DELETE)</td>
+        </tr>
+        <tr>
+          <td><strong>HTML/JSON = export</strong></td>
+          <td>Generati da DB; merge HTML legacy deprecato a favore di render full da query</td>
+        </tr>
+        <tr>
+          <td><strong>Join Jira cache</strong></td>
+          <td><code>matrix_finding_issue.jira_key</code> allineato a <code>jira_issue.jira_key</code></td>
+        </tr>
+        <tr>
+          <td><strong>Id stabile</strong></td>
+          <td><code>finding_id</code> (es. <code>bug-tree-regenerate</code>, <code>audit-park-myproject</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Compatibilità workflow</strong></td>
+          <td>Veve / gap analysis / pulsante Crea restano; cambiano solo persistence layer</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="modello">Modello dati proposto</h2>
+
+    <p>
+      Estensione di <code>cruscotto.database/prisma/schema.prisma</code> — <strong>5 tabelle</strong>
+      (+ indici). Naming coerente con prefisso <code>matrix_</code>.
+    </p>
+
+    <div class="mermaid">
+erDiagram
+  matrix_run ||--o{ matrix_row : contains
+  matrix_row ||--o{ matrix_row_event : history
+  matrix_row ||--o| matrix_finding_issue : links
+  jira_issue ||--o| matrix_finding_issue : "jira_key match"
+  matrix_catalog ||--o{ matrix_row : "finding_id"
+
+  matrix_run {
+    TEXT id PK
+    TEXT matrix_kind
+    DATETIME generated_at
+    TEXT source
+    TEXT metrics_json
+    TEXT sync_run_id FK_optional
+  }
+
+  matrix_catalog {
+    TEXT finding_id PK
+    TEXT matrix_kind
+    TEXT section_id
+    TEXT default_voce
+    TEXT scan_ids_json
+    TEXT audit_entry_json
+  }
+
+  matrix_row {
+    TEXT finding_id PK
+    TEXT matrix_kind PK
+    TEXT matrix_run_id FK
+    TEXT section_id
+    TEXT status
+    TEXT sev
+    TEXT project
+    TEXT voce
+    TEXT dettaglio
+    TEXT paths_json
+    TEXT resolved_note
+    TEXT content_sig
+    DATETIME first_seen_at
+    DATETIME last_seen_at
+  }
+
+  matrix_row_event {
+    TEXT id PK
+    TEXT finding_id FK
+    TEXT matrix_kind
+    TEXT matrix_run_id FK
+    DATETIME at
+    TEXT event_type
+    TEXT old_status
+    TEXT new_status
+    TEXT note
+  }
+
+  matrix_finding_issue {
+    TEXT finding_id PK
+    TEXT matrix_kind PK
+    TEXT jira_key UK
+    TEXT issue_type
+    DATETIME linked_at
+    TEXT linked_source
+  }
+    </div>
+
+    <h3>Tabelle — campi essenziali</h3>
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>Tabella</th><th>Scopo</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>matrix_run</code></td>
+          <td>Un run di rigenerazione matrice</td>
+          <td>
+            <code>matrix_kind</code>: <code>portal_gap</code> |
+            <code>test_coverage</code> · metriche JSON · opzionale FK <code>sync_run_id</code>
+            per correlare scan matrice e sync Jira nello stesso momento
+          </td>
+        </tr>
+        <tr>
+          <td><code>matrix_catalog</code></td>
+          <td>Definizioni stabili (audit catalog, checklist arch)</td>
+          <td>Seed da <code>AUDIT_CATALOG</code> / checklist arch · raramente mutabile</td>
+        </tr>
+        <tr>
+          <td><code>matrix_row</code></td>
+          <td>Stato corrente per <code>finding_id</code></td>
+          <td>
+            PK composta <code>(finding_id, matrix_kind)</code> · stati:
+            <code>gap</code> | <code>parziale</code> | <code>open</code> | <code>fatto</code> |
+            <code>obsoleto</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>matrix_row_event</code></td>
+          <td>Storico append-only</td>
+          <td>
+            Eventi: <code>scan_detected</code> | <code>status_change</code> |
+            <code>marked_obsolete</code> | <code>issue_linked</code> | <code>issue_resolved</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>matrix_finding_issue</code></td>
+          <td>Link finding ↔ ticket Jira</td>
+          <td>
+            Sostituisce <code>matrix.finding-issues.json</code> ·
+            <code>linked_source</code>: <code>create_button</code> | <code>manual</code> |
+            <code>grep_source</code> | <code>import_json</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Modulo persistence (nuovo)</h3>
+
+    <pre><code>cruscotto.database/
+  matrix.db.mjs              ← openCruscottoDb + upsert/query snapshot
+  matrix.db.import.mjs       ← one-shot import JSON legacy → DB
+docs.portal.lib/
+  matrix.db.adapter.mjs      ← bridge scan MatrixRow[] ↔ matrix.db
+  matrix.finding-issues.store.mjs  ← delega a DB (fallback JSON in transizione)</code></pre>
+
+    <h2 id="coerenza-jira">Coerenza con issue correlate</h2>
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>Scenario</th><th>Comportamento proposto</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Pulsante <strong>Crea</strong> su riga matrice</td>
+          <td>
+            Crea issue Jira (come oggi) → upsert <code>matrix_finding_issue</code> +
+            evento <code>issue_linked</code> · opzionale link Jira issue link verso story epic
+          </td>
+        </tr>
+        <tr>
+          <td>Issue già in matrice (<code>ADMIN-156</code>)</td>
+          <td>
+            Import iniziale da JSON/HTML · enrich da <code>jira_issue</code>:
+            summary, issue_type, status · auto <code>fatto</code> se Jira Done e scan non rileva gap
+          </td>
+        </tr>
+        <tr>
+          <td>Ticket WIP (<code>jira_issue_wip</code>)</td>
+          <td>
+            Scope separato (veve db workflow) · opzionale cross-ref:
+            subtask WIP può referenziare <code>finding_id</code> in <code>raw_fields</code> WIP
+          </td>
+        </tr>
+        <tr>
+          <td>Sync Jira post-chiusura ticket</td>
+          <td>
+            Job post-sync: per righe con link, se <code>jira_issue.is_done</code> →
+            <code>matrix_row.status = fatto</code> + evento <code>issue_resolved</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Voce obsoleta (non più nello scan)</td>
+          <td>
+            Mantieni riga · <code>status = obsoleto</code> · evento <code>marked_obsolete</code> con
+            timestamp · mai DELETE
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="flusso">Flusso scan → DB → HTML</h2>
+
+    <div class="mermaid">
+sequenceDiagram
+  participant CLI as matrix.portal.gap.analysis.mjs
+  participant Scan as matrix.gap.scan.mjs
+  participant Adp as matrix.db.adapter.mjs
+  participant DB as cruscotto SQLite
+  participant Rend as matrix.render.mjs
+
+  CLI->>Scan: analyzePortalAdvancement()
+  Scan-->>CLI: report + findings
+  CLI->>Adp: buildUnifiedMatrixSections()
+  Adp->>DB: begin matrix_run
+  Adp->>DB: upsert matrix_row (merge catalog + scan)
+  Adp->>DB: insert matrix_row_event (delta)
+  Adp->>DB: load matrix_finding_issue + join jira_issue
+  DB-->>Adp: rows enriched
+  Adp-->>CLI: MatrixSection[]
+  CLI->>Rend: renderMatrixPage()
+  CLI->>CLI: export JSON/MD (optional mirror)
+    </div>
+
+    <h2 id="migrazione">Migrazione da JSON</h2>
+
+    <ol>
+      <li>
+        Migration Prisma + seed <code>matrix_catalog</code> da
+        <code>docs.portal.lib/matrix.repo.audit.mjs</code> (<code>AUDIT_CATALOG</code>).
+      </li>
+      <li>
+        Script <code>matrix.db.import.mjs --from docs.portal/matrix.portal.gap.json</code> +
+        <code>repo-audit-ridondanze-gap.json</code> + <code>matrix.finding-issues.json</code>.
+      </li>
+      <li>
+        Flag transizione <code>MATRIX_PERSIST=db|json|dual</code> — fase <code>dual</code> scrive DB + JSON;
+        confronto diff in CI.
+      </li>
+      <li>
+        Deprecare merge HTML (<code>refreshMatrixPageHtml</code> stati issue) → render full da DB
+        preservando <code>issueKey</code> in tabella.
+      </li>
+      <li>
+        Aggiornare <a href="3.info.cruscotto.db.schema.html">3.info.cruscotto.db.schema.html</a>
+        con le nuove tabelle.
+      </li>
+    </ol>
+
+    <h2 id="api">API e consumer</h2>
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>Endpoint (proposta)</th><th>Metodo</th><th>Uso</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET /api/matrix/portal-gap</code></td>
+          <td>GET</td>
+          <td>Sezioni + righe correnti (JSON per cruscotto UI / agent)</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/matrix/runs?kind=portal_gap</code></td>
+          <td>GET</td>
+          <td>Storico snapshot / metriche nel tempo</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/matrix/rows/:findingId/events</code></td>
+          <td>GET</td>
+          <td>Audit trail singola voce</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/matrix/finding-issue</code></td>
+          <td>POST</td>
+          <td>Persist link dopo Crea Jira (sostituisce write JSON store)</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/matrix/regenerate</code></td>
+          <td>POST</td>
+          <td>Trigger scan + upsert DB (equivalente CLI, da HOME toolbar)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="meta">
+      Consumer: <code>matrix.portal.gap.analysis.mjs</code>,
+      <code>matrix.test.coverage.mjs</code>, toolbar docs «Aggiorna analisi»,
+      <code>enrichFindingsWithIssueRefinement</code>, future pagine cruscotto Avanzamento.
+    </p>
+
+    <h2 id="jira">Backlog Jira (proposta)</h2>
+
+    <p>
+      Story e subtask <strong>da creare</strong> su progetto ADMIN con label <code>[MATRIX]</code>.
+      Le key sotto sono placeholder — sostituire con key reali alla creazione.
+    </p>
+
+    <h3>Story 1 — Schema DB matrici</h3>
+    <p>
+      <strong>ADMIN-???</strong> — [MATRIX] Persistenza matrici: schema Prisma e migration cruscotto
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Subtask</th><th>Key</th><th>Acceptance criteria (sintesi)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Design ER <code>matrix_*</code> + review con doc 9.feature</td>
+          <td>ADMIN-???-1</td>
+          <td>Schema approvato; diagramma in 3.info.cruscotto.db.schema.html</td>
+        </tr>
+        <tr>
+          <td>Migration Prisma <code>matrix_run</code>, <code>matrix_row</code>, …</td>
+          <td>ADMIN-???-2</td>
+          <td><code>npm run db:migrate</code> ok su overlay AdminDashBoard e JustLastOne</td>
+        </tr>
+        <tr>
+          <td>Seed <code>matrix_catalog</code> da AUDIT_CATALOG + checklist arch</td>
+          <td>ADMIN-???-3</td>
+          <td>Seed idempotente; count righe catalogo ≥ voci audit attuali</td>
+        </tr>
+        <tr>
+          <td>Test Prisma round-trip insert/select matrix_row</td>
+          <td>ADMIN-???-4</td>
+          <td>Test tecnico in <code>admin.portal.testscript/</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Story 2 — Layer persistence e import legacy</h3>
+    <p>
+      <strong>ADMIN-???</strong> — [MATRIX] Layer <code>matrix.db.mjs</code> e migrazione JSON
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Subtask</th><th>Key</th><th>Acceptance criteria (sintesi)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>cruscotto.database/matrix.db.mjs</code> — upsert row, run, events</td>
+          <td>ADMIN-???-5</td>
+          <td>API: <code>upsertMatrixRows</code>, <code>startMatrixRun</code>, <code>appendMatrixEvent</code></td>
+        </tr>
+        <tr>
+          <td><code>matrix.db.import.mjs</code> — import JSON unificato + finding-issues</td>
+          <td>ADMIN-???-6</td>
+          <td>Import senza perdita 48 voci attuali; 16 obsolete preservate</td>
+        </tr>
+        <tr>
+          <td>Sostituire <code>matrix.finding-issues.store.mjs</code> → DB</td>
+          <td>ADMIN-???-7</td>
+          <td>Crea + load link da tabella; fallback JSON se DB assente</td>
+        </tr>
+        <tr>
+          <td>Logica obsoleto + <code>matrix_row_event</code></td>
+          <td>ADMIN-???-8</td>
+          <td>Voce assente scan → obsoleto + evento; storico consultabile</td>
+        </tr>
+        <tr>
+          <td>Env <code>MATRIX_PERSIST=dual</code> e test parità JSON↔DB</td>
+          <td>ADMIN-???-9</td>
+          <td>Diff test in CI smoke o script dedicato</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Story 3 — Integrazione scan, HTML e coerenza Jira</h3>
+    <p>
+      <strong>ADMIN-???</strong> — [MATRIX] Scan unificato su DB + enrich <code>jira_issue</code>
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Subtask</th><th>Key</th><th>Acceptance criteria (sintesi)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>matrix.db.adapter.mjs</code> — bridge unified sections ↔ DB</td>
+          <td>ADMIN-???-10</td>
+          <td><code>buildUnifiedMatrixSections</code> legge/scrive DB prima del render</td>
+        </tr>
+        <tr>
+          <td>Refactor <code>matrix.portal.gap.analysis.mjs</code> (DB primary)</td>
+          <td>ADMIN-???-11</td>
+          <td>CLI rigenera HTML da DB; JSON export opzionale mirror</td>
+        </tr>
+        <tr>
+          <td>Post-sync hook: allinea <code>fatto</code> da <code>jira_issue.is_done</code></td>
+          <td>ADMIN-???-12</td>
+          <td>Dopo Jira sync, righe linkate chiuse → status fatto + evento</td>
+        </tr>
+        <tr>
+          <td>Estendere <code>matrix.test.coverage.mjs</code> (<code>matrix_kind=test_coverage</code>)</td>
+          <td>ADMIN-???-13</td>
+          <td>Stesso persistence layer; 1 run per kind</td>
+        </tr>
+        <tr>
+          <td>Deprecare merge HTML issue states (<code>matrix.refresh.mjs</code> path legacy)</td>
+          <td>ADMIN-???-14</td>
+          <td>Issue refinement da DB; nessun parse DOM stati precedenti</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Story 4 — API cruscotto e documentazione</h3>
+    <p>
+      <strong>ADMIN-???</strong> — [MATRIX] API matrice e aggiornamento docs schema
+    </p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Subtask</th><th>Key</th><th>Acceptance criteria (sintesi)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET /api/matrix/portal-gap</code> + runs + events</td>
+          <td>ADMIN-???-15</td>
+          <td>Handler in <code>cruscotto.server.mjs</code>; JSON schema documentato</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/matrix/finding-issue</code> (post-Crea Jira)</td>
+          <td>ADMIN-???-16</td>
+          <td>HOME/docs toolbar persiste link su DB</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/matrix/regenerate</code> (toolbar Aggiorna)</td>
+          <td>ADMIN-???-17</td>
+          <td>Equivalente CLI; permessi dev-only</td>
+        </tr>
+        <tr>
+          <td>Aggiornare <code>3.info.cruscotto.db.schema.html</code> + regola ADMIN-Avanzamento</td>
+          <td>ADMIN-???-18</td>
+          <td>Doc schema 7→12 tabelle; workflow aggiornato</td>
+        </tr>
+        <tr>
+          <td>Test funzionale matrice DB + gap analysis end-to-end</td>
+          <td>ADMIN-???-19</td>
+          <td><code>admin.portal.testscript</code> — regenerate + assert row count</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Riepilogo story (copy-paste Jira)</h3>
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>Tipo</th><th>Summary proposto</th><th>Label</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Story</td>
+          <td>[MATRIX] Persistenza matrici: schema Prisma e migration cruscotto</td>
+          <td><code>[MATRIX]</code></td>
+        </tr>
+        <tr>
+          <td>Story</td>
+          <td>[MATRIX] Layer matrix.db.mjs e migrazione JSON legacy</td>
+          <td><code>[MATRIX]</code></td>
+        </tr>
+        <tr>
+          <td>Story</td>
+          <td>[MATRIX] Scan unificato su DB + coerenza jira_issue</td>
+          <td><code>[MATRIX]</code></td>
+        </tr>
+        <tr>
+          <td>Story</td>
+          <td>[MATRIX] API matrice cruscotto e documentazione schema</td>
+          <td><code>[MATRIX]</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="ordine">Ordine di implementazione</h2>
+
+    <ol>
+      <li>
+        <strong>Story 1</strong> (schema) — blocca tutto; subtask ???-1…4 in sequenza.
+      </li>
+      <li>
+        <strong>Story 2</strong> (persistence + import) — abilitare <code>MATRIX_PERSIST=dual</code>
+        prima di switch definitivo.
+      </li>
+      <li>
+        <strong>Story 3</strong> (integrazione scan) — solo quando import legacy verificato;
+        ???-12 hook Jira dopo ???-11 CLI.
+      </li>
+      <li>
+        <strong>Story 4</strong> (API + docs) — in parallelo finale; UI cruscotto opzionale post-MVP.
+      </li>
+    </ol>
+
+    <blockquote class="doc-note">
+      <strong>Dipendenza:</strong> richiede DB cruscotto inizializzato per overlay
+      (<code>CRUSCOTTO_DATABASE_URL</code>) e sync Jira almeno sporadico per enrich issue.
+      Non sostituisce <code>jira_issue_wip</code> (workflow veve db resta dedicato).
+    </blockquote>
+
+    <h2 id="fuori-scope">Fuori scope / fase 2</h2>
+
+    <ul>
+      <li>Replica matrici su PostgreSQL / multi-tenant cloud</li>
+      <li>UI cruscotto «timeline matrice» con grafico metriche storiche</li>
+      <li>Sync bidirezionale Jira ← matrice (solo Jira → matrice in fase 1)</li>
+      <li>Pillar matrix HTML statica in PARKING — resta fuori finché non migrata</li>
+      <li>Matrici product repo JustLastOne in DB host — valutare <code>matrix_kind</code> per overlay</li>
+    </ul>
+  </div>
+  <script src="/docs/docs-chrome.js" defer></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+  </script>
+</body>
+</html>

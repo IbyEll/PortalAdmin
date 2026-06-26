@@ -53,6 +53,7 @@ const STEPS = [
 , "test.smoke/smoke-portal-e2e.mjs"
 , "test.smoke/smoke-run-all.mjs"
 , "test.smoke/smoke-dashboard.mjs"
+, "test.smoke/smoke-portal-api.mjs"
 ];
 
 try {

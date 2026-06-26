@@ -1,6 +1,6 @@
 ---
-description: Analisi avanzamento PortalAdmin — architettura, gap, bug, feature. Script docs/Avanzamento_Gap_Feature.mjs
-globs: docs/Avanzamento_Gap_Feature.*, lib/docs.portal.analysis.mjs
+description: Analisi avanzamento PortalAdmin — architettura, gap, bug, feature. Script docs.portal/matrix.portal.gap.analysis.mjs
+globs: docs.portal/matrix.portal.gap.*, docs.portal.lib/matrix.gap.*, docs.portal.lib/docs.portal.analysis.mjs
 alwaysApply: false
 ---
 
@@ -12,21 +12,25 @@ alwaysApply: false
 | --- | --- |
 | `analizza avanzamento` · `avanzamento gap feature` | Esegui analisi + rigenera HTML |
 | Modifica architettura host significativa | Rigenerare pagina dopo implementazione |
-| `node docs/Avanzamento_Gap_Feature.mjs` | CLI diretta |
+| `node docs.portal/matrix.portal.gap.analysis.mjs` | CLI diretta |
 
 ## Artefatti
 
 | Path | Ruolo |
 | --- | --- |
-| `docs/Avanzamento_Gap_Feature.mjs` | Script analisi + render HTML |
-| `docs/Avanzamento_Gap_Feature.html` | Output servito su HOME `/docs/` |
-| `lib/docs.portal.analysis.mjs` | 15 controlli automatici base (importato dallo script) |
+| `docs.portal.lib/matrix.gap.scan.mjs` | Scansione finding + metriche |
+| `docs.portal/matrix.portal.gap.analysis.mjs` | CLI analisi + render HTML/JSON/MD |
+| `docs.portal/matrix.portal.gap.html` | Pagina unificata servita su HOME `/docs/` (avanzamento + audit + obsoleto) |
+| `docs.portal.lib/matrix.unified.mjs` | Builder sezioni operativo + audit con dedup |
+| `docs.portal.lib/docs.portal.analysis.mjs` | 15 controlli automatici base |
+
+Alias legacy (redirect): `matrix.avanzamento.gap.feature.html`, `Avanzamento_Gap_Feature.html` → `matrix.portal.gap.html`.
 
 ## Sequenza agente
 
-1. **Esegui** `node docs/Avanzamento_Gap_Feature.mjs` dalla root PortalAdmin.
+1. **Esegui** `node docs.portal/matrix.portal.gap.analysis.mjs` dalla root PortalAdmin.
 2. **Leggi** metriche stdout (arch %, gap, bug).
-3. **Apri** `docs/Avanzamento_Gap_Feature.html` — verifica sezioni per categoria.
+3. **Apri** `docs.portal/matrix.portal.gap.html` — sezioni operativo (`op-*`) e audit (`audit-*`, anchor `#audit-parking`).
 4. Se gap P0/P1 toccati dal task corrente → aggiorna finding o risolvilo nel codice, poi **rigenera**.
 
 ## Cosa analizza lo script
@@ -37,7 +41,7 @@ alwaysApply: false
 | Gap | `analyzeRepository` + PARKING import grep |
 | Bug | grep import mancanti (tree regenerate, Confluence, CI portal-paths, npm path) |
 | Deprecation | runner/ comment drift, stub start-dev, portal-paths consumer |
-| Feature / miglioramenti | catalogo curato nel script (docs refresh, istanze, JiraCORE) |
+| Feature / miglioramenti | catalogo curato in matrix.gap.scan.mjs |
 
 ## Categorie output HTML
 
@@ -47,7 +51,7 @@ Severità: `P0` · `P1` · `P2` · `info`
 
 ## Distinction vs Aggiorna (docs chrome)
 
-| | **Aggiorna** (toolbar docs) | **Avanzamento_Gap_Feature** |
+| | **Aggiorna** (toolbar docs) | **matrix.portal.gap** |
 | --- | --- | --- |
 | Trigger | UI Documenti | CLI / regola / agente |
 | Output | Sezione auto in ogni doc esistente | Pagina dedicata completa |

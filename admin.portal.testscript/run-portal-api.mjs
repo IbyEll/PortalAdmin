@@ -60,6 +60,7 @@ const CRUSCOTTO_SCRIPTS = [
 , "dev/test.dev.services.mjs"
 , "repo/test.repo.services.discover.mjs"
 , "repo/test.repo.services.status.mjs"
+, "repo/test.repo.services.processes.mjs"
 , "jira/test.jira.backlog.mjs"
 , "cursor/test.api.cursor.agent.mjs"
 , "cursor/test.cruscotto.backlog.push.mjs"

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cruscotto DB — schema SQLite</title>
+  <title>3. INFO - Cruscotto - DB schema SQLite</title>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <link rel="stylesheet" href="/docs/docs.style.css" />
 </head>
@@ -105,13 +105,13 @@
     <div class="mermaid-wrap">
       <pre class="mermaid">
 erDiagram
-  sync_run ||--o{ jira_issue : "snapshot"
-  sync_run ||--o{ jira_issue_wip : "wip"
-  sync_run ||--o{ working_plan_sprint_keys : "plan"
-  jira_issue ||--o{ jira_issue_sprint : ""
-  jira_sprint ||--o{ jira_issue_sprint : ""
-  jira_issue ||--o{ jira_issue_link : "from"
-  jira_issue ||--o{ jira_issue_link : "to"
+  sync_run ||--o{ jira_issue : snapshot
+  sync_run ||--o{ jira_issue_wip : wip
+  sync_run ||--o{ working_plan_sprint_keys : plan
+  jira_issue ||--o{ jira_issue_sprint : issue
+  jira_sprint ||--o{ jira_issue_sprint : sprint
+  jira_issue ||--o{ jira_issue_link : from_key
+  jira_issue ||--o{ jira_issue_link : to_key
 
   sync_run {
     TEXT id PK
@@ -134,7 +134,7 @@ erDiagram
   jira_issue_wip {
     TEXT id PK
     TEXT jira_key UK
-    TEXT raw_fields JSON
+    TEXT raw_fields
     TEXT sync_run_id FK
   }
       </pre>
@@ -849,6 +849,6 @@ erDiagram
     , er          : { useMaxWidth: true }
     });
   </script>
-  <script src="/docs/docs-chrome.js" defer></script>
+  <script src="/docs/utility.toolbar.document.js" defer></script>
 </body>
 </html>

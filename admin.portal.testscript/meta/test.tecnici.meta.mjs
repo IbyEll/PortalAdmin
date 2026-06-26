@@ -102,9 +102,12 @@ async function main() {
     assert(res.ok, `HTTP ${res.status}`);
 
     const data = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (body));
-    assert(Array.isArray(data.prerequisites), "prerequisites non array");
-    assert(Array.isArray(data.architecture), "architecture non array");
-    assert(Array.isArray(data.runOrder), "runOrder non array");
+    const impl = data.implementation && typeof data.implementation === "object"
+      ? /** @type {Record<string, unknown>} */ (data.implementation)
+      : data;
+    assert(Array.isArray(impl.prerequisites), "prerequisites non array");
+    assert(Array.isArray(impl.architecture), "architecture non array");
+    assert(Array.isArray(impl.runOrder), "runOrder non array");
   }, results);
 
   // 5. Riepilogo — printSummary con meta script

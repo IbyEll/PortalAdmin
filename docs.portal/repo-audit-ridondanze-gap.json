@@ -1,0 +1,476 @@
+{
+  "generatedAt": "2026-06-26T21:38:24.185Z",
+  "source": "hybrid-scan",
+  "metrics": {
+    "gap": 2,
+    "partial": 2,
+    "obsolete": 16,
+    "done": 6,
+    "total": 26
+  },
+  "sections": [
+    {
+      "id": "parking",
+      "title": "PARKING_tocheck — live nel flusso",
+      "open": true,
+      "badge": "0 aperti · 4 obsolete · 4 voci",
+      "rows": [
+        {
+          "id": "audit-park-myproject",
+          "sev": "P2",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "My-project analysis da PARKING",
+          "dettaglio": "dashboard.project.mjs importa analyze da PARKING_tocheck",
+          "paths": [
+            "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
+            "admin.portal.lib/overlay/dashboard.project.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-park-pillar-url",
+          "sev": "P2",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "URL pilastri da PARKING",
+          "dettaglio": "cruscotto.jira.backlog.pillars.mjs punta a cruscotto.jira.pillar.matrix.portal.mjs in PARKING",
+          "paths": [
+            "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
+            "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-park-close-pillar",
+          "sev": "P2",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "close-story --pillar path obsoleto",
+          "dettaglio": "jiraCORE.close.story.mjs --pillar usa git path cruscotto/pillar-matrix legacy",
+          "paths": [
+            "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
+            "PARKING_tocheck/pillar-matrix-targeted.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-park-pillar-regen",
+          "sev": "P2",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "API regenerate pillar in PARKING",
+          "dettaglio": "POST regenerate scrive in PARKING_tocheck/pillar-matrix/ non in frontend",
+          "paths": [
+            "cruscotto.frontend/cruscotto.server.mjs",
+            "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        }
+      ],
+      "partHeading": "Audit migrazione, ridondanze e storico"
+    },
+    {
+      "id": "redundancy",
+      "title": "Ridondanze e drift",
+      "open": true,
+      "badge": "0 aperti · 3 obsolete · 5 voci",
+      "rows": [
+        {
+          "id": "audit-red-jira-config",
+          "sev": "info",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "Config Jira scan canonica",
+          "dettaglio": "admin.portal.JiraCORE/jira.project.config.mjs — gap analysis, signals, scan paths",
+          "paths": [
+            "admin.portal.JiraCORE/jira.project.config.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "architettura",
+          "resolvedNote": ""
+        },
+        {
+          "id": "audit-red-parking-jira-copy",
+          "sev": "warn",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Copia jira in PARKING_tocheck",
+          "dettaglio": "Drift parziale — nessun import live da PARKING jira/",
+          "paths": [
+            "PARKING_tocheck/cruscotto.frontend/jira/"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-red-overlay-drift",
+          "sev": "warn",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Commenti path overlay legacy",
+          "dettaglio": "Regole Cursor e commenti citano admin.portal.lib/dashboard.project.mjs (spostato in overlay/)",
+          "paths": [
+            "admin.portal.lib/overlay/dashboard.project.mjs",
+            ".cursor/rules/"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-red-discovery-manifest",
+          "sev": "P3",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Discovery + manifest + servicePathById",
+          "dettaglio": "Stesso servizio descritto 3 volte per overlay — single source da definire",
+          "paths": [
+            "admin.portal.lib/discovery.services.repo.mjs",
+            "lib/product.manifest.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-red-smoke-npm",
+          "sev": "info",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "Smoke spostati in test.smoke/",
+          "dettaglio": "Completato / allineato allo stato target 2026-06.",
+          "paths": [
+            "test.smoke/"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "avanzamento",
+          "resolvedNote": ""
+        }
+      ]
+    },
+    {
+      "id": "gap",
+      "title": "Gap import / runtime",
+      "open": true,
+      "badge": "0 aperti · 4 obsolete · 4 voci",
+      "rows": [
+        {
+          "id": "audit-gap-jlo-plan-data",
+          "sev": "P0",
+          "status": "obsoleto",
+          "project": "JustLastOne",
+          "voce": "working.plan.data.JustLastOne.mjs assente",
+          "dettaglio": "Import in working.order.mjs e working.plan.overlay.mjs — file mancante in PROJECT_JustLastOne/",
+          "paths": [
+            "PROJECT_JustLastOne/",
+            "cruscotto.frontend/cruscotto.jira.working.order.mjs",
+            "admin.portal.lib/overlay/working.plan.overlay.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-gap-confluence-gen",
+          "sev": "P1",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Import Confluence pillar generate",
+          "dettaglio": "publish.mjs cerca generate-confluence-pillar-matrix.mjs — rinominato confluence.pillar.matrix.generate.mjs",
+          "paths": [
+            "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
+            "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-gap-pillar-diff",
+          "sev": "P1",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "pillar-matrix-diff solo in PARKING",
+          "dettaglio": "confluence.pillar.matrix.publish.mjs importa ../admin.portal.lib/pillar-matrix-diff.mjs assente",
+          "paths": [
+            "PARKING_tocheck/pillar-matrix-diff.mjs",
+            "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-gap-startup-path",
+          "sev": "P2",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "test:cruscotto-startup path errato",
+          "dettaglio": "package.json punta a cruscotto.setup/ — file in funzionali/",
+          "paths": [
+            "package.json",
+            "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        }
+      ]
+    },
+    {
+      "id": "improv",
+      "title": "Miglioramenti consigliati",
+      "open": true,
+      "badge": "1 aperti · 2 obsolete · 6 voci",
+      "rows": [
+        {
+          "id": "audit-imp-smoke-wiring",
+          "sev": "info",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "Smoke spostati in test.smoke/",
+          "dettaglio": "Completato / allineato allo stato target 2026-06.",
+          "paths": [
+            "test.smoke/"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "avanzamento",
+          "resolvedNote": ""
+        },
+        {
+          "id": "audit-imp-shim-jira",
+          "sev": "P1",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Shim lib → JiraCORE",
+          "dettaglio": "Smoke importano path admin.portal.lib/* — verificare re-export o aggiornare import diretti JiraCORE",
+          "paths": [
+            "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
+            "test.smoke/smoke-portal-config.mjs"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-imp-jira-scan",
+          "sev": "P2",
+          "status": "parziale",
+          "project": "PortalAdmin",
+          "voce": "Scan paths Jira config",
+          "dettaglio": "Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs",
+          "paths": [
+            "admin.portal.JiraCORE/jira.project.config.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "miglioramento",
+          "resolvedNote": "",
+          "create": {
+            "section": "Miglioramenti suggeriti",
+            "summary": "Scan paths Jira config",
+            "detail": "Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs"
+          }
+        },
+        {
+          "id": "audit-imp-server-cleanup",
+          "sev": "P3",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "Pulizia server/ e runner/",
+          "dettaglio": "Rimuovere residui orfani se non importati",
+          "paths": [
+            "server/",
+            "runner/"
+          ],
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null
+        },
+        {
+          "id": "audit-imp-portal-api",
+          "sev": "warn",
+          "status": "coperto",
+          "project": "PortalAdmin",
+          "voce": "admin.portal.testscript fuori test:ci",
+          "dettaglio": "~23 script API — richiedono cruscotto up; non in smoke CI default — non più rilevato allo scan.",
+          "paths": [
+            "admin.portal.testscript/"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "resolvedNote": "",
+          "issueSummary": null
+        },
+        {
+          "id": "audit-imp-comcom",
+          "sev": "info",
+          "status": "coperto",
+          "project": "PortalAdmin",
+          "voce": "Comcom testata moduli principali",
+          "dettaglio": "lib, PROJECT_*, test.smoke, cruscotto, JiraCORE, admin.portal — drift commenti legacy residuo",
+          "paths": [
+            ".cursor/rules/ADMIN-Comcom.mdc"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "resolvedNote": "",
+          "issueSummary": null
+        }
+      ]
+    },
+    {
+      "id": "priority",
+      "title": "Priorità backlog (R1–R7)",
+      "open": true,
+      "badge": "3 aperti · 3 obsolete · 7 voci",
+      "rows": [
+        {
+          "id": "audit-prio-r1",
+          "sev": "info",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "R1 — Fix path smoke npm/CI",
+          "dettaglio": "Completato / allineato allo stato target 2026-06.",
+          "paths": [
+            "test.smoke/"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": ""
+        },
+        {
+          "id": "audit-prio-r2",
+          "sev": "P1",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "R2 — Shim lib JiraCORE",
+          "dettaglio": "Smoke importano path admin.portal.lib/* — verificare re-export o aggiornare import diretti JiraCORE",
+          "paths": [
+            "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
+            "test.smoke/smoke-portal-config.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+        },
+        {
+          "id": "audit-prio-r3",
+          "sev": "P0",
+          "status": "obsoleto",
+          "project": "JustLastOne",
+          "voce": "R3 — working.plan.data JLO",
+          "dettaglio": "Import in working.order.mjs e working.plan.overlay.mjs — file mancante in PROJECT_JustLastOne/",
+          "paths": [
+            "PROJECT_JustLastOne/",
+            "cruscotto.frontend/cruscotto.jira.working.order.mjs",
+            "admin.portal.lib/overlay/working.plan.overlay.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+        },
+        {
+          "id": "audit-prio-r4",
+          "sev": "P1",
+          "status": "obsoleto",
+          "project": "PortalAdmin",
+          "voce": "R4 — Confluence publish + pillar-diff",
+          "dettaglio": "publish.mjs cerca generate-confluence-pillar-matrix.mjs — rinominato confluence.pillar.matrix.generate.mjs",
+          "paths": [
+            "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
+            "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+        },
+        {
+          "id": "audit-prio-r5",
+          "sev": "P2",
+          "status": "gap",
+          "project": "PortalAdmin",
+          "voce": "R5 — Promote PARKING frontend",
+          "dettaglio": "my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING.",
+          "paths": [
+            "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
+            "admin.portal.lib/overlay/dashboard.project.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": "",
+          "create": {
+            "section": "Priorità backlog",
+            "summary": "Promote PARKING moduli live",
+            "detail": "Architettura pulita — R5."
+          }
+        },
+        {
+          "id": "audit-prio-r6",
+          "sev": "P2",
+          "status": "gap",
+          "project": "PortalAdmin.Cruscotto",
+          "voce": "R6 — CI AdminDashBoard + HOME",
+          "dettaglio": "portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990.",
+          "paths": [
+            ".github/workflows/portal-smoke.yml"
+          ],
+          "issueKey": "ADMIN-168",
+          "issueType": "Story",
+          "issueSummary": "[Avanzamento] CI job AdminDashBoard + smoke admin:home",
+          "resolvedNote": ""
+        },
+        {
+          "id": "audit-prio-r7",
+          "sev": "P2",
+          "status": "parziale",
+          "project": "PortalAdmin",
+          "voce": "R7 — Jira config unico + scan paths",
+          "dettaglio": "Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs",
+          "paths": [
+            "admin.portal.JiraCORE/jira.project.config.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "resolvedNote": ""
+        }
+      ]
+    }
+  ]
+}

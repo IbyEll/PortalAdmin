@@ -106,7 +106,10 @@ async function main() {
     assert(data.scenarios.length > 0, "scenarios vuoto");
 
     const first = /** @type {Record<string, unknown>} */ (data.scenarios[0]);
-    assert(typeof first.id === "string", "scenario.id mancante");
+    assert(
+      typeof first.script === "string" || typeof first.id === "string"
+    , "scenario.script/id mancante"
+    );
     assert(Array.isArray(first.cases), "scenario.cases non array");
   }, results);
 

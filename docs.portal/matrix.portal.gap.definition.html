@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>[ MATRIX - DEFINITION ] - PortalAdmin — Avanzamento - Gap - Feature - Gap analysis (script)</title>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Gap analysis PortalAdmin — definizione script</h1>
+      <p class="meta">
+        Documentazione <code>matrix.portal.gap.analysis.mjs</code> · giugno 2026 ·
+        correlati:
+        <a href="matrix.portal.gap.html">matrice unificata (HTML)</a>,
+        <a href="matrix.portal.gap.html#audit-parking">sezione audit</a>,
+        <a href="matrix.portal.gap.md">matrice MD</a>,
+        <a href="matrix.test.coverage.html">copertura test</a>
+      </p>
+      <p class="lead">
+        Entrypoint CLI che scansiona il repository host PortalAdmin e rigenera la
+        <strong>matrice unificata</strong>: avanzamento operativo (arch %, bug, deprecation, feature)
+        + audit migrazione (PARKING, ridondanze, R1–R7, storico obsoleto) in
+        <code>matrix.portal.gap.html</code>.
+      </p>
+      <div class="banner">
+        <strong>In una riga</strong> — dalla root repo:
+        <code>node docs.portal/matrix.portal.gap.analysis.mjs</code>
+      </div>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#ruolo">Ruolo nel tooling</a></li>
+        <li><a href="#flusso">Flusso esecuzione</a></li>
+        <li><a href="#moduli">Moduli coinvolti</a></li>
+        <li><a href="#procedura">Procedura a step</a></li>
+        <li><a href="#cli">CLI e flag</a></li>
+        <li><a href="#export">Export programmatici</a></li>
+        <li><a href="#artefatti">Artefatti generati</a></li>
+        <li><a href="#merge">Modalità merge vs full</a></li>
+        <li><a href="#categorie">Categorie e severità</a></li>
+        <li><a href="#agente">Trigger agente Cursor</a></li>
+      </ul>
+    </nav>
+
+    <h2 id="ruolo">Ruolo nel tooling</h2>
+    <table>
+      <thead>
+        <tr><th>Elemento</th><th>Path</th><th>Descrizione</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Entrypoint CLI</strong></td>
+          <td><code>docs.portal/matrix.portal.gap.analysis.mjs</code></td>
+          <td>Orchestrazione completa: scan → export → HTML</td>
+        </tr>
+        <tr>
+          <td>Procedura step</td>
+          <td><code>docs.portal/matrix.portal.gap.analysis.procedure.mjs</code></td>
+          <td>Step 1–4 riusabili singolarmente (<code>--step=N</code>, <code>--describe</code>)</td>
+        </tr>
+        <tr>
+          <td>Scansione finding</td>
+          <td><code>docs.portal.lib/matrix.gap.scan.mjs</code></td>
+          <td>Filesystem, import, package.json, CI — metriche e finding</td>
+        </tr>
+        <tr>
+          <td>Controlli base</td>
+          <td><code>docs.portal.lib/docs.portal.analysis.mjs</code></td>
+          <td>15 controlli automatici su path e layout repo</td>
+        </tr>
+        <tr>
+          <td>Renderer HTML</td>
+          <td><code>docs.portal.lib/matrix.render.mjs</code></td>
+          <td>Template adv-card, Issue refinement, pulsante Crea</td>
+        </tr>
+        <tr>
+          <td>Output live</td>
+          <td><code>docs.portal/matrix.portal.gap.html</code></td>
+          <td>Pagina matrice su <code>/docs/matrix.portal.gap.html</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Distinzione rispetto al pulsante <strong>Aggiorna</strong> nella toolbar documenti: quello aggiorna
+      sezioni auto in ogni pagina esistente; questo script produce un report trasversale dedicato.
+    </p>
+
+    <h2 id="flusso">Flusso esecuzione</h2>
+    <pre><code>matrix.portal.gap.analysis.mjs
+  └─ runAnalysisProcedure({ portalRoot })
+       ├─ step 1: analyzePortalAdvancement(portalRoot)  → report + metrics
+       ├─ step 2: buildGapMatrixSections(report)        → MatrixSection[]
+       ├─ step 3: writeGapMatrixArtifacts(...)          → .json + .md
+       └─ step 4: generateGapMatrixHtml(report)         → HTML (solo in procedura isolata)
+  └─ runFullGapAnalysis
+       ├─ writeGapMatrixArtifacts (sempre)
+       └─ HTML: merge su matrix.portal.gap.html esistente | full render (--full)</code></pre>
+
+    <h2 id="moduli">Moduli coinvolti</h2>
+    <table>
+      <thead>
+        <tr><th>Modulo</th><th>Funzione nello script</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>matrix.gap.mjs</code></td>
+          <td><code>buildGapMatrixSections</code>, <code>matrixSectionsToMarkdown</code>, <code>buildPortalGapMatrixMetrics</code></td>
+        </tr>
+        <tr>
+          <td><code>matrix.refresh.mjs</code></td>
+          <td><code>refreshMatrixPageHtml</code> — aggiorna sezioni mantenendo stati Issue refinement</td>
+        </tr>
+        <tr>
+          <td><code>docs.portal.refresh.mjs</code></td>
+          <td><code>parsePreviousAutoStates</code>, <code>stripFreshMarks</code>, <code>isFreshEntry</code></td>
+        </tr>
+        <tr>
+          <td><code>matrix.render.mjs</code></td>
+          <td><code>renderMatrixPage</code> — layout pagina matrice</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="procedura">Procedura a step</h2>
+    <p>Descrizione testuale della procedura (stesso ordine del codice):</p>
+    <pre><code>node docs.portal/matrix.portal.gap.analysis.procedure.mjs --describe</code></pre>
+    <table>
+      <thead>
+        <tr><th>Step</th><th>Nome</th><th>Artefatto</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Scansione avanzamento e finding</td>
+          <td><code>report.findings[]</code> + <code>report.metrics</code></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Classificazione finding per sezione</td>
+          <td><code>MatrixSection[]</code> per renderer</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Export matrice JSON + Markdown</td>
+          <td><code>matrix.portal.gap.json</code> · <code>matrix.portal.gap.md</code></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Generazione pagina HTML</td>
+          <td><code>matrix.portal.gap.html</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Eseguire un solo step: <code>node docs.portal/matrix.portal.gap.analysis.procedure.mjs --step=1</code>
+    </p>
+
+    <h2 id="cli">CLI e flag</h2>
+    <pre><code># Rigenerazione completa (default: merge HTML se esiste)
+node docs.portal/matrix.portal.gap.analysis.mjs
+
+# Render HTML completo senza merge (sovrascrive stati Issue refinement in pagina)
+node docs.portal/matrix.portal.gap.analysis.mjs --full
+
+# Emette HTML su stdout (utile per pipe o ispezione)
+node docs.portal/matrix.portal.gap.analysis.mjs --stdout-html</code></pre>
+    <table>
+      <thead>
+        <tr><th>Flag</th><th>Effetto</th><th>Exit</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><em>(nessuno)</em></td>
+          <td>Scrive JSON, MD, HTML; merge su HTML esistente se presente</td>
+          <td>0 · 1 su errore</td>
+        </tr>
+        <tr>
+          <td><code>--full</code></td>
+          <td>Render completo via <code>generateGapMatrixHtml</code></td>
+          <td>0 · 1 su errore</td>
+        </tr>
+        <tr>
+          <td><code>--stdout-html</code></td>
+          <td>Stampa HTML su stdout; non stampa riepilogo path file</td>
+          <td>0 · 1 su errore</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Stdout di successo (senza <code>--stdout-html</code>): path file scritti + riga metriche
+      (<code>Arch N%</code>, sezioni, gap, bug).
+    </p>
+
+    <h2 id="export">Export programmatici</h2>
+    <p>Lo script espone funzioni importabili da altri moduli Node:</p>
+    <table>
+      <thead>
+        <tr><th>Export</th><th>Descrizione</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>buildGapMatrixSections</code></td>
+          <td>Re-export da <code>matrix.gap.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>matrixSectionsToMarkdown</code></td>
+          <td>Re-export da <code>matrix.gap.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>writeGapMatrixArtifacts(sections, report)</code></td>
+          <td>Scrive JSON e MD in <code>docs.portal/</code></td>
+        </tr>
+        <tr>
+          <td><code>generateGapMatrixHtml(report)</code></td>
+          <td>Stringa HTML completa (senza merge)</td>
+        </tr>
+        <tr>
+          <td><code>runFullGapAnalysis({ fullRender? })</code></td>
+          <td>Procedura + export + write HTML; ritorna <code>{ html, sections, report, merge }</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="artefatti">Artefatti generati</h2>
+    <table>
+      <thead>
+        <tr><th>File</th><th>Formato</th><th>Contenuto</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>matrix.portal.gap.json</code></td>
+          <td>JSON</td>
+          <td><code>generatedAt</code>, <code>metrics</code>, <code>sections</code> — diff e tooling</td>
+        </tr>
+        <tr>
+          <td><code>matrix.portal.gap.md</code></td>
+          <td>Markdown</td>
+          <td>Matrice tabellare per review offline</td>
+        </tr>
+        <tr>
+          <td><code>matrix.portal.gap.html</code></td>
+          <td>HTML</td>
+          <td>Pagina interattiva con adv-card e Issue refinement</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Alias legacy redirect: <code>matrix.avanzamento.gap.feature.html</code>,
+      <code>Avanzamento_Gap_Feature.html</code>,
+      <code>repo-audit-ridondanze-gap.html</code>,
+      <code>matrix.repo.audit.ridondanze.gap.html</code>
+      → <code>matrix.portal.gap.html</code> (audit: <code>#part-audit-parking</code>).
+    </p>
+
+    <h2 id="merge">Modalità merge vs full</h2>
+    <table>
+      <thead>
+        <tr><th>Modalità</th><th>Condizione</th><th>Comportamento</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Merge</strong> (default)</td>
+          <td>HTML esiste e non è passato <code>--full</code></td>
+          <td>Legge stati Issue refinement precedenti, aggiorna sezioni e metriche, rimuove mark «fresh»</td>
+        </tr>
+        <tr>
+          <td><strong>Full render</strong></td>
+          <td><code>--full</code> o HTML assente</td>
+          <td>Rigenera pagina da zero con <code>renderMatrixPage</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Evitare edit manuale solo dell'HTML output: al prossimo merge i cambi non strutturati possono andare persi.
+      Preferire rigenerazione da script.
+    </p>
+
+    <h2 id="categorie">Categorie e severità</h2>
+    <p>Sezioni nella matrice HTML:</p>
+    <p><code>avanzamento</code> · <code>architettura</code> · <code>gap</code> · <code>bug</code> · <code>deprecation</code> · <code>feature</code> · <code>miglioramento</code></p>
+    <p>Severità finding: <code>P0</code> · <code>P1</code> · <code>P2</code> · <code>info</code></p>
+    <table>
+      <thead>
+        <tr><th>Area analizzata</th><th>Metodo (indicativo)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Architettura target</td>
+          <td><code>existsSync</code> + checklist migrazioni (overlay, dual server, JiraCORE, docs, smoke)</td>
+        </tr>
+        <tr>
+          <td>Gap</td>
+          <td><code>analyzeRepository</code> + import live da PARKING</td>
+        </tr>
+        <tr>
+          <td>Bug</td>
+          <td>Grep import mancanti, path CI, consumer npm</td>
+        </tr>
+        <tr>
+          <td>Deprecation</td>
+          <td>Drift commenti runner, stub start-dev</td>
+        </tr>
+        <tr>
+          <td>Feature / miglioramenti</td>
+          <td>Catalogo curato in <code>matrix.gap.scan.mjs</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="agente">Trigger agente Cursor</h2>
+    <p>Regola: <code>.cursor/rules/ADMIN-AvanzamentoGapFeature.mdc</code></p>
+    <ul>
+      <li><code>analizza avanzamento</code> · <code>avanzamento gap feature</code> — esegue CLI e verifica output</li>
+      <li>Dopo modifiche architetturali significative — rigenerare la pagina matrice</li>
+      <li>Se gap P0/P1 toccati dal task — aggiornare finding o risolvere nel codice, poi rigenerare</li>
+    </ul>
+
+    <footer class="doc-footer muted">
+      Documentazione script · aggiornare dopo cambi a export, flag CLI o moduli in
+      <code>docs.portal.lib/matrix.gap.*</code>.
+    </footer>
+  </div>
+  <script src="/docs/docs-chrome.js" defer></script>
+</body>
+</html>

@@ -7,7 +7,7 @@ import { isJiraStatusDone } from "./cruscotto.jira.backlog.mjs";
 import { adfToPlainText } from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
 import { jiraLiveFetch } from "../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
 import { openCruscottoDb, cruscottoDbFileExists } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { fetchWipAdvancementForIssue, buildWipAdvancementEntry } from "./cruscotto.jira.wip.mjs";
+import { fetchWipAdvancementForIssue, buildWipAdvancementEntry } from "./cruscotto.jira.backlog.wip.mjs";
 import { hasWorkflowAdvancementData, parseWorkflowRawFields } from "../admin.portal.JiraCORE/jira.issue.workflow.raw.mjs";
 
 const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
@@ -500,7 +500,7 @@ function formatJiraUser(user) {
 
 /**
  * @param {string} key
- * @returns {Promise<import("./cruscotto.jira.wip.mjs").WipAdvancementEntry | null>}
+ * @returns {Promise<import("./cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null>}
  */
 async function loadWipAdvancement(key) {
   if (!cruscottoDbFileExists()) {
@@ -535,7 +535,7 @@ async function loadWipAdvancement(key) {
  *   browseUrl: string
  *   projectKey: string
  *   wip: ReturnType<typeof buildWipStatusEntry> | null
- *   wipAdvancement: import("./cruscotto.jira.wip.mjs").WipAdvancementEntry | null
+ *   wipAdvancement: import("./cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null
  * }>}
  */
 export async function fetchJiraIssueDetail(issueKey) {

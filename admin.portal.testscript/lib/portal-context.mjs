@@ -124,7 +124,12 @@ export function parseOverlayCli(argv) {
       continue;
     }
 
-    // 4. Argomento sconosciuto — fail-fast con hint --help
+    // 4. --skip-home — solo run-portal-api (salta test HOME)
+    if (arg === "--skip-home") {
+      continue;
+    }
+
+    // 5. Argomento sconosciuto — fail-fast con hint --help
     throw new Error(`Argomento sconosciuto: ${arg} (usa --help)`);
   }
 

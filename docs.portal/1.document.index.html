@@ -19,16 +19,20 @@
     </header>
     <div id="docs-index-list" class="docs-index-grid" aria-live="polite"></div>
   </div>
-  <script src="/docs/docs-chrome.js" defer></script>
+  <script src="/docs/utility.toolbar.document.js" defer></script>
   <script>
     fetch("/api/docs/list")
       .then((r) => r.json())
       .then((data) => {
         const root = document.getElementById("docs-index-list");
-        const pages = (data.pages || []).filter((p) => p.name !== "index.html");
+        const pages = (data.pages || []).filter(
+          (p) => p.name !== "1.document.index.html" && p.name !== "index.html"
+        );
         for (const page of pages) {
           const a = document.createElement("a");
-          a.className = "docs-index-card";
+          a.className = page.kind === "matrix"
+            ? "docs-index-card docs-index-card--matrix"
+            : "docs-index-card";
           a.href = page.href;
           a.innerHTML = `<strong>${page.title}</strong><span class="meta">${page.name}</span>`;
           root.appendChild(a);

@@ -6,7 +6,7 @@
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cruscotto Admin — note architettura e workflow</title>
+  <title>2. INFO - Cruscotto — database - proposta architettura</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <link rel="stylesheet" href="/docs/docs.style.css" />
@@ -85,8 +85,8 @@ cruscotto.database/          ← schema + client (Prisma o better-sqlite3)</code
       <pre class="mermaid">
 erDiagram
   sync_run ||--o{ jira_issue : "snapshot"
-  jira_issue ||--o{ jira_issue_sprint : ""
-  jira_sprint ||--o{ jira_issue_sprint : ""
+  jira_issue ||--o{ jira_issue_sprint : issue
+  jira_sprint ||--o{ jira_issue_sprint : sprint
   jira_issue ||--o{ jira_issue_link : "related"
   jira_issue ||--o{ repo_issue_ref : "crossref"
   jira_issue ||--o| repo_issue_assessment : "cached eval"

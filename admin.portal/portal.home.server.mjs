@@ -40,6 +40,8 @@
  *   - POST /api/portal/open-cruscotto-browser — openSystemBrowser
  *   - GET  /api/docs/list, /api/docs/analysis — documentazione docs/
  *   - POST /api/docs/refresh — analisi repo e aggiornamento HTML barrato + commento
+ *   - POST /api/docs/regenerate — rigenera pagina matrice via script dedicato (merge)
+ *   - GET  /api/docs/regenerate/registry — elenco pagine con script RIGENERA
  *   - GET  /docs/* — pagine HTML docs/ con toolbar condivisa
  *   - GET  /api/doc.cursor.rule/list — elenco HTML regole Cursor
  *   - POST /api/doc.cursor.rule/refresh — rigenera HTML da .cursor/rules/*.mdc
@@ -92,7 +94,10 @@ import {
 , injectDocsChrome
 , listDocPages
 , refreshDocs
+, regenerateDoc
+, getDocsRegenerateRegistry
 , resolveDocsFile
+, normalizeDocsRel
 } from "../docs.portal.lib/docs.portal.mjs";
 import {
   CURSOR_RULES_PUBLIC_PREFIX
@@ -102,8 +107,8 @@ import {
 , refreshCursorRulesFromMdc
 , resolveCursorRulesFile
 } from "../doc.cursor.rule.lib/doc.cursor.rule.mjs";
-import { createAdvancementFindingIssue } from "../docs.portal.lib/docs.portal.advancement.create.mjs";
-import { loadFindingIssueLinksObject } from "../docs.portal.lib/docs.portal.advancement.finding-issues.store.mjs";
+import { createMatrixFindingIssue } from "../docs.portal.lib/matrix.finding.create.mjs";
+import { loadFindingIssueLinksObject } from "../docs.portal.lib/matrix.finding-issues.store.mjs";
 import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
 import {
   formatProjectNodeProcessesText
@@ -330,7 +335,7 @@ async function serveDocs(req, res, urlPath) {
 
   if (docsPath === "/docs") {
     applyCors(res, req);
-    res.writeHead(302, { Location: "/docs/index.html" });
+    res.writeHead(302, { Location: "/docs/1.document.index.html" });
     res.end();
     return true;
   }
@@ -342,6 +347,7 @@ async function serveDocs(req, res, urlPath) {
   const rel  = docsPath.replace(/^\/docs\//, "");
   const file = resolveDocsFile(rel);
   const docsDir = getDocsDir();
+  const docRel = normalizeDocsRel(rel);
 
   if (!file) {
     sendJson(res, 404, { error: "Documento non trovato" }, req);
@@ -353,7 +359,7 @@ async function serveDocs(req, res, urlPath) {
 
   if (ext === ".html") {
     const raw  = await readFile(file, "utf8");
-    const html = await injectDocsChrome(raw, rel);
+    const html = await injectDocsChrome(raw, docRel);
     res.writeHead(200, {
       "Content-Type"  : "text/html; charset=utf-8"
     , "Cache-Control" : "no-cache, must-revalidate"
@@ -509,6 +515,37 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/docs/regenerate/registry" && req.method === "GET") {
+    try {
+      sendJson(res, 200, { pages: getDocsRegenerateRegistry() }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/docs/regenerate" && req.method === "POST") {
+    try {
+      const body     = await readJsonBody(req);
+      const filename = typeof body.file === "string" ? body.file.trim() : "";
+
+      if (!filename) {
+        sendJson(res, 400, { error: "file obbligatorio" }, req);
+        return;
+      }
+
+      const result = await regenerateDoc({ filename });
+      sendJson(res, 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/docs/analysis" && req.method === "GET") {
     try {
       sendJson(res, 200, analyzeRepository(PORTAL_ROOT), req);
@@ -520,7 +557,12 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  if (urlPath === "/api/docs/advancement/finding-issues" && req.method === "GET") {
+  const isMatrixFindingLinksGet = (
+    urlPath === "/api/docs/matrix/finding-issues"
+    || urlPath === "/api/docs/advancement/finding-issues"
+  ) && req.method === "GET";
+
+  if (isMatrixFindingLinksGet) {
     try {
       sendJson(res, 200, { links: loadFindingIssueLinksObject() }, req);
     } catch (err) {
@@ -531,7 +573,12 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  if (urlPath === "/api/docs/advancement/create-issue" && req.method === "POST") {
+  const isMatrixCreatePost = (
+    urlPath === "/api/docs/matrix/create-issue"
+    || urlPath === "/api/docs/advancement/create-issue"
+  ) && req.method === "POST";
+
+  if (isMatrixCreatePost) {
     try {
       const body = await readJsonBody(req);
       const findingId = typeof body.findingId === "string" ? body.findingId.trim() : "";
@@ -566,7 +613,7 @@ async function handleApi(req, res, urlPath) {
         ? body.category.trim()
         : undefined;
 
-      const created = await createAdvancementFindingIssue({
+      const created = await createMatrixFindingIssue({
         projectLabel
       , findingId
       , title
@@ -580,7 +627,7 @@ async function handleApi(req, res, urlPath) {
       });
 
       void syncJiraBacklogFromApi().catch((err) => {
-        console.warn("[advancement/create-issue] sync backlog DB:", err instanceof Error ? err.message : err);
+        console.warn("[matrix/create-issue] sync backlog DB:", err instanceof Error ? err.message : err);
       });
 
       sendJson(res, 201, created, req);

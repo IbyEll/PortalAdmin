@@ -92,7 +92,7 @@ import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs"
 import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { fetchWipStatusByKeys } from "./cruscotto.jira.wip.mjs";
+import { fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
 import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
 import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>[ MATRIX - DEFINITION ] - PortalAdmin — Copertura test vs implementazione</title>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Copertura test PortalAdmin</h1>
+      <p class="meta">
+        Audit test vs implementazione · 2026-06-25 ·
+        correlati:
+        <a href="portal-gap-matrix.html">gap analysis completo</a>,
+        <a href="test-coverage-matrix.html">matrice feature → test (HTML)</a>,
+        <a href="test-coverage-matrix.md">matrice MD</a>,
+        <a href="matrix.portal.gap.html#part-audit-parking">audit repo (matrice unificata)</a>,
+        <a href="20260620_PortalAdmin_development.html">development notes</a>,
+        <a href="testscript-lib-imports.md">testscript imports</a>
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="implementazione-nuovo-progetto.html">Nuovo progetto</a> ·
+        <a href="portal-product-project-repo.html">Product vs host</a> ·
+        <a href="config-runner-overlay-order.html">Config overlay</a>
+      </nav>
+      <p class="lead">
+        Mappatura di cosa è verificato oggi da <code>test.smoke/</code>,
+        <code>admin.portal.testscript/</code> e dagli script npm in <code>package.json</code>,
+        rispetto alle API, alle pagine HTML e ai CLI JiraCORE attualmente implementati.
+        <strong>Non tutto è coperto end-to-end</strong>: la suite è forte su config offline e API
+        read-only; restano gap su run test, Process, MyBacklog, portal HOME e UI Jira.
+      </p>
+      <div class="banner">
+        <strong>Sintesi</strong> — Smoke CI (8 step) gira senza cruscotto attivo;
+        <code>npm run test:portal-api</code> richiede dashboard up;
+        funzionali (gogo, cursor UI, startup) sono fuori da CI e vanno lanciati a mano.
+      </div>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#livelli">Due livelli di test</a></li>
+        <li><a href="#coperto">Cosa è coperto</a></li>
+        <li><a href="#gap-api">Gap API cruscotto</a></li>
+        <li><a href="#gap-home">Gap portal HOME</a></li>
+        <li><a href="#gap-html">Gap pagine HTML</a></li>
+        <li><a href="#gap-cli">Gap JiraCORE CLI</a></li>
+        <li><a href="#esclusi">Test esclusi / manuali</a></li>
+        <li><a href="#comandi">Comandi di verifica</a></li>
+        <li><a href="#priorita">Priorità suggerite</a></li>
+        <li><a href="test-coverage-matrix.html">Matrice tracciabile (HTML)</a> · <a href="test-coverage-matrix.md">MD</a></li>
+      </ul>
+    </nav>
+
+    <div class="oneliner" id="livelli">
+      <strong>In una riga:</strong>
+      eseguire <code>npm run test:ci</code> offline, poi con cruscotto attivo
+      <code>npm run test:portal-api</code> e i funzionali opzionali — la CI non sostituisce
+      l’intera suite API.
+    </div>
+
+    <h2 id="livelli-detail">Due livelli di test</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Livello</th>
+          <th>Dove</th>
+          <th>Quando</th>
+          <th>Prerequisito</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Smoke CI</strong></td>
+          <td><code>test.smoke/</code> (8 script)</td>
+          <td><code>npm run test:ci</code></td>
+          <td>Nessun server; alcuni step spawnano il cruscotto</td>
+        </tr>
+        <tr>
+          <td><strong>API read-only</strong></td>
+          <td><code>admin.portal.testscript/</code></td>
+          <td><code>npm run test:portal-api</code></td>
+          <td>Cruscotto già up (<code>:3998</code> / <code>:3999</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>Funzionali</strong></td>
+          <td><code>admin.portal.testscript/funzionali/</code></td>
+          <td>Script npm dedicati</td>
+          <td>Server + spesso Jira / Cursor API key</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      <code>test:ci</code> <em>non</em> include <code>test:portal-api</code> né i funzionali
+      (<code>test:backlog-gogo</code>, <code>test:cursor-funzionale</code>,
+      <code>test:cruscotto-startup</code>).
+    </p>
+
+    <h2 id="coperto">Cosa è coperto (bene)</h2>
+
+    <h3>Smoke CI — <code>npm run test:ci</code></h3>
+    <ul>
+      <li>Path/env/product repo, overlay, manifest, segnali, scan Jira keys</li>
+      <li>Workflow: regole <code>.cursor</code>, <code>close-story --dry-run</code>, catalogo segnali</li>
+      <li>DB cruscotto: layout <code>PROJECT_*/cruscotto_*.db</code>, migrate su temp</li>
+      <li>Dashboard: HTML base (<code>/</code>, <code>/app.html</code>, <code>/backlog.html</code>)</li>
+      <li>Discovery <code>test.run.all --list</code></li>
+    </ul>
+    <table>
+      <thead>
+        <tr><th>Script smoke</th><th>File</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Paths</td><td><code>test.smoke/smoke-portal-paths.mjs</code></td></tr>
+        <tr><td>Config overlay</td><td><code>test.smoke/smoke-portal-config.mjs</code></td></tr>
+        <tr><td>Workflow rules</td><td><code>test.smoke/smoke-workflow.mjs</code></td></tr>
+        <tr><td>DB cruscotto</td><td><code>test.smoke/smoke-cruscotto-db.mjs</code></td></tr>
+        <tr><td>E2E product</td><td><code>test.smoke/smoke-portal-e2e.mjs</code></td></tr>
+        <tr><td>Run-all list</td><td><code>test.smoke/smoke-run-all.mjs</code></td></tr>
+        <tr><td>Dashboard HTML</td><td><code>test.smoke/smoke-dashboard.mjs</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3><code>run-portal-api</code> — cruscotto attivo</h3>
+    <p>Orchestratore: <code>admin.portal.testscript/run-portal-api.mjs</code></p>
+    <ul>
+      <li>Health, status run, bootstrap progetto, catalogo scripts</li>
+      <li>Meta test tecnici/funzionali, dev requirements/services</li>
+      <li>Discovery/status servizi repo</li>
+      <li>Backlog Jira live (200 o 502 senza credenziali)</li>
+      <li>Cursor agent (config/status/logs + errori 400/503)</li>
+      <li>WIP push (regole + API status/push + markup su backlog/my-backlog)</li>
+      <li>Portal instance/projects (GET)</li>
+      <li>Home: health + projects (opzionale; warn se home down)</li>
+    </ul>
+
+    <h3>Workflow tooling (offline)</h3>
+    <ul>
+      <li><code>smoke-workflow</code>: <code>close-story</code>, <code>resolveTicketBranch</code>, regole agente</li>
+    </ul>
+
+    <h2 id="gap-api">Gap — API cruscotto (senza testscript dedicato)</h2>
+    <table>
+      <thead>
+        <tr><th>Area</th><th>Endpoint (esempio)</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Run test</td>
+          <td><code>POST /api/run</code>, <code>/run/one</code>, <code>/run/suite</code>, <code>/run/case</code></td>
+          <td>UI TestTecnici; nessun assert HTTP dedicato</td>
+        </tr>
+        <tr>
+          <td>Report / export</td>
+          <td><code>/api/report</code>, <code>/report/html</code>, <code>/export</code></td>
+          <td>Non in smoke né portal-api</td>
+        </tr>
+        <tr>
+          <td>Process tab</td>
+          <td><code>/api/repo/services/processes</code>, <code>/logs</code>, start/stop</td>
+          <td>Solo discover/status testati</td>
+        </tr>
+        <tr>
+          <td>DB product</td>
+          <td><code>/api/repo/database/*</code></td>
+          <td>reset/push/seed non testati</td>
+        </tr>
+        <tr>
+          <td>MyBacklog cache</td>
+          <td><code>GET /api/jira/my-backlog</code>, <code>POST .../sync</code></td>
+          <td>Solo markup HTML in push test</td>
+        </tr>
+        <tr>
+          <td>Insights Jira</td>
+          <td><code>/api/jira/backlog/insights</code></td>
+          <td>Usato da <code>backlog.html</code></td>
+        </tr>
+        <tr>
+          <td>Issue</td>
+          <td><code>/api/jira/issue/:KEY</code>, <code>/db</code></td>
+          <td>Tab Issue</td>
+        </tr>
+        <tr>
+          <td>Analisi</td>
+          <td><code>/api/my-project/analyze</code>, <code>/project-overview/analyze</code></td>
+          <td>Pagine dedicate</td>
+        </tr>
+        <tr>
+          <td>Workflow DB</td>
+          <td><code>enroll</code>, <code>finalize-gogo</code>, <code>pr-poll</code>, <code>gogo-preflight</code></td>
+          <td>Push parzialmente coperto</td>
+        </tr>
+        <tr>
+          <td>Portal instance</td>
+          <td><code>POST /api/portal/instance</code></td>
+          <td>Solo GET testato</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="gap-home">Gap — portal HOME (<code>:3990</code>)</h2>
+    <p>Server: <code>admin.portal/portal.home.server.mjs</code> · <code>npm run admin:home</code></p>
+    <table>
+      <thead>
+        <tr><th>Stato</th><th>API / area</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>✅ Testato</td><td><code>GET /api/health</code>, <code>GET /api/portal/projects</code></td></tr>
+        <tr><td>❌ Non testato</td><td><code>/api/docs/*</code>, <code>/api/doc.cursor.rule/*</code></td></tr>
+        <tr><td>❌ Non testato</td><td><code>/api/portal/instances</code>, <code>POST /api/portal/instance</code></td></tr>
+        <tr><td>❌ Non testato</td><td><code>open/start/kill-cruscotto</code>, <code>node-processes</code>, advancement docs</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="gap-html">Gap — pagine HTML</h2>
+    <table>
+      <thead>
+        <tr><th>Pagina</th><th>Copertura attuale</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>cruscotto.home.html</code> (<code>/app.html</code>)</td>
+          <td>Smoke fetch ok; test funzionale tab Cursor</td>
+        </tr>
+        <tr>
+          <td><code>cruscotto.jira.backlog.html</code></td>
+          <td>Smoke + test gogo (markup)</td>
+        </tr>
+        <tr>
+          <td><code>my-backlog.html</code>, <code>issue.html</code>, <code>project-overview.html</code></td>
+          <td>Solo markup PUSH su my-backlog</td>
+        </tr>
+        <tr>
+          <td>Tab <strong>Process</strong> (inline in <code>cruscotto.home.js</code>)</td>
+          <td>Nessun test dedicato</td>
+        </tr>
+        <tr>
+          <td><code>docs.portal/*</code></td>
+          <td>Nessun test automatizzato</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="meta">
+      Architettura UI: Process è render inline nella SPA (<code>#section-process</code>);
+      Backlog e altre viste Jira sono iframe verso HTML dedicati — vedi
+      <code>cruscotto.home.html</code> commenti testata.
+    </p>
+
+    <h2 id="gap-cli">Gap — JiraCORE CLI</h2>
+    <table>
+      <thead>
+        <tr><th>Script</th><th>Test</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>jiraCORE.close.story.mjs</code></td><td>✅ dry-run in smoke</td></tr>
+        <tr><td><code>jiraCORE.repo..issuekey.gap.analysis.mjs</code></td><td>❌ No</td></tr>
+        <tr><td><code>jiraCORE.backlog.sync.mjs</code></td><td>❌ No (solo migrate DB smoke)</td></tr>
+        <tr><td><code>jiraCORE.wip.*</code></td><td>⚠️ Regole + API parziale</td></tr>
+        <tr><td>ADF / veve (<code>jiraCORE.jira.live.mjs</code>)</td><td>⚠️ Unit in push test</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="esclusi">Test esclusi / manuali</h2>
+    <p>Policy in <code>PROJECT_AdminDashBoard/test.catalog.AdminDashBoard.mjs</code>:</p>
+    <ul>
+      <li><strong>BLOCKED</strong>: <code>cursor/test.api.cursor.agent.mjs</code> — richiede <code>CURSOR_API_KEY</code></li>
+      <li><strong>EXCLUDED</strong>: <code>funzionali/test.cruscotto.backlog.gogo.rules.mjs</code></li>
+    </ul>
+    <p>Funzionali fuori da <code>run-portal-api</code>: startup, gogo, cursor UI — lancio manuale.</p>
+
+    <h2 id="comandi">Comandi di verifica</h2>
+    <pre><code># 1. Smoke offline (no server)
+npm run test:ci
+
+# 2. Con admin:home + cruscotto su :3998 attivi
+npm run test:portal-api
+
+# 3. Funzionali aggiuntivi
+npm run test:cruscotto-startup
+npm run test:backlog-gogo
+npm run test:cursor-funzionale
+npm run test:backlog-push</code></pre>
+
+    <h2 id="priorita">Priorità suggerite per colmare i gap</h2>
+    <ol>
+      <li>
+        <strong>Includere <code>test:portal-api</code> in CI</strong> — ✅
+        <code>test.smoke/smoke-portal-api.mjs</code> in <code>test:ci</code>.
+      </li>
+      <li>
+        <strong>Test Process</strong> — ✅
+        <code>repo/test.repo.services.processes.mjs</code>.
+      </li>
+      <li>
+        <strong>MyBacklog</strong> — <code>GET /api/jira/my-backlog</code> + <code>POST sync</code>
+        (mock o skip senza Jira).
+      </li>
+      <li>
+        <strong>Portal HOME</strong> — <code>POST /api/portal/instance</code> dry-run +
+        <code>/api/docs/list</code>.
+      </li>
+      <li>
+        <strong>Run API</strong> — un solo <code>POST /api/run/one</code> su script leggero del catalogo.
+      </li>
+    </ol>
+
+    <footer class="doc-footer muted">
+      Generato da audit agente · aggiornare dopo nuovi testscript o route API in
+      <code>cruscotto.server.mjs</code> / <code>portal.home.server.mjs</code>.
+    </footer>
+  </div>
+  <script src="/docs/docs-chrome.js" defer></script>
+</body>
+</html>

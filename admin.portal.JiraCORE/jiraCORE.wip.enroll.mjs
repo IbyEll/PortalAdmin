@@ -9,7 +9,7 @@ import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
-import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.wip.mjs";
+import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
 import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";
 import { normalizeIssueKey, parseWipRawFields } from "./jiraCORE.wip.db.mjs";
 
