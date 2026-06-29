@@ -285,7 +285,7 @@
     /** @type {"epic" | "sprint" | "pillar"} */
     let viewMode = loadViewMode();
 
-    /** @type {{ fetchedAt: string, total: number, epics?: number, jiraSprints?: Array<{ id: number, name: string, state: string }>, jiraSprintsByName?: Record<string, { id: number, name: string, state: string }>, issues: Array<{ key: string, type: string, tier?: string, isStoryLike?: boolean, summary: string, status: string, parentKey?: string|null, depth: number, hasChildren?: boolean, devOrder?: string|null, devSprint?: number|null, devSprintName?: string|null, devSort?: number|null, jiraSprintState?: string|null, epicKey?: string|null, epicSummary?: string|null, jiraParentKey?: string|null, isSynthetic?: boolean, relatedKeys?: string[], isSprint6Obsolete?: boolean, isRelatedCarryover?: boolean, relatedCarryoverSources?: string[] }> } | null} */
+    /** @type {{ fetchedAt: string, total: number, epics?: number, jiraSprints?: Array<{ id: number, name: string, state: string }>, jiraSprintsByName?: Record<string, { id: number, name: string, state: string }>, issues: Array<{ key: string, type: string, tier?: string, isStoryLike?: boolean, summary: string, status: string, parentKey?: string|null, depth: number, hasChildren?: boolean, devOrder?: string|null, devSprint?: number|null, devSprintName?: string|null, devSort?: number|null, jiraSprintState?: string|null, epicKey?: string|null, epicSummary?: string|null, jiraParentKey?: string|null, isSynthetic?: boolean, relatedKeys?: string[], isObsolete?: boolean, isRelatedCarryover?: boolean, relatedCarryoverSources?: string[] }> } | null} */
     let backlog = null;
 
     /** @type {Record<string, { awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }>} */
@@ -472,7 +472,7 @@
      * @returns {boolean}
      */
     function isObsoleteRow(row) {
-      if (row.isSprint6Obsolete) {
+      if (row.isObsolete) {
         return true;
       }
 
@@ -1660,7 +1660,7 @@
         , devSort         : story.devSort ?? null
         , jiraSprints     : story.jiraSprints ?? []
         , relatedKeys     : story.relatedKeys ?? []
-        , isSprint6Obsolete: story.isSprint6Obsolete ?? false
+        , isObsolete: story.isObsolete ?? false
         , epicKey         : epicInfo?.key ?? null
         , epicSummary     : epicInfo?.summary ?? null
         });
@@ -1682,7 +1682,7 @@
           , devSort         : sub.devSort ?? null
           , jiraSprints     : sub.jiraSprints ?? []
           , relatedKeys     : sub.relatedKeys ?? []
-          , isSprint6Obsolete: sub.isSprint6Obsolete ?? false
+          , isObsolete: sub.isObsolete ?? false
           , epicKey         : epicInfo?.key ?? null
           , epicSummary     : epicInfo?.summary ?? null
           });
@@ -1982,7 +1982,7 @@
       , devSort                 : src.devSort ?? null
       , jiraSprints             : src.jiraSprints ?? []
       , relatedKeys             : src.relatedKeys ?? []
-      , isSprint6Obsolete       : src.isSprint6Obsolete ?? false
+      , isObsolete       : src.isObsolete ?? false
       , epicKey                 : epicInfo?.key ?? null
       , epicSummary             : epicInfo?.summary ?? null
       , isRelatedCarryover      : true
@@ -2019,7 +2019,7 @@
         , devSort      : sub.devSort ?? null
         , jiraSprints  : sub.jiraSprints ?? []
         , relatedKeys  : sub.relatedKeys ?? []
-        , isSprint6Obsolete: sub.isSprint6Obsolete ?? false
+        , isObsolete: sub.isObsolete ?? false
         , epicKey      : epicInfo?.key ?? null
         , epicSummary  : epicInfo?.summary ?? null
         }));
@@ -2291,18 +2291,22 @@
      * @returns {boolean}
      */
     function isRowHiddenByCollapse(row, collapsed, rowByKey) {
-      const selfKey   = rowTreeKey(row);
-      let parentKey   = row.parentKey;
+      const selfKey = rowTreeKey(row);
+      let parentKey = row.parentKey;
 
       while (parentKey && parentKey !== selfKey) {
-        if (collapsed.has(parentKey)) {
-          return true;
-        }
-
         const parent = rowByKey.get(parentKey);
 
         if (!parent) {
+          if (collapsed.has(parentKey)) {
+            return true;
+          }
+
           return false;
+        }
+
+        if (collapsed.has(rowTreeKey(parent))) {
+          return true;
         }
 
         parentKey = parent.parentKey ?? null;

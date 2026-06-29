@@ -183,7 +183,7 @@ export async function syncJiraBacklogSnapshot(backlog) {
         , devSprint        : row.devSprint ?? null
         , devSprintName    : row.devSprintName ?? null
         , devSort          : row.devSort ?? null
-        , isSprint6Obsolete: row.isSprint6Obsolete ?? false
+        , isObsolete: row.isObsolete ?? false
         , relatedKeys      : JSON.stringify(row.relatedKeys ?? [])
         , rawFields        : rawFieldsFromBacklogRow(row, syncedAt)
         , syncRunId        : syncRun.id

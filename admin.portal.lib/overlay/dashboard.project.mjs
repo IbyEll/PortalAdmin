@@ -43,9 +43,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { getPortalReportsDir } from "../portal.paths.resolver.mjs";
 import { resolveProjectOverlayName } from "../project.config.mjs";
 import { resolveProjectOverlayFilePath } from "./project.overlay.paths.mjs";
-import { getFunzionaliMetaPayload as getDefaultFunzionaliMetaPayload } from "../test.functional.meta.mjs";
-import { loadAndAnalyzeTestTecnici as loadDefaultTecniciAnalysis } from "../test.technical.analysis.mjs";
-import { getTecniciMetaPayload as getDefaultTecniciMetaPayload } from "../test.technical.meta.mjs";
+import { getFunzionaliMetaPayload as getDefaultFunzionaliMetaPayload } from "../../cruscotto.lib/test.functional.meta.mjs";
+import { loadAndAnalyzeTestTecnici as loadDefaultTecniciAnalysis } from "../../cruscotto.lib/test.technical.analysis.mjs";
+import { getTecniciMetaPayload as getDefaultTecniciMetaPayload } from "../../cruscotto.lib/test.technical.meta.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const overlayName = resolveProjectOverlayName();

@@ -289,7 +289,7 @@ function buildProcessStackFooterModel(services) {
 }
 
 // --- router — tab, hash e meta pagina ---
-const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "issue", "projectoverview", "pillarmatrix", "process", "cursor"];
+const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "workingplan", "issue", "projectoverview", "pillarmatrix", "process", "cursor"];
 const DEFAULT_TAB = "requisiti";
 
 /** Hash legacy — tab rimosse, reindirizza alla default. */
@@ -940,6 +940,10 @@ const PAGE_META = {
 , mybacklog: {
     title    : "MyBacklog"
   , subtitle : "Backlog da cache cruscotto DB — Epic · Sprint · Pilastri"
+  }
+, workingplan: {
+    title    : "Working Plan"
+  , subtitle : "Report piano lavoro e verifica ticket obsoleti — output script CLI"
   }
 , issue: {
     title    : "Issue"
@@ -1821,6 +1825,12 @@ function setActiveTab(tab, hashPayload = null) {
   }
   if (subEl) {
     subEl.textContent = meta.subtitle;
+  }
+
+  syncWorkingPlanTopbar(tab);
+
+  if (tab === "workingplan") {
+    renderWorkingPlanTab();
   }
 
   if (tab === "issue") {
@@ -7055,6 +7065,155 @@ async function pollCursorAgentLogs() {
 }
 
 /**
+ * Tab Working Plan — pannello output report script (HTML).
+ */
+function renderWorkingPlanTab() {
+  const root = document.getElementById("section-workingplan");
+
+  if (!root) {
+    return;
+  }
+
+  if (root.dataset.rendered === "1" && root.querySelector(".working-plan-report-wrap")) {
+    return;
+  }
+
+  root.dataset.rendered = "1";
+  root.innerHTML = `
+    <section class="panel working-plan-panel">
+      <p class="muted" id="working-plan-status">Premi <strong>RIGENERA</strong> o <strong>CHECK OBSOLETE</strong> in testata.</p>
+      <div id="working-plan-output" class="working-plan-report-wrap" aria-live="polite"></div>
+    </section>`;
+}
+
+/** @type {boolean} */
+let workingPlanActionBusy = false;
+
+/**
+ * Aggiorna bottoni testata per tab Working Plan.
+ *
+ * @param {string} tab
+ */
+function syncWorkingPlanTopbar(tab) {
+  const actions = document.getElementById("topbar-actions");
+
+  if (!actions) {
+    return;
+  }
+
+  if (tab !== "workingplan") {
+    actions.classList.add("hidden");
+    actions.innerHTML = "";
+    delete actions.dataset.initialized;
+    return;
+  }
+
+  actions.classList.remove("hidden");
+
+  if (actions.dataset.initialized === "1") {
+    return;
+  }
+
+  actions.dataset.initialized = "1";
+  actions.innerHTML = `
+    <button type="button" class="action primary" id="wp-btn-regenerate">RIGENERA</button>
+    <button type="button" class="action" id="wp-btn-obsolete">CHECK OBSOLETE</button>`;
+
+  document.getElementById("wp-btn-regenerate")?.addEventListener("click", () => {
+    void runWorkingPlanAction("regenerate");
+  });
+  document.getElementById("wp-btn-obsolete")?.addEventListener("click", () => {
+    void runWorkingPlanAction("obsolete");
+  });
+}
+
+/**
+ * @param {"regenerate" | "obsolete"} kind
+ */
+async function runWorkingPlanAction(kind) {
+  if (workingPlanActionBusy) {
+    return;
+  }
+
+  const statusEl = document.getElementById("working-plan-status");
+  const outputEl = document.getElementById("working-plan-output");
+  const regenBtn = document.getElementById("wp-btn-regenerate");
+  const obsBtn   = document.getElementById("wp-btn-obsolete");
+  const endpoint = kind === "regenerate"
+    ? "/api/jira/working-plan/regenerate"
+    : "/api/jira/working-plan/check-obsolete";
+  const label    = kind === "regenerate" ? "Rigenerazione piano…" : "Verifica obsoleti…";
+
+  workingPlanActionBusy = true;
+
+  if (regenBtn instanceof HTMLButtonElement) {
+    regenBtn.disabled = true;
+  }
+
+  if (obsBtn instanceof HTMLButtonElement) {
+    obsBtn.disabled = true;
+  }
+
+  if (statusEl) {
+    statusEl.textContent = label;
+  }
+
+  if (outputEl) {
+    outputEl.innerHTML = "";
+  }
+
+  try {
+    const res = await fetch(endpoint, {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({ source: "db" })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(String(data.error ?? `HTTP ${res.status}`));
+    }
+
+    if (outputEl) {
+      if (typeof data.html === "string" && data.html.trim()) {
+        outputEl.innerHTML = data.html;
+      } else if (typeof data.markdown === "string") {
+        outputEl.innerHTML = `<pre class="working-plan-fallback">${escapeHtml(data.markdown)}</pre>`;
+      } else {
+        outputEl.innerHTML = `<pre class="working-plan-fallback">${escapeHtml(JSON.stringify(data.payload ?? data, null, 2))}</pre>`;
+      }
+    }
+
+    if (statusEl) {
+      const fetchedAt = data.payload?.fetchedAt ?? data.payload?.report?.generatedAt ?? data.payload?.report?.scannedAt ?? "";
+      statusEl.textContent = kind === "regenerate"
+        ? `Report piano generato${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`
+        : `Verifica obsoleti completata${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`;
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (statusEl) {
+      statusEl.textContent = `Errore: ${message}`;
+    }
+
+    if (outputEl) {
+      outputEl.innerHTML = `<p class="working-plan-error">${escapeHtml(message)}</p>`;
+    }
+  } finally {
+    workingPlanActionBusy = false;
+
+    if (regenBtn instanceof HTMLButtonElement) {
+      regenBtn.disabled = false;
+    }
+
+    if (obsBtn instanceof HTMLButtonElement) {
+      obsBtn.disabled = false;
+    }
+  }
+}
+
+/**
  * Tab Cursor Agent — prompt, runtime local/cloud, console log polling.
  */
 async function renderCursorAgent() {
@@ -7235,6 +7394,7 @@ async function loadAll() {
   renderTestTecnici(report, status, scriptCatalog, tecniciMeta);
   renderTestFunzionali(report, status, scriptCatalog, funzionaliMeta);
   await renderProcess(report);
+  renderWorkingPlanTab();
   await renderCursorAgent();
   if (location.hash.replace("#", "") === "cursor") {
     startCursorAgentPolling();

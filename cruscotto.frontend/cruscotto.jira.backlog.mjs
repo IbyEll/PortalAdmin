@@ -193,7 +193,7 @@ export function backlogTier(type) {
  *   jiraSprints?: Array<{ id: number, name: string, state: string }>,
  *   relatedKeys?: string[],
  *   jiraDescription?: string | null,
- *   isSprint6Obsolete?: boolean,
+ *   isObsolete?: boolean,
  *   prState?: string,
  *   prPollComplete?: boolean,
  *   backlogStar?: boolean,
@@ -275,20 +275,12 @@ export function buildBacklogTree(issues) {
    * @param {number} depth
    */
   function walk(node, depth) {
+    const { children: _children, ...rest } = node;
+
     flat.push({
-      key         : node.key,
-      type        : node.type,
-      tier        : node.tier,
-      isStoryLike : node.isStoryLike,
-      summary     : node.summary,
-      status      : node.status,
-      parentKey   : node.parentKey,
+      ...rest,
       depth,
-      hasChildren : node.hasChildren,
-      jiraSprints : node.jiraSprints ?? [],
-      relatedKeys : node.relatedKeys ?? [],
-      jiraDescription: node.jiraDescription ?? null,
-      isSprint6Obsolete: node.isSprint6Obsolete ?? false,
+      hasChildren: node.hasChildren,
     });
 
     for (const child of node.children) {

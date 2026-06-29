@@ -38,9 +38,9 @@
  *   - cruscotto.frontend — avvio run e barra progresso
  *
  * Dipendenze:
- *   - admin.portal.lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
+ *   - cruscotto.lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
  *   - admin.portal.lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
- *   - admin.portal.lib/test.run-all.mjs — child process per run tecnici
+ *   - cruscotto.lib/test.run-all.mjs — child process per run tecnici
  *
  * Export principali:
  *   - getRunStatus, isRunActive — snapshot stato run
@@ -56,7 +56,7 @@ import {
   BLOCKED_REASONS
 , BLOCKED_SCRIPTS
 , discoverTestScripts
-} from "../admin.portal.lib/test.catalog.mjs";
+} from "../cruscotto.lib/test.catalog.mjs";
 import {
   getPortalRoot
 , getProductRepoPath

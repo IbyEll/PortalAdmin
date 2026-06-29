@@ -41,6 +41,7 @@
 
 
 import { cruscottoDbFileExists, openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
+import { buildBacklogTree } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 
 /**
  * @param {Array<{ id: number, name: string, state: string, startDate?: Date | null, endDate?: Date | null }>} rows
@@ -205,7 +206,7 @@ export async function loadJiraBacklogFromDb() {
 
   // 3. Normalizza righe al tipo JiraBacklogRow + metadati sync
   /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraBacklogRow[]} */
-  const issues = rows.map((row) => {
+  const issuesRaw = rows.map((row) => {
     const wipPrMeta = wipPrMetaFromRawFields(row.rawFields);
 
     return {
@@ -222,7 +223,7 @@ export async function loadJiraBacklogFromDb() {
     , devSprint        : row.devSprint ?? undefined
     , devSprintName    : row.devSprintName ?? undefined
     , devSort          : row.devSort ?? undefined
-    , isSprint6Obsolete: row.isSprint6Obsolete
+    , isObsolete: row.isObsolete
     , relatedKeys      : parseRelatedKeys(row.relatedKeys)
     , jiraDescription  : jiraDescriptionFromRawFields(row.rawFields) ?? undefined
     , ...wipPrMeta
@@ -233,6 +234,9 @@ export async function loadJiraBacklogFromDb() {
       }))
     };
   });
+
+  // Ordine depth-first Epic → Story → Subtask (come fetchJiraBacklog live), non devSort/jiraKey SQL.
+  const issues = buildBacklogTree(issuesRaw);
 
   return {
     fetchedAt                 : syncRun.finishedAt?.toISOString() ?? syncRun.startedAt.toISOString()

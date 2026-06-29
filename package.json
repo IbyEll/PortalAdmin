@@ -21,6 +21,8 @@
     "dev:all": "node cruscotto.frontend/cruscotto.process.start.all.services.mjs",
     "db:migrate": "node cruscotto.database/migrate.mjs",
     "db:sync": "node admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs",
+    "working:plan": "node admin.portal.JiraCORE/jiraCORE.working.plan.generate.mjs",
+    "backlog:obsolete": "node admin.portal.JiraCORE/jiraCORE.backlog.obsolete.verify.mjs",
     "sync:jira-issue-display": "node admin.portal.JiraCORE/jiraCORE.issuedisplay.client.mjs",
     "test:paths": "node test.smoke/smoke-portal-paths.mjs",
     "test:run-all": "node test.smoke/smoke-run-all.mjs",

@@ -720,7 +720,7 @@ function dbValuesDiffer(a, b) {
  *   devSprint?: number | null
  *   devSprintName?: string | null
  *   devSort?: number | null
- *   isSprint6Obsolete?: boolean
+ *   isObsolete?: boolean
  *   relatedKeys?: string | null
  *   syncedAt?: Date | null
  * } | null | undefined} cache
@@ -738,7 +738,7 @@ function dbValuesDiffer(a, b) {
  *   devSprint?: number | null
  *   devSprintName?: string | null
  *   devSort?: number | null
- *   isSprint6Obsolete?: boolean
+ *   isObsolete?: boolean
  *   relatedKeys?: string | null
  *   syncedAt?: Date | null
  * } | null | undefined} wip
@@ -780,7 +780,7 @@ function pickDbField(cache, wip, field, prop, overrides) {
  *   devSprint: number | null
  *   devSprintName: string | null
  *   devSort: number | null
- *   isSprint6Obsolete: boolean
+ *   isObsolete: boolean
  *   relatedKeys: string | null
  *   syncedAt: Date | null
  *   wipFieldOverrides: string[]
@@ -818,8 +818,8 @@ function mergeJiraIssueCacheWithWip(cache, wip) {
   , devSort          : /** @type {number | null} */ (
       pickDbField(cache, wip, "devSort", "devSort", overrides) ?? null
     )
-  , isSprint6Obsolete: Boolean(
-      pickDbField(cache, wip, "isSprint6Obsolete", "isSprint6Obsolete", overrides)
+  , isObsolete: Boolean(
+      pickDbField(cache, wip, "isObsolete", "isObsolete", overrides)
     )
   , relatedKeys      : /** @type {string | null} */ (
       pickDbField(cache, wip, "relatedKeys", "relatedKeys", overrides) ?? null
@@ -1335,7 +1335,7 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
     , devSprint        : mergedFields.devSprint
     , devSprintName    : mergedFields.devSprintName
     , devSort          : mergedFields.devSort
-    , isSprint6Obsolete: mergedFields.isSprint6Obsolete
+    , isObsolete: mergedFields.isObsolete
     , wipSyncedAt      : mergedFields.syncedAt?.toISOString() ?? null
     }
   , dbMeta            : {

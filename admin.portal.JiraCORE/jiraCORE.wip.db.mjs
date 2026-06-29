@@ -168,7 +168,7 @@ const WIP_CACHE_COMPARE_FIELDS = [
 , "devSprint"
 , "devSprintName"
 , "devSort"
-, "isSprint6Obsolete"
+, "isObsolete"
 , "relatedKeys"
 ];
 
@@ -186,7 +186,7 @@ function normCacheCompareValue(field, value) {
     return value.toISOString();
   }
 
-  if (field === "isStoryLike" || field === "isDone" || field === "hasChildren" || field === "isSprint6Obsolete") {
+  if (field === "isStoryLike" || field === "isDone" || field === "hasChildren" || field === "isObsolete") {
     return Boolean(value);
   }
 
@@ -300,7 +300,7 @@ export function jiraIssueDataFromWipRow(wipRow, rawMerge = {}) {
   , devSprint         : wipRow.devSprint
   , devSprintName     : wipRow.devSprintName
   , devSort           : wipRow.devSort
-  , isSprint6Obsolete : wipRow.isSprint6Obsolete
+  , isObsolete : wipRow.isObsolete
   , relatedKeys       : wipRow.relatedKeys
   , rawFields         : JSON.stringify(merged)
   , syncedAt          : new Date()

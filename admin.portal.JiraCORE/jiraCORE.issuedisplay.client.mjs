@@ -60,12 +60,12 @@ import {
 , issueTypeClass
 , issueTypeShortLabel
 , resolveJiraPrefix
-} from "../cruscotto.frontend/cruscotto.jira.issue.display.core.mjs";
+} from "../admin.portal.lib/issue.display.core.mjs";
 
-const SCRIPT_DIR    = dirname(fileURLToPath(import.meta.url));
-const CRUSCOTTO_DIR = join(SCRIPT_DIR, "..", "cruscotto.frontend");
-const DOM_PART      = join(CRUSCOTTO_DIR, "cruscotto.jira.issue.display.client.dom.part.js");
-const CLIENT_OUT    = join(CRUSCOTTO_DIR, "cruscotto.jira.issue.display.client.js");
+const SCRIPT_DIR     = dirname(fileURLToPath(import.meta.url));
+const PORTAL_LIB_DIR = join(SCRIPT_DIR, "..", "admin.portal.lib");
+const DOM_PART       = join(PORTAL_LIB_DIR, "issue.display.client.dom.part.js");
+const CLIENT_OUT     = join(PORTAL_LIB_DIR, "issue.display.client.js");
 
 // 1. Timestamp testata — re-comcom: preserva riga creato dal bundle esistente
 const pad2          = (n) => String(n).padStart(2, "0");

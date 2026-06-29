@@ -47,7 +47,7 @@ import {
 , resolveTicketGitEvidence
 } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { JLO_SPRINT_6_OBSOLETE, resolveIssueSprintName } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
+import { OBSOLETE_ISSUE_ENTRIES, resolveIssueSprintName } from "../PARKING_tocheck/cruscotto.jira.working.order.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOC_URL = "https://myfuturejobsearch.atlassian.net/wiki/spaces/SDS/pages/9076737/Piattaforma+Social+per+Gamer+Documento+di+lavoro";
@@ -252,7 +252,7 @@ const PRODUCT_PILLARS = [
   }
 ];
 
-const OBSOLETE_KEYS = new Set(JLO_SPRINT_6_OBSOLETE.map((row) => row.key));
+const OBSOLETE_KEYS = new Set(OBSOLETE_ISSUE_ENTRIES.map((row) => row.key));
 
 /**
  * @param {string} key

@@ -38,12 +38,12 @@ import {
   formatJiraKeyListsInNoteHtml as formatJiraKeyListsInNoteHtmlCore
 , issueTypeClass
 , issueTypeShortLabel
-} from "./cruscotto.jira.issue.display.core.mjs";
+} from "./issue.display.core.mjs";
 
 export {
   issueTypeClass
 , issueTypeShortLabel
-} from "./cruscotto.jira.issue.display.core.mjs";
+} from "./issue.display.core.mjs";
 
 /**
  * Escape attributi e testo per HTML server-side.

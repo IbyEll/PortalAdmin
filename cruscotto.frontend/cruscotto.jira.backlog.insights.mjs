@@ -38,7 +38,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { REPO_ROOT } from "../admin.portal.lib/test.catalog.mjs";
+import { REPO_ROOT } from "../cruscotto.lib/test.catalog.mjs";
 import { fetchJiraBacklog, isEpicType, isJiraStatusDone, isStoryLikeType } from "./cruscotto.jira.backlog.mjs";
 import { isMeaningfulCitationPath } from "../admin.portal.JiraCORE/JiraCORE.signals.catalog.implementation.mjs";
 import { scanRepoJiraReferences, truncateIssueSummary } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
@@ -62,6 +62,7 @@ import {
   JIRA_PROJECT_KEYS
 , REPO_IMPLEMENTATION_SIGNALS
 } from "../admin.portal.JiraCORE/jira.project.config.overlay.mjs";
+import { getWorkingPlan } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 
 export {
   JIRA_PROJECT_KEYS

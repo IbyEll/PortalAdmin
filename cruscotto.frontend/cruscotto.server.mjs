@@ -58,7 +58,7 @@
  *   - package.json admin:dashboard · admin.portal/portal.dashboard.launch.mjs — spawn dashboard
  *
  * Dipendenze:
- *   - admin.portal.lib/test.catalog.mjs, test.dipendenze.mjs, reporter.mjs, portal.instance.mjs
+ *   - cruscotto.lib/test.catalog.mjs, test.dipendenze.mjs, reporter.mjs, portal.instance.mjs
  *   - admin.portal.lib/overlay/cruscotto.config.overlay.mjs, admin.portal.lib/overlay/dashboard.project.mjs
  *   - cruscotto.health.mjs, cruscotto.dev.api.mjs, cruscotto.testscript.manager.mjs
  *   - cruscotto.process.services.manager.mjs, cruscotto.jira.*.mjs, admin.portal.JiraCORE/
@@ -80,14 +80,14 @@ import {
 , BLOCKED_SCRIPTS
 , discoverTestScripts
 , REPO_ROOT
-} from "../admin.portal.lib/test.catalog.mjs";
+} from "../cruscotto.lib/test.catalog.mjs";
 import { getHealthStatus } from "../cruscotto.frontend/cruscotto.health.mjs";
 import { getDevRequirements, getDevServicesWithHealth } from "./cruscotto.dev.api.mjs";
 import {
   discoverScriptDescription
 , discoverScriptDocHeader
 , discoverTestCasesForScript
-} from "../admin.portal.lib/test.dipendenze.mjs";
+} from "../cruscotto.lib/test.dipendenze.mjs";
 import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
 import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
@@ -161,13 +161,15 @@ import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.
 
 // --- configurazione server — path cruscotto e porta HTTP ---
 const SERVER_DIR    = dirname(fileURLToPath(import.meta.url));
-const PORTAL_ROOT   = join(SERVER_DIR, "..");
-const CRUSCOTTO_DIR = join(PORTAL_ROOT, "cruscotto.frontend");
+const PORTAL_ROOT    = join(SERVER_DIR, "..");
+const CRUSCOTTO_DIR  = join(PORTAL_ROOT, "cruscotto.frontend");
+const PORTAL_LIB_DIR = join(PORTAL_ROOT, "admin.portal.lib");
 
 /** Asset insight — URL brevi in HTML cruscotto (inglobati in cruscotto.css). */
 const INSIGHT_STATIC_FILES = {
   "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.css")
 , "insight-validate.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.validate.js")
+, "jira-issue-display.js" : join(PORTAL_LIB_DIR, "issue.display.client.js")
 };
 
 /** Alias statici cruscotto.frontend (nomi brevi in HTML legacy). */
@@ -175,7 +177,6 @@ const CRUSCOTTO_STATIC_ALIASES = {
   "cruscotto.js"            : "cruscotto.home.js"
 , "favicon.svg"             : "PortalAdmin.icona..svg"
 , "jira-issue-display.css"  : "cruscotto.css"
-, "jira-issue-display.js"   : "cruscotto.jira.issue.display.client.js"
 , "home.html"               : "cruscotto.home.html"
 , "index.html"              : "cruscotto.home.html"
 , "expand-collapse-ui.js"   : "expand.collapse.toolbar.js"
@@ -351,7 +352,9 @@ function sendBacklogJson(res, req, data) {
 function resolveCruscottoStaticFile(rel) {
   // 1. Risoluzione path — insight jira/, alias brevi o file sotto cruscotto.frontend/
   if (INSIGHT_STATIC_FILES[rel]) {
-    return { file: INSIGHT_STATIC_FILES[rel], rootDir: CRUSCOTTO_DIR };
+    const file = INSIGHT_STATIC_FILES[rel];
+
+    return { file, rootDir: dirname(file) };
   }
 
   const aliased = CRUSCOTTO_STATIC_ALIASES[rel] ?? rel;
@@ -1263,6 +1266,55 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/jira/working-plan/regenerate" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const source = body.source === "api" ? "api" : "db";
+      const { runWorkingPlanRegenerate } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const result = await runWorkingPlanRegenerate({
+        source
+      , regenerateHtml: body.regenerateHtml !== false
+      });
+
+      sendJson(res, 200, {
+        ok       : true
+      , markdown : result.markdown
+      , html     : result.html
+      , payload  : result.payload
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/working-plan/check-obsolete" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const source = body.source === "api" ? "api" : "db";
+      const { runObsoleteCheck } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const result = await runObsoleteCheck({
+        source
+      , apply  : Boolean(body.apply)
+      , dryRun : Boolean(body.dryRun)
+      });
+
+      sendJson(res, 200, {
+        ok       : true
+      , markdown : result.markdown
+      , html     : result.html
+      , payload  : result.payload
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
  
 
   if (urlPath === "/api/cursor/config" && req.method === "GET") {
@@ -1552,6 +1604,7 @@ async function handleRequest(req, res) {
     , "jiraproject"
     , "backlog"
     , "mybacklog"
+    , "workingplan"
     , "issue"
     , "process"
     , "cursor"

@@ -181,9 +181,198 @@ body {
 }
 
 .cruscotto-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1.1rem 1.5rem 0.85rem;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
+}
+
+.cruscotto-topbar-text {
+  min-width: 0;
+}
+
+.cruscotto-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cruscotto-topbar-actions.hidden {
+  display: none;
+}
+
+.working-plan-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+}
+
+.working-plan-report-wrap {
+  flex: 1;
+  min-height: 12rem;
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+}
+
+.working-plan-fallback {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.working-plan-error {
+  margin: 0;
+  color: var(--fail, #f07178);
+}
+
+.working-plan-report {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.25rem 0.15rem 1rem;
+}
+
+.working-plan-report .wp-header h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.working-plan-report .wp-header p {
+  margin: 0;
+}
+
+.working-plan-report .wp-section h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.working-plan-report .wp-banner {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(46, 232, 214, 0.08);
+  border: 1px solid rgba(46, 232, 214, 0.25);
+  font-size: 0.85rem;
+}
+
+.working-plan-report .wp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.working-plan-report .wp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.working-plan-report .wp-table th,
+.working-plan-report .wp-table td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.working-plan-report .wp-table th.num,
+.working-plan-report .wp-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-table thead th {
+  background: rgba(255, 255, 255, 0.03);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.working-plan-report .wp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.working-plan-report .wp-keys code {
+  font-size: 0.78rem;
+}
+
+.working-plan-report .wp-esito {
+  display: inline-block;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-esito-ok { color: var(--pass, #4fd6a6); }
+.working-plan-report .wp-esito-warn { color: var(--skip, #f0bc68); }
+.working-plan-report .wp-esito-fail { color: var(--fail, #f07178); }
+.working-plan-report .wp-esito-neutral { color: var(--muted, #8b949e); }
+
+.working-plan-report .wp-suggested {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.working-plan-report .wp-suggested li {
+  line-height: 1.45;
+}
+
+.working-plan-report .wp-rank {
+  color: var(--muted);
+  margin-right: 0.25rem;
+}
+
+.working-plan-report .wp-json {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.working-plan-report a code {
+  color: var(--accent);
+}
+
+.working-plan-report a:hover code {
+  text-decoration: underline;
+}
+
+.working-plan-output {
+  flex: 1;
+  min-height: 12rem;
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cruscotto-main:has(#section-workingplan:not(.hidden)) {
+  padding-bottom: 0.75rem;
+}
+
+#section-workingplan {
+  min-height: calc(100vh - 5.25rem);
 }
 
 .cruscotto-topbar h1 {

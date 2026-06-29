@@ -50,7 +50,7 @@ export function pillarTreeKey(pillarId, key) {
 }
 
 /**
- * @param {Array<{ key: string, parentKey?: string | null, jiraParentKey?: string | null, type?: string, tier?: string, isStoryLike?: boolean, summary?: string, status?: string, devOrder?: string | null, devSprint?: number | null, devSprintName?: string | null, devSort?: number | null, jiraSprints?: Array<{ id: number, name: string, state: string }>, relatedKeys?: string[], isSprint6Obsolete?: boolean }>} flatIssues
+ * @param {Array<{ key: string, parentKey?: string | null, jiraParentKey?: string | null, type?: string, tier?: string, isStoryLike?: boolean, summary?: string, status?: string, devOrder?: string | null, devSprint?: number | null, devSprintName?: string | null, devSort?: number | null, jiraSprints?: Array<{ id: number, name: string, state: string }>, relatedKeys?: string[], isObsolete?: boolean }>} flatIssues
  * @returns {Array<{ key: string, parentKey?: string | null, type?: string }>}
  */
 function pillarIssueIndex(flatIssues) {
@@ -209,7 +209,7 @@ export function buildBacklogPillarTree(flatIssues) {
       , devSort         : src.devSort ?? null
       , jiraSprints     : src.jiraSprints ?? []
       , relatedKeys     : src.relatedKeys ?? []
-      , isSprint6Obsolete: src.isSprint6Obsolete ?? false
+      , isObsolete: src.isObsolete ?? false
       , epicKey         : epicInfo?.key ?? null
       , epicSummary     : epicRow?.summary ?? null
       , pillarId        : pillar.id

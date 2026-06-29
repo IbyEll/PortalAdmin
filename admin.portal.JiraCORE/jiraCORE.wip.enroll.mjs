@@ -100,7 +100,7 @@ function wipDataFromJiraIssue(row, rawMerge = {}) {
   , devSprint        : row.devSprint
   , devSprintName    : row.devSprintName
   , devSort          : row.devSort
-  , isSprint6Obsolete: row.isSprint6Obsolete
+  , isObsolete: row.isObsolete
   , relatedKeys      : row.relatedKeys
   , syncRunId        : row.syncRunId
   , rawFields        : JSON.stringify({ ...prev, ...rawMerge })
