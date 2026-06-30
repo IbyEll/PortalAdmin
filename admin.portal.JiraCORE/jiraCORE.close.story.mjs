@@ -70,6 +70,11 @@ import {
 
 import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
+import {
+  commitPillarPortalUpdate
+, updatePillarPortalForTicket
+} from "../admin.script.standalone/pillar-matrix-targeted.mjs";
+
 const REPO_ROOT = getPortalRoot();
 
 const PREFIXES = ["STORY---", "BUG---", "TODO---"];

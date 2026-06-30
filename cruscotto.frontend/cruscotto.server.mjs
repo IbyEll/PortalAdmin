@@ -191,6 +191,7 @@ const CRUSCOTTO_STATIC_ALIASES = {
 , "expand-collapse-toolbar.css": "cruscotto.css"
 , "insight-toolbar.css"     : "cruscotto.css"
 , "pillar-matrix.css"       : "cruscotto.css"
+, "pillar-matrix.js"        : "pillar-matrix.js"
 , "backlog.html"            : "cruscotto.jira.backlog.html"
 , "my-backlog.html"         : "cruscotto.jira.my-backlog.html"
 , "issue.html"              : "cruscotto.jira.issue.html"
