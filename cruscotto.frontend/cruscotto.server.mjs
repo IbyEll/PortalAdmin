@@ -91,6 +91,10 @@ import {
 import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs";
 import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
+import {
+  applyWorkingPlanToIssues
+, ensureWorkingPlanLoaded
+} from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
@@ -153,7 +157,9 @@ import {
 import { buildCruscottoProjectPayload } from "../admin.portal.lib/overlay/cruscotto.config.overlay.mjs";
 import { resolveDashboardListenPort } from "../admin.portal.lib/portal.launch.dashboard.mjs";
 import {
-  describeCruscottoDbLayout
+  assertCruscottoPrismaClientCurrent
+, describeCruscottoDbLayout
+, formatCruscottoPrismaSchemaError
 , resolveCruscottoDbPath
 } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { runCruscottoMigrateDeploy } from "../cruscotto.database/cruscotto.db.migrate.mjs";
@@ -170,13 +176,13 @@ const INSIGHT_STATIC_FILES = {
   "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.css")
 , "insight-validate.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.validate.js")
 , "jira-issue-display.js" : join(PORTAL_LIB_DIR, "issue.display.client.js")
+, "jira-issue-display.css" : join(PORTAL_LIB_DIR, "issue.display.css")
 };
 
 /** Alias statici cruscotto.frontend (nomi brevi in HTML legacy). */
 const CRUSCOTTO_STATIC_ALIASES = {
   "cruscotto.js"            : "cruscotto.home.js"
 , "favicon.svg"             : "PortalAdmin.icona..svg"
-, "jira-issue-display.css"  : "cruscotto.css"
 , "home.html"               : "cruscotto.home.html"
 , "index.html"              : "cruscotto.home.html"
 , "expand-collapse-ui.js"   : "expand.collapse.toolbar.js"
@@ -323,14 +329,16 @@ async function preflightRunTarget(options) {
 }
 
 /**
- * Arricchisce payload backlog con allineamento repo e albero pilastri.
+ * Arricchisce payload backlog con piano working, allineamento repo e albero pilastri.
  *
  * @param {Awaited<ReturnType<typeof loadJiraBacklog>>} data
  */
-function enrichBacklogPayload(data) {
+async function enrichBacklogPayload(data) {
+  await ensureWorkingPlanLoaded();
+  applyWorkingPlanToIssues(data.issues);
   const repoRefs = scanRepoJiraReferences();
 
-  data.repoAlign  = buildRepoAlignMap(data.issues, repoRefs);
+  data.repoAlign = buildRepoAlignMap(data.issues, repoRefs);
 
   return data;
 }
@@ -340,8 +348,8 @@ function enrichBacklogPayload(data) {
  * @param {import("node:http").IncomingMessage} req
  * @param {Awaited<ReturnType<typeof loadJiraBacklog>>} data
  */
-function sendBacklogJson(res, req, data) {
-  sendJson(res, 200, enrichBacklogPayload(data), req);
+async function sendBacklogJson(res, req, data) {
+  sendJson(res, 200, await enrichBacklogPayload(data), req);
 }
 
 // --- static — file da cruscotto.frontend/ e archivi working plan HTML ---
@@ -402,6 +410,26 @@ async function serveStatic(req, res) {
     applyCors(res, req);
     res.writeHead(302, { Location: "/app.html" });
     res.end();
+    return;
+  }
+
+  if (urlPath === "/working-plan.html") {
+    const { loadSavedWorkingPlanPage } = await import("../cruscotto.lib/backlog.working.plan.html.store.mjs");
+    const page = loadSavedWorkingPlanPage();
+
+    applyCors(res, req);
+
+    if (!page) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Nessun piano salvato — premi RIGENERA nel tab Working Plan");
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type" : "text/html; charset=utf-8"
+    , "Cache-Control": "no-cache, must-revalidate"
+    });
+    res.end(page);
     return;
   }
 
@@ -1173,7 +1201,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/jira/backlog" && req.method === "GET") {
     try {
       const data = await loadJiraBacklog({ forceApi: true });
-      sendBacklogJson(res, req, data);
+      await sendBacklogJson(res, req, data);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -1186,7 +1214,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/jira/my-backlog" && req.method === "GET") {
     try {
       const data = await loadJiraBacklog({ dbOnly: true });
-      sendBacklogJson(res, req, data);
+      await sendBacklogJson(res, req, data);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -1197,7 +1225,7 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/jira/my-backlog/sync" && req.method === "POST") {
     try {
-      // Solo migrate deploy — generate fallirebbe EPERM con Prisma già caricato nel processo server
+      assertCruscottoPrismaClientCurrent();
       runCruscottoMigrateDeploy({ stdio: "pipe" });
 
       const result = await syncJiraBacklogFromApi();
@@ -1211,7 +1239,10 @@ async function handleApi(req, res, urlPath) {
       , layout   : describeCruscottoDbLayout()
       }, req);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const schemaMessage = formatCruscottoPrismaSchemaError(err);
+      const message       = schemaMessage
+        ?? (err instanceof Error ? err.message : String(err));
+
       sendJson(res, 502, { error: message }, req);
     }
 
@@ -1273,14 +1304,40 @@ async function handleApi(req, res, urlPath) {
       const { runWorkingPlanRegenerate } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
       const result = await runWorkingPlanRegenerate({
         source
-      , regenerateHtml: body.regenerateHtml !== false
+      , saveHtml: body.saveHtml !== false
       });
 
       sendJson(res, 200, {
+        ok          : true
+      , markdown    : result.markdown
+      , html        : result.html
+      , payload     : result.payload
+      , savedHtml   : result.savedHtml ?? null
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/working-plan/saved" && req.method === "GET") {
+    try {
+      const { loadSavedWorkingPlanReport } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const saved = loadSavedWorkingPlanReport();
+
+      if (!saved) {
+        sendJson(res, 404, { error: "Nessun piano salvato — premi RIGENERA" }, req);
+        return;
+      }
+
+      sendJson(res, 200, {
         ok       : true
-      , markdown : result.markdown
-      , html     : result.html
-      , payload  : result.payload
+      , html     : saved.html
+      , payload  : saved.payload
+      , savedAt  : saved.savedAt
+      , publicUrl: saved.publicUrl
       }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1307,6 +1364,48 @@ async function handleApi(req, res, urlPath) {
       , html     : result.html
       , payload  : result.payload
       }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/working-plan/create-sprint" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const sprint = Number(body.sprint);
+      const name   = String(body.name ?? "").trim();
+      const keys   = Array.isArray(body.keys)
+        ? body.keys.map((key) => String(key).trim()).filter(Boolean)
+        : [];
+
+      if (!Number.isFinite(sprint) || sprint < 1) {
+        sendJson(res, 400, { error: "Campo sprint obbligatorio (numero ≥ 1)" }, req);
+        return;
+      }
+
+      if (!name) {
+        sendJson(res, 400, { error: "Campo name obbligatorio" }, req);
+        return;
+      }
+
+      if (keys.length === 0) {
+        sendJson(res, 400, { error: "Campo keys obbligatorio (array non vuoto)" }, req);
+        return;
+      }
+
+      const { runCreateJiraSprint } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const result = await runCreateJiraSprint({
+        sprint
+      , name
+      , description: typeof body.description === "string" ? body.description : undefined
+      , keys
+      , dryRun     : Boolean(body.dryRun)
+      });
+
+      sendJson(res, 200, { ok: true, ...result }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
@@ -1640,6 +1739,12 @@ function shutdown(signal) {
 }
 
 async function main() {
+  try {
+    assertCruscottoPrismaClientCurrent();
+  } catch (err) {
+    console.warn(err instanceof Error ? err.message : String(err));
+  }
+
   // 1. HTTP server — delega a handleRequest con catch 500
   httpServer = createServer((req, res) => {
     handleRequest(req, res).catch((err) => {

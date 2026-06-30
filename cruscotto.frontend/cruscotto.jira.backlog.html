@@ -332,7 +332,36 @@
         return fromBoard;
       }
 
-      return row.devSprintName ?? null;
+      if (row.devSprintName) {
+        return row.devSprintName;
+      }
+
+      if (row.tier === "subtask" && row.parentKey) {
+        return sprintLabelForBacklogRow(backlogIssueByKey().get(row.parentKey));
+      }
+
+      return null;
+    }
+
+    /**
+     * Tooltip colonna Sprint — distingue board Jira e piano working.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {string} label
+     * @returns {string}
+     */
+    function sprintCellTitle(row, label) {
+      const picked = pickIssueJiraSprintForView(row.jiraSprints ?? []);
+
+      if (picked?.name) {
+        return `${label} · sprint board Jira (${picked.state})`;
+      }
+
+      if (row.devSprintName) {
+        return `${label} · piano working (sprint ${row.devSprint ?? "—"})`;
+      }
+
+      return label;
     }
 
     /**
@@ -2478,12 +2507,12 @@
       const byKey = rowsMapByTreeKey(rows);
 
       for (const row of rows) {
-        const name = row.devSprintName ?? "—";
+        const name = sprintLabelForBacklogRow(row) ?? "—";
         let hit = false;
 
         for (const sel of selected) {
           if (sel === "—") {
-            if (!row.devSprintName) {
+            if (!sprintLabelForBacklogRow(row)) {
               hit = true;
             }
           } else if (name === sel) {
@@ -2669,8 +2698,10 @@
       const names = new Set();
 
       for (const row of getDisplayRows()) {
-        if (row.devSprintName) {
-          names.add(row.devSprintName);
+        const label = sprintLabelForBacklogRow(row);
+
+        if (label) {
+          names.add(label);
         }
       }
 
@@ -3510,6 +3541,36 @@
     }
 
     /**
+     * Story Fatto ma sprint ancora aperto oppure fuori sprint (obsoleto / senza devSprint).
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isDoneStorySprintMismatch(row, rowByKey, sprintComplete) {
+      if (row.tier !== "task" || !isStoryLikeRow(row)) {
+        return false;
+      }
+
+      if (row.status.toLowerCase() !== "fatto") {
+        return false;
+      }
+
+      if (isObsoleteRow(row) || !row.devSprint) {
+        return true;
+      }
+
+      const sprintHeader = resolveSprintHeaderKey(row, rowByKey);
+
+      if (!sprintHeader) {
+        return true;
+      }
+
+      return !isSprintBlockSpent(sprintHeader, rowByKey, sprintComplete);
+    }
+
+    /**
      * @param {typeof backlog.issues[number]} row
      * @param {HTMLElement} keyMain
      */
@@ -3662,6 +3723,10 @@
 
           if (sprintHeader && isSprintBlockSpent(sprintHeader, rowByKey, sprintComplete)) {
             tr.classList.add("is-sprint-complete");
+          }
+
+          if (isDoneStorySprintMismatch(row, rowByKey, sprintComplete)) {
+            tr.classList.add("is-story-done-sprint-open");
           }
         }
 
@@ -3880,19 +3945,20 @@
         const sprintTd = document.createElement("td");
         sprintTd.className = "col-sprint";
 
-        if (row.tier === "sprint" && row.devSprintName) {
-          sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
-        } else if (row.tier === "pillar") {
+        if (row.tier === "pillar") {
           sprintTd.textContent = "—";
           sprintTd.classList.add("is-empty");
           sprintTd.title = "Raggruppamento per pilastro prodotto";
-        } else if (row.tier === "task" && row.devSprintName) {
-          sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
         } else {
-          sprintTd.textContent = "—";
-          sprintTd.classList.add("is-empty");
+          const sprintLabel = sprintLabelForBacklogRow(row);
+
+          if (sprintLabel) {
+            sprintTd.textContent = sprintLabel;
+            sprintTd.title = sprintCellTitle(row, sprintLabel);
+          } else {
+            sprintTd.textContent = "—";
+            sprintTd.classList.add("is-empty");
+          }
         }
 
         const sumTd = document.createElement("td");
@@ -4186,7 +4252,7 @@
         const devOrderExport = row.tier === "epic" || row.tier === "sprint" || row.tier === "pillar"
           ? (row.tier === "sprint" ? devOrderCellLabel(row) : (row.tier === "pillar" ? `#${row.devOrder ?? ""}` : ""))
           : devOrderCellLabel(row);
-        const sprintExport = row.devSprintName ?? "";
+        const sprintExport = sprintLabelForBacklogRow(row) ?? "";
         const relatedKeys = row.relatedKeys ?? [];
         const relatedExport = relatedKeys.join("; ");
         const relatedSprintExport = relatedKeys

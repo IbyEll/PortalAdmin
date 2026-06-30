@@ -25,7 +25,7 @@
  *
  * Consumatori:
  *   - cruscotto.jira.working.plan.mjs — jiraLinkHtml, formatJiraKeyListsInNoteHtml
- *   - cruscotto.jira.issue.display.css — classi issue-type-* emesse da issueTypeClass()
+ *   - admin.portal.lib/issue.display.css — stili canonici badge issue-type-*
  *
  * Export principali:
  *   - issueTypeBadgeHtml — span.issue-type con escape HTML
@@ -34,11 +34,20 @@
  *   - issueTypeShortLabel, issueTypeClass — re-export da core
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import {
   formatJiraKeyListsInNoteHtml as formatJiraKeyListsInNoteHtmlCore
 , issueTypeClass
 , issueTypeShortLabel
 } from "./issue.display.core.mjs";
+
+const ISSUE_DISPLAY_CSS_PATH = join(dirname(fileURLToPath(import.meta.url)), "issue.display.css");
+
+/** @type {string | null} */
+let issueDisplayCssCached = null;
 
 export {
   issueTypeClass
@@ -74,7 +83,22 @@ export function issueTypeBadgeHtml(type) {
 
   const cls = issueTypeClass(label);
 
-  return `<span class="issue-type issue-type-${cls}" title="${escapeHtml(type ?? "")}">${escapeHtml(label)}</span>`;
+  return `<span class="issue-type issue-display-tipo issue-type-${cls}" title="${escapeHtml(type ?? "")}">${escapeHtml(label)}</span>`;
+}
+
+/**
+ * Blocco `<style>` con CSS canonico TipoIssue — per fragment HTML senza link esterni (tab Working Plan).
+ *
+ * @returns {string}
+ */
+export function issueDisplayTipoInlineStyleHtml() {
+  if (!issueDisplayCssCached) {
+    issueDisplayCssCached = readFileSync(ISSUE_DISPLAY_CSS_PATH, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .trim();
+  }
+
+  return `<style class="issue-display-tipo-inline">${issueDisplayCssCached}</style>`;
 }
 
 /**

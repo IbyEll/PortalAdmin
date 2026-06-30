@@ -1,9 +1,9 @@
 /**
  * ------------------------------------------------------------------------------------------------------------------------
- * ** PAGE SCRIPT ** -- commentato il: 2026-06-27 00:58
+ * ** PAGE SCRIPT ** -- commentato il: 2026-06-30 02:04
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-18 06:03   by: IbyEll
- * modificato il: 2026-06-27 00:58   by: IbyEll
+ * modificato il: 2026-06-30 02:04   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -323,7 +323,7 @@ function formatJiraKeyListsInNoteHtml(
     }
 
     const span = document.createElement("span");
-    span.className = `issue-type issue-type-${issueTypeClass(label)}`;
+    span.className = `issue-type issue-display-tipo issue-type-${issueTypeClass(label)}`;
     span.title = String(type ?? "");
     span.textContent = label;
 

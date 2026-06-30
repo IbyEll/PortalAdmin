@@ -276,6 +276,12 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.84rem;
+  table-layout: fixed;
+}
+
+.working-plan-report .wp-table th.col-resize-head {
+  position: relative;
+  padding-right: 0.55rem;
 }
 
 .working-plan-report .wp-table th,
@@ -283,7 +289,7 @@ body {
   padding: 0.45rem 0.65rem;
   border-bottom: 1px solid var(--border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .working-plan-report .wp-table th.num,
@@ -353,6 +359,565 @@ body {
 
 .working-plan-report a:hover code {
   text-decoration: underline;
+}
+
+.working-plan-report .wp-sprint-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.working-plan-report .wp-sprint-card {
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  background: var(--panel-2, rgba(255, 255, 255, 0.02));
+}
+
+.working-plan-report .wp-sprint-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.working-plan-report .wp-sprint-card h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.working-plan-report .wp-btn-create-sprint {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-btn-create-sprint:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.working-plan-report .wp-sprint-action {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+}
+
+.working-plan-report .wp-sprint-action.is-ok {
+  color: var(--pass, #4fd6a6);
+}
+
+.working-plan-report .wp-sprint-action.is-error {
+  color: var(--fail, #f07178);
+}
+
+.working-plan-report .wp-issue-key-cell,
+.working-plan-report .wp-issue-key-line {
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-issue-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.working-plan-report .wp-issue-key .issue-type {
+  margin: 0;
+}
+
+.working-plan-report .wp-issue-key .issue-display-tipo {
+  margin: 0;
+}
+
+.working-plan-report .wp-table .wp-issue-title {
+  min-width: 18rem;
+  width: 34%;
+  max-width: none;
+  line-height: 1.35;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th,
+.working-plan-report .wp-table.wp-table--dev-queue td {
+  padding: 0.3rem 0.35rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-issue {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue {
+  --wp-sprint-group-border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.wp-sprint-group-end:not(:last-child) td {
+  border-bottom: var(--wp-sprint-group-border);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-group-boundary {
+  border-bottom: var(--wp-sprint-group-border) !important;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* hover/selezione riga — solo colonne dati, esclusi merge Sprint/Azioni */
+main table.wp-table--dev-queue tbody tr:hover {
+  background: transparent;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-data,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-data {
+  background: rgba(61, 156, 245, 0.06);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-data,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-data {
+  border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-order,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-order {
+  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 4px 0 0 4px;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-esito,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-esito {
+  border-right: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 0 4px 4px 0;
+}
+
+/* Issue/Epic — badge TipoIssue fuori da hover/selezione riga (no bordo blu sulle pill) */
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-epic {
+  background: transparent !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Ultima riga merge sprint — chiudi il bordo basso anche su Issue/Epic (selezione/hover) */
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.wp-sprint-group-end:hover td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.wp-sprint-group-end:hover td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.wp-sprint-group-end.is-row-selected td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.wp-sprint-group-end.is-row-selected td.wp-col-epic {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-sprint-merged,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-sprint-actions,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-sprint-merged,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-sprint-actions {
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  box-shadow: none;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open td {
+  background: color-mix(in srgb, var(--pass) 5%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-data,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-data {
+  background: color-mix(in srgb, var(--pass) 8%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-epic {
+  background: color-mix(in srgb, var(--pass) 11%, transparent) !important;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-merged,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-actions {
+  user-select: none;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr {
+  cursor: pointer;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr td.wp-sprint-actions button,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr a {
+  cursor: pointer;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-sprint.num,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-sprint.num {
+  text-align: center;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-sprint,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-sprint {
+  width: 7.5ch;
+  max-width: 7.5ch;
+  min-width: 0;
+  padding-left: 0.08rem;
+  padding-right: 0.08rem;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-sprint {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-sprint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-order,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-order {
+  width: 7.5ch;
+  max-width: 7.5ch;
+  min-width: 0;
+  padding-left: 0.08rem;
+  padding-right: 0.08rem;
+  text-align: center;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-order {
+  overflow: visible;
+  text-overflow: clip;
+  letter-spacing: 0.01em;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-order {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-col-order code {
+  font-size: 0.76rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-col-esito {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-actions,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-actions,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-actions {
+  width: 10%;
+  min-width: 7.5rem;
+  max-width: 11rem;
+  padding: 0.25rem 0.35rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-merged {
+  vertical-align: middle;
+  text-align: center;
+  font-weight: 600;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-sprint-actions .wp-btn-genera-sprint {
+  display: inline-block;
+  width: 100%;
+  max-width: 9.5rem;
+  margin: 0 auto;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-sprint-actions .wp-btn-genera-sprint:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(61, 156, 245, 0.1);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-sprint-action--inline {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue .wp-col-issue.wp-issue-key-cell {
+  min-width: 9.5rem;
+  width: 12%;
+  max-width: 14rem;
+  white-space: nowrap;
+  padding-left: 0.25rem;
+  padding-right: 0.12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-issue {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue th.wp-col-title,
+.working-plan-report .wp-table.wp-table--dev-queue td.wp-col-title,
+.working-plan-report .wp-table.wp-table--dev-queue .wp-issue-title {
+  min-width: 8rem;
+  width: auto;
+  padding-left: 0.12rem;
+  padding-right: 0.35rem;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-col-issue.wp-issue-key-cell {
+  vertical-align: middle;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-issue-key {
+  display: inline-grid;
+  grid-template-columns: var(--issue-type-badge-w, 4.65rem) minmax(7.5ch, max-content);
+  column-gap: 0.28rem;
+  align-items: center;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-badge,
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-link {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-badge {
+  justify-content: flex-start;
+  width: var(--issue-type-badge-w, 4.65rem);
+  flex: 0 0 var(--issue-type-badge-w, 4.65rem);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-link {
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-issue-key a {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-issue-key a code {
+  line-height: 1.15;
+  font-size: inherit;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-cell {
+  gap: 0;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-cell-wrap {
+  min-width: 14rem;
+  width: 22%;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-cell {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-title {
+  color: var(--muted, #8b949e);
+  font-size: 0.9em;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* dev-queue ridimensionabile — larghezze da colgroup, non da th/td fissi */
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable {
+  table-layout: fixed;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable thead th {
+  position: relative;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td {
+  width: auto;
+  max-width: none;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-sprint,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-order {
+  width: 7.5ch !important;
+  max-width: 7.5ch !important;
+  min-width: 7.5ch !important;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-issue {
+  min-width: 9rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-title {
+  min-width: 8rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-epic {
+  min-width: 10rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-esito {
+  min-width: 3rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable col.wp-col-actions {
+  min-width: 7rem;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-sprint,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-sprint,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-order,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-order {
+  width: 7.5ch;
+  max-width: 7.5ch;
+  min-width: 0;
+  padding-left: 0.08rem;
+  padding-right: 0.08rem;
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-title,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-title,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-esito,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-esito,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable th.wp-col-actions,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-col-actions,
+.working-plan-report .wp-table.wp-table--dev-queue.table-col-resizable td.wp-sprint-actions {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.working-plan-report .wp-epic-cell-wrap {
+  min-width: 12rem;
+  width: 22%;
+  vertical-align: middle;
+}
+
+.working-plan-report .wp-epic-cell {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 0.2rem;
+  line-height: 1.3;
+}
+
+.working-plan-report .wp-epic-title {
+  color: var(--muted, #8b949e);
+  font-size: 0.9em;
+  min-width: 0;
+}
+
+.working-plan-report .wp-sprint-card h5 {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted, #8b949e);
+}
+
+.working-plan-report .wp-sprint-desc {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.working-plan-report .wp-milestones {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.working-plan-report .wp-milestones li {
+  margin: 0.25rem 0;
+}
+
+.working-plan-report .wp-milestone-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.working-plan-report .wp-milestone-summary {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.working-plan-report .wp-key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0 0.35rem 0.35rem 0;
+}
+
+.working-plan-report .wp-keys-label {
+  margin: 0.65rem 0 0.2rem;
+  font-size: 0.78rem;
+}
+
+.working-plan-report .wp-banner-saved {
+  border-color: color-mix(in srgb, var(--pass, #4fd6a6) 35%, var(--border, #30363d));
+}
+
+.working-plan-saved-page {
+  margin: 0;
+  padding: 1rem;
+  background: var(--bg, #0d1117);
+  color: var(--text, #e6edf3);
 }
 
 .working-plan-output {
@@ -2371,7 +2936,7 @@ th, td {
   padding: 0.4rem 0.45rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
   min-width: 0;
   overflow: hidden;
 }
@@ -2446,6 +3011,20 @@ tr.is-sprint-complete .jira-done-mark, tr.is-sprint-complete .subtask-mark {
 }
 
 tr.is-sprint-complete:hover td { background: rgba(255, 255, 255, 0.02); }
+
+/* Story Fatto in sprint ancora aperto o fuori sprint — verde light trasparente */
+tr.is-story-done-sprint-open > td {
+  background: color-mix(in srgb, var(--pass) 5%, transparent);
+}
+
+tr.is-story-done-sprint-open:hover > td {
+  background: color-mix(in srgb, var(--pass) 8%, transparent);
+}
+
+tr.is-story-done-sprint-open.is-gogo-active > td {
+  background: color-mix(in srgb, var(--pass) 5%, rgba(61, 156, 245, 0.14));
+}
+
 /* Issue obsoleta Sprint 6 / [Obsoleto] */
 
 tr.is-obsolete td {
@@ -2643,13 +3222,77 @@ tr.tier-subtask.is-done td { color: var(--muted); }
 
 .key-cell {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.key-cell-row {
+  display: flex;
   align-items: center;
   flex-wrap: nowrap;
   gap: 0.25rem;
   min-width: 0;
   max-width: 100%;
+  width: 100%;
   overflow: visible;
   white-space: nowrap;
+}
+
+.key-ident-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  overflow: visible;
+}
+
+.key-ident-stack .key-main {
+  justify-content: flex-start;
+  width: 100%;
+  overflow: visible;
+}
+
+.key-ident-line {
+  display: inline-grid;
+  grid-template-columns: var(--issue-type-badge-w, 4.65rem) minmax(7.5ch, max-content);
+  column-gap: 0.28rem;
+  align-items: center;
+  line-height: 1;
+  vertical-align: middle;
+  max-width: 100%;
+}
+
+.key-badge,
+.key-link {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.key-badge {
+  width: var(--issue-type-badge-w, 4.65rem);
+  flex: 0 0 var(--issue-type-badge-w, 4.65rem);
+  justify-content: flex-start;
+}
+
+.key-link {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.key-badge .issue-type,
+.key-badge .issue-display-tipo {
+  margin-right: 0;
 }
 
 .key-cell .key-stack {
@@ -2670,8 +3313,8 @@ tr.tier-subtask.is-done td { color: var(--muted); }
   min-width: 0;
   flex-wrap: nowrap;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  max-width: 100%;
 }
 
 .key-main .jira-link, .key-obsolete-label, .key-obsolete-group-label, .key-main .issue-type {
@@ -2836,11 +3479,16 @@ tr.is-gogo-active .btn-push-row.is-active {
 
 .related-ticket-item {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.12rem;
   max-width: 100%;
   line-height: 1.25;
+}
+
+.related-ticket-item .key-ident-line {
+  max-width: 100%;
 }
 
 .related-ticket-item .issue-type, .related-ticket-item .jira-link {
@@ -2862,6 +3510,8 @@ tr.is-gogo-active .btn-push-row.is-active {
   word-break: break-word;
   overflow-wrap: anywhere;
   white-space: normal;
+  line-height: 1.3;
+  vertical-align: middle;
 }
 
 .col-related {
@@ -2991,6 +3641,18 @@ th.col-filter-head {
   top: 0;
   z-index: 3;
   padding-right: 0.55rem;
+}
+
+table.table-col-resizable th.col-resize-head,
+table.wp-table th.col-resize-head,
+table.data th.col-resize-head {
+  position: relative;
+  padding-right: 0.55rem;
+}
+
+table.table-col-resizable {
+  table-layout: fixed;
+  width: 100%;
 }
 
 .col-resize-handle {
@@ -3292,6 +3954,56 @@ th.col-related-sprint .col-filter-label { color: var(--lime); }
 }
 
 .epic-affiliation a:hover { text-decoration: underline; }
+
+.epic-affiliation--under-key {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.12rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  gap: 0.1rem;
+  overflow: visible;
+}
+
+.epic-affiliation--under-key .key-ident-line {
+  width: 100%;
+  max-width: 100%;
+}
+
+.epic-affiliation--under-key .issue-type,
+.epic-affiliation--under-key .issue-display-tipo {
+  margin-right: 0;
+}
+
+.epic-affiliation--under-key .issue-summary {
+  flex: 0 1 auto;
+  max-width: 100%;
+  padding-left: calc(var(--issue-type-badge-w, 4.65rem) + 0.28rem);
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-left: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.epic-affiliation--under-key a {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.col-key:has(.epic-affiliation--under-key) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .insights-meta {
   font-size: 0.78rem;
@@ -4150,13 +4862,14 @@ tr.tier-subtask.is-done .col-key a, tr.tier-subtask.is-done .col-title {
 }
 
 .col-key {
-  width: 17%;
-  max-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: normal;
-  word-break: keep-all;
+  width: 22%;
+  min-width: 15rem;
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .link-gogo-pr {
@@ -4907,17 +5620,24 @@ tr.tier-subtask.is-done .col-key a {
 tr.tier-subtask.is-done .col-title { text-decoration: line-through; }
 
 .col-key {
-  width: 18%;
-  max-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: normal;
-  word-break: keep-all;
+  width: 22%;
+  min-width: 15rem;
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+col.col-key {
+  width: 22%;
+  min-width: 15rem;
 }
 
 .col-svil {
-  width: 6%;
+  width: 7%;
+  min-width: 4.75rem;
   max-width: 0;
   white-space: nowrap;
   text-align: center;
@@ -4934,34 +5654,76 @@ tr.tier-subtask.is-done .col-title { text-decoration: line-through; }
   white-space: nowrap;
 }
 
-.col-svil.is-empty { color: var(--muted); }
-
-.link-gogo-pr {
+/* Colonna Svil — ghost outline come Process Avvia */
+.svil-cell .action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  padding: 0.1rem 0.38rem;
-  font-size: 0.68rem;
+  box-sizing: border-box;
+  min-width: 3.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: 0.02em;
-  border-radius: 3px;
+  letter-spacing: 0.01em;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
   text-decoration: none;
-  opacity: 0.92;
-  border: 1px solid var(--pass);
+  opacity: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.svil-cell .action:hover:not(:disabled) {
+  background: rgba(61, 156, 245, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.svil-cell .action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.svil-cell .btn-gogo-row.is-running,
+.svil-cell .btn-push-row.is-running {
+  min-width: 3.25rem;
+  cursor: wait;
+}
+
+.svil-cell .btn-gogo-row.is-error,
+.svil-cell .btn-push-row.is-error {
+  border-color: var(--fail);
+  color: var(--fail);
+  background: transparent;
+}
+
+.svil-cell .btn-gogo-row.is-copied,
+.svil-cell .btn-gogo-row.is-started {
+  border-color: var(--pass);
   color: var(--pass);
 }
 
-.link-gogo-pr:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
+tr.is-sprint-complete .svil-cell .btn-gogo-row { opacity: 0.42; }
 
-tr.is-gogo-active .link-gogo-pr.is-active {
+tr.is-gogo-active .svil-cell .btn-gogo-row.is-active,
+tr.is-gogo-active .svil-cell .link-gogo-pr.is-active,
+tr.is-gogo-active .svil-cell .btn-push-row.is-active {
   border-color: var(--accent);
   color: var(--accent);
   background: rgba(61, 156, 245, 0.18);
   opacity: 1;
   font-weight: 700;
 }
+
+.svil-cell .link-gogo-pr:hover {
+  text-decoration: none;
+}
+
+.col-svil.is-empty { color: var(--muted); }
 
 .tree-cell {
   display: flex;
@@ -5001,17 +5763,22 @@ tr.tier-subtask .key-main .jira-link {
 
 /* --- fogli CSS inglobati — issue display, toolbar, insight, pillar-matrix --- */
 
-/* --- cruscotto.jira.issue.display.css --- */
+/* --- cruscotto.jira.issue.display.css — canonico: admin.portal.lib/issue.display.css --- */
 
 .issue-type {
+  --issue-type-badge-w: 4.65rem;
   display: inline-block;
+  box-sizing: border-box;
   margin-right: 0.35rem;
-  padding: 0.1rem 0.38rem;
-  border-radius: 4px;
+  padding: 0.12rem 0.42rem;
+  border-radius: 5px;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
   vertical-align: middle;
+  line-height: 1.15;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--muted);
@@ -5019,39 +5786,46 @@ tr.tier-subtask .key-main .jira-link {
   word-break: keep-all;
   overflow-wrap: normal;
   flex-shrink: 0;
+  width: var(--issue-type-badge-w);
+  min-width: var(--issue-type-badge-w);
+  max-width: var(--issue-type-badge-w);
 }
 
 .issue-type-epic {
   color: var(--purple);
-  border-color: rgba(183, 148, 246, 0.45);
-  background: rgba(183, 148, 246, 0.12);
+  border-color: rgba(183, 148, 246, 0.55);
+  background: rgba(183, 148, 246, 0.1);
 }
 
 .issue-type-story {
   color: var(--pass);
-  border-color: rgba(52, 211, 153, 0.45);
-  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(52, 211, 153, 0.08);
 }
 
 .issue-type-bug {
   color: var(--fail, #f87171);
-  border-color: rgba(248, 113, 113, 0.45);
-  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.08);
 }
 
 .issue-type-sub {
   color: var(--turquoise, #2ee8d6);
-  border-color: rgba(46, 232, 214, 0.45);
+  border-color: rgba(46, 232, 214, 0.55);
   background: rgba(46, 232, 214, 0.08);
 }
 
 .issue-type-todo {
   color: var(--accent);
-  border-color: rgba(61, 156, 245, 0.45);
-  background: rgba(61, 156, 245, 0.1);
+  border-color: rgba(61, 156, 245, 0.55);
+  background: rgba(61, 156, 245, 0.08);
 }
 
-.issue-type-other { color: var(--muted); }
+.issue-type-other {
+  color: var(--muted);
+  border-color: var(--border);
+  background: var(--surface-2);
+}
 
 .jira-key-wrap .issue-type { flex-shrink: 0; }
 
@@ -5446,4 +6220,111 @@ tr[data-matrix-diff="removed"] .matrix-diff-star { color: var(--danger); }
   .matrix-table-wrap {
     overflow-x: auto;
   }
+}
+
+/* --- issue.display.css — enforcement finale (admin.portal.lib/issue.display.css) --- */
+
+.issue-display-tipo {
+  --issue-type-badge-w: 4.65rem;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  margin-right: 0.35rem;
+  padding: 0.12rem 0.42rem !important;
+  border-radius: 5px !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  line-height: 1.15 !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  flex-shrink: 0 !important;
+  width: var(--issue-type-badge-w) !important;
+  min-width: var(--issue-type-badge-w) !important;
+  max-width: var(--issue-type-badge-w) !important;
+}
+
+span.issue-type[class*="issue-type-"] {
+  --issue-type-badge-w: 4.65rem;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  padding: 0.12rem 0.42rem !important;
+  border-radius: 5px !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  line-height: 1.15 !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  flex-shrink: 0 !important;
+  width: var(--issue-type-badge-w) !important;
+  min-width: var(--issue-type-badge-w) !important;
+  max-width: var(--issue-type-badge-w) !important;
+}
+
+.issue-display-tipo.issue-type-epic,
+span.issue-type.issue-type-epic {
+  color: var(--purple) !important;
+  border-color: rgba(183, 148, 246, 0.55) !important;
+  background: rgba(183, 148, 246, 0.1) !important;
+}
+
+.issue-display-tipo.issue-type-story,
+span.issue-type.issue-type-story {
+  color: var(--pass) !important;
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-bug,
+span.issue-type.issue-type-bug {
+  color: var(--fail, #f87171) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  background: rgba(248, 113, 113, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-sub,
+span.issue-type.issue-type-sub {
+  color: var(--turquoise, #2ee8d6) !important;
+  border-color: rgba(46, 232, 214, 0.55) !important;
+  background: rgba(46, 232, 214, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-todo,
+span.issue-type.issue-type-todo {
+  color: var(--accent) !important;
+  border-color: rgba(61, 156, 245, 0.55) !important;
+  background: rgba(61, 156, 245, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-other,
+span.issue-type.issue-type-other {
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+  background: var(--surface-2) !important;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .issue-display-tipo,
+.working-plan-report .wp-table.wp-table--dev-queue span.issue-type {
+  margin: 0;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-badge .issue-display-tipo,
+.working-plan-report .wp-table.wp-table--dev-queue .wp-key-badge span.issue-type[class*="issue-type-"] {
+  display: inline-block !important;
+  width: var(--issue-type-badge-w, 4.65rem) !important;
+  min-width: var(--issue-type-badge-w, 4.65rem) !important;
+  max-width: var(--issue-type-badge-w, 4.65rem) !important;
+  flex: 0 0 auto !important;
 }

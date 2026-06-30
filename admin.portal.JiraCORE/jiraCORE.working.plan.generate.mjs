@@ -61,9 +61,9 @@ import { resolve } from "node:path";
 import "../admin.portal.lib/portal.load.env.mjs";
 import { fetchJiraBacklog, loadJiraBacklog } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import {
-  buildAutoWorkingPlanDraft
-, buildWorkingPlanGenerationReport
+  buildWorkingPlanGenerationReport
 } from "../cruscotto.lib/backlog.working.plan.analysis.mjs";
+import { issueTypeShortLabel } from "../admin.portal.lib/issue.display.mjs";
 import { ensureWorkingPlanLoaded, loadWorkingPlan } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 
@@ -154,6 +154,43 @@ function formatMarkdown(report, draft) {
     );
   }
 
+  if ((report.orderedDevelopmentQueue ?? []).length > 0) {
+    lines.push(
+      ""
+    , "## Ordine sviluppo proposto"
+    , ""
+    , "| # | Ordine | Issue | Titolo | Esito | Epic | Sprint |"
+    , "| ---: | --- | --- | --- | --- | --- | ---: |"
+    );
+
+    for (const row of report.orderedDevelopmentQueue) {
+      const typeLabel = issueTypeShortLabel(String(row.type ?? "")) ?? "";
+      const issueCell = typeLabel ? `${typeLabel} ${row.key}` : row.key;
+      const epicTypeLabel = issueTypeShortLabel(String(row.epicType ?? "Epic")) ?? "EPIC";
+      const epicCell = row.epicKey
+        ? `${epicTypeLabel} ${row.epicKey} — ${String(row.epicSummary ?? row.epicKey).slice(0, 40)}`
+        : "—";
+
+      lines.push(
+        `| ${row.rank} | ${row.devOrder} | ${issueCell} | ${String(row.summary).slice(0, 60)} | ${row.esito} | ${epicCell} | ${row.sprint} |`
+      );
+    }
+  }
+
+  if ((report.proposedSprints ?? []).length > 0) {
+    lines.push("", "## Sprint proposti", "");
+
+    for (const block of report.proposedSprints) {
+      lines.push(`### Sprint ${block.sprint} — ${block.name}`, "", block.description, "", "**Punti da smarcare:**", "");
+
+      for (const milestone of block.milestones ?? []) {
+        lines.push(`- ${milestone}`);
+      }
+
+      lines.push("", `Key: ${(block.keys ?? []).join(", ")}`, "");
+    }
+  }
+
   if (report.openOutsidePlan.length > 0) {
     lines.push("", "## Aperti fuori piano", "", "| Key | Epic | Esito repo | Summary |", "| --- | --- | --- | --- |");
 
@@ -162,16 +199,8 @@ function formatMarkdown(report, draft) {
     }
   }
 
-  if (report.suggestedNext.length > 0) {
-    lines.push("", "## Prossimi suggeriti (aperti, priorità ⚠️ prima)", "");
-
-    for (const row of report.suggestedNext.slice(0, 40)) {
-      lines.push(`1. **${row.key}** (${row.esito}) — ${row.summary}`);
-    }
-  }
-
   if (draft?.length) {
-    lines.push("", "## Bozza auto WORKING_PLAN", "", "```json", JSON.stringify(draft, null, 2), "```");
+    lines.push("", "## Export bozza WORKING_PLAN", "", "```json", JSON.stringify(draft, null, 2), "```");
   }
 
   return lines.join("\n");
@@ -200,8 +229,8 @@ const report      = await buildWorkingPlanGenerationReport({
 , boardSprintKeysByPlanName: backlog.boardSprintKeysByPlanName
 , workingPlan
 });
-const draft = args.autoDraft || workingPlan.length === 0
-  ? buildAutoWorkingPlanDraft(backlog.issues)
+const draft = args.autoDraft || report.proposedSprints?.length
+  ? report.proposedSprints
   : null;
 
 const payload = {

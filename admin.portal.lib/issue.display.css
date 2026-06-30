@@ -1,0 +1,146 @@
+/**
+ * TipoIssue — layout canonico badge EPIC / STORY / BUG / SUB / TODO (issue.display).
+ *
+ * Fonte condivisa con cruscotto.css (sezione cruscotto.jira.issue.display.css) e alias
+ * /jira-issue-display.css sul server cruscotto.
+ *
+ * Markup: issueTypeBadgeHtml / JiraIssueDisplay.issueTypeBadge (span.issue-type.issue-type-*)
+ */
+
+.issue-type {
+  --issue-type-badge-w: 4.65rem;
+  display: inline-block;
+  box-sizing: border-box;
+  margin-right: 0.35rem;
+  padding: 0.12rem 0.42rem;
+  border-radius: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.15;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  flex-shrink: 0;
+  width: var(--issue-type-badge-w);
+  min-width: var(--issue-type-badge-w);
+  max-width: var(--issue-type-badge-w);
+}
+
+.issue-type-epic {
+  color: var(--purple);
+  border-color: rgba(183, 148, 246, 0.55);
+  background: rgba(183, 148, 246, 0.1);
+}
+
+.issue-type-story {
+  color: var(--pass);
+  border-color: rgba(52, 211, 153, 0.55);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.issue-type-bug {
+  color: var(--fail, #f87171);
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.issue-type-sub {
+  color: var(--turquoise, #2ee8d6);
+  border-color: rgba(46, 232, 214, 0.55);
+  background: rgba(46, 232, 214, 0.08);
+}
+
+.issue-type-todo {
+  color: var(--accent);
+  border-color: rgba(61, 156, 245, 0.55);
+  background: rgba(61, 156, 245, 0.08);
+}
+
+.issue-type-other {
+  color: var(--muted);
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.jira-key-wrap .issue-type {
+  flex-shrink: 0;
+}
+
+.col-key .issue-type {
+  margin-right: 0.3rem;
+}
+
+/* issue-display-tipo — applicazione SEMPRE (vince su tabella, hover, selezione riga) */
+.issue-display-tipo,
+span.issue-type[class*="issue-type-"] {
+  --issue-type-badge-w: 4.65rem;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  padding: 0.12rem 0.42rem !important;
+  border-radius: 5px !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  line-height: 1.15 !important;
+  border-style: solid !important;
+  border-width: 1px !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  flex-shrink: 0 !important;
+  width: var(--issue-type-badge-w) !important;
+  min-width: var(--issue-type-badge-w) !important;
+  max-width: var(--issue-type-badge-w) !important;
+}
+
+.issue-display-tipo.issue-type-epic,
+span.issue-type.issue-type-epic {
+  color: var(--purple) !important;
+  border-color: rgba(183, 148, 246, 0.55) !important;
+  background: rgba(183, 148, 246, 0.1) !important;
+}
+
+.issue-display-tipo.issue-type-story,
+span.issue-type.issue-type-story {
+  color: var(--pass) !important;
+  border-color: rgba(52, 211, 153, 0.55) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-bug,
+span.issue-type.issue-type-bug {
+  color: var(--fail, #f87171) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  background: rgba(248, 113, 113, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-sub,
+span.issue-type.issue-type-sub {
+  color: var(--turquoise, #2ee8d6) !important;
+  border-color: rgba(46, 232, 214, 0.55) !important;
+  background: rgba(46, 232, 214, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-todo,
+span.issue-type.issue-type-todo {
+  color: var(--accent) !important;
+  border-color: rgba(61, 156, 245, 0.55) !important;
+  background: rgba(61, 156, 245, 0.08) !important;
+}
+
+.issue-display-tipo.issue-type-other,
+span.issue-type.issue-type-other {
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+  background: var(--surface-2) !important;
+}

@@ -59,7 +59,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 import { resolveProjectOverlayName } from "../admin.portal.lib/project.config.mjs";
 import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
@@ -249,6 +249,46 @@ export async function closeCruscottoDb() {
   await activeClient.$disconnect();
   activeClient = null;
   activeDbPath   = null;
+}
+
+const CRUSCOTTO_PRISMA_RESTART_HINT =
+  "Esegui npm run db:migrate, poi riavvia il cruscotto (npm run admin:dashboard) e ripeti Sync.";
+
+/**
+ * Verifica che il Prisma Client caricato esponga `isObsolete` su JiraIssue (post-rename schema).
+ *
+ * @throws {Error} se il processo usa ancora un client generato prima del rename
+ */
+export function assertCruscottoPrismaClientCurrent() {
+  const fields = Prisma.JiraIssueScalarFieldEnum;
+
+  if (!Object.prototype.hasOwnProperty.call(fields, "isObsolete")) {
+    throw new Error(`Prisma Client obsoleto (manca isObsolete su jira_issue). ${CRUSCOTTO_PRISMA_RESTART_HINT}`);
+  }
+}
+
+/**
+ * Messaggio utente per errori Prisma dovuti a client/schema disallineati.
+ *
+ * @param {unknown} err
+ * @returns {string | null}
+ */
+export function formatCruscottoPrismaSchemaError(err) {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+
+  if (/Unknown argument [`']isObsolete[`']/.test(message)) {
+    return `Prisma Client in memoria non allineato allo schema DB. ${CRUSCOTTO_PRISMA_RESTART_HINT}`;
+  }
+
+  if (/Unknown argument [`']isSprint6Obsolete[`']/.test(message)) {
+    return `Codice sync non allineato allo schema DB. ${CRUSCOTTO_PRISMA_RESTART_HINT}`;
+  }
+
+  if (/no such column: .*is_sprint6_obsolete/i.test(message)) {
+    return `Colonna obsoleta nel DB: migrazione applicata ma client vecchio. ${CRUSCOTTO_PRISMA_RESTART_HINT}`;
+  }
+
+  return null;
 }
 
 export { PrismaClient };

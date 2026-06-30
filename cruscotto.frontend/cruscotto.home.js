@@ -1831,6 +1831,7 @@ function setActiveTab(tab, hashPayload = null) {
 
   if (tab === "workingplan") {
     renderWorkingPlanTab();
+    void loadSavedWorkingPlanIfEmpty();
   }
 
   if (tab === "issue") {
@@ -7084,10 +7085,207 @@ function renderWorkingPlanTab() {
       <p class="muted" id="working-plan-status">Premi <strong>RIGENERA</strong> o <strong>CHECK OBSOLETE</strong> in testata.</p>
       <div id="working-plan-output" class="working-plan-report-wrap" aria-live="polite"></div>
     </section>`;
+
+  document.getElementById("working-plan-output")?.addEventListener("click", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const btn = target.closest(".wp-btn-create-sprint");
+
+    if (btn instanceof HTMLButtonElement) {
+      void createJiraSprintFromCard(btn);
+      return;
+    }
+
+    if (target.closest("a, button, .col-resize-handle, input, select, textarea, label")) {
+      return;
+    }
+
+    const row = target.closest("table.wp-table--dev-queue tbody tr");
+
+    if (!row || row.tagName !== "TR") {
+      return;
+    }
+
+    const table = row.closest("table.wp-table--dev-queue");
+
+    if (!table) {
+      return;
+    }
+
+    const wasSelected = row.classList.contains("is-row-selected");
+
+    table.querySelectorAll("tbody tr.is-row-selected").forEach((node) => {
+      node.classList.remove("is-row-selected");
+    });
+
+    if (!wasSelected) {
+      row.classList.add("is-row-selected");
+    }
+  });
 }
 
 /** @type {boolean} */
 let workingPlanActionBusy = false;
+
+/** @type {Record<string, unknown> | null} */
+let lastWorkingPlanPayload = null;
+
+/** @type {boolean} */
+let workingPlanSprintCreateBusy = false;
+
+/**
+ * @param {HTMLElement} root
+ * @returns {Map<string, { className: string, innerHTML: string, hidden: boolean }>}
+ */
+function captureWorkingPlanSprintStatuses(root) {
+  /** @type {Map<string, { className: string, innerHTML: string, hidden: boolean }>} */
+  const preserved = new Map();
+
+  root.querySelectorAll("[data-wp-sprint-status]").forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+
+    const sprint = node.dataset.wpSprintStatus;
+
+    if (!sprint || node.hidden) {
+      return;
+    }
+
+    if (!node.textContent?.trim() && !node.classList.contains("is-ok") && !node.classList.contains("is-error")) {
+      return;
+    }
+
+    preserved.set(sprint, {
+      className : node.className
+    , innerHTML : node.innerHTML
+    , hidden    : node.hidden
+    });
+  });
+
+  return preserved;
+}
+
+/**
+ * @param {HTMLElement} outputEl
+ * @param {string} html
+ * @param {Map<string, { className: string, innerHTML: string, hidden: boolean }>} preserved
+ */
+function initWorkingPlanTableResize(root) {
+  const scope = root ?? document;
+
+  scope.querySelectorAll("table.wp-table--dev-queue, .wp-table-wrap > table.wp-table--dev-queue").forEach((node) => {
+    if (node instanceof HTMLTableElement || (node && node.tagName === "TABLE")) {
+      globalThis.CruscottoTableColumnResize?.initTable(node, { force: true });
+    }
+  });
+
+  globalThis.CruscottoTableColumnResize?.initAll(
+    scope
+  , "table.wp-table:not(.wp-table--dev-queue), .wp-table-wrap > table:not(.wp-table--dev-queue)"
+  );
+}
+
+/** @type {Promise<string> | null} */
+let issueDisplayCssTextPromise = null;
+
+/**
+ * Carica CSS canonico TipoIssue — cache in memoria per fragment Working Plan senza `<style>` inline.
+ *
+ * @returns {Promise<string>}
+ */
+function loadIssueDisplayCssText() {
+  if (!issueDisplayCssTextPromise) {
+    issueDisplayCssTextPromise = fetch("/jira-issue-display.css")
+      .then((res) => (res.ok ? res.text() : ""))
+      .catch(() => "");
+  }
+
+  return issueDisplayCssTextPromise;
+}
+
+/**
+ * Inietta `<style class="issue-display-tipo-inline">` se manca (HTML salvato pre-fix).
+ *
+ * @param {ParentNode} scope
+ */
+async function ensureWorkingPlanIssueDisplayStyles(scope) {
+  const host = scope.querySelector(".working-plan-report") ?? scope;
+
+  if (!(host instanceof HTMLElement) || host.querySelector(".issue-display-tipo-inline")) {
+    return;
+  }
+
+  const css = await loadIssueDisplayCssText();
+
+  if (!css.trim()) {
+    return;
+  }
+
+  const style = document.createElement("style");
+
+  style.className   = "issue-display-tipo-inline";
+  style.textContent = css.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+  host.insertBefore(style, host.firstChild);
+}
+
+async function applyWorkingPlanHtml(outputEl, html, preserved) {
+  outputEl.innerHTML = html;
+
+  await ensureWorkingPlanIssueDisplayStyles(outputEl);
+
+  for (const [sprint, state] of preserved) {
+    outputEl.querySelectorAll(`[data-wp-sprint-status="${sprint}"]`).forEach((node) => {
+      if (!(node instanceof HTMLElement)) {
+        return;
+      }
+
+      node.className = state.className;
+      node.innerHTML = state.innerHTML;
+      node.hidden    = state.hidden;
+    });
+  }
+
+  initWorkingPlanTableResize(outputEl);
+}
+
+/**
+ * Carica ultimo piano salvato se il pannello è ancora vuoto.
+ */
+async function loadSavedWorkingPlanIfEmpty() {
+  const outputEl = document.getElementById("working-plan-output");
+  const statusEl = document.getElementById("working-plan-status");
+
+  if (!outputEl || outputEl.querySelector(".working-plan-report")) {
+    return;
+  }
+
+  try {
+    const res  = await fetch("/api/jira/working-plan/saved");
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || typeof data.html !== "string" || !data.html.trim()) {
+      return;
+    }
+
+    outputEl.innerHTML = data.html;
+    lastWorkingPlanPayload = data.payload ?? null;
+    await ensureWorkingPlanIssueDisplayStyles(outputEl);
+    initWorkingPlanTableResize(outputEl);
+
+    if (statusEl) {
+      statusEl.textContent = data.savedAt
+        ? `Piano salvato · ${data.savedAt}${data.publicUrl ? ` · ${data.publicUrl}` : ""}`
+        : "Piano salvato caricato";
+    }
+  } catch {
+    // tab resta vuoto fino a RIGENERA
+  }
+}
 
 /**
  * Aggiorna bottoni testata per tab Working Plan.
@@ -7158,7 +7356,12 @@ async function runWorkingPlanAction(kind) {
     statusEl.textContent = label;
   }
 
-  if (outputEl) {
+  /** @type {Map<string, { className: string, innerHTML: string, hidden: boolean }>} */
+  const preservedSprintStatus = kind === "regenerate" && outputEl
+    ? captureWorkingPlanSprintStatuses(outputEl)
+    : new Map();
+
+  if (outputEl && kind !== "regenerate") {
     outputEl.innerHTML = "";
   }
 
@@ -7166,7 +7369,7 @@ async function runWorkingPlanAction(kind) {
     const res = await fetch(endpoint, {
       method  : "POST"
     , headers : { "Content-Type": "application/json" }
-    , body    : JSON.stringify({ source: "db" })
+    , body    : JSON.stringify({ source: "db", saveHtml: kind === "regenerate" })
     });
     const data = await res.json().catch(() => ({}));
 
@@ -7174,9 +7377,17 @@ async function runWorkingPlanAction(kind) {
       throw new Error(String(data.error ?? `HTTP ${res.status}`));
     }
 
+    if (kind === "regenerate") {
+      lastWorkingPlanPayload = data.payload ?? null;
+    }
+
     if (outputEl) {
       if (typeof data.html === "string" && data.html.trim()) {
-        outputEl.innerHTML = data.html;
+        await applyWorkingPlanHtml(
+          outputEl
+        , data.html
+        , kind === "regenerate" ? preservedSprintStatus : new Map()
+        );
       } else if (typeof data.markdown === "string") {
         outputEl.innerHTML = `<pre class="working-plan-fallback">${escapeHtml(data.markdown)}</pre>`;
       } else {
@@ -7186,9 +7397,14 @@ async function runWorkingPlanAction(kind) {
 
     if (statusEl) {
       const fetchedAt = data.payload?.fetchedAt ?? data.payload?.report?.generatedAt ?? data.payload?.report?.scannedAt ?? "";
-      statusEl.textContent = kind === "regenerate"
-        ? `Report piano generato${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`
-        : `Verifica obsoleti completata${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`;
+      const savedUrl  = data.savedHtml?.publicUrl ?? data.payload?.savedHtml?.publicUrl ?? "";
+
+      if (kind === "regenerate") {
+        statusEl.textContent = `Report piano generato${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`
+          + (savedUrl ? ` · salvato ${savedUrl}` : "");
+      } else {
+        statusEl.textContent = `Verifica obsoleti completata${fetchedAt ? ` · backlog ${fetchedAt}` : ""}`;
+      }
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -7210,6 +7426,85 @@ async function runWorkingPlanAction(kind) {
     if (obsBtn instanceof HTMLButtonElement) {
       obsBtn.disabled = false;
     }
+  }
+}
+
+/**
+ * Crea su Jira lo sprint proposto dalla card Working Plan.
+ *
+ * @param {HTMLButtonElement} btn
+ */
+async function createJiraSprintFromCard(btn) {
+  if (workingPlanSprintCreateBusy) {
+    return;
+  }
+
+  const sprintNum = Number(btn.dataset.wpSprint);
+  const reportPayload = lastWorkingPlanPayload?.report;
+  const block = reportPayload && typeof reportPayload === "object" && Array.isArray(reportPayload.proposedSprints)
+    ? reportPayload.proposedSprints.find((row) => Number(row.sprint) === sprintNum)
+    : null;
+
+  const scope = btn.closest(".wp-sprint-actions, [data-wp-sprint-card]");
+  const statusEl = scope instanceof HTMLElement
+    ? scope.querySelector(`[data-wp-sprint-status="${sprintNum}"]`)
+    : document.querySelector(`[data-wp-sprint-status="${sprintNum}"]`);
+
+  if (!block) {
+    if (statusEl instanceof HTMLElement) {
+      statusEl.hidden = false;
+      statusEl.textContent = "Rigenera il piano prima di creare lo sprint su Jira.";
+      statusEl.className = "wp-sprint-action is-error";
+    }
+
+    return;
+  }
+
+  workingPlanSprintCreateBusy = true;
+  btn.disabled = true;
+
+  if (statusEl instanceof HTMLElement) {
+    statusEl.hidden = false;
+    statusEl.className = "wp-sprint-action";
+    statusEl.textContent = "Creazione sprint su Jira…";
+  }
+
+  try {
+    const res = await fetch("/api/jira/working-plan/create-sprint", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({
+        sprint     : block.sprint
+      , name       : block.name
+      , description: block.description ?? ""
+      , keys       : block.keys ?? []
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(String(data.error ?? `HTTP ${res.status}`));
+    }
+
+    if (statusEl instanceof HTMLElement) {
+      const message = escapeHtml(String(data.message ?? "Sprint creato su Jira"));
+      const boardUrl = typeof data.boardUrl === "string" ? data.boardUrl : "";
+
+      statusEl.className = "wp-sprint-action is-ok";
+      statusEl.innerHTML = boardUrl
+        ? `${message} · <a href="${escapeHtml(boardUrl)}" target="_blank" rel="noopener noreferrer">Apri board</a>`
+        : message;
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (statusEl instanceof HTMLElement) {
+      statusEl.className = "wp-sprint-action is-error";
+      statusEl.textContent = message;
+    }
+  } finally {
+    workingPlanSprintCreateBusy = false;
+    btn.disabled = false;
   }
 }
 

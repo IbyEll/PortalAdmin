@@ -62,7 +62,10 @@ import {
   JIRA_PROJECT_KEYS
 , REPO_IMPLEMENTATION_SIGNALS
 } from "../admin.portal.JiraCORE/jira.project.config.overlay.mjs";
-import { getWorkingPlan } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
+import {
+  ensureWorkingPlanLoaded
+, getWorkingPlan
+} from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 
 export {
   JIRA_PROJECT_KEYS
@@ -648,6 +651,59 @@ export function assessIssueRepoInspect(key, repoRefs) {
   return null;
 }
 
+/**
+ * @param {string} name
+ * @returns {string}
+ */
+function normalizePlanSprintLabel(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[—–]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Issue key sul board Jira per un blocco piano (match nome sprint canonico/fuzzy).
+ *
+ * @param {Record<string, string[]>} boardSprintKeysByPlanName
+ * @param {string} blockName
+ * @returns {string[]}
+ */
+function boardKeysForWorkingPlanBlock(boardSprintKeysByPlanName, blockName) {
+  if (!boardSprintKeysByPlanName || !blockName) {
+    return [];
+  }
+
+  const target = normalizePlanSprintLabel(blockName);
+
+  for (const [planName, keys] of Object.entries(boardSprintKeysByPlanName)) {
+    const norm = normalizePlanSprintLabel(planName);
+
+    if (norm === target || norm.includes(target) || target.includes(norm)) {
+      return Array.isArray(keys) ? keys : [];
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Unisce key piano working e key sprint board senza duplicati.
+ *
+ * @param {string[]} planKeys
+ * @param {string[]} boardKeys
+ * @returns {string[]}
+ */
+function mergeWorkingSprintKeys(planKeys, boardKeys) {
+  const merged = new Set([
+    ...(Array.isArray(planKeys) ? planKeys : [])
+  , ...(Array.isArray(boardKeys) ? boardKeys : [])
+  ]);
+
+  return [...merged].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
 /** @type {string[]} */
 const HOUSEKEEPING_KEYS = ["JLO-97", "JLO-247", "JLO-637"];
 
@@ -1125,6 +1181,7 @@ export function applyInsightStaleFlags(items, snapshot) {
  * @returns {Promise<{ scannedAt: string, insights: BacklogInsight[], snapshot: ReturnType<typeof buildInsightSnapshot> }>}
  */
 export async function fetchBacklogInsights() {
+  await ensureWorkingPlanLoaded();
   const backlog = await fetchJiraBacklog();
   const scannedAt = new Date().toISOString();
   const repoRefs = scanRepoJiraReferences();

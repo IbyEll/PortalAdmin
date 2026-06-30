@@ -6,5 +6,6 @@ export {
 , getWorkingPlan
 , ensureWorkingPlanLoaded
 , collectWorkingPlanKeys
+, applyWorkingPlanToIssues
 , buildDefaultWorkflowInner
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";

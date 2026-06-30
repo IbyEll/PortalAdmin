@@ -145,7 +145,7 @@
     }
 
     const span = document.createElement("span");
-    span.className = `issue-type issue-type-${issueTypeClass(label)}`;
+    span.className = `issue-type issue-display-tipo issue-type-${issueTypeClass(label)}`;
     span.title = String(type ?? "");
     span.textContent = label;
 

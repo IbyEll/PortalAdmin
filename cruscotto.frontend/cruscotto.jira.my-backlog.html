@@ -131,8 +131,8 @@
       <table>
         <colgroup>
           <col class="col-key" />
-          <col class="col-svil" />
           <col class="col-title" />
+          <col class="col-svil" />
           <col class="col-sprint" />
           <col class="col-status" />
           <col class="col-related" />
@@ -159,9 +159,6 @@
                 </div>
               </div>
             </th>
-            <th class="col-filter-head col-svil">
-              <span class="col-filter-label">Svil</span>
-            </th>
             <th class="col-filter-head">
               <div class="col-filter" data-col="title" data-mode="search">
                 <button type="button" class="col-filter-trigger" aria-expanded="false" aria-haspopup="listbox" disabled>
@@ -179,6 +176,9 @@
                   </div>
                 </div>
               </div>
+            </th>
+            <th class="col-filter-head col-svil">
+              <span class="col-filter-label">Svil</span>
             </th>
             <th class="col-filter-head col-sprint">
               <div class="col-filter" data-col="sprint" data-mode="select">
@@ -275,7 +275,7 @@
     const GOGO_PR_STORAGE_KEY = "jlo-mybacklog-gogo-pr-v1";
     const DEV_ORDER_COL_MIN_CH = 11;
     const TABLE_COL_COUNT = 8;
-    const COL_ORDER = ["key", "svil", "title", "sprint", "status", "related", "relatedSprint", "devOrder"];
+    const COL_ORDER = ["key", "title", "svil", "sprint", "status", "related", "relatedSprint", "devOrder"];
 
     /** @type {Record<string, number>} */
     const DEFAULT_COL_WIDTHS = {
@@ -359,16 +359,20 @@
      * Link issue key → tab Issue interna (non Jira browse).
      *
      * @param {string} issueKey
+     * @param {string} [tooltip] — testo hover (es. titolo epic); default «Apri issue …»
      * @returns {HTMLAnchorElement}
      */
-    function createIssueKeyLink(issueKey) {
+    function createIssueKeyLink(issueKey, tooltip) {
       const key  = String(issueKey ?? "").trim().toUpperCase();
       const link = document.createElement("a");
 
       link.className = "jira-link";
       link.href      = `#issue:${issuePageHashPayload(key)}`;
       link.textContent = key;
-      link.title     = `Apri issue ${key} nel cruscotto`;
+
+      const hint = String(tooltip ?? "").trim();
+
+      link.title = hint || `Apri issue ${key} nel cruscotto`;
       link.addEventListener("click", (ev) => {
         ev.preventDefault();
         navigateToIssuePage(key);
@@ -378,20 +382,47 @@
     }
 
     /**
+     * Riga badge TipoIssue + link — griglia allineata (issue.display, larghezza fissa badge).
+     *
+     * @param {ParentNode} parent
+     * @param {string} key
+     * @param {string} [type]
+     * @param {string} [linkTooltip]
+     * @returns {HTMLSpanElement}
+     */
+    function appendKeyIdentLine(parent, key, type, linkTooltip) {
+      const line = document.createElement("span");
+      line.className = "key-ident-line";
+
+      const badgeWrap = document.createElement("span");
+      badgeWrap.className = "key-badge";
+
+      const linkWrap = document.createElement("span");
+      linkWrap.className = "key-link";
+
+      const badge = JiraIssueDisplay?.createIssueTypeBadge?.(type ?? issueTypeForKey(key));
+
+      if (badge) {
+        badgeWrap.appendChild(badge);
+      }
+
+      linkWrap.appendChild(createIssueKeyLink(key, linkTooltip));
+      line.append(badgeWrap, linkWrap);
+      parent.appendChild(line);
+
+      return line;
+    }
+
+    /**
      * Badge tipo + link issue interno (epic correlati, insight, …).
      *
      * @param {ParentNode} parent
      * @param {string} key
      * @param {string} [type]
+     * @param {string} [linkTooltip]
      */
-    function appendMyBacklogIssueKey(parent, key, type) {
-      const badge = JiraIssueDisplay?.createIssueTypeBadge?.(type ?? issueTypeForKey(key));
-
-      if (badge) {
-        parent.appendChild(badge);
-      }
-
-      parent.appendChild(createIssueKeyLink(key));
+    function appendMyBacklogIssueKey(parent, key, type, linkTooltip) {
+      appendKeyIdentLine(parent, key, type, linkTooltip);
     }
 
     /**
@@ -420,7 +451,36 @@
         return fromBoard;
       }
 
-      return row.devSprintName ?? null;
+      if (row.devSprintName) {
+        return row.devSprintName;
+      }
+
+      if (row.tier === "subtask" && row.parentKey) {
+        return sprintLabelForBacklogRow(backlogIssueByKey().get(row.parentKey));
+      }
+
+      return null;
+    }
+
+    /**
+     * Tooltip colonna Sprint — distingue board Jira e piano working.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {string} label
+     * @returns {string}
+     */
+    function sprintCellTitle(row, label) {
+      const picked = pickIssueJiraSprintForView(row.jiraSprints ?? []);
+
+      if (picked?.name) {
+        return `${label} · sprint board Jira (${picked.state})`;
+      }
+
+      if (row.devSprintName) {
+        return `${label} · piano working (sprint ${row.devSprint ?? "—"})`;
+      }
+
+      return label;
     }
 
     /**
@@ -3008,12 +3068,12 @@
       const byKey = rowsMapByTreeKey(rows);
 
       for (const row of rows) {
-        const name = row.devSprintName ?? "—";
+        const name = sprintLabelForBacklogRow(row) ?? "—";
         let hit = false;
 
         for (const sel of selected) {
           if (sel === "—") {
-            if (!row.devSprintName) {
+            if (!sprintLabelForBacklogRow(row)) {
               hit = true;
             }
           } else if (name === sel) {
@@ -3199,8 +3259,10 @@
       const names = new Set();
 
       for (const row of getDisplayRows()) {
-        if (row.devSprintName) {
-          names.add(row.devSprintName);
+        const label = sprintLabelForBacklogRow(row);
+
+        if (label) {
+          names.add(label);
         }
       }
 
@@ -4069,6 +4131,36 @@
     }
 
     /**
+     * Story Fatto ma sprint ancora aperto oppure fuori sprint (obsoleto / senza devSprint).
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {Map<string, typeof backlog.issues[number]>} rowByKey
+     * @param {Set<string>} sprintComplete
+     * @returns {boolean}
+     */
+    function isDoneStorySprintMismatch(row, rowByKey, sprintComplete) {
+      if (row.tier !== "task" || !isStoryLikeRow(row)) {
+        return false;
+      }
+
+      if (row.status.toLowerCase() !== "fatto") {
+        return false;
+      }
+
+      if (isObsoleteRow(row) || !row.devSprint) {
+        return true;
+      }
+
+      const sprintHeader = resolveSprintHeaderKey(row, rowByKey);
+
+      if (!sprintHeader) {
+        return true;
+      }
+
+      return !isSprintBlockSpent(sprintHeader, rowByKey, sprintComplete);
+    }
+
+    /**
      * @param {typeof backlog.issues[number]} row
      * @param {HTMLElement} container
      */
@@ -4236,6 +4328,10 @@
           if (sprintHeader && isSprintBlockSpent(sprintHeader, rowByKey, sprintComplete)) {
             tr.classList.add("is-sprint-complete");
           }
+
+          if (isDoneStorySprintMismatch(row, rowByKey, sprintComplete)) {
+            tr.classList.add("is-story-done-sprint-open");
+          }
         }
 
         if (isSprintRowActive(row, sprintComplete)) {
@@ -4375,14 +4471,24 @@
           keyMain.title = "Ticket correlati aperti citati in sprint precedenti o futuri";
           keyMain.setAttribute("aria-label", keyMain.title);
         } else {
+          const keyLine = document.createElement("span");
+          keyLine.className = "key-ident-line";
+
+          const badgeWrap = document.createElement("span");
+          badgeWrap.className = "key-badge";
+
+          const linkWrap = document.createElement("span");
+          linkWrap.className = "key-link";
+
           const badge = JiraIssueDisplay?.createIssueTypeBadge?.(row.type);
 
           if (badge) {
-            keyMain.appendChild(badge);
+            badgeWrap.appendChild(badge);
           }
 
-          const link = createIssueKeyLink(row.key);
-          keyMain.appendChild(link);
+          linkWrap.appendChild(createIssueKeyLink(row.key));
+          keyLine.append(badgeWrap, linkWrap);
+          keyMain.appendChild(keyLine);
 
           if (row.isRelatedCarryover) {
             keyMain.appendChild(createRelatedCarryoverMark(row.relatedCarryoverSources ?? []));
@@ -4403,8 +4509,29 @@
           keyMain.appendChild(obsoleteLabel);
         }
 
-        keyCell.appendChild(treeWrap);
-        keyCell.appendChild(keyMain);
+        const keyRow = document.createElement("div");
+        keyRow.className = "key-cell-row";
+        keyRow.appendChild(treeWrap);
+
+        const keyIdentStack = document.createElement("div");
+        keyIdentStack.className = "key-ident-stack";
+        keyIdentStack.appendChild(keyMain);
+
+        if ((viewMode === "sprint" || viewMode === "pillar") && row.tier === "task" && row.epicKey) {
+          const epicLine = document.createElement("span");
+          epicLine.className = "epic-affiliation epic-affiliation--under-key";
+          appendMyBacklogIssueKey(
+            epicLine
+          , row.epicKey
+          , issueTypeForKey(row.epicKey) ?? "Epic"
+          , String(row.epicSummary ?? "").trim() || undefined
+          );
+
+          keyIdentStack.appendChild(epicLine);
+        }
+
+        keyRow.appendChild(keyIdentStack);
+        keyCell.appendChild(keyRow);
 
         keyTd.appendChild(keyCell);
 
@@ -4481,19 +4608,20 @@
         const sprintTd = document.createElement("td");
         sprintTd.className = "col-sprint";
 
-        if (row.tier === "sprint" && row.devSprintName) {
-          sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
-        } else if (row.tier === "pillar") {
+        if (row.tier === "pillar") {
           sprintTd.textContent = "—";
           sprintTd.classList.add("is-empty");
           sprintTd.title = "Raggruppamento per pilastro prodotto";
-        } else if (row.tier === "task" && row.devSprintName) {
-          sprintTd.textContent = row.devSprintName;
-          sprintTd.title = `Sprint ${row.devSprint ?? "—"} · piano piano sprint`;
         } else {
-          sprintTd.textContent = "—";
-          sprintTd.classList.add("is-empty");
+          const sprintLabel = sprintLabelForBacklogRow(row);
+
+          if (sprintLabel) {
+            sprintTd.textContent = sprintLabel;
+            sprintTd.title = sprintCellTitle(row, sprintLabel);
+          } else {
+            sprintTd.textContent = "—";
+            sprintTd.classList.add("is-empty");
+          }
         }
 
         const sumTd = document.createElement("td");
@@ -4513,26 +4641,6 @@
           sumTd.appendChild(countLabel);
         } else {
           sumTd.textContent = row.summary;
-        }
-
-        if ((viewMode === "sprint" || viewMode === "pillar") && row.tier === "task" && row.epicKey) {
-          const epicLine = document.createElement("span");
-          epicLine.className = "epic-affiliation";
-          epicLine.append(document.createTextNode("Epic: "));
-          appendMyBacklogIssueKey(
-            epicLine
-          , row.epicKey
-          , issueTypeForKey(row.epicKey) ?? "Epic"
-          );
-
-          if (row.epicSummary) {
-            const epicSummary = document.createElement("span");
-            epicSummary.className = "issue-summary";
-            epicSummary.textContent = ` — ${row.epicSummary}`;
-            epicLine.appendChild(epicSummary);
-          }
-
-          sumTd.appendChild(epicLine);
         }
 
         const relatedTd = document.createElement("td");
@@ -4618,7 +4726,7 @@
 
         statusTd.textContent = sprintRowStatusLabel(row, sprintComplete);
 
-        tr.append(keyTd, svilTd, sumTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
+        tr.append(keyTd, sumTd, svilTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
         tbody.appendChild(tr);
       }
 
@@ -4785,7 +4893,7 @@
         const devOrderExport = row.tier === "epic" || row.tier === "sprint" || row.tier === "pillar"
           ? (row.tier === "sprint" ? devOrderCellLabel(row) : (row.tier === "pillar" ? `#${row.devOrder ?? ""}` : ""))
           : devOrderCellLabel(row);
-        const sprintExport = row.devSprintName ?? "";
+        const sprintExport = sprintLabelForBacklogRow(row) ?? "";
         const relatedKeys = row.relatedKeys ?? [];
         const relatedExport = relatedKeys.join("; ");
         const relatedSprintExport = relatedKeys
