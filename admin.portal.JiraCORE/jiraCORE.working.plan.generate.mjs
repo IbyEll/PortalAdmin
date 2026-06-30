@@ -177,6 +177,29 @@ function formatMarkdown(report, draft) {
     }
   }
 
+  if ((report.doneSprintMismatchQueue ?? []).length > 0) {
+    lines.push(
+      ""
+    , "## Fatto ma sprint non allineato"
+    , ""
+    , "| # | Sprint | Ordine | Issue | Stato Jira | Titolo | Esito | Epic |"
+    , "| ---: | ---: | --- | --- | --- | --- | --- | --- |"
+    );
+
+    for (const row of report.doneSprintMismatchQueue) {
+      const typeLabel = issueTypeShortLabel(String(row.type ?? "")) ?? "";
+      const issueCell = typeLabel ? `${typeLabel} ${row.key}` : row.key;
+      const epicTypeLabel = issueTypeShortLabel(String(row.epicType ?? "Epic")) ?? "EPIC";
+      const epicCell = row.epicKey
+        ? `${epicTypeLabel} ${row.epicKey} — ${String(row.epicSummary ?? row.epicKey).slice(0, 40)}`
+        : "—";
+
+      lines.push(
+        `| ${row.rank} | ${row.sprint} | ${row.devOrder} | ${issueCell} | ${row.status ?? "—"} | ${String(row.summary).slice(0, 60)} | ${row.esito} | ${epicCell} |`
+      );
+    }
+  }
+
   if ((report.proposedSprints ?? []).length > 0) {
     lines.push("", "## Sprint proposti", "");
 

@@ -7131,6 +7131,9 @@ function renderWorkingPlanTab() {
 /** @type {boolean} */
 let workingPlanActionBusy = false;
 
+/** Caricamento saved in flight — incrementato da RIGENERA per evitare race overwrite. */
+let workingPlanSavedLoadToken = 0;
+
 /** @type {Record<string, unknown> | null} */
 let lastWorkingPlanPayload = null;
 
@@ -7264,9 +7267,19 @@ async function loadSavedWorkingPlanIfEmpty() {
     return;
   }
 
+  const loadToken = ++workingPlanSavedLoadToken;
+
   try {
     const res  = await fetch("/api/jira/working-plan/saved");
     const data = await res.json().catch(() => ({}));
+
+    if (loadToken !== workingPlanSavedLoadToken) {
+      return;
+    }
+
+    if (workingPlanActionBusy || outputEl.querySelector(".working-plan-report")) {
+      return;
+    }
 
     if (!res.ok || typeof data.html !== "string" || !data.html.trim()) {
       return;
@@ -7343,6 +7356,7 @@ async function runWorkingPlanAction(kind) {
   const label    = kind === "regenerate" ? "Rigenerazione piano…" : "Verifica obsoleti…";
 
   workingPlanActionBusy = true;
+  workingPlanSavedLoadToken += 1;
 
   if (regenBtn instanceof HTMLButtonElement) {
     regenBtn.disabled = true;
@@ -7356,14 +7370,13 @@ async function runWorkingPlanAction(kind) {
     statusEl.textContent = label;
   }
 
-  /** @type {Map<string, { className: string, innerHTML: string, hidden: boolean }>} */
-  const preservedSprintStatus = kind === "regenerate" && outputEl
-    ? captureWorkingPlanSprintStatuses(outputEl)
-    : new Map();
-
-  if (outputEl && kind !== "regenerate") {
+  if (outputEl && kind === "regenerate") {
+    outputEl.innerHTML = `<p class="muted working-plan-loading">${escapeHtml(label)}</p>`;
+  } else if (outputEl && kind !== "regenerate") {
     outputEl.innerHTML = "";
   }
+
+  const preservedSprintStatus = new Map();
 
   try {
     const res = await fetch(endpoint, {
@@ -7494,6 +7507,24 @@ async function createJiraSprintFromCard(btn) {
       statusEl.innerHTML = boardUrl
         ? `${message} · <a href="${escapeHtml(boardUrl)}" target="_blank" rel="noopener noreferrer">Apri board</a>`
         : message;
+    }
+
+    if (reportPayload && typeof reportPayload === "object") {
+      if (!reportPayload.jiraSprintStatusByPlanNum || typeof reportPayload.jiraSprintStatusByPlanNum !== "object") {
+        reportPayload.jiraSprintStatusByPlanNum = {};
+      }
+
+      const totalKeys = Array.isArray(block.keys) ? block.keys.length : 0;
+
+      reportPayload.jiraSprintStatusByPlanNum[String(sprintNum)] = {
+        sprintId    : data.sprintId ?? null
+      , sprintName  : data.sprintName ?? block.name
+      , state       : "future"
+      , boardUrl    : typeof data.boardUrl === "string" ? data.boardUrl : ""
+      , matchedKeys : Number(data.issueCount ?? totalKeys)
+      , totalKeys
+      , message     : String(data.message ?? "Sprint creato su Jira")
+      };
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

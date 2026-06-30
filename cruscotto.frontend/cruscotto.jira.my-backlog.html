@@ -256,6 +256,7 @@
 
   <script src="/jira-issue-display.js"></script>
   <script src="/insight-validate.js"></script>
+  <script src="/backlog-sprint-display.js"></script>
   <script>
     const URL_EMBED = new URLSearchParams(globalThis.location.search).get("embed") === "1";
 
@@ -442,6 +443,10 @@
       }
 
       if (row.tier === "sprint" && row.devSprintName) {
+        if (isWorkingPlanBacklogPoolName(row.devSprintName)) {
+          return null;
+        }
+
         return row.devSprintName;
       }
 
@@ -451,7 +456,7 @@
         return fromBoard;
       }
 
-      if (row.devSprintName) {
+      if (row.devSprintName && !isWorkingPlanBacklogPoolName(row.devSprintName)) {
         return row.devSprintName;
       }
 
@@ -481,6 +486,56 @@
       }
 
       return label;
+    }
+
+    /**
+     * Contesto condiviso per badge WP / sprint Jira in colonna Sprint.
+     *
+     * @returns {{ backlogIssueByKey: () => Map<string, typeof backlog.issues[number]>, pickIssueJiraSprintForView: typeof pickIssueJiraSprintForView }}
+     */
+    function sprintDisplayContext() {
+      return {
+        backlogIssueByKey
+      , pickIssueJiraSprintForView
+      };
+    }
+
+    /**
+     * @param {HTMLTableCellElement} td
+     * @param {typeof backlog.issues[number]} row
+     */
+    function populateSprintCell(td, row) {
+      td.className = "col-sprint";
+
+      if (row.tier === "pillar") {
+        td.textContent = "—";
+        td.classList.add("is-empty");
+        td.title = "Raggruppamento per pilastro prodotto";
+        return;
+      }
+
+      const sprintLabel = sprintLabelForBacklogRow(row);
+      const source      = CruscottoSprintDisplay?.resolveSprintDisplaySource(
+        row
+      , sprintDisplayContext()
+      ) ?? null;
+
+      if (CruscottoSprintDisplay?.fillSprintCell) {
+        CruscottoSprintDisplay.fillSprintCell(td, {
+          label : sprintLabel
+        , title : sprintLabel ? sprintCellTitle(row, sprintLabel) : ""
+        , source
+        });
+        return;
+      }
+
+      if (sprintLabel) {
+        td.textContent = sprintLabel;
+        td.title = sprintCellTitle(row, sprintLabel);
+      } else {
+        td.textContent = "—";
+        td.classList.add("is-empty");
+      }
     }
 
     /**
@@ -751,11 +806,19 @@
      * @param {typeof backlog.issues[number]} row
      * @returns {string | null}
      */
+    function isWorkingPlanBacklogPoolName(name) {
+      return CruscottoSprintDisplay?.isWorkingPlanBacklogPoolName?.(name) ?? false;
+    }
+
     function resolveTaskSprintGroupName(row) {
       const picked = pickIssueJiraSprintForView(row.jiraSprints ?? []);
 
       if (picked?.name) {
         return canonicalSprintName(picked.name);
+      }
+
+      if (isWorkingPlanBacklogPoolName(row.devSprintName)) {
+        return null;
       }
 
       return row.devSprintName ?? null;
@@ -4606,23 +4669,7 @@
         }
 
         const sprintTd = document.createElement("td");
-        sprintTd.className = "col-sprint";
-
-        if (row.tier === "pillar") {
-          sprintTd.textContent = "—";
-          sprintTd.classList.add("is-empty");
-          sprintTd.title = "Raggruppamento per pilastro prodotto";
-        } else {
-          const sprintLabel = sprintLabelForBacklogRow(row);
-
-          if (sprintLabel) {
-            sprintTd.textContent = sprintLabel;
-            sprintTd.title = sprintCellTitle(row, sprintLabel);
-          } else {
-            sprintTd.textContent = "—";
-            sprintTd.classList.add("is-empty");
-          }
-        }
+        populateSprintCell(sprintTd, row);
 
         const sumTd = document.createElement("td");
         sumTd.className = "col-title";

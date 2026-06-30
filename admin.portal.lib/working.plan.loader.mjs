@@ -8,4 +8,6 @@ export {
 , collectWorkingPlanKeys
 , applyWorkingPlanToIssues
 , buildDefaultWorkflowInner
+, isWorkingPlanBacklogPoolName
+, isWorkingPlanBacklogPoolBlock
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";

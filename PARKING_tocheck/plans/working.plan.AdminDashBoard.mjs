@@ -67,6 +67,7 @@ export const WORKING_PLAN = [
   {
     sprint: 3,
     name  : "Backlog corrente",
+    backlogPool: true,
     keys  : [
       "ADMIN-73",
       "ADMIN-3", "ADMIN-4", "ADMIN-6", "ADMIN-9", "ADMIN-12", "ADMIN-13",

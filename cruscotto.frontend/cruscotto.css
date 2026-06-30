@@ -557,6 +557,27 @@ main table.wp-table--dev-queue tbody tr:hover {
   background: color-mix(in srgb, var(--pass) 8%, transparent);
 }
 
+.working-plan-report .wp-section--done-mismatch .wp-section-lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+}
+
+.working-plan-report .wp-table.wp-table--done-mismatch tbody tr.is-story-done-sprint-open td {
+  background: color-mix(in srgb, var(--pass) 5%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--done-mismatch tbody tr.is-story-done-sprint-open:hover td.wp-col-data,
+.working-plan-report .wp-table.wp-table--done-mismatch tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-data {
+  background: color-mix(in srgb, var(--pass) 8%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--done-mismatch th.wp-col-status,
+.working-plan-report .wp-table.wp-table--done-mismatch td.wp-col-status {
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-merged,
 .working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-actions {
   user-select: none;
@@ -3592,6 +3613,35 @@ th.col-filter-head.col-dev-order .col-filter-trigger {
 }
 
 .col-sprint.is-empty { color: var(--muted); }
+
+/* Sprint da Working Plan (badge WP) — backlog / MyBacklog colonna Sprint */
+.col-sprint.is-sprint-from-plan .sprint-label-text {
+  color: var(--accent);
+}
+
+.sprint-plan-badge {
+  display: inline-block;
+  margin-right: 0.35em;
+  padding: 0.05em 0.32em;
+  border-radius: 3px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  vertical-align: middle;
+  cursor: help;
+}
+
+th.col-filter-head.col-sprint .col-filter-label::after {
+  content: " · WP";
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.85;
+}
 
 .col-status {
   width: 13%;

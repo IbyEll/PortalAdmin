@@ -177,6 +177,7 @@ const INSIGHT_STATIC_FILES = {
 , "insight-validate.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.toolbar.insight.validate.js")
 , "jira-issue-display.js" : join(PORTAL_LIB_DIR, "issue.display.client.js")
 , "jira-issue-display.css" : join(PORTAL_LIB_DIR, "issue.display.css")
+, "backlog-sprint-display.js" : join(CRUSCOTTO_DIR, "cruscotto.jira.backlog.sprint-display.js")
 };
 
 /** Alias statici cruscotto.frontend (nomi brevi in HTML legacy). */

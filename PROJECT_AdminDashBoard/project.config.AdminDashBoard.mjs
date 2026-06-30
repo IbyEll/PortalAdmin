@@ -37,7 +37,7 @@ export const PROJECT_CONFIG_VALUES = {
 , PRJ_NAME             : "AdminDashboard"
 , PRJ_SLUG             : "admindashboard"
 , PRJ_JIRA_PREFIX      : "ADMIN"
-, PRJ_JIRA_BOARD_ID    : ""
+, PRJ_JIRA_BOARD_ID    : "101"
 , PRJ_GITHUB_OWNER     : "IbyEll"
 , PRJ_GITHUB_REPO      : "PortalAdmin"
 , PRJ_DB_FILENAME      : ""
