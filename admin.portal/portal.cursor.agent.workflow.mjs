@@ -148,7 +148,7 @@ function ghPrUrlForBranch(branch, repo) {
  * @param {string} parentKey
  * @returns {boolean}
  */
-function isTicketWorkflowBranch(branch, parentKey) {
+export function isTicketWorkflowBranch(branch, parentKey) {
   const num    = parentKey.split("-")[1];
   const prefix = getProjectConfig().PRJ_JIRA_PREFIX;
 

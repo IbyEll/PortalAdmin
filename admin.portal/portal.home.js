@@ -34,7 +34,6 @@
 const grid           = document.getElementById("project-grid");
 const instanceStatus = document.getElementById("instance-status");
 const prepareMessage = document.getElementById("prepare-message");
-const prepareLog     = document.getElementById("prepare-log");
 const btnOpen        = document.getElementById("btn-open-cruscotto");
 const btnReloadHint  = document.getElementById("btn-reload-hint");
 const reloadNote     = document.getElementById("reload-note");
@@ -67,18 +66,8 @@ let focusedOverlay = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let pollTimer = null;
 
-/** Ultime righe azioni UI (Avvia/Kill/Apri) — visibili in #prepare-log */
-/** @type {string[]} */
-let uiConsoleLines = [];
-
-/** Tail log prepare (Istanzia) — aggiornato da updatePreparePanel */
-let lastPrepareLogTail = "";
-
-/** Tail log avvio cruscotto — aggiornato da poll durante Apri/Avvia */
-let lastCruscottoLogTail = "";
-
-/** Tail elenco processi Node — aggiornato da listNodeProcesses */
-let lastNodeProcsLogTail = "";
+/** @type {ReturnType<Window["PortalLogConsole"]["mount"]> | null} */
+let portalLogConsole = null;
 
 /** Ultimi pid restituiti da /api/portal/node-processes */
 /** @type {number[]} */
@@ -90,39 +79,27 @@ const OVERLAY_THEME_CLASS = {
 , AdminDashBoard : "theme-admin"
 };
 
-function refreshConsoleDisplay() {
-  /** @type {string[]} */
-  const parts = [];
-
-  if (uiConsoleLines.length > 0) {
-    parts.push("--- azioni HOME (click bottoni) ---", uiConsoleLines.join("\n"));
+function initPortalConsole() {
+  if (!(consolePanel instanceof HTMLElement) || !window.PortalLogConsole) {
+    return;
   }
 
-  if (lastPrepareLogTail) {
-    parts.push("--- prepare (Istanzia) ---", lastPrepareLogTail);
-  }
-
-  if (lastCruscottoLogTail) {
-    parts.push("--- cruscotto (avvio) ---", lastCruscottoLogTail);
-  }
-
-  if (lastNodeProcsLogTail) {
-    parts.push("--- processi Node (product + PortalAdmin) ---", lastNodeProcsLogTail);
-  }
-
-  prepareLog.textContent = parts.join("\n\n");
-
-  if (prepareLog.textContent) {
-    prepareLog.scrollTop = prepareLog.scrollHeight;
-  }
+  portalLogConsole = window.PortalLogConsole.mount({
+    root           : consolePanel
+  , apiPath        : "/api/logs"
+  , clearServerPath: "/api/logs"
+  , sources        : [
+      { id: "all", label: "Tutte le sorgenti" }
+    , { id: "home", label: "HOME" }
+    , { id: "prepare", label: "prepare" }
+    , { id: "dashboard", label: "dashboard" }
+    ]
+  , defaultLevel   : "info"
+  });
 }
 
 function clearConsole() {
-  uiConsoleLines         = [];
-  lastPrepareLogTail     = "";
-  lastCruscottoLogTail   = "";
-  lastNodeProcsLogTail   = "";
-  prepareLog.textContent = "";
+  portalLogConsole?.reset();
 }
 
 /**
@@ -149,13 +126,7 @@ function appendUiConsole(message) {
   , second : "2-digit"
   });
 
-  uiConsoleLines.push(`[${ts}] ${message}`);
-
-  if (uiConsoleLines.length > 100) {
-    uiConsoleLines = uiConsoleLines.slice(-100);
-  }
-
-  refreshConsoleDisplay();
+  portalLogConsole?.logClient("home", "system", `[${ts}] ${message}`);
 }
 
 /**
@@ -313,8 +284,6 @@ function updatePreparePanel(prepare, reloadRequired, port) {
 
   if (!prepare || prepare.status === "idle") {
     prepareMessage.textContent = CONSOLE_IDLE;
-    lastPrepareLogTail         = "";
-    refreshConsoleDisplay();
     btnOpen.disabled           = true;
     btnReloadHint.hidden       = true;
     reloadNote.hidden          = true;
@@ -322,8 +291,6 @@ function updatePreparePanel(prepare, reloadRequired, port) {
   }
 
   prepareMessage.textContent = labels[prepare.status] || String(prepare.status);
-  lastPrepareLogTail         = String(prepare.logTail || "");
-  refreshConsoleDisplay();
 
   btnOpen.disabled     = prepare.status !== "done" || !focusedOverlay;
   btnReloadHint.hidden = !reloadRequired;
@@ -361,9 +328,8 @@ async function refreshPrepare() {
  */
 async function instantiate(overlay) {
   focusedOverlay             = overlay;
-  prepareMessage.textContent = `Avvio istanziazione ${overlay}…`;
-  lastPrepareLogTail         = "";
   appendUiConsole(`click Istanzia — overlay=${overlay}`);
+  prepareMessage.textContent = `Avvio istanziazione ${overlay}…`;
   btnOpen.disabled           = true;
 
   try {
@@ -422,35 +388,6 @@ async function load() {
     , Boolean(inst.reloadRequired)
     , Number(inst.dashboardPort)
     );
-    applyDashboardLogTail(inst.dashboard);
-  }
-}
-
-/**
- * @param {Record<string, unknown> | null | undefined} dashboard
- */
-function applyDashboardLogTail(dashboard) {
-  if (!dashboard || typeof dashboard !== "object") {
-    return;
-  }
-
-  const tail = String(dashboard.logTail ?? "").trim();
-
-  if (tail) {
-    lastCruscottoLogTail = tail;
-    refreshConsoleDisplay();
-  }
-}
-
-/**
- * @param {string} overlay
- */
-async function refreshDashboardLog(overlay) {
-  try {
-    const data = await api(`/api/portal/instance?overlay=${encodeURIComponent(overlay)}`);
-    applyDashboardLogTail(data.instance?.dashboard);
-  } catch {
-    // poll silenzioso
   }
 }
 
@@ -464,10 +401,6 @@ async function waitForFullDashboard(port, overlay, maxMs = 120000) {
   const base     = `http://localhost:${port}`;
 
   while (Date.now() < deadline) {
-    if (overlay) {
-      await refreshDashboardLog(overlay);
-    }
-
     try {
       const res = await fetch(`${base}/api/scripts`, { signal: AbortSignal.timeout(3000) });
 
@@ -556,8 +489,7 @@ async function killCruscotto(overlay, port) {
     );
 
     if (focusedOverlay === overlay) {
-      focusedOverlay       = null;
-      lastCruscottoLogTail = "";
+      focusedOverlay = null;
       updatePreparePanel(null, false);
     }
 
@@ -686,17 +618,14 @@ async function listNodeProcesses() {
 
   try {
     const result = await api("/api/portal/node-processes");
-    const text   = typeof result.text === "string" ? result.text : "";
     const count  = Number(result.count ?? 0);
 
-    lastNodeProcsLogTail = text;
-    lastNodeProcPids     = Array.isArray(result.processes)
+    lastNodeProcPids = Array.isArray(result.processes)
       ? result.processes
         .map((row) => Number(row.pid))
         .filter((pid) => Number.isInteger(pid) && pid > 0)
       : [];
 
-    refreshConsoleDisplay();
     updateNodeKillButtons(lastNodeProcPids.length > 0);
 
     const markers = Array.isArray(result.markers) ? result.markers.length : 0;
@@ -708,10 +637,8 @@ async function listNodeProcesses() {
     const msg = err instanceof Error ? err.message : String(err);
     appendUiConsole(`errore Processi Node: ${msg}`);
     prepareMessage.textContent = msg;
-    lastNodeProcsLogTail       = "";
-    lastNodeProcPids           = [];
+    lastNodeProcPids = [];
     updateNodeKillButtons(false);
-    refreshConsoleDisplay();
   } finally {
     if (btnListNode) {
       btnListNode.disabled = false;
@@ -834,6 +761,8 @@ btnKillNodeAll?.addEventListener("click", () => {
     prepareMessage.textContent = err instanceof Error ? err.message : String(err);
   });
 });
+
+initPortalConsole();
 
 load().catch((err) => {
   instanceStatus.textContent = err instanceof Error ? err.message : String(err);

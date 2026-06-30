@@ -49,6 +49,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { isPortListening, isFullDashboardUp, killDashboardOnPort, spawnDashboardServerProcess } from "./portal.launch.dashboard.mjs";
+import { ingestTextChunk } from "./portal.log.mjs";
 import { isProjectBaseOverlay } from "./overlay/project.overlay.paths.mjs";
 
 const PORTAL_ROOT       = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -406,6 +407,7 @@ function appendPrepareLog(logChunk, overlay) {
   }
 
   current.prepare.logTail = `${current.prepare.logTail}${logChunk}`.slice(-8000);
+  ingestTextChunk("prepare", logChunk);
   upsertInstanceState(current);
 }
 
@@ -432,6 +434,7 @@ function appendDashboardLog(logChunk, overlay) {
   }
 
   current.dashboard.logTail = `${current.dashboard.logTail}${logChunk}`.slice(-8000);
+  ingestTextChunk("dashboard", logChunk);
   upsertInstanceState(current);
 }
 

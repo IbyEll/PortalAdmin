@@ -105,13 +105,44 @@ Singoli servizi:
 }
 
 /**
- * @param {{ ps1: string, mjs: string }} entry
+ * @param {{ ps1: string, mjs: string, serviceId: string, label: string, port: number }} entry
  */
 function spawnServiceEntry(entry) {
+  const captureProductStdio = ["1", "true", "yes"].includes(
+    String(process.env.PORTAL_LOG_PRODUCT_STDIO ?? "").trim().toLowerCase()
+  );
+
+  /**
+   * @param {import("node:child_process").ChildProcess} child
+   */
+  function pipeServiceOutput(child) {
+    if (!captureProductStdio) {
+      return;
+    }
+
+    const prefix = `[${entry.serviceId}] `;
+
+    child.stdout?.on("data", (chunk) => {
+      for (const line of String(chunk).split(/\r?\n/)) {
+        if (line.length > 0) {
+          console.log(`${prefix}${line}`);
+        }
+      }
+    });
+
+    child.stderr?.on("data", (chunk) => {
+      for (const line of String(chunk).split(/\r?\n/)) {
+        if (line.length > 0) {
+          console.error(`${prefix}${line}`);
+        }
+      }
+    });
+  }
+
   if (process.platform === "win32") {
     const ps1Path = join(ELLA_DIR, entry.ps1);
 
-    return spawn(
+    const child = spawn(
       "powershell.exe"
     , [
         "-NoExit"
@@ -124,31 +155,37 @@ function spawnServiceEntry(entry) {
       ]
     , {
         cwd      : portalRoot
-      , detached : true
-      , stdio    : "ignore"
+      , detached : !captureProductStdio
+      , stdio    : captureProductStdio ? ["ignore", "pipe", "pipe"] : "ignore"
       , env      : {
           ...process.env
         , PRODUCT_REPO_PATH: root
         }
       }
     );
+
+    pipeServiceOutput(child);
+    return child;
   }
 
   const mjsPath = join(ELLA_DIR, entry.mjs);
 
-  return spawn(
+  const child = spawn(
     process.execPath
   , [mjsPath, entry.serviceId, "--no-build"]
   , {
       cwd      : portalRoot
-    , detached : true
-    , stdio    : "ignore"
+    , detached : !captureProductStdio
+    , stdio    : captureProductStdio ? ["ignore", "pipe", "pipe"] : "ignore"
     , env      : {
         ...process.env
       , PRODUCT_REPO_PATH: root
       }
     }
   );
+
+  pipeServiceOutput(child);
+  return child;
 }
 
 console.log("cruscotto.process.start.all.services — stack Auth + API + Web");

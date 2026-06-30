@@ -63,6 +63,9 @@ import {
 , getTestScriptDir
 , requireTestScriptDir
 } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+
+const testLog = createLogger("test");
 
 /**
  * @typedef {{
@@ -154,6 +157,57 @@ export function getRunStatus() {
 }
 
 /**
+ * @param {number} [cursor]
+ */
+export function getRunLogs(cursor = 0) {
+  const payload = getLogs({ cursor, source: "test" });
+
+  return {
+    cursor : payload.cursor
+  , lines  : payload.lines
+  , status : getRunStatus()
+  };
+}
+
+/**
+ * @returns {{ ok: boolean }}
+ */
+export function clearRunLogs() {
+  clearLogs({ source: "test", systemMessage: "=== Log test run svuotati ===" });
+  return { ok: true };
+}
+
+function appendTestLog(stream, text) {
+  testLog.write(stream, text);
+}
+
+/**
+ * @param {import("node:child_process").ChildProcess} proc
+ * @param {string[]} scriptOrder
+ */
+function bindTestChildLogs(proc, scriptOrder) {
+  proc.stdout?.on("data", (chunk) => {
+    const text = String(chunk);
+    parseStdout(text, scriptOrder);
+
+    for (const line of text.split(/\r?\n/)) {
+      if (line.trim()) {
+        appendTestLog("stdout", line);
+      }
+    }
+  });
+
+  proc.stderr?.on("data", (chunk) => {
+    const text = String(chunk).trim();
+
+    if (text) {
+      state.error = text;
+      appendTestLog("stderr", text);
+    }
+  });
+}
+
+/**
  * Avvia admin.portal.lib/test.run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
  *
  * @param {string} [productRepoRoot] — legacy; default da PRODUCT_REPO_PATH
@@ -233,6 +287,7 @@ export async function startRun(productRepoRoot, options = {}) {
   }
 
   // 5. Inizializza state prima dello spawn
+  clearLogs({ source: "test", silent: true });
   state.running        = true;
   state.startedAt      = new Date().toISOString();
   state.currentScript  = scriptRel ?? suite;
@@ -266,16 +321,7 @@ export async function startRun(productRepoRoot, options = {}) {
   , stdio : ["ignore", "pipe", "pipe"]
   });
 
-  child.stdout?.on("data", (chunk) => {
-    parseStdout(String(chunk), scriptOrder);
-  });
-
-  child.stderr?.on("data", (chunk) => {
-    const text = String(chunk).trim();
-    if (text) {
-      state.error = text;
-    }
-  });
+  bindTestChildLogs(child, scriptOrder);
 
   child.on("close", (code) => {
     state.running          = false;
@@ -357,6 +403,7 @@ export async function startRunFunzionali(productRepoRoot) {
   ];
 
   // 2. State mode funzionali e spawn script nel product repo
+  clearLogs({ source: "test", silent: true });
   state.running        = true;
   state.startedAt      = new Date().toISOString();
   state.currentScript  = scriptOrder[0];
@@ -373,16 +420,7 @@ export async function startRunFunzionali(productRepoRoot) {
   , stdio : ["ignore", "pipe", "pipe"]
   });
 
-  child.stdout?.on("data", (chunk) => {
-    parseStdout(String(chunk), scriptOrder);
-  });
-
-  child.stderr?.on("data", (chunk) => {
-    const text = String(chunk).trim();
-    if (text) {
-      state.error = text;
-    }
-  });
+  bindTestChildLogs(child, scriptOrder);
 
   child.on("close", (code) => {
     state.running          = false;

@@ -272,7 +272,6 @@
     const INSIGHTS_STORAGE_KEY = "jlo-my-backlog-insights-v1";
     const SNAPSHOT_STORAGE_KEY = "jlo-my-backlog-insights-snapshot-v1";
     const COL_WIDTHS_STORAGE_KEY = "jlo-my-backlog-col-widths-v4";
-    const GOGO_ACTIVE_ROW_KEY = "jlo-backlog-gogo-active-v1";
     const GOGO_PR_STORAGE_KEY = "jlo-mybacklog-gogo-pr-v1";
     const DEV_ORDER_COL_MIN_CH = 11;
     const TABLE_COL_COUNT = 8;
@@ -303,6 +302,8 @@
 
     /** @type {Record<string, { awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null }>} */
     let wipStatusMap = {};
+    /** Parent WIP attivo (fonte: jira_issue_wip) — null dopo purge post-PR. */
+    let wipActiveParentKey = null;
     const PR_POLL_INTERVAL_MS = 45000;
     /** @type {Map<string, number>} */
     const prPollTimers = new Map();
@@ -1093,31 +1094,35 @@
     }
 
     /**
-     * Issue key della riga gogo attiva (persiste fino al prossimo gogo).
+     * Parent WIP attivo per evidenziazione riga (da DB, non sessionStorage).
      *
      * @returns {string}
      */
-    function loadGogoActiveIssueKey() {
-      try {
-        return sessionStorage.getItem(GOGO_ACTIVE_ROW_KEY) ?? "";
-      } catch {
-        return "";
-      }
+    function resolveWipActiveParentKey() {
+      return wipActiveParentKey ?? "";
     }
 
     /**
-     * @param {string} issueKey
+     * @param {string | null | undefined} issueKey
      */
-    function saveGogoActiveIssueKey(issueKey) {
-      try {
-        if (issueKey) {
-          sessionStorage.setItem(GOGO_ACTIVE_ROW_KEY, issueKey);
-        } else {
-          sessionStorage.removeItem(GOGO_ACTIVE_ROW_KEY);
-        }
-      } catch {
-        /* ignore */
+    function setWipActiveParentKey(issueKey) {
+      wipActiveParentKey = issueKey
+        ? String(issueKey).trim().toUpperCase()
+        : null;
+    }
+
+    /**
+     * @param {{ key?: string }} row
+     * @returns {boolean}
+     */
+    function isWipActiveRow(row) {
+      const active = resolveWipActiveParentKey();
+
+      if (!active || !row?.key) {
+        return false;
       }
+
+      return String(row.key).trim().toUpperCase() === active;
     }
 
     function clearGogoRowHighlight() {
@@ -1133,19 +1138,19 @@
     }
 
     /**
-     * Evidenzia riga gogo — una sola attiva per sessione tab.
+     * Evidenzia riga parent WIP — resta finché il bundle non esce da jira_issue_wip.
      *
      * @param {string} issueKey
      */
     function highlightGogoRow(issueKey) {
-      const key = String(issueKey ?? "").trim();
+      const key = String(issueKey ?? "").trim().toUpperCase();
 
       if (!key) {
         return;
       }
 
       clearGogoRowHighlight();
-      saveGogoActiveIssueKey(key);
+      setWipActiveParentKey(key);
 
       const tr = document.querySelector(`tr[data-gogo-key="${CSS.escape(key)}"]`);
 
@@ -1273,13 +1278,44 @@
 
     /** Ripristina «running» o PUSH su riga gogo attiva dopo refresh tabella. */
     async function syncGogoButtonWithAgentStatus() {
-      const activeKey = loadGogoActiveIssueKey();
+      const status = await fetchCursorAgentStatus();
+      /** @type {string | null} */
+      let activeKey = resolveWipActiveParentKey();
+
+      if (!activeKey) {
+        try {
+          const activeRes = await fetch("/api/jira/wip/active");
+
+          if (activeRes.ok) {
+            const active = await activeRes.json();
+
+            if (typeof active.activeParentKey === "string" && active.activeParentKey.trim()) {
+              activeKey = active.activeParentKey.trim().toUpperCase();
+              setWipActiveParentKey(activeKey);
+
+              if (active.byKey && typeof active.byKey === "object") {
+                wipStatusMap = { ...wipStatusMap, ...active.byKey };
+              }
+            }
+          }
+        } catch {
+          /* fallback prompt agent */
+        }
+      }
+
+      if (!activeKey && !status.running && status.status === "finished") {
+        const finishedPrompt = String(status.prompt ?? "");
+        const match          = finishedPrompt.match(/\b((?:ADMIN|JLO)-\d+)\b/i);
+
+        if (match) {
+          activeKey = match[1].toUpperCase();
+        }
+      }
 
       if (!activeKey) {
         return;
       }
 
-      const status = await fetchCursorAgentStatus();
       const prompt = String(status.prompt ?? "");
       const cmd = buildGogoCommand(activeKey);
       const stillRunning = Boolean(status.running) || status.status === "running";
@@ -1310,7 +1346,33 @@
         return;
       }
 
+      if (!stillRunning && status.status === "finished") {
+        try {
+          const res = await fetch("/api/jira/wip/finalize-gogo", {
+            method  : "POST"
+          , headers : { "Content-Type": "application/json" }
+          , body    : JSON.stringify({ key: activeKey })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+
+            if (data.wip && typeof data.wip === "object") {
+              mergeWipStatusEntry(activeKey, data.wip);
+            }
+          }
+        } catch {
+          /* fallback refresh */
+        }
+      }
+
       await refreshWipStatusMap(backlog?.issues ?? []);
+
+      const active = resolveWipActiveParentKey();
+
+      if (active) {
+        highlightGogoRow(active);
+      }
 
       if (!getWipStatus(activeKey)?.awaitingPush) {
         return;
@@ -1389,31 +1451,52 @@
      * @param {Array<{ key?: string, tier?: string, isStoryLike?: boolean }>} issues
      */
     async function refreshWipStatusMap(issues) {
+      try {
+        const activeRes = await fetch("/api/jira/wip/active");
+
+        if (activeRes.ok) {
+          const active = await activeRes.json();
+          const nextKey = typeof active.activeParentKey === "string" && active.activeParentKey.trim()
+            ? active.activeParentKey.trim().toUpperCase()
+            : null;
+
+          setWipActiveParentKey(nextKey);
+          wipStatusMap = active.byKey && typeof active.byKey === "object"
+            ? { ...active.byKey }
+            : {};
+        }
+      } catch {
+        /* mantieni stato precedente */
+      }
+
       const keys = (issues ?? [])
         .filter((row) => row.tier === "task" && isStoryLikeRow(row) && row.key)
         .map((row) => row.key);
 
-      if (keys.length === 0) {
-        wipStatusMap = {};
-        return;
-      }
+      if (keys.length > 0) {
+        try {
+          const res = await fetch(
+            `/api/jira/wip/status?keys=${encodeURIComponent(keys.join(","))}`
+          );
 
-      try {
-        const res = await fetch(
-          `/api/jira/wip/status?keys=${encodeURIComponent(keys.join(","))}`
-        );
+          if (res.ok) {
+            const data = await res.json();
 
-        if (!res.ok) {
-          wipStatusMap = {};
-          return;
+            wipStatusMap = {
+              ...wipStatusMap
+            , ...(data.byKey && typeof data.byKey === "object" ? data.byKey : {})
+            };
+          }
+        } catch {
+          /* bundle attivo già in mappa */
         }
-
-        const data = await res.json();
-        wipStatusMap = data.byKey && typeof data.byKey === "object" ? data.byKey : {};
-        registerPrPollingFromWipMap();
-      } catch {
-        wipStatusMap = {};
       }
+
+      if (!resolveWipActiveParentKey()) {
+        clearGogoRowHighlight();
+      }
+
+      registerPrPollingFromWipMap();
     }
 
     /**
@@ -1595,6 +1678,78 @@
     }
 
     /**
+     * Tendina AC/DoD — position fixed per evitare clip da td overflow e table-wrap scroll.
+     *
+     * @param {HTMLDivElement} wrap
+     */
+    function bindPushTooltipHover(wrap) {
+      const tooltip = wrap.querySelector(".push-tooltip");
+      const btn = wrap.querySelector(".btn-push-row");
+
+      if (!tooltip || !btn) {
+        return;
+      }
+
+      /** @type {number | null} */
+      let hideTimer = null;
+
+      const hide = () => {
+        tooltip.classList.remove("is-floating-open");
+        tooltip.style.display = "";
+        tooltip.style.left = "";
+        tooltip.style.top = "";
+        tooltip.style.transform = "";
+      };
+
+      const place = () => {
+        tooltip.classList.add("is-floating-open");
+        tooltip.style.display = "block";
+        const rect = btn.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.transform = "translateX(-50%)";
+        const height = tooltip.offsetHeight || 96;
+        let top = rect.top - height - 6;
+
+        if (top < 4) {
+          top = rect.bottom + 6;
+        }
+
+        tooltip.style.top = `${Math.round(top)}px`;
+      };
+
+      const show = () => {
+        if (hideTimer != null) {
+          window.clearTimeout(hideTimer);
+          hideTimer = null;
+        }
+
+        place();
+      };
+
+      const scheduleHide = () => {
+        hideTimer = window.setTimeout(() => {
+          if (!wrap.matches(":hover") && !tooltip.matches(":hover")) {
+            hide();
+          }
+        }, 120);
+      };
+
+      wrap.addEventListener("mouseenter", show);
+      wrap.addEventListener("focusin", show);
+      wrap.addEventListener("mouseleave", scheduleHide);
+      wrap.addEventListener("focusout", scheduleHide);
+      tooltip.addEventListener("mouseenter", () => {
+        if (hideTimer != null) {
+          window.clearTimeout(hideTimer);
+          hideTimer = null;
+        }
+      });
+      tooltip.addEventListener("mouseleave", scheduleHide);
+      window.addEventListener("scroll", hide, true);
+      window.addEventListener("resize", hide);
+    }
+
+    /**
      * Step 8 PUSH — sync Jira da WIP, poi close-story (catalogo → push branch → PR).
      *
      * @param {string} issueKey
@@ -1700,12 +1855,13 @@
         }, 2200);
       });
 
-      if (issueKey === loadGogoActiveIssueKey()) {
+      if (isWipActiveRow({ key: issueKey })) {
         btn.classList.add("is-active");
       }
 
       wrap.appendChild(btn);
       wrap.appendChild(tooltip);
+      bindPushTooltipHover(wrap);
 
       return wrap;
     }
@@ -1883,7 +2039,7 @@
         }, 2200);
       });
 
-      if (issueKey === loadGogoActiveIssueKey()) {
+      if (isWipActiveRow({ key: issueKey })) {
         btn.classList.add("is-active");
       }
 
@@ -1908,7 +2064,7 @@
       link.title = `Pull request · ${issueKey}`;
       link.setAttribute("aria-label", `PR ${issueKey}`);
 
-      if (issueKey === loadGogoActiveIssueKey()) {
+      if (isWipActiveRow({ key: issueKey })) {
         link.classList.add("is-active");
       }
 
@@ -1952,6 +2108,7 @@
       }
 
       await refreshWipStatusMap(backlog?.issues ?? []);
+      applyFilters();
 
       const wip   = getWipStatus(issueKey);
 
@@ -2895,6 +3052,12 @@
      * @param {string} status
      */
     function isSubtaskDone(key, status) {
+      const wip = getWipStatus(key);
+
+      if (wip?.inWip && wip.isDone === true) {
+        return true;
+      }
+
       if (doneSet.has(key)) {
         return true;
       }
@@ -4046,6 +4209,27 @@
     }
 
     /**
+     * Stato colonna Status — WIP ha priorità su cache Jira per righe in jira_issue_wip.
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @param {Set<string>} sprintComplete
+     * @returns {string}
+     */
+    function backlogRowStatusLabel(row, sprintComplete) {
+      if (row.tier === "sprint") {
+        return sprintRowStatusLabel(row, sprintComplete);
+      }
+
+      const wip = getWipStatus(row.key, row);
+
+      if (wip?.inWip && typeof wip.status === "string" && wip.status.trim()) {
+        return wip.status;
+      }
+
+      return row.status;
+    }
+
+    /**
      * @param {typeof backlog.issues[number]} row
      * @param {Set<string>} sprintComplete
      * @returns {string}
@@ -4407,7 +4591,7 @@
           tr.dataset.gogoKey = row.key;
         }
 
-        if (row.key && row.key === loadGogoActiveIssueKey()) {
+        if (isWipActiveRow(row)) {
           tr.classList.add("is-gogo-active");
         }
 
@@ -4821,7 +5005,7 @@
         const statusTd = document.createElement("td");
         statusTd.className = "col-status";
 
-        statusTd.textContent = sprintRowStatusLabel(row, sprintComplete);
+        statusTd.textContent = backlogRowStatusLabel(row, sprintComplete);
 
         tr.append(keyTd, sumTd, svilTd, sprintTd, statusTd, relatedTd, relatedSprintTd, devTd);
         tbody.appendChild(tr);

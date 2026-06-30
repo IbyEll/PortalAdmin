@@ -92,6 +92,9 @@ import {
 , shortenNodeCommand
 } from "../admin.portal/portal.list.project.node.processes.mjs";
 import { spawnShellOption } from "../admin.portal.lib/portal.utils.mjs";
+import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+
+const processLog = createLogger("process");
 
 const { PRJ_DB_FILENAME, PRJ_DB_PRISMA_DIR } = getProjectConfig();
 const HAS_PRODUCT_DATABASE                     = projectHasProductDatabase();
@@ -113,8 +116,6 @@ const DASHBOARD_PORT = Number(
   ?? process.env.PORT
   ?? 3999
 );
-const MAX_LOG_LINES = 3000;
-
 const INIT_DATABASE_DEV_SCRIPT  = "cruscotto.database/product.database.init.mjs";
 const START_ALL_SERVICES_SCRIPT = "cruscotto.frontend/cruscotto.process.start.all.services.mjs";
 
@@ -200,7 +201,7 @@ function clearDbSeedState() {
  * }} LogLine
  */
 
-// --- stato orchestratore e ring buffer log console Process ---
+// --- stato orchestratore (ring buffer in portal.log.mjs, source=process) ---
 /** @type {RepoServicesStatus} */
 const state = {
   running   : false
@@ -209,12 +210,6 @@ const state = {
 , error     : null
 , lastMode  : null
 };
-
-/** @type {LogLine[]} */
-let logLines = [];
-
-/** @type {number} */
-let logSeq = 0;
 
 let stdoutBuf = "";
 let stderrBuf = "";
@@ -427,8 +422,8 @@ function runPortalScriptJob(scriptArgs, label) {
       resolve({
         ok
       , error : ok ? undefined : `processo terminato con codice ${code ?? "?"}`
-      , logCursor: logSeq
-      , lines    : [...logLines]
+      , logCursor: currentLogCursor()
+      , lines    : getLogs({ source: "process" }).lines
       });
     });
 
@@ -438,8 +433,8 @@ function runPortalScriptJob(scriptArgs, label) {
       resolve({
         ok    : false
       , error : err.message
-      , logCursor: logSeq
-      , lines    : [...logLines]
+      , logCursor: currentLogCursor()
+      , lines    : getLogs({ source: "process" }).lines
       });
     });
   });
@@ -450,23 +445,17 @@ function runPortalScriptJob(scriptArgs, label) {
  * @param {string} text
  */
 function pushLogLine(stream, text) {
-  const trimmed = text.trimEnd();
+  processLog.write(stream, text);
+}
 
-  if (!trimmed) {
-    return;
-  }
+function resetProcessLogBuffer() {
+  clearLogs({ source: "process", silent: true });
+  stdoutBuf = "";
+  stderrBuf = "";
+}
 
-  logSeq += 1;
-  logLines.push({
-    seq    : logSeq
-  , stream
-  , text   : trimmed
-  , at     : new Date().toISOString()
-  });
-
-  if (logLines.length > MAX_LOG_LINES) {
-    logLines = logLines.slice(-MAX_LOG_LINES);
-  }
+function currentLogCursor() {
+  return getLogs({ source: "process" }).cursor;
 }
 
 /**
@@ -495,11 +484,9 @@ function appendLogChunk(stream, chunk) {
  * Svuota il ring buffer e reinserisce riga di sistema.
  */
 export function clearRepoServicesLogs() {
-  logLines  = [];
-  logSeq    = 0;
+  clearLogs({ source: "process", systemMessage: "— log console svuotata —" });
   stdoutBuf = "";
   stderrBuf = "";
-  pushLogLine("system", "— log console svuotata —");
 }
 
 /**
@@ -508,15 +495,13 @@ export function clearRepoServicesLogs() {
  * @param {number} [cursor]
  */
 export function getRepoServicesLogs(cursor = 0) {
-  const since = Number(cursor) || 0;
-  const lines = logLines.filter((row) => row.seq > since);
-  const next  = logLines.length > 0 ? logLines[logLines.length - 1].seq : since;
+  const payload = getLogs({ cursor, source: "process" });
 
   return {
-    cursor  : next
-  , lines
+    cursor  : payload.cursor
+  , lines   : payload.lines
   , running : state.running
-  , total   : logLines.length
+  , total   : payload.total
   , status  : getRepoServicesStatus()
   };
 }
@@ -700,10 +685,7 @@ export async function startRepoServices(options = {}) {
     };
   }
 
-  logLines  = [];
-  logSeq    = 0;
-  stdoutBuf = "";
-  stderrBuf = "";
+  resetProcessLogBuffer();
 
   state.running   = true;
   state.startedAt = new Date().toISOString();
@@ -737,7 +719,7 @@ export async function startRepoServices(options = {}) {
       return {
         started   : false
       , error     : state.error
-      , logCursor : logSeq
+      , logCursor : currentLogCursor()
       };
     }
   }
@@ -769,7 +751,7 @@ export async function startRepoServices(options = {}) {
       ? `node ${START_ALL_SERVICES_SCRIPT}`
       : formatStartPlan(discovery.plan)
   , services : discovery.services.map((svc) => svc.id)
-  , logCursor: logSeq
+  , logCursor: currentLogCursor()
   };
 }
 
@@ -992,10 +974,7 @@ export async function stopRepoServices(options = {}) {
   , productStackComplete = false
   } = options;
 
-  logLines  = [];
-  logSeq    = 0;
-  stdoutBuf = "";
-  stderrBuf = "";
+  resetProcessLogBuffer();
 
   const startedAt = new Date().toISOString();
   const productName = getProjectConfig().PRJ_NAME;
@@ -1210,8 +1189,8 @@ export async function stopRepoServices(options = {}) {
   , killedPorts
   , stoppedPids
   , stillRunning : state.running
-  , logCursor    : logSeq
-  , lines        : [...logLines]
+  , logCursor    : currentLogCursor()
+  , lines        : getLogs({ source: "process" }).lines
   };
 }
 
@@ -1284,7 +1263,8 @@ export function getProductDatabaseStatus() {
  * @returns {string | undefined}
  */
 function hintDatabaseJobError(label) {
-  const recent = logLines.slice(-80).map((row) => row.text).join("\n");
+  const recentPayload = getLogs({ source: "process" });
+  const recent = recentPayload.lines.slice(-80).map((row) => row.text).join("\n");
 
   if (/EPERM|operation not permitted/i.test(recent)) {
     return `${label}: prisma generate bloccato (file in uso). Usa Kill All, attendi 1–2 s e riprova.`;
@@ -1396,10 +1376,7 @@ export async function startSingleRepoService(serviceId) {
       };
     }
 
-    logLines  = [];
-    logSeq    = 0;
-    stdoutBuf = "";
-    stderrBuf = "";
+    resetProcessLogBuffer();
 
     if (await isFullDashboardUp(targetPort)) {
       pushLogLine("stdout", `Cruscotto già attivo su :${targetPort} (/api/scripts OK)`);
@@ -1408,7 +1385,7 @@ export async function startSingleRepoService(serviceId) {
         started   : true
       , serviceId : "dashboard"
       , pid       : null
-      , logCursor : logSeq
+      , logCursor : currentLogCursor()
       };
     }
 
@@ -1441,7 +1418,7 @@ export async function startSingleRepoService(serviceId) {
       started   : true
     , serviceId : "dashboard"
     , pid       : spawned.pid ?? null
-    , logCursor : logSeq
+    , logCursor : currentLogCursor()
     };
   }
 
@@ -1453,10 +1430,7 @@ export async function startSingleRepoService(serviceId) {
   }
 
   if (PRODUCT_CORE_SERVICE_IDS.includes(serviceId)) {
-    logLines  = [];
-    logSeq    = 0;
-    stdoutBuf = "";
-    stderrBuf = "";
+    resetProcessLogBuffer();
 
     pushLogLine("system", `=== Avvio stack product (${serviceId}) via cruscotto.process.start.all.services ===`);
 
@@ -1467,7 +1441,7 @@ export async function startSingleRepoService(serviceId) {
     , serviceId
     , pid       : null
     , error     : result.ok ? undefined : result.error
-    , logCursor : logSeq
+    , logCursor : currentLogCursor()
     };
   }
 
@@ -1500,7 +1474,7 @@ export async function startSingleRepoService(serviceId) {
     started   : true
   , serviceId : serviceId
   , pid       : spawned.pid ?? null
-  , logCursor : logSeq
+  , logCursor : currentLogCursor()
   };
 }
 
@@ -1533,10 +1507,7 @@ export async function stopSingleRepoService(serviceId) {
       };
     }
 
-    logLines  = [];
-    logSeq    = 0;
-    stdoutBuf = "";
-    stderrBuf = "";
+    resetProcessLogBuffer();
 
     pushLogLine("system", `=== Kill cruscotto su :${targetPort} ===`);
 
@@ -1555,7 +1526,7 @@ export async function stopSingleRepoService(serviceId) {
     , summary : killResult.killed.length > 0
         ? `Kill cruscotto :${targetPort} — ${killResult.killed.length} processo/i`
         : `Nessun listener su :${targetPort}`
-    , logCursor : logSeq
+    , logCursor : currentLogCursor()
     };
   }
 
@@ -1566,10 +1537,7 @@ export async function stopSingleRepoService(serviceId) {
     };
   }
 
-  logLines  = [];
-  logSeq    = 0;
-  stdoutBuf = "";
-  stderrBuf = "";
+  resetProcessLogBuffer();
 
   pushLogLine("system", `=== Kill servizio ${serviceId} ===`);
 
@@ -1757,7 +1725,7 @@ export async function stopSingleRepoService(serviceId) {
   , summary
   , serviceId
   , stoppedPids
-  , logCursor : logSeq
-  , lines     : [...logLines]
+  , logCursor : currentLogCursor()
+  , lines     : getLogs({ source: "process" }).lines
   };
 }

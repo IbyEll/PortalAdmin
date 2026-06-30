@@ -42,4 +42,7 @@ admin.portal/cursor.agent.runtime.state.json
 Thumbs.db
 desktop.ini
 *.log
+# Log file rotante opt-in (ADMIN-167, PORTAL_LOG_FILE=1)
+admin.portal/logs/*
+!admin.portal/logs/.gitkeep
 admin.portal/portal-instances.json

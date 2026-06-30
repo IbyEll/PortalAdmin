@@ -60,7 +60,28 @@ import {
 } from "./portal.cursor.agent.workflow.mjs";
 import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import { syncWipSubtasksFromGitCommits } from "../admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs";
+
+/**
+ * @param {string} workflowKey
+ * @param {"finished" | "error"} status
+ */
+async function runFinalizeWipAfterAgent(workflowKey, status) {
+  if (!workflowKey || status !== "finished") {
+    return;
+  }
+
+  try {
+    await finalizeWipAfterGogo(workflowKey, { closeOpenSubtasks: true });
+    pushLogLine("workflow", `WIP aggiornato — ${workflowKey} pronto per PUSH`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    pushLogLine("stderr", `finalize WIP ${workflowKey} fallito: ${message}`);
+  }
+}
 import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+
+const agentLog = createLogger("agent");
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -106,12 +127,6 @@ const state = {
 , workflowKind: null
 };
 
-/** @type {CursorAgentLogLine[]} */
-let logLines = [];
-
-/** @type {number} */
-let logSeq = 0;
-
 /** @type {import("node:child_process").ChildProcess | null} */
 let child = null;
 
@@ -143,23 +158,11 @@ function stopWipGitSyncPoll() {
  * @param {string} text
  */
 function pushLogLine(stream, text) {
-  const trimmed = text.trimEnd();
+  agentLog.write(stream, text);
+}
 
-  if (!trimmed) {
-    return;
-  }
-
-  logSeq += 1;
-  logLines.push({
-    seq    : logSeq
-  , stream
-  , text   : trimmed
-  , at     : new Date().toISOString()
-  });
-
-  if (logLines.length > 4000) {
-    logLines = logLines.slice(-3000);
-  }
+function currentAgentLogCursor() {
+  return getLogs({ source: "agent" }).cursor;
 }
 
 /**
@@ -223,14 +226,12 @@ export function isCursorAgentActive() {
  * @param {number} [cursor]
  */
 export function getCursorAgentLogs(cursor = 0) {
-  const since = Number(cursor) || 0;
-  const lines = logLines.filter((line) => line.seq > since);
-  const next  = lines.length > 0 ? lines[lines.length - 1].seq : since;
+  const payload = getLogs({ cursor, source: "agent" });
 
   return {
-    cursor : next
-  , lines
-  , status: getCursorAgentStatus()
+    cursor : payload.cursor
+  , lines  : payload.lines
+  , status : getCursorAgentStatus()
   };
 }
 
@@ -318,7 +319,7 @@ function handleWorkerLine(line) {
     const workflowKey = state.workflowKey;
 
     if (line.status === "finished" && workflowKey) {
-      void finalizeWipAfterGogo(workflowKey).catch(() => {});
+      void runFinalizeWipAfterAgent(workflowKey, "finished");
     }
 
     emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");
@@ -556,6 +557,13 @@ export async function startCursorAgent(options) {
       state.pid        = null;
       child            = null;
       stopWipGitSyncPoll();
+
+      const workflowKey = state.workflowKey;
+
+      if (code === 0 && workflowKey) {
+        void runFinalizeWipAfterAgent(workflowKey, "finished");
+      }
+
       pushLogLine("system", `=== Worker terminato (codice ${code ?? "?"}) ===`);
       emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");
       void persistState();
@@ -579,7 +587,7 @@ export async function startCursorAgent(options) {
     started   : true
   , runtime
   , startedAt : state.startedAt
-  , logCursor : logSeq
+  , logCursor : currentAgentLogCursor()
   };
 }
 
@@ -606,9 +614,7 @@ export function cancelCursorAgent() {
  * @returns {{ ok: boolean }}
  */
 export function clearCursorAgentLogs() {
-  logLines = [];
-  logSeq   = 0;
-  pushLogLine("system", "=== Log agent svuotati ===");
+  clearLogs({ source: "agent", systemMessage: "=== Log agent svuotati ===" });
 
   return { ok: true };
 }
