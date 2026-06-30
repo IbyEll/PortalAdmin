@@ -156,8 +156,14 @@ export function buildWipStatusEntry(row) {
       ? (prMergedAt ?? prClosedAt ?? (typeof raw.prLastPolledAt === "string" ? raw.prLastPolledAt : null))
       : null;
 
+  const gogoAwaitingPush = typeof raw.gogoCompletedAt === "string"
+    && raw.gogoCompletedAt.trim()
+    && !prUrl
+    && raw.pushedAt == null
+    && raw.awaitingPush !== false;
+
   return {
-    awaitingPush: raw.awaitingPush === true
+    awaitingPush: raw.awaitingPush === true || gogoAwaitingPush
   , prUrl
   , prTitle
   , prMergedAt

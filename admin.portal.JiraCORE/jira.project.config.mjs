@@ -133,19 +133,31 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
 , meaningfulPathPrefixes : [
     "apps/"
   , "packages/"
+  , "admin.portal.lib/"
+  , "admin.portal.JiraCORE/"
+  , "admin.script.standalone/"
+  , "cruscotto.database/"
+  , "cruscotto.lib/"
+  , "cruscotto.frontend/"
   , "lib/"
   , "server/"
   , "scripts/"
   , "testScript/"
+  , "test.smoke/"
   ]
 , pathPriority           : [
     { prefix: "apps/", priority: 0 }
   , { prefix: "packages/", priority: 1 }
+  , { prefix: "admin.portal.lib/", priority: 2 }
+  , { prefix: "admin.portal.JiraCORE/", priority: 2 }
+  , { prefix: "cruscotto.database/", priority: 2 }
+  , { prefix: "cruscotto.lib/", priority: 2 }
+  , { prefix: "cruscotto.frontend/", priority: 3 }
   , { prefix: "lib/", priority: 3 }
   , { prefix: "server/", priority: 3 }
-  , { prefix: "cruscotto.frontend/", priority: 3 }
   , { prefix: "scripts/", priority: 3 }
-  , { prefix: "Admin/", priority: 3, excludeContains: "cruscotto.frontend/jira" }
+  , { prefix: "admin.script.standalone/", priority: 3 }
+  , { prefix: "test.smoke/", priority: 4 }
   , { prefix: "docs/", priority: 9 }
   ]
 , defaultPathPriority    : 5

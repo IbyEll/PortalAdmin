@@ -4,7 +4,6 @@
 
 import { execFileSync } from "node:child_process";
 
-import { isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
@@ -12,6 +11,11 @@ import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.wor
 import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
 import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";
 import { normalizeIssueKey, parseWipRawFields } from "./jiraCORE.wip.db.mjs";
+import {
+  areAllWipSubtasksDone
+, closeParentWipForPush
+, syncWipSubtasksFromGitCommits
+} from "./jiraCORE.wip.close-subtask.mjs";
 
 /**
  * @param {import("@prisma/client").PrismaClient} db
@@ -253,60 +257,51 @@ export async function finalizeWipAfterGogo(issueKey) {
     return null;
   }
 
-  const hit       = await findJiraIssueInLatestSync(db, key);
-  const cacheRow  = hit?.row ?? null;
-  const raw       = parseWipRawFields(wipRow.rawFields);
-  const git       = readGitSnapshot(key);
-  const pr        = resolvePrUrlForIssueKey(key);
-  const now       = new Date().toISOString();
+  const raw = parseWipRawFields(wipRow.rawFields);
+  const git = readGitSnapshot(key);
+  const pr  = resolvePrUrlForIssueKey(key);
+  const now = new Date().toISOString();
 
-  const children = cacheRow
-    ? await db.jiraIssue.findMany({
-        where  : { parentJiraKey: key, syncRunId: cacheRow.syncRunId }
-      , orderBy: { jiraKey: "asc" }
-      })
-    : [];
+  await syncWipSubtasksFromGitCommits(key);
 
-  const wipChildren = await db.jiraIssueWip.findMany({
+  const wipChildrenFresh = await db.jiraIssueWip.findMany({
     where  : { parentJiraKey: key }
   , orderBy: { jiraKey: "asc" }
   });
 
-  const cacheDone   = cacheRow?.isDone === true
-    || isJiraStatusDone(cacheRow?.status ?? "");
-  const childrenDone = children.length === 0
-    || children.every((child) => child.isDone || isJiraStatusDone(child.status));
-  const hasTicketBranch = git.storyBranches.length > 0;
-  const developmentDone = cacheDone || (childrenDone && hasTicketBranch) || wipRow.isDone === true;
+  const wipSubtasksDone = areAllWipSubtasksDone(wipChildrenFresh);
+  const gogoWorkflow    = typeof raw.gogoStartedAt === "string"
+    || raw.workflowSource === "gogo";
+
+  if (wipSubtasksDone && gogoWorkflow) {
+    const closed = await closeParentWipForPush(key, { git, pr, now });
+
+    if (closed) {
+      return closed;
+    }
+  }
 
   /** @type {Record<string, unknown>} */
   const nextRaw = {
     ...raw
-  , gogoCompletedAt: raw.gogoCompletedAt ?? now
-  , branch         : raw.branch ?? pr.branch ?? git.storyBranches[0] ?? (git.branch !== "—" ? git.branch : null)
-  , commitHash     : raw.commitHash ?? (git.hash !== "—" ? git.hash : null)
+  , branch    : raw.branch ?? pr.branch ?? git.storyBranches[0] ?? (git.branch !== "—" ? git.branch : null)
+  , commitHash: raw.commitHash ?? (git.hash !== "—" ? git.hash : null)
   };
 
   if (pr.prUrl) {
-    nextRaw.prUrl         = pr.prUrl;
-    nextRaw.awaitingPush  = false;
-    nextRaw.pushedAt      = raw.pushedAt ?? now;
-    nextRaw.jiraSyncedAt  = raw.jiraSyncedAt ?? now;
-  } else if (developmentDone) {
-    nextRaw.awaitingPush = true;
-    nextRaw.wipClosedAt  = raw.wipClosedAt ?? now;
-    nextRaw.chiudiParent = true;
+    nextRaw.prUrl        = pr.prUrl;
+    nextRaw.awaitingPush = false;
+    nextRaw.pushedAt     = raw.pushedAt ?? now;
+    nextRaw.jiraSyncedAt = raw.jiraSyncedAt ?? now;
   }
 
   const updated = await db.jiraIssueWip.update({
     where: { jiraKey: key }
   , data : {
-      status    : cacheRow?.status ?? wipRow.status
-    , isDone    : developmentDone || wipRow.isDone
-    , rawFields : JSON.stringify(nextRaw)
-    , syncedAt  : new Date()
+      rawFields: JSON.stringify(nextRaw)
+    , syncedAt : new Date()
     }
   });
 
-  return buildWipAdvancementEntry(updated, wipChildren);
+  return buildWipAdvancementEntry(updated, wipChildrenFresh);
 }
