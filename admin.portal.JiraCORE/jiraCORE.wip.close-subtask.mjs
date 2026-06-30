@@ -264,23 +264,6 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
       const shortHash = hash ? hash.slice(0, 12) : null;
 
       if (child.isDone === true) {
-        if (!shortHash) {
-          continue;
-        }
-
-        const raw = parseWipRawFields(child.rawFields);
-
-        if (raw.commitHash === shortHash) {
-          continue;
-        }
-
-        await db.jiraIssueWip.update({
-          where: { jiraKey: issueKey }
-        , data : {
-            rawFields: JSON.stringify({ ...raw, commitHash: shortHash })
-          , syncedAt : new Date()
-          }
-        });
         continue;
       }
 
@@ -324,7 +307,7 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
 
     await closeWipSubtask(child.jiraKey, {
       parentKey         : key
-    , commitHash        : mapped.hash ? mapped.hash.slice(0, 12) : null
+    , commitHash        : resolveSubtaskCommitHash(key, mapped ?? null, git)
     , skipParentFinalize: true
     });
     closed.push(child.jiraKey);
@@ -335,7 +318,84 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
     await closeParentWipForPush(key);
   }
 
+  await resyncWipCommitHashesFromGit(key);
+
   return { parentKey: key, closed: [...new Set(closed)] };
+}
+
+/**
+ * Allinea commitHash subtask/parent WIP dai commit git su main..branch (anche se già Fatto).
+ *
+ * @param {string} parentKey
+ */
+export async function resyncWipCommitHashesFromGit(parentKey) {
+  const key          = normalizeIssueKey(parentKey);
+  const db           = await openCruscottoDb();
+  const git          = readGitWorkflowInfo(key);
+  const ticketBranch = resolveTicketBranchName(key, git);
+  const commits      = listBranchCommitsSinceMain(ticketBranch);
+  const children     = await loadWipChildren(db, key);
+  const childKeys    = new Set(children.map((row) => row.jiraKey));
+
+  for (const { hash, message } of commits) {
+    const shortHash = hash ? hash.slice(0, 12) : null;
+
+    if (!shortHash) {
+      continue;
+    }
+
+    for (const issueKey of parseIssueKeysFromText(message)) {
+      if (issueKey === key || !childKeys.has(issueKey)) {
+        continue;
+      }
+
+      const child = children.find((row) => row.jiraKey === issueKey);
+
+      if (!child) {
+        continue;
+      }
+
+      const raw = parseWipRawFields(child.rawFields);
+
+      if (raw.commitHash === shortHash) {
+        continue;
+      }
+
+      await db.jiraIssueWip.update({
+        where: { jiraKey: issueKey }
+      , data : {
+          rawFields: JSON.stringify({ ...raw, commitHash: shortHash })
+        , syncedAt : new Date()
+        }
+      });
+    }
+  }
+
+  const parent = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
+
+  if (!parent) {
+    return;
+  }
+
+  const branchTip = shortBranchTipHash(key, git);
+
+  if (!branchTip) {
+    return;
+  }
+
+  const raw = parseWipRawFields(parent.rawFields);
+
+  if (raw.commitHash === branchTip) {
+    return;
+  }
+
+  await db.jiraIssueWip.update({
+    where: { jiraKey: key }
+  , data : {
+      rawFields: JSON.stringify({ ...raw, commitHash: branchTip })
+    , syncedAt : new Date()
+    }
+  });
 }
 
 /**
@@ -432,12 +492,14 @@ export async function closeParentWipForPush(parentKey, opts = {}) {
     ? storedBranch
     : (pr.branch ?? resolveTicketBranchName(key, git) ?? (git.branch !== "—" ? git.branch : null));
 
+  const branchTip = shortBranchTipHash(key, git);
+
   /** @type {Record<string, unknown>} */
   const nextRaw = {
     ...raw
   , gogoCompletedAt: raw.gogoCompletedAt ?? now
   , branch
-  , commitHash     : raw.commitHash ?? shortBranchTipHash(key, git) ?? null
+  , commitHash     : branchTip ?? raw.commitHash ?? null
   , chiudiParent   : true
   , wipClosedAt    : raw.wipClosedAt ?? now
   };
