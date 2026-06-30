@@ -59,6 +59,7 @@ import {
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
 import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
+import { syncWipSubtasksFromGitCommits } from "../admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs";
 import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
@@ -113,6 +114,29 @@ let logSeq = 0;
 
 /** @type {import("node:child_process").ChildProcess | null} */
 let child = null;
+
+/** @type {ReturnType<typeof setInterval> | null} */
+let wipGitSyncTimer = null;
+
+/**
+ * Durante gogo — allinea subtask WIP dai commit git ogni 15s.
+ *
+ * @param {string} parentKey
+ */
+function startWipGitSyncPoll(parentKey) {
+  stopWipGitSyncPoll();
+
+  wipGitSyncTimer = setInterval(() => {
+    void syncWipSubtasksFromGitCommits(parentKey).catch(() => {});
+  }, 15000);
+}
+
+function stopWipGitSyncPoll() {
+  if (wipGitSyncTimer != null) {
+    clearInterval(wipGitSyncTimer);
+    wipGitSyncTimer = null;
+  }
+}
 
 /**
  * @param {"stdout" | "stderr" | "system" | "assistant" | "workflow"} stream
@@ -273,6 +297,7 @@ function handleWorkerLine(line) {
     state.status     = line.status === "finished" ? "finished" : "error";
     state.pid        = null;
     child            = null;
+    stopWipGitSyncPoll();
 
     if (line.status !== "finished" && typeof line.error === "string" && line.error.trim()) {
       state.error = line.error.trim();
@@ -449,6 +474,7 @@ export async function startCursorAgent(options) {
   if (workflow) {
     state.workflowKey  = workflow.parentKey;
     state.workflowKind = workflow.kind;
+    startWipGitSyncPoll(workflow.parentKey);
 
     try {
       const startBlock = await buildWorkflowStartBlock(workflow);
@@ -529,6 +555,7 @@ export async function startCursorAgent(options) {
       state.status     = code === 0 ? "finished" : "error";
       state.pid        = null;
       child            = null;
+      stopWipGitSyncPoll();
       pushLogLine("system", `=== Worker terminato (codice ${code ?? "?"}) ===`);
       emitWorkflowEndIfNeeded(state.status === "finished" ? "finished" : "error");
       void persistState();
@@ -541,6 +568,7 @@ export async function startCursorAgent(options) {
     state.error      = err.message;
     state.pid        = null;
     child            = null;
+    stopWipGitSyncPoll();
     pushLogLine("stderr", err.message);
     void persistState();
   });

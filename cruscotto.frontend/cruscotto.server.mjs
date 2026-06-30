@@ -101,6 +101,10 @@ import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
 import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
 import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import {
+  closeWipSubtask
+, syncWipSubtasksFromGitCommits
+} from "../admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs";
+import {
   analyzeMyProject
 , analyzeProjectOverview
 , getFunzionaliMetaPayload
@@ -1475,6 +1479,40 @@ async function handleApi(req, res, urlPath) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 404, { ok: false, error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/close-subtask" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key  = String(body.key ?? "").trim().toUpperCase();
+      const syncParent = String(body.syncParent ?? body.parentKey ?? "").trim().toUpperCase();
+
+      if (syncParent && /^(ADMIN|JLO)-\d+$/.test(syncParent)) {
+        const synced = await syncWipSubtasksFromGitCommits(syncParent);
+        const advancement = await finalizeWipAfterGogo(syncParent);
+        sendJson(res, 200, { ok: true, key: syncParent, synced, advancement, wip: advancement }, req);
+        return;
+      }
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const commitHash = typeof body.commitHash === "string" ? body.commitHash.trim() : undefined;
+      const result     = await closeWipSubtask(key, { commitHash });
+      sendJson(res, 200, {
+        ok          : true
+      , ...result
+      , wip         : result.advancement
+      , parentWip   : result.parentAdvancement ?? null
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 409, { ok: false, error: message }, req);
     }
 
     return;

@@ -69,7 +69,7 @@ export function parseWorkflowPrompt(prompt) {
 /**
  * @returns {{ branch: string, hash: string, repo: string, storyBranches: string[] }}
  */
-function readGitWorkflowInfo(parentKey) {
+export function readGitWorkflowInfo(parentKey) {
   const repo = getProductRepoPath();
   const num  = parentKey.split("-")[1];
   const prefix = getProjectConfig().PRJ_JIRA_PREFIX;
@@ -348,6 +348,10 @@ export async function buildWorkflowStartBlock(workflow) {
   , "  | Implementazione (agent)      | ⬜    |"
   , "  | ok chiudi subtask            | ⬜    |"
   , "  | chiudi parent                | ⬜    |"
+  , ""
+  , "Ok chiudi (solo jira_issue_wip, no Jira live):"
+  , "  node admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs --key {SUBKEY}"
+  , "  (oppure POST /api/jira/wip/close-subtask con body { key })"
   , ""
   , "Stato repo"
   , gapMd

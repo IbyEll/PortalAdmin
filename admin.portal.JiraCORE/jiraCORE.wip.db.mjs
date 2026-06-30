@@ -102,11 +102,13 @@ export async function loadWipPushBundle(parentKey) {
  * @param {Record<string, unknown>} raw
  */
 export function assertWipReadyForPush(parent, raw) {
-  if (parent.isDone !== true) {
+  const gogoEnded = typeof raw.gogoCompletedAt === "string" && raw.gogoCompletedAt.trim();
+
+  if (parent.isDone !== true && !gogoEnded) {
     throw new Error("Parent WIP non chiuso (is_done=false) — completa step 7 chiudi");
   }
 
-  if (raw.awaitingPush !== true) {
+  if (raw.awaitingPush !== true && !gogoEnded) {
     throw new Error("Parent WIP non in attesa PUSH (awaitingPush≠true)");
   }
 }
