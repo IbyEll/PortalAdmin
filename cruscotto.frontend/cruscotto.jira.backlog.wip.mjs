@@ -55,6 +55,7 @@ import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtF
  *   dodSummary: string | null
  *   isDone: boolean
  *   status: string | null
+ *   inWip?: boolean
  * }} WipStatusEntry */
 
 /** @typedef {'in_progress' | 'subtasks_complete' | 'awaiting_push' | 'published'} WipWorkflowPhase */
@@ -131,9 +132,10 @@ export function parseVeveCheckboxSection(markdown, sectionTitle) {
 
 /**
  * @param {{ jiraKey: string, rawFields?: string | null, isDone?: boolean, status?: string | null }} row
+ * @param {{ inWip?: boolean }} [opts]
  * @returns {WipStatusEntry}
  */
-export function buildWipStatusEntry(row) {
+export function buildWipStatusEntry(row, opts = {}) {
   const raw = parseRawFields(row.rawFields);
   const veveDescription = typeof raw.veveDescription === "string" ? raw.veveDescription : "";
   const ac = parseVeveCheckboxSection(veveDescription, "Acceptance Criteria");
@@ -176,6 +178,7 @@ export function buildWipStatusEntry(row) {
   , dodSummary: dod.length > 0 ? `${dodDone}/${dod.length}` : null
   , isDone    : row.isDone === true
   , status    : row.status ?? null
+  , inWip     : opts.inWip === true
   };
 }
 
@@ -230,7 +233,7 @@ export function resolveWipWorkflowPhase(row, subtaskRows) {
  */
 export function buildWipAdvancementEntry(row, subtaskRows = [], opts = {}) {
   const raw       = parseRawFields(row.rawFields);
-  const status    = buildWipStatusEntry(row);
+  const status    = buildWipStatusEntry(row, { inWip: opts.inWip === true });
   const subtasks  = subtaskRows ?? [];
   const phase     = resolveWipWorkflowPhase(row, subtasks);
   const inWip     = opts.inWip !== false;
@@ -380,7 +383,7 @@ export async function fetchWipStatusByKeys(keys) {
   const byKey = {};
 
   for (const row of rows) {
-    byKey[row.jiraKey] = buildWipStatusEntry(row);
+    byKey[row.jiraKey] = buildWipStatusEntry(row, { inWip: true });
   }
 
   const missing = normalized.filter((key) => !byKey[key]);
@@ -406,4 +409,90 @@ export async function fetchWipStatusByKeys(keys) {
   }
 
   return { byKey };
+}
+
+/**
+ * Parent WIP attivo più recente (gogo) + bundle parent/subtask per UI backlog.
+ *
+ * @returns {Promise<{ activeParentKey: string | null, byKey: Record<string, WipStatusEntry & Partial<WipAdvancementEntry>> }>}
+ */
+export async function fetchActiveWipForUi() {
+  const db     = await openCruscottoDb();
+  const allWip = await db.jiraIssueWip.findMany({
+    orderBy: { syncedAt: "desc" }
+  });
+
+  if (!allWip.length) {
+    return { activeParentKey: null, byKey: {} };
+  }
+
+  /** @type {Set<string>} */
+  const parentKeys = new Set();
+
+  for (const row of allWip) {
+    if (row.parentJiraKey) {
+      parentKeys.add(row.parentJiraKey);
+    }
+  }
+
+  for (const row of allWip) {
+    if (row.parentJiraKey) {
+      continue;
+    }
+
+    const raw = parseRawFields(row.rawFields);
+
+    if (raw.gogoStartedAt || raw.workflowSource === "gogo") {
+      parentKeys.add(row.jiraKey);
+    }
+  }
+
+  if (!parentKeys.size) {
+    return { activeParentKey: null, byKey: {} };
+  }
+
+  /** @type {string | null} */
+  let activeParentKey = null;
+  let latestTs        = 0;
+
+  for (const key of parentKeys) {
+    const row = allWip.find((hit) => hit.jiraKey === key);
+
+    if (!row) {
+      continue;
+    }
+
+    const raw = parseRawFields(row.rawFields);
+    const ts  = Date.parse(
+      typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : (row.syncedAt?.toISOString() ?? "")
+    ) || 0;
+
+    if (ts >= latestTs) {
+      latestTs        = ts;
+      activeParentKey = key;
+    }
+  }
+
+  if (!activeParentKey) {
+    return { activeParentKey: null, byKey: {} };
+  }
+
+  const subtasks = allWip.filter((row) => row.parentJiraKey === activeParentKey);
+  const parent   = allWip.find((row) => row.jiraKey === activeParentKey);
+
+  /** @type {Record<string, WipStatusEntry & Partial<WipAdvancementEntry>>} */
+  const byKey = {};
+
+  if (parent) {
+    byKey[activeParentKey] = {
+      ...buildWipAdvancementEntry(parent, subtasks, { inWip: true })
+    , inWip: true
+    };
+  }
+
+  for (const sub of subtasks) {
+    byKey[sub.jiraKey] = buildWipStatusEntry(sub, { inWip: true });
+  }
+
+  return { activeParentKey, byKey };
 }

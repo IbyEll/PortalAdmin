@@ -4,16 +4,17 @@
 
 import { execFileSync } from "node:child_process";
 
+import { buildWipAdvancementEntry } from "../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
-import { resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
-import { buildWipAdvancementEntry, buildWipStatusEntry } from "../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
+import { isTicketWorkflowBranch, resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";
 import { normalizeIssueKey, parseWipRawFields } from "./jiraCORE.wip.db.mjs";
 import {
   areAllWipSubtasksDone
 , closeParentWipForPush
+, closeRemainingWipSubtasksAfterGogo
 , syncWipSubtasksFromGitCommits
 } from "./jiraCORE.wip.close-subtask.mjs";
 
@@ -239,9 +240,10 @@ export async function enrollIssueInWip(issueKey) {
  * Dopo gogo/agent — allinea WIP e imposta awaitingPush se sviluppo completato.
  *
  * @param {string} issueKey
- * @returns {Promise<ReturnType<typeof buildWipStatusEntry> | null>}
+ * @param {{ closeOpenSubtasks?: boolean }} [opts]
+ * @returns {Promise<ReturnType<typeof buildWipAdvancementEntry> | null>}
  */
-export async function finalizeWipAfterGogo(issueKey) {
+export async function finalizeWipAfterGogo(issueKey, opts = {}) {
   const key = normalizeIssueKey(issueKey);
   const db  = await openCruscottoDb();
 
@@ -264,14 +266,27 @@ export async function finalizeWipAfterGogo(issueKey) {
 
   await syncWipSubtasksFromGitCommits(key);
 
-  const wipChildrenFresh = await db.jiraIssueWip.findMany({
+  let wipChildrenFresh = await db.jiraIssueWip.findMany({
     where  : { parentJiraKey: key }
   , orderBy: { jiraKey: "asc" }
   });
 
-  const wipSubtasksDone = areAllWipSubtasksDone(wipChildrenFresh);
-  const gogoWorkflow    = typeof raw.gogoStartedAt === "string"
+  const gogoWorkflow = typeof raw.gogoStartedAt === "string"
     || raw.workflowSource === "gogo";
+
+  if (
+    gogoWorkflow
+    && opts.closeOpenSubtasks !== false
+    && !areAllWipSubtasksDone(wipChildrenFresh)
+  ) {
+    await closeRemainingWipSubtasksAfterGogo(key, { git, pr, now });
+    wipChildrenFresh = await db.jiraIssueWip.findMany({
+      where  : { parentJiraKey: key }
+    , orderBy: { jiraKey: "asc" }
+    });
+  }
+
+  const wipSubtasksDone = areAllWipSubtasksDone(wipChildrenFresh);
 
   if (wipSubtasksDone && gogoWorkflow) {
     const closed = await closeParentWipForPush(key, { git, pr, now });
@@ -281,10 +296,17 @@ export async function finalizeWipAfterGogo(issueKey) {
     }
   }
 
+  const ticketBranch = pr.branch
+    ?? (git.storyBranches.find((branch) => isTicketWorkflowBranch(branch, key)) ?? null);
+  const storedBranch = typeof raw.branch === "string" ? raw.branch.trim() : "";
+  const branch       = isTicketWorkflowBranch(storedBranch, key)
+    ? storedBranch
+    : ticketBranch;
+
   /** @type {Record<string, unknown>} */
   const nextRaw = {
     ...raw
-  , branch    : raw.branch ?? pr.branch ?? git.storyBranches[0] ?? (git.branch !== "—" ? git.branch : null)
+  , branch    : branch ?? raw.branch ?? null
   , commitHash: raw.commitHash ?? (git.hash !== "—" ? git.hash : null)
   };
 

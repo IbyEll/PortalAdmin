@@ -1214,6 +1214,78 @@
     }
 
     /**
+     * Tendina AC/DoD — position fixed per evitare clip da td overflow e table-wrap scroll.
+     *
+     * @param {HTMLDivElement} wrap
+     */
+    function bindPushTooltipHover(wrap) {
+      const tooltip = wrap.querySelector(".push-tooltip");
+      const btn = wrap.querySelector(".btn-push-row");
+
+      if (!tooltip || !btn) {
+        return;
+      }
+
+      /** @type {number | null} */
+      let hideTimer = null;
+
+      const hide = () => {
+        tooltip.classList.remove("is-floating-open");
+        tooltip.style.display = "";
+        tooltip.style.left = "";
+        tooltip.style.top = "";
+        tooltip.style.transform = "";
+      };
+
+      const place = () => {
+        tooltip.classList.add("is-floating-open");
+        tooltip.style.display = "block";
+        const rect = btn.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.transform = "translateX(-50%)";
+        const height = tooltip.offsetHeight || 96;
+        let top = rect.top - height - 6;
+
+        if (top < 4) {
+          top = rect.bottom + 6;
+        }
+
+        tooltip.style.top = `${Math.round(top)}px`;
+      };
+
+      const show = () => {
+        if (hideTimer != null) {
+          window.clearTimeout(hideTimer);
+          hideTimer = null;
+        }
+
+        place();
+      };
+
+      const scheduleHide = () => {
+        hideTimer = window.setTimeout(() => {
+          if (!wrap.matches(":hover") && !tooltip.matches(":hover")) {
+            hide();
+          }
+        }, 120);
+      };
+
+      wrap.addEventListener("mouseenter", show);
+      wrap.addEventListener("focusin", show);
+      wrap.addEventListener("mouseleave", scheduleHide);
+      wrap.addEventListener("focusout", scheduleHide);
+      tooltip.addEventListener("mouseenter", () => {
+        if (hideTimer != null) {
+          window.clearTimeout(hideTimer);
+          hideTimer = null;
+        }
+      });
+      tooltip.addEventListener("mouseleave", scheduleHide);
+      window.addEventListener("scroll", hide, true);
+      window.addEventListener("resize", hide);
+    }
+
+    /**
      * Step 8 PUSH — sync Jira da WIP, poi close-story (catalogo → push branch → PR).
      *
      * @param {string} issueKey
@@ -1319,6 +1391,7 @@
 
       wrap.appendChild(btn);
       wrap.appendChild(tooltip);
+      bindPushTooltipHover(wrap);
 
       return wrap;
     }
