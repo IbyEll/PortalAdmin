@@ -121,4 +121,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-98"
+  , label : "ok"
+  , paths : [
+      "lib"
+      , "admin.portal.JiraCORE"
+      , "scripts"
+      , "admin.portal.lib"
+      , "admin.script.standalone"
+      , "test.smoke"
+    ]
+  }
+
 ];

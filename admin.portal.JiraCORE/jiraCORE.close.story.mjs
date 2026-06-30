@@ -27,7 +27,7 @@
  * Input:
  *   - argv --key, --branch, --dry-run, --pillar — ticket e opzioni chiudi
  *   - git + gh — branch corrente, push origin, pr create/list
- *   - PRODUCT_REPO_PATH — scan path catalogo via signals.catalog.implementation
+ *   - PRODUCT_REPO_PATH — repo workflow per branch, push e commit catalogo
  *
  * Uso:
  *   - node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key JLO-930
@@ -58,8 +58,10 @@ import { execFileSync } from "node:child_process";
 import "../admin.portal.lib/portal.load.env.mjs";
 
 import {
-  commitCatalogUpdate
+  assertSignalsCatalogCommitted
+, commitCatalogUpdate
 , ensureRepoImplementationSignal
+, resolveSignalsCatalogGitRoot
 } from "./JiraCORE.signals.catalog.implementation.mjs";
 
 import {
@@ -68,14 +70,14 @@ import {
 , syncChiudiParentToJira
 } from "./jiraCORE.workflow.description.mjs";
 
-import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 import {
   commitPillarPortalUpdate
 , updatePillarPortalForTicket
 } from "../admin.script.standalone/pillar-matrix-targeted.mjs";
 
-const REPO_ROOT = getPortalRoot();
+const REPO_ROOT = getProductRepoPath();
 
 const PREFIXES = ["STORY---", "BUG---", "TODO---"];
 const LEGACY_KEY_RE = /^(JLO|ADMIN)-\d+/;
@@ -312,15 +314,28 @@ function parseArgs(argv) {
  * @param {boolean} dryRun
  */
 function updateImplementationCatalog(ticketKey, branch, dryRun) {
-  const catalog = ensureRepoImplementationSignal(ticketKey, branch, { dryRun });
+  const catalogGitRoot = resolveSignalsCatalogGitRoot();
+  const catalog        = ensureRepoImplementationSignal(ticketKey, branch, { dryRun });
 
-  if (!catalog.updated || dryRun) {
-    return catalog;
+  if (dryRun) {
+    return { ...catalog, gitRoot: catalogGitRoot };
   }
 
-  const commit = commitCatalogUpdate(ticketKey);
+  const commit = commitCatalogUpdate(ticketKey, { cwd: catalogGitRoot, branch });
 
-  return { ...catalog, commit: commit ?? undefined };
+  if (catalog.updated && !commit) {
+    throw new Error(
+      "catalogo segnali aggiornato ma commit assente — verifica git status sul file signals.catalog"
+    );
+  }
+
+  assertSignalsCatalogCommitted(catalogGitRoot);
+
+  return {
+    ...catalog
+  , gitRoot : catalogGitRoot
+  , commit  : commit ?? undefined
+  };
 }
 
 function resolveBranch({ key, branch }) {
@@ -398,14 +413,7 @@ async function main() {
   const out                                            = { ok: false };
 
   try {
-    // 2. Working tree pulito — stop se modifiche non committate (salvo dry-run)
-    const porcelain = run("git", ["status", "--porcelain"], { allowFail: true });
-
-    if (porcelain && !dryRun) {
-      throw new Error("working tree non pulito — committa o stash manualmente");
-    }
-
-    // 3. Branch ticket — da argv, corrente o lista git per key
+    // 2. Branch ticket — da argv, corrente o lista git per key
     const branch    = resolveBranch({ key, branch: branchArg });
     const ticketKey = key ?? branch.match(/(JLO|ADMIN)-\d+/i)?.[0]?.toUpperCase() ?? null;
 
@@ -445,6 +453,7 @@ async function main() {
     if (ticketKey) {
       out.catalog = updateImplementationCatalog(ticketKey, branch, false);
       out.pillar  = await runPillarPortalUpdate(ticketKey, { skip: skipPillar });
+      assertSignalsCatalogCommitted(resolveSignalsCatalogGitRoot());
     }
 
     const hasRemote = Boolean(run("git", ["rev-parse", `origin/${branch}`], { allowFail: true }));

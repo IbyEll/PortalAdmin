@@ -1289,23 +1289,84 @@ export function ensureRepoImplementationSignal(key, branch, opts = {}) {
 }
 
 /**
+ * Root git dove è versionato il file catalogo segnali (product repo se il path cade sotto PRODUCT_REPO_PATH).
+ *
+ * @returns {string}
+ */
+export function resolveSignalsCatalogGitRoot() {
+  const catalogAbs  = projectSignalsFile();
+  const productRoot = getProductRepoPath();
+  const resolved    = catalogAbs.replace(/\\/g, "/");
+  const productPosix = productRoot.replace(/\\/g, "/");
+
+  if (resolved === productPosix || resolved.startsWith(`${productPosix}/`)) {
+    return productRoot;
+  }
+
+  return PORTAL_ROOT;
+}
+
+/**
+ * Path catalogo relativi al git root indicato, con modifiche non committate.
+ *
+ * @param {string} [gitRoot]
+ * @returns {string[]}
+ */
+export function listDirtySignalsCatalogRelPaths(gitRoot = resolveSignalsCatalogGitRoot()) {
+  return listSignalsCatalogFiles()
+    .map((abs) => posix.relative(gitRoot, abs).split("\\").join("/"))
+    .filter((rel) => rel && !rel.startsWith(".."))
+    .filter((rel) => runGitIn(gitRoot, "git", ["status", "--porcelain", rel], { allowFail: true }));
+}
+
+/**
+ * @param {string} [gitRoot]
+ */
+export function assertSignalsCatalogCommitted(gitRoot = resolveSignalsCatalogGitRoot()) {
+  const dirty = listDirtySignalsCatalogRelPaths(gitRoot);
+
+  if (dirty.length > 0) {
+    throw new Error(
+      `catalogo segnali non committato prima del push: ${dirty.join(", ")}`
+    );
+  }
+}
+
+/**
  * Esegue git add + commit sui file catalogo segnali modificati.
- * Usato da admin.portal.JiraCORE/jiraCORE.close.story.mjs dopo aggiornamento PRODUCT_REPO_SIGNALS / PORTAL_ADMIN_REPO_SIGNALS.
+ * Usato da admin.portal.JiraCORE/jiraCORE.close.story.mjs dopo aggiornamento PRODUCT_REPO_SIGNALS.
  *
  * @param {string} key
+ * @param {{ cwd?: string, branch?: string }} [opts]
  * @returns {string | null} short-hash del commit, oppure null se nessuna modifica
  */
-export function commitCatalogUpdate(key) {
-  const dirty = listSignalsCatalogFiles()
-    .map((abs) => posix.relative(PORTAL_ROOT, abs).split("\\").join("/"))
-    .filter((rel) => runGitIn(PORTAL_ROOT, "git", ["status", "--porcelain", rel], { allowFail: true }));
+export function commitCatalogUpdate(key, opts = {}) {
+  const cwd     = opts.cwd ?? resolveSignalsCatalogGitRoot();
+  const branch  = typeof opts.branch === "string" ? opts.branch.trim() : "";
+
+  if (branch) {
+    const listed = runGitIn(cwd, "git", ["branch", "--list", branch], { allowFail: true })
+      .split("\n")
+      .map((line) => line.replace(/^\*?\s+/, "").trim())
+      .filter(Boolean);
+
+    if (listed.includes(branch)) {
+      const current = runGitIn(cwd, "git", ["branch", "--show-current"], { allowFail: true });
+
+      if (current && current !== branch) {
+        runGitIn(cwd, "git", ["checkout", branch]);
+      }
+    }
+  }
+
+  const dirty = listDirtySignalsCatalogRelPaths(cwd);
 
   if (dirty.length === 0) {
     return null;
   }
 
-  runGitIn(PORTAL_ROOT, "git", ["add", ...dirty]);
-  runGitIn(PORTAL_ROOT, "git", ["commit", "-m", `${key} REPO_IMPLEMENTATION_SIGNALS catalogo`]);
+  runGitIn(cwd, "git", ["add", ...dirty]);
+  runGitIn(cwd, "git", ["commit", "-m", `${key} REPO_IMPLEMENTATION_SIGNALS catalogo`]);
 
-  return runGitIn(PORTAL_ROOT, "git", ["rev-parse", "--short", "HEAD"], { allowFail: true }) || "committed";
+  return runGitIn(cwd, "git", ["rev-parse", "--short", "HEAD"], { allowFail: true }) || "committed";
 }
