@@ -358,8 +358,20 @@ let cursorAgentPollTimer = null;
 /** @type {number} */
 let cursorAgentLogCursor = 0;
 
+/** Filtro livello log Cursor Agent (ADMIN-164). */
+let cursorAgentLogLevelFilter = "all";
+
 /** @type {number} */
 let processLogCursor = 0;
+
+/** Filtro livello log Process (ADMIN-164). */
+let processLogLevelFilter = "all";
+
+/** Filtro sorgente log unificato (ADMIN-164). */
+let processLogSourceFilter = "process";
+
+/** @type {number} */
+let runLogCursor = 0;
 
 /** Tab console process attiva. */
 let processConsoleActiveTab = "all";
@@ -741,9 +753,10 @@ function renderProcessConsoleTabsMarkup() {
  * @param {string} stream
  * @param {string} text
  */
-function appendProcessConsoleLineToPane(pane, stream, text) {
+function appendProcessConsoleLineToPane(pane, stream, text, level) {
   const lineEl = document.createElement("div");
-  lineEl.className = `process-console-line process-console-${stream}`;
+  const lvl    = level ? ` process-console-level-${level}` : "";
+  lineEl.className = `process-console-line process-console-${stream}${lvl}`;
   lineEl.innerHTML = formatProcessConsoleLineHtml(text);
   pane.appendChild(lineEl);
 }
@@ -1573,10 +1586,32 @@ function formatProcessConsoleLineHtml(text) {
 }
 
 /**
+ * @param {Record<string, unknown>} row
+ * @param {string} levelFilter
+ */
+function logRowPassesLevelFilter(row, levelFilter) {
+  if (levelFilter === "all") {
+    return true;
+  }
+
+  /** @type {Record<string, number>} */
+  const rank = { debug: 0, info: 1, warn: 2, error: 3 };
+  const level = String(row.level ?? "info").toLowerCase();
+  const min   = rank[levelFilter] ?? 1;
+  const rowRank = rank[level] ?? 1;
+
+  return rowRank >= min;
+}
+
+/**
  * @param {Array<Record<string, unknown>>} lines
  */
 function appendProcessConsoleLines(lines) {
   for (const row of lines) {
+    if (!logRowPassesLevelFilter(row, processLogLevelFilter)) {
+      continue;
+    }
+
     const stream = String(row.stream ?? "stdout");
     const text   = String(row.text ?? "");
     const tabIds = classifyProcessLogLine(text);
@@ -1585,12 +1620,26 @@ function appendProcessConsoleLines(lines) {
       const pane = getProcessConsolePane(tabId);
 
       if (pane instanceof HTMLElement) {
-        appendProcessConsoleLineToPane(pane, stream, text);
+        appendProcessConsoleLineToPane(pane, stream, text, String(row.level ?? "info"));
       }
     }
   }
 
   scrollProcessConsoleIfFollow();
+}
+
+async function pollRunLogs() {
+  try {
+    const data  = await apiGet(`/api/run/logs?cursor=${runLogCursor}`);
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+
+    if (lines.length > 0) {
+      appendProcessConsoleLines(lines);
+      runLogCursor = typeof data.cursor === "number" ? data.cursor : runLogCursor;
+    }
+  } catch {
+    // poll silenzioso
+  }
 }
 
 function scrollProcessConsoleIntoView() {
@@ -1766,7 +1815,13 @@ function startProcessConsolePolling() {
 
 async function pollProcessConsoleLogs() {
   try {
-    const data = await apiGet(`/api/repo/services/logs?cursor=${processLogCursor}`);
+    const source = processLogSourceFilter !== "all" ? processLogSourceFilter : "process";
+    const [data, statusData] = await Promise.all([
+      apiGet(`/api/logs?cursor=${processLogCursor}&source=${encodeURIComponent(source)}&extended=1`)
+    , source === "process" || processLogSourceFilter === "all"
+        ? apiGet(`/api/repo/services/logs?cursor=${processLogCursor}`)
+        : Promise.resolve(null)
+    ]);
     const lines = Array.isArray(data.lines) ? data.lines : [];
 
     if (lines.length > 0) {
@@ -1774,17 +1829,19 @@ async function pollProcessConsoleLogs() {
       processLogCursor = typeof data.cursor === "number" ? data.cursor : processLogCursor;
     }
 
+    const statusPayload = statusData && typeof statusData === "object" ? statusData : data;
+
     const badge = document.getElementById("process-console-running");
 
     if (badge) {
-      badge.textContent = data.running ? "in esecuzione" : "fermo";
-      badge.classList.toggle("is-running", Boolean(data.running));
+      badge.textContent = statusPayload.running ? "in esecuzione" : "fermo";
+      badge.classList.toggle("is-running", Boolean(statusPayload.running));
     }
 
     const statusEl = document.getElementById("process-start-status");
 
-    if (statusEl && data.status && typeof data.status === "object") {
-      const launchStatus = /** @type {Record<string, unknown>} */ (data.status);
+    if (statusEl && statusPayload.status && typeof statusPayload.status === "object") {
+      const launchStatus = /** @type {Record<string, unknown>} */ (statusPayload.status);
 
       if (launchStatus.running) {
         const pid = launchStatus.pid != null ? String(launchStatus.pid) : "—";
@@ -5194,6 +5251,8 @@ async function refreshRunViewsFromApi() {
 }
 
 function pollRunStatus() {
+  runLogCursor = 0;
+
   if (pollTimer) {
     clearInterval(pollTimer);
   }
@@ -5212,6 +5271,8 @@ function pollRunStatus() {
       clearInterval(/** @type {number} */ (pollTimer));
       pollTimer = null;
     }
+
+    await pollRunLogs();
   };
 
   void tick();
@@ -5438,6 +5499,25 @@ async function renderProcess(report) {
           <p class="muted">Output in tempo reale — tab <strong>Tutti</strong> o per singolo servizio.</p>
         </div>
         <div class="process-console-tools">
+          <label class="portal-log-filter">
+            <span class="muted">Livello</span>
+            <select id="process-log-level" aria-label="Filtro livello log">
+              <option value="all">tutti</option>
+              <option value="debug">debug+</option>
+              <option value="info" selected>info+</option>
+              <option value="warn">warn+</option>
+              <option value="error">error</option>
+            </select>
+          </label>
+          <label class="portal-log-filter">
+            <span class="muted">Sorgente</span>
+            <select id="process-log-source" aria-label="Filtro sorgente log">
+              <option value="process" selected>process</option>
+              <option value="test">test</option>
+              <option value="agent">agent</option>
+              <option value="all">all</option>
+            </select>
+          </label>
           <span id="process-console-running" class="process-console-badge">—</span>
           <label class="process-console-follow-label">
             <input type="checkbox" id="process-console-follow" checked />
@@ -5566,6 +5646,8 @@ async function hydrateProcessStack(root) {
   const clearBtn  = root.querySelector("#btn-process-console-clear");
   const clearViewBtn = root.querySelector("#btn-process-clear-console");
   const instancesBtn = root.querySelector("#btn-process-console-instances");
+  const levelFilterEl = root.querySelector("#process-log-level");
+  const sourceFilterEl = root.querySelector("#process-log-source");
   const retryBtn  = root.querySelector("#btn-process-retry-discovery");
   const stopBtn   = root.querySelector("#btn-process-stop-stack");
   const refreshProcBtn = root.querySelector("#btn-process-refresh-processes");
@@ -5573,6 +5655,21 @@ async function hydrateProcessStack(root) {
 
   if (!tableEl || !refreshProcBtn || !retryBtn) {
     return;
+  }
+
+  if (levelFilterEl instanceof HTMLSelectElement) {
+    levelFilterEl.addEventListener("change", () => {
+      processLogLevelFilter = levelFilterEl.value;
+    });
+  }
+
+  if (sourceFilterEl instanceof HTMLSelectElement) {
+    sourceFilterEl.addEventListener("change", async () => {
+      processLogSourceFilter = sourceFilterEl.value;
+      processLogCursor         = 0;
+      clearProcessConsolePanes();
+      await reloadProcessConsole(true);
+    });
   }
 
   if (showBulkFooter && (!statusEl || !cliEl || !coreBtn || !fullBtn)) {
@@ -6476,7 +6573,8 @@ async function hydrateProcessStack(root) {
     }
 
     try {
-      const data  = await apiGet(`/api/repo/services/logs?cursor=${cursor}`);
+      const source = processLogSourceFilter !== "all" ? processLogSourceFilter : "process";
+      const data  = await apiGet(`/api/logs?cursor=${cursor}&source=${encodeURIComponent(source)}&extended=1`);
       const lines = Array.isArray(data.lines) ? data.lines : [];
 
       appendProcessConsoleLines(lines);
@@ -7029,10 +7127,14 @@ async function pollCursorAgentLogs() {
   }
 
   try {
-    const data = await apiGet(`/api/cursor/agent/logs?cursor=${cursorAgentLogCursor}`);
+    const data = await apiGet(`/api/logs?cursor=${cursorAgentLogCursor}&source=agent&extended=1`);
     const lines = Array.isArray(data.lines) ? data.lines : [];
 
     for (const line of lines) {
+      if (!logRowPassesLevelFilter(line, cursorAgentLogLevelFilter)) {
+        continue;
+      }
+
       appendCursorAgentLogLine(outputEl, /** @type {{ text?: string, stream?: string }} */ (line));
     }
 
@@ -7574,6 +7676,15 @@ async function renderCursorAgent() {
           <p class="muted" id="cursor-agent-status-line">Caricamento…</p>
         </div>
         <div class="process-console-tools">
+          <label class="portal-log-filter">
+            <span class="muted">Livello</span>
+            <select id="cursor-agent-log-level" aria-label="Filtro livello log agent">
+              <option value="all">tutti</option>
+              <option value="info" selected>info+</option>
+              <option value="warn">warn+</option>
+              <option value="error">error</option>
+            </select>
+          </label>
           <span class="process-console-badge" id="cursor-agent-badge">idle</span>
         </div>
       </div>
@@ -7604,6 +7715,13 @@ async function renderCursorAgent() {
   const cancelBtn  = document.getElementById("cursor-agent-cancel");
   const clearBtn   = document.getElementById("cursor-agent-clear");
   const templateBtn = document.getElementById("cursor-agent-template-gogo");
+  const levelFilterEl = document.getElementById("cursor-agent-log-level");
+
+  if (levelFilterEl instanceof HTMLSelectElement) {
+    levelFilterEl.addEventListener("change", () => {
+      cursorAgentLogLevelFilter = levelFilterEl.value;
+    });
+  }
 
   templateBtn?.addEventListener("click", () => {
     if (promptEl instanceof HTMLTextAreaElement) {

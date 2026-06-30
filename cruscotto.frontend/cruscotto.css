@@ -2445,6 +2445,27 @@ body.ttecnici-modal-open { overflow: hidden; }
   cursor: pointer;
 }
 
+.portal-log-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.portal-log-filter select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.process-console-line.process-console-level-error { color: #fca5a5; }
+.process-console-line.process-console-level-warn  { color: #fcd34d; }
+.process-console-line.process-console-level-debug { color: #94a3b8; }
+
 .process-console-badge {
   display: inline-block;
   padding: 0.15rem 0.55rem;
@@ -3406,7 +3427,15 @@ tr.is-gogo-active .btn-gogo-row.is-active {
 
 .push-wrap {
   position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
   flex-shrink: 0;
+  z-index: 1;
+}
+
+.push-wrap:hover, .push-wrap:focus-within {
+  z-index: 120;
 }
 
 .btn-push-row {
@@ -3440,9 +3469,11 @@ tr.is-gogo-active .btn-gogo-row.is-active {
 .push-tooltip {
   display: none;
   position: absolute;
-  left: 0;
-  top: calc(100% + 4px);
-  z-index: 50;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 6px);
+  top: auto;
+  z-index: 121;
   min-width: 14rem;
   max-width: 22rem;
   padding: 0.45rem 0.55rem;
@@ -3456,11 +3487,31 @@ tr.is-gogo-active .btn-gogo-row.is-active {
   border: 1px solid var(--border, #3a4048);
   border-radius: 4px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
+  pointer-events: auto;
 }
 
-.push-wrap:hover .push-tooltip, .push-wrap:focus-within .push-tooltip {
+/* Ponte hover tra bottone e tendina */
+.push-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 8px;
+}
+
+.btn-push-row:hover + .push-tooltip,
+.push-wrap:hover .push-tooltip,
+.push-wrap:focus-within .push-tooltip,
+.push-tooltip:hover {
   display: block;
+}
+
+.push-tooltip.is-floating-open {
+  display: block !important;
+  position: fixed !important;
+  z-index: 10000;
+  bottom: auto;
 }
 
 .push-tooltip-heading {
@@ -5705,6 +5756,18 @@ col.col-key {
   white-space: nowrap;
   text-align: center;
   vertical-align: middle;
+  overflow: visible;
+}
+
+th.col-svil, td.col-svil {
+  overflow: visible;
+  position: relative;
+}
+
+tr:has(.push-wrap:hover) td.col-svil,
+tr:has(.push-wrap:focus-within) td.col-svil {
+  z-index: 4;
+  overflow: visible;
 }
 
 .svil-cell {
@@ -5715,6 +5778,8 @@ col.col-key {
   min-width: 0;
   flex-wrap: nowrap;
   white-space: nowrap;
+  overflow: visible;
+  position: relative;
 }
 
 /* Colonna Svil — ghost outline come Process Avvia */
