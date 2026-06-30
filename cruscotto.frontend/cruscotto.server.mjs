@@ -96,7 +96,7 @@ import {
 , ensureWorkingPlanLoaded
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
+import { fetchActiveWipForUi, fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
 import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
 import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
@@ -113,7 +113,7 @@ import {
 , TECNICI_ANALYSIS_HTML
 , TECNICI_ANALYSIS_JSON
 } from "../admin.portal.lib/overlay/dashboard.project.mjs";
-import { getRunStatus, isRunActive, startRun, startRunFunzionali } from "./cruscotto.testscript.manager.mjs";
+import { getRunStatus, getRunLogs, isRunActive, startRun, startRunFunzionali } from "./cruscotto.testscript.manager.mjs";
 import {
   cancelCursorAgent
 , clearCursorAgentLogs
@@ -168,6 +168,7 @@ import {
 } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { runCruscottoMigrateDeploy } from "../cruscotto.database/cruscotto.db.migrate.mjs";
 import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
+import { clearLogs, getLogs } from "../admin.portal.lib/portal.log.mjs";
 
 // --- configurazione server — path cruscotto e porta HTTP ---
 const SERVER_DIR    = dirname(fileURLToPath(import.meta.url));
@@ -1055,6 +1056,41 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/logs" && req.method === "GET") {
+    const url    = new URL(req.url ?? "", "http://localhost");
+    const cursor = Number(url.searchParams.get("cursor") ?? "0");
+    const source = url.searchParams.get("source");
+    const level  = url.searchParams.get("level");
+    /** @type {import("../admin.portal.lib/portal.log.mjs").LogLevel | null} */
+    const levelFilter = level === "debug" || level === "info" || level === "warn" || level === "error"
+      ? level
+      : null;
+
+    sendJson(res, 200, getLogs({
+      cursor
+    , source
+    , level : levelFilter
+    , extended: true
+    }), req);
+    return;
+  }
+
+  if (urlPath === "/api/logs" && req.method === "DELETE") {
+    const url    = new URL(req.url ?? "", "http://localhost");
+    const source = url.searchParams.get("source");
+    const cleared = clearLogs({ source });
+
+    sendJson(res, 200, { ok: true, cursor: cleared.cursor }, req);
+    return;
+  }
+
+  if (urlPath === "/api/run/logs" && req.method === "GET") {
+    const url    = new URL(req.url ?? "", "http://localhost");
+    const cursor = Number(url.searchParams.get("cursor") ?? "0");
+    sendJson(res, 200, getRunLogs(cursor), req);
+    return;
+  }
+
   if (urlPath === "/api/repo/services/logs" && req.method === "GET") {
     const query  = req.url?.includes("?") ? req.url.split("?")[1] : "";
     const params = new URLSearchParams(query);
@@ -1443,6 +1479,18 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/workflow/gogo-preflight" && req.method === "GET") {
     const gate = checkNoOpenPullRequests();
     sendJson(res, gate.ok ? 200 : 409, gate, req);
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/active" && req.method === "GET") {
+    try {
+      const data = await fetchActiveWipForUi();
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
     return;
   }
 

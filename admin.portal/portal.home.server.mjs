@@ -88,6 +88,9 @@ import {
 , resolveCruscottoUrl
 } from "../admin.portal.lib/portal.launch.dashboard.mjs";
 import { resolveProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+
+const homeLog = createLogger("home");
 import {
   analyzeRepository
 , getDocsDir
@@ -137,6 +140,7 @@ const HOME_STATIC_ALIASES = {
 , "portal.home.css"  : "portal.home.css"
 , "home.js"          : "portal.home.js"
 , "portal.home.js"   : "portal.home.js"
+, "portal.console.client.js" : join(PORTAL_ROOT, "admin.portal.lib", "portal.console.client.js")
 };
 
 /** @type {Record<string, string>} */
@@ -299,10 +303,11 @@ function serveHomeAsset(req, res, rel) {
   }
 
   const mapped = HOME_STATIC_FILES[rel] ?? rel;
-  const file   = rel === "favicon.svg"
+  const isLibAsset = rel === "portal.console.client.js";
+  const file   = rel === "favicon.svg" || isLibAsset
     ? mapped
     : join(ADMIN_PORTAL_DIR, mapped);
-  const rootDir = rel === "favicon.svg" ? PORTAL_ROOT : ADMIN_PORTAL_DIR;
+  const rootDir = rel === "favicon.svg" || isLibAsset ? PORTAL_ROOT : ADMIN_PORTAL_DIR;
 
   if (!file.startsWith(rootDir) || !existsSync(file)) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
@@ -458,6 +463,34 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/portal/mode" && req.method === "GET") {
     sendJson(res, 200, { mode: "home-only" }, req);
+    return;
+  }
+
+  if (urlPath === "/api/logs" && req.method === "GET") {
+    const url    = new URL(req.url ?? "", "http://localhost");
+    const cursor = Number(url.searchParams.get("cursor") ?? "0");
+    const source = url.searchParams.get("source");
+    const level  = url.searchParams.get("level");
+    /** @type {"debug" | "info" | "warn" | "error" | null} */
+    const levelFilter = level === "debug" || level === "info" || level === "warn" || level === "error"
+      ? level
+      : null;
+
+    sendJson(res, 200, getLogs({
+      cursor
+    , source
+    , level : levelFilter
+    , extended: true
+    }), req);
+    return;
+  }
+
+  if (urlPath === "/api/logs" && req.method === "DELETE") {
+    const url    = new URL(req.url ?? "", "http://localhost");
+    const source = url.searchParams.get("source");
+    const cleared = clearLogs({ source });
+
+    sendJson(res, 200, { ok: true, cursor: cleared.cursor }, req);
     return;
   }
 
@@ -884,6 +917,15 @@ async function handleApi(req, res, urlPath) {
       , excludePids : [process.pid]
       });
       const enriched  = enrichNodeProcesses(processes);
+      const text      = formatProjectNodeProcessesText(processes);
+
+      homeLog.info(`Processi Node (${enriched.length})`, "system");
+
+      for (const line of text.split(/\r?\n/)) {
+        if (line.trim()) {
+          homeLog.write("stdout", line, "info");
+        }
+      }
 
       sendJson(res, 200, {
         ok        : true
