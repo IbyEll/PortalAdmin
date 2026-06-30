@@ -443,7 +443,31 @@ body.portal-home {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.4rem 0.65rem;
+}
+
+.portal-log-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.portal-log-filter select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0.28rem 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.process-console-follow-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
 }
 
 .portal-toolbar-sep {
@@ -479,9 +503,18 @@ body.portal-home {
   font-size: 0.76rem;
   line-height: 1.5;
   white-space: pre-wrap;
+  word-break: break-word;
   color: #a8bdd4;
   background: #0f1419;
 }
+
+.portal-console-log.process-console-output .process-console-line + .process-console-line {
+  margin-top: 0.15rem;
+}
+
+.process-console-line.process-console-level-error { color: #fca5a5; }
+.process-console-line.process-console-level-warn  { color: #fcd34d; }
+.process-console-line.process-console-level-debug { color: #94a3b8; }
 
 .portal-console-foot {
   margin: 0;

@@ -84,8 +84,26 @@
           <p class="portal-console-status" id="prepare-message">In attesa — istanzia un progetto.</p>
         </div>
         <div class="portal-console-toolbar">
+          <label class="portal-log-filter">
+            <span class="sr-only">Livello log</span>
+            <select id="portal-log-level" data-portal-log-level aria-label="Filtro livello log">
+              <option value="all">Tutti i livelli</option>
+              <option value="debug">debug</option>
+              <option value="info" selected>info+</option>
+              <option value="warn">warn+</option>
+              <option value="error">error</option>
+            </select>
+          </label>
+          <label class="portal-log-filter">
+            <span class="sr-only">Sorgente log</span>
+            <select id="portal-log-source" data-portal-log-source aria-label="Filtro sorgente log"></select>
+          </label>
+          <label class="process-console-follow-label">
+            <input type="checkbox" id="portal-log-follow" data-portal-log-follow checked />
+            Auto-scroll
+          </label>
           <button type="button" class="btn-ghost" id="btn-list-node-procs">Processi Node</button>
-          <button type="button" class="btn-ghost btn-sm" id="btn-clear-console" title="Svuota il pannello log — non termina processi">Clear console</button>
+          <button type="button" class="btn-ghost btn-sm" id="btn-clear-console" data-portal-log-clear title="Svuota log sul server">Clear console</button>
           <label class="portal-pid-field">
             <span class="sr-only">PID</span>
             <input
@@ -103,7 +121,14 @@
           <button type="button" class="btn-ghost" id="btn-reload-hint" hidden>Riavvia server</button>
         </div>
       </header>
-      <pre class="portal-console-log" id="prepare-log" aria-live="polite"></pre>
+      <div
+        id="portal-log-output"
+        class="portal-console-log process-console-output"
+        data-portal-log-output
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+      ></div>
       <p class="muted portal-console-foot" id="reload-note" hidden></p>
     </section>
     </div>
@@ -132,6 +157,7 @@
     <a href="https://github.com/IbyEll/PortalAdmin">GitHub</a>
   </footer>
 
+  <script src="/portal.console.client.js" defer></script>
   <script type="module" src="/home.js"></script>
 </body>
 </html>
