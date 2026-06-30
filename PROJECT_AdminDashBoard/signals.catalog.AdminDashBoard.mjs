@@ -134,4 +134,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-157"
+  , label : "Fix WIP resync commitHash da main..branch e parent branch tip."
+  , paths : [
+      "lib"
+      , "admin.portal.JiraCORE"
+      , "scripts"
+      , "admin.portal.lib"
+      , "admin.script.standalone"
+      , "test.smoke"
+    ]
+  }
+
 ];
