@@ -496,15 +496,17 @@ main table.wp-table--dev-queue tbody tr:hover {
   border-radius: 0 4px 4px 0;
 }
 
-/* Issue/Epic — badge TipoIssue fuori da hover/selezione riga (no bordo blu sulle pill) */
+/* Issue/Epic — stesso sfondo/bordo orizzontale selezione, senza bordi laterali sulle pill */
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-issue,
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr:hover td.wp-col-epic,
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-issue,
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-row-selected td.wp-col-epic {
-  background: transparent !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  background: rgba(61, 156, 245, 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-left: none;
+  border-right: none;
+  box-shadow: none;
 }
 
 /* Ultima riga merge sprint — chiudi il bordo basso anche su Issue/Epic (selezione/hover) */
@@ -541,7 +543,18 @@ main table.wp-table--dev-queue tbody tr:hover {
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-epic,
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-issue,
 .working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-epic {
-  background: color-mix(in srgb, var(--pass) 11%, transparent) !important;
+  background: color-mix(in srgb, var(--pass) 5%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--pass) 22%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--pass) 22%, var(--border));
+  border-left: none;
+  border-right: none;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open:hover td.wp-col-epic,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-issue,
+.working-plan-report .wp-table.wp-table--dev-queue tbody tr.is-story-done-sprint-open.is-row-selected td.wp-col-epic {
+  background: color-mix(in srgb, var(--pass) 8%, transparent);
 }
 
 .working-plan-report .wp-table.wp-table--dev-queue td.wp-sprint-merged,
