@@ -1,6 +1,6 @@
 ---
-description: Veve grooming {KEY} — leggi Jira, analizza repo, aggiorna story/subtask; anche step 3 di ADMIN-Workflow
-alwaysApply: true
+description: Veve MCP standalone `veve {KEY}` — non usare su gogo/procedi (vedi ADMIN-Veve.db.mdc)
+alwaysApply: false
 ---
 
 # Veve — `veve {KEY}` e workflow step 3
@@ -19,7 +19,7 @@ Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggi
 | Contesto | Comportamento |
 | --- | --- |
 | `veve {KEY}` | Standalone — chat libera, sequenza completa |
-| `procedi` / `gogo {KEY}` | **Step 3** di `ADMIN-Workflow.mdc` — silenzioso (`ADMIN-Silence.mdc`) |
+| `procedi` / `gogo {KEY}` | **Non** applicare — usare `ADMIN-Veve.db.mdc` (step 3 workflow database) |
 | `chiudi` | **Non** esegue veve |
 
 `{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).

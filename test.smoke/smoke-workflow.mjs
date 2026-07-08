@@ -47,9 +47,10 @@ import { checkNoOpenPullRequests } from "../admin.portal/portal.cursor.agent.wor
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const RULES = [
-  ".cursor/rules/ADMIN-Workflow.mdc"
+  ".cursor/rules/ADMIN-Workflow database.mdc"
 , ".cursor/rules/ADMIN-Silence.mdc"
 , ".cursor/rules/ADMIN-AnalizzaRepo.mdc"
+, ".cursor/rules/ADMIN-Veve.db.mdc"
 , ".cursor/skills/jlo-jira-auto/SKILL.md"
 , ".cursor/skills/jlo-analizza-repo/SKILL.md"
 , "admin.portal/portal.cursor.agent.workflow.mjs"
@@ -62,10 +63,10 @@ for (const rel of RULES) {
   }
 }
 
-const workflowRule = readFileSync(join(ROOT, ".cursor/rules/ADMIN-Workflow.mdc"), "utf8");
+const workflowRule = readFileSync(join(ROOT, ".cursor/rules/ADMIN-Workflow database.mdc"), "utf8");
 
-if (!workflowRule.includes("Gate PR aperte")) {
-  console.error("FAIL: ADMIN-Workflow.mdc missing Gate PR aperte (step 2.3)");
+if (!/gate PR aperte/i.test(workflowRule)) {
+  console.error("FAIL: ADMIN-Workflow database.mdc missing gate PR aperte (step 2.3)");
   process.exit(1);
 }
 

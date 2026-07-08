@@ -1,6 +1,6 @@
 ---
-description: Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database
-alwaysApply: false
+description: Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database (MyBacklog)
+alwaysApply: true
 ---
 
 # Veve DB — `veve db {KEY}` e workflow database step 3

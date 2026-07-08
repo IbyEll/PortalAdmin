@@ -1,6 +1,6 @@
 ---
 description: Veve db step 2 — analizza repo per {KEY} (adattatore ADMIN-AnalizzaRepo)
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Veve DB — Analizza repo

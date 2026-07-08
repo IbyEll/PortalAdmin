@@ -1,6 +1,6 @@
 ---
-description: Veve step 4 — aggiorna subtask ADMIN-xxx
-alwaysApply: true
+description: Veve MCP step 4 — aggiorna subtask (standalone `veve {KEY}` only)
+alwaysApply: false
 ---
 
 # ADMIN Veve — Aggiorna Subtask

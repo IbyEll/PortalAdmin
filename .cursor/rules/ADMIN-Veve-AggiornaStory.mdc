@@ -1,6 +1,6 @@
 ---
-description: Veve step 3 — aggiorna description parent ADMIN-xxx
-alwaysApply: true
+description: Veve MCP step 3 — aggiorna description parent (standalone `veve {KEY}` only)
+alwaysApply: false
 ---
 
 # ADMIN Veve — Aggiorna Story

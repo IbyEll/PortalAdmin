@@ -1,6 +1,6 @@
 ---
-description: Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)
-alwaysApply: false
+description: Workflow database MyBacklog — procedi/gogo/chiudi su {JIRA_KEY}-xxx (WIP cruscotto DB, veve db step 3, PUSH step 8)
+alwaysApply: true
 ---
 
 # Workflow — progetto istanziato + `{JIRA_KEY}`
@@ -143,7 +143,7 @@ Nel **repo workflow** (`PRODUCT_REPO_PATH`):
 3. **Nessuna PR aperta** sul repo workflow — `gh pr list --state open`; se ≥1 → **Stop** (merge o chiudi prima di `gogo` / `procedi`)
 4. `git checkout main && git pull && git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}` (solo se nuova branch)
 
-Vedi gate PR in `ADMIN-Workflow.mdc` § Pre-flight git (step 2.3).
+Runtime: `checkNoOpenPullRequests()` in `admin.portal/portal.cursor.agent.workflow.mjs` · API `GET /api/workflow/gogo-preflight`.
 
 ---
 
