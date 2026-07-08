@@ -54,7 +54,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join, posix } from "node:path";
+import { join, relative } from "node:path";
 
 import {
   getProjectConfig
@@ -1307,6 +1307,17 @@ export function resolveSignalsCatalogGitRoot() {
 }
 
 /**
+ * Path relativo POSIX per git add/status — su Windows evita posix.relative con drive letter.
+ *
+ * @param {string} fromRoot
+ * @param {string} absPath
+ * @returns {string}
+ */
+function gitRelPath(fromRoot, absPath) {
+  return relative(fromRoot, absPath).split("\\").join("/");
+}
+
+/**
  * Path catalogo relativi al git root indicato, con modifiche non committate.
  *
  * @param {string} [gitRoot]
@@ -1314,7 +1325,7 @@ export function resolveSignalsCatalogGitRoot() {
  */
 export function listDirtySignalsCatalogRelPaths(gitRoot = resolveSignalsCatalogGitRoot()) {
   return listSignalsCatalogFiles()
-    .map((abs) => posix.relative(gitRoot, abs).split("\\").join("/"))
+    .map((abs) => gitRelPath(gitRoot, abs))
     .filter((rel) => rel && !rel.startsWith(".."))
     .filter((rel) => runGitIn(gitRoot, "git", ["status", "--porcelain", rel], { allowFail: true }));
 }

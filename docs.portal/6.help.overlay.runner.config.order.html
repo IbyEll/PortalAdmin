@@ -62,7 +62,7 @@
         <tr>
           <td><strong>—</strong></td>
           <td><code>cruscotto.api.documentation.config.mjs</code></td>
-          <td><strong>A parte</strong> — payload OpenAPI documentation (<code>serve-api-documentation</code>, <code>start_API_Documentation</code>); usa <code>portal-paths</code> + manifest, non la catena overlay sopra</td>
+          <td><strong>A parte</strong> — payload OpenAPI documentation (<code>serve-api-documentation</code>, <code>start_API_Documentation</code>); usa <code>portal.paths.resolver</code> + manifest, non la catena overlay sopra</td>
         </tr>
       </tbody>
     </table>
@@ -140,7 +140,7 @@ project.config.{PRJ_NAME}.mjs
     │
     ├──────────────────┬─────────────────────┐
     ▼                  ▼                     ▼
-discovery.config.*   runner.config.*     portal-paths / dev-manifest
+discovery.config.*   runner.config.*     portal.paths.resolver / dev-manifest
     │                  │
     ▼                  ├──── runner.stack.base.mjs
 discovery-services     │
