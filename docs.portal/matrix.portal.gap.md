@@ -50,7 +50,7 @@
 | Sev | Voce | Dettaglio | Path | Stato |
 | --- | --- | --- | --- | --- |
 | P2 | Promuovere moduli PARKING ancora live | my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING. | PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs, admin.portal.lib/overlay/dashboard.project.mjs | gap |
-| P2 | CI job AdminDashBoard + smoke admin:home | portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990. | .github/workflows/portal-smoke.yml | gap |
+| P2 | CI job AdminDashBoard + smoke admin:home | Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. | .github/workflows/portal-smoke.yml, test.smoke/smoke-home.mjs | fatto |
 | P2 | README allineato ad albero attuale | Aggiornare path cruscotto.frontend, test.smoke, assenza server/scripts. | README.md | gap |
 
 ## PARKING_tocheck — live nel flusso
@@ -101,6 +101,6 @@
 | P0 | R3 — working.plan.data JLO | Import in working.order.mjs e working.plan.overlay.mjs — file mancante in PROJECT_JustLastOne/ | PROJECT_JustLastOne/, cruscotto.frontend/cruscotto.jira.working.order.mjs, admin.portal.lib/overlay/working.plan.overlay.mjs | obsoleto |
 | P1 | R4 — Confluence publish + pillar-diff | publish.mjs cerca generate-confluence-pillar-matrix.mjs — rinominato confluence.pillar.matrix.generate.mjs | admin.script.standalone/confluence.pillar.matrix.publish.mjs, admin.script.standalone/confluence.pillar.matrix.generate.mjs | obsoleto |
 | P2 | R5 — Promote PARKING frontend | my-project analysis, pillar generate → cruscotto.frontend/; ridurre import cross-PARKING. | PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs, admin.portal.lib/overlay/dashboard.project.mjs | gap |
-| P2 | R6 — CI AdminDashBoard + HOME | portal-smoke.yml copre solo JustLastOne; nessuno smoke HOME :3990. | .github/workflows/portal-smoke.yml | gap |
+| P2 | R6 — CI AdminDashBoard + HOME | Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. | .github/workflows/portal-smoke.yml, test.smoke/smoke-home.mjs | fatto |
 | P2 | R7 — Jira config unico + scan paths | Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs | admin.portal.JiraCORE/jira.project.config.mjs | parziale |
 

@@ -160,4 +160,15 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-168"
+  , label : "CI job AdminDashBoard + smoke admin:home"
+  , paths : [
+      ".github/workflows/portal-smoke.yml"
+    , "test.smoke/smoke-home.mjs"
+    , "package.json"
+    ]
+  , tests : ["test.smoke/smoke-home.mjs"]
+  }
+
 ];
