@@ -61,6 +61,7 @@ import {
   assertSignalsCatalogCommitted
 , commitCatalogUpdate
 , ensureRepoImplementationSignal
+, listDirtySignalsCatalogRelPaths
 , resolveSignalsCatalogGitRoot
 } from "./JiraCORE.signals.catalog.implementation.mjs";
 
@@ -318,7 +319,14 @@ function updateImplementationCatalog(ticketKey, branch, dryRun) {
   const catalog        = ensureRepoImplementationSignal(ticketKey, branch, { dryRun });
 
   if (dryRun) {
-    return { ...catalog, gitRoot: catalogGitRoot };
+    const dirtyPending = listDirtySignalsCatalogRelPaths(catalogGitRoot);
+
+    return {
+      ...catalog
+    , gitRoot      : catalogGitRoot
+    , dirtyPending : dirtyPending.length ? dirtyPending : undefined
+    , willCommit   : dirtyPending.length > 0 || catalog.updated
+    };
   }
 
   const commit = commitCatalogUpdate(ticketKey, { cwd: catalogGitRoot, branch });

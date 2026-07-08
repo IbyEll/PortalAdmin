@@ -147,4 +147,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-156"
+  , label : "elimina consumer residui portal-paths shim"
+  , paths : [
+      "lib"
+      , "admin.portal.JiraCORE"
+      , "scripts"
+      , "admin.portal.lib"
+      , "test.smoke"
+      , "admin.script.standalone"
+    ]
+  }
+
 ];
