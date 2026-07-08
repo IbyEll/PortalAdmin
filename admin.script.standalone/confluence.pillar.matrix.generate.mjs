@@ -50,7 +50,7 @@ import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.r
 import {
   applyWorkingPlanToIssues
 , ensureWorkingPlanLoaded
-} from "../admin.portal.lib/working.plan.loader.mjs";
+} from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

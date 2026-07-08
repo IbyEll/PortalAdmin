@@ -114,31 +114,18 @@
     const IssueDisplay = () => globalThis.JiraIssueDisplay;
     const STATE_STORAGE_KEY = `${PROJECT_SLUG}-project-overview-state-v1`;
     const PROJECT_OVERVIEW_PAGE_VERSION_KEY = `${PROJECT_SLUG}-project-overview-page-version`;
-    const PROJECT_OVERVIEW_PAGE_VERSION = "2026-06-20-overview-v1";
+    const PROJECT_OVERVIEW_PAGE_VERSION = "2026-07-03-overview-v2";
     const NOTES_MAX_PER_SECTION = 12;
     /** Sezioni senza journal note (testo auto-generato). */
     const SECTIONS_WITHOUT_NOTES = new Set(["intro", "repo-summary", "last-test-run", "backlog-full"]);
 
-    (function purgeProjectOverviewNotesOnce() {
+    (function purgeProjectOverviewStateIfVersionBump() {
       if (localStorage.getItem(PROJECT_OVERVIEW_PAGE_VERSION_KEY) === PROJECT_OVERVIEW_PAGE_VERSION) {
         return;
       }
 
       try {
-        const raw = localStorage.getItem(STATE_STORAGE_KEY);
-
-        if (raw) {
-          const parsed = JSON.parse(raw);
-
-          if (parsed && typeof parsed === "object") {
-            parsed.notes               = [];
-            parsed.changedSectionIds   = [];
-            parsed.changedSummaryFields = [];
-            parsed.changedTestSuites   = [];
-            parsed.summaryChanged      = false;
-            localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(parsed));
-          }
-        }
+        localStorage.removeItem(STATE_STORAGE_KEY);
       } catch {
         /* ignore */
       }
@@ -146,8 +133,11 @@
       localStorage.setItem(PROJECT_OVERVIEW_PAGE_VERSION_KEY, PROJECT_OVERVIEW_PAGE_VERSION);
     })();
 
-    /** @type {{ analyzedAt: string, jiraFetchedAt?: string, summary: Record<string, string | number>, testBySuite: Array<{ suite: string, passed: number, failed: number, skipped: number }>, sections: Array<Record<string, unknown>>, notes: Array<{ id: string, sectionId: string, at: string, label: string, superseded: string, text: string, fresh: boolean, stale: boolean }>, changedSectionIds: string[], changedSummaryFields: string[], changedTestSuites: string[], summaryChanged: boolean } | null} */
+    /** @type {typeof projectState} */
     let projectState = loadState();
+    let lastAnalysisFinishedAt = 0;
+    /** Minimo tra refresh automatici (tab parent o visibility). */
+    const AUTO_REFRESH_MIN_MS = 30_000;
 
     /**
      * @param {string} raw
@@ -1423,7 +1413,7 @@
       }
 
       try {
-        const res = await fetch("/api/project-overview/analyze");
+        const res = await fetch("/api/project-overview/analyze", { cache: "no-store" });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -1451,6 +1441,7 @@
             status.textContent = String(data.summary?.note ?? "Analisi non configurata.");
           }
 
+          lastAnalysisFinishedAt = Date.now();
           return;
         }
 
@@ -1459,6 +1450,7 @@
         projectState = mergeAnalysis(data, prev);
         saveState();
         renderProjectState();
+        lastAnalysisFinishedAt = Date.now();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
 
@@ -1473,15 +1465,53 @@
       }
     }
 
-    document.getElementById("btn-analyze")?.addEventListener("click", () => runAnalysis());
+    /**
+     * Refresh da tab parent — rispetta debounce salvo force.
+     *
+     * @param {{ force?: boolean }} [opts]
+     */
+    function scheduleAutoRefresh(opts = {}) {
+      const force = opts.force === true;
+
+      if (!force && lastAnalysisFinishedAt > 0 && Date.now() - lastAnalysisFinishedAt < AUTO_REFRESH_MIN_MS) {
+        if (projectState) {
+          renderProjectState();
+        }
+
+        return;
+      }
+
+      void runAnalysis();
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== location.origin) {
+        return;
+      }
+
+      const data = event.data;
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      if (data.type === "cruscotto:project-overview-refresh") {
+        scheduleAutoRefresh({ force: data.force === true });
+      }
+    });
+
+    document.getElementById("btn-analyze")?.addEventListener("click", () => {
+      void runAnalysis();
+    });
     document.getElementById("btn-cleanup-notes")?.addEventListener("click", () => onCleanupNotesClick());
     document.getElementById("btn-expand-all")?.addEventListener("click", () => setAllCollapsed(false));
     document.getElementById("btn-collapse-all")?.addEventListener("click", () => setAllCollapsed(true));
 
     if (projectState) {
       renderProjectState();
+      scheduleAutoRefresh();
     } else {
-      runAnalysis();
+      void runAnalysis();
     }
   </script>
 </body>

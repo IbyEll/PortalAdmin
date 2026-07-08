@@ -41,7 +41,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { markdownToAdfDoc } from "../../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
-import { parseVeveCheckboxSection } from "../../cruscotto.frontend/cruscotto.jira.wip.mjs";
+import { parseVeveCheckboxSection } from "../../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
 import {
   assert
 , logSection

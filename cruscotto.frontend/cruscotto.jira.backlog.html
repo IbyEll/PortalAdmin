@@ -754,6 +754,22 @@
      * @returns {number | null}
      */
     function resolveSprintNumForGroup(groupName, stories) {
+      const matching = stories.filter((row) => storyMatchesSprintGroupPlan(row, groupName));
+
+      if (matching.length) {
+        const planSprint = matching.find((row) => row.devSprint != null)?.devSprint;
+
+        if (planSprint != null) {
+          return planSprint;
+        }
+      }
+
+      const fromStory = stories.find((row) => row.devSprint != null)?.devSprint;
+
+      if (fromStory != null) {
+        return fromStory;
+      }
+
       const fromPlan = SPRINT_PLAN.find(
         (block) => normalizeSprintLabel(block.name) === normalizeSprintLabel(groupName)
       );
@@ -762,13 +778,7 @@
         return fromPlan.sprint;
       }
 
-      const matching = stories.filter((row) => storyMatchesSprintGroupPlan(row, groupName));
-
-      if (matching.length) {
-        return matching[0].devSprint ?? null;
-      }
-
-      return stories[0]?.devSprint ?? null;
+      return null;
     }
 
     /**
@@ -3492,9 +3502,19 @@
       }
 
       for (const [catalogKey, sprint] of Object.entries(jiraSprintCatalog)) {
-        if (catalogKey === key || catalogKey.includes(key) || key.includes(catalogKey)) {
+        const catalogNorm = normalizeSprintLabel(catalogKey);
+
+        if (catalogNorm === key || catalogNorm.includes(key) || key.includes(catalogNorm)) {
           return sprint;
         }
+      }
+
+      const fromList = (backlog?.jiraSprints ?? []).find(
+        (sprint) => normalizeSprintLabel(sprint.name) === key
+      );
+
+      if (fromList?.id != null) {
+        return fromList;
       }
 
       if (row.jiraSprintState) {

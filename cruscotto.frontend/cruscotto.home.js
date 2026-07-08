@@ -1856,6 +1856,49 @@ async function pollProcessConsoleLogs() {
 }
 
 /**
+ * Notifica iframe Project Overview di rilanciare GET /api/project-overview/analyze.
+ *
+ * @param {HTMLIFrameElement} iframe
+ * @param {{ force?: boolean }} [opts]
+ */
+function postProjectOverviewRefresh(iframe, opts = {}) {
+  try {
+    iframe.contentWindow?.postMessage({
+      type  : "cruscotto:project-overview-refresh"
+    , force : opts.force === true
+    }, location.origin);
+  } catch {
+    /* iframe non pronto */
+  }
+}
+
+/** @type {HTMLIFrameElement | null} */
+let projectOverviewIframe = null;
+
+/** Richiede refresh analisi overview quando la tab è attiva. */
+function refreshProjectOverviewTab() {
+  if (!(projectOverviewIframe instanceof HTMLIFrameElement)) {
+    projectOverviewIframe = document.querySelector("#section-projectoverview iframe");
+  }
+
+  const iframe = projectOverviewIframe;
+
+  if (!(iframe instanceof HTMLIFrameElement)) {
+    return;
+  }
+
+  if (iframe.dataset.loaded === "1") {
+    postProjectOverviewRefresh(iframe);
+    return;
+  }
+
+  iframe.addEventListener("load", () => {
+    iframe.dataset.loaded = "1";
+    postProjectOverviewRefresh(iframe);
+  }, { once: true });
+}
+
+/**
  * Mostra/nasconde sezioni, aggiorna titolo pagina e avvia/ferma polling console Process.
  *
  * @param {string} tab — id in {@link TABS} (sincronizzato con `location.hash`)
@@ -1889,6 +1932,10 @@ function setActiveTab(tab, hashPayload = null) {
   if (tab === "workingplan") {
     renderWorkingPlanTab();
     void loadSavedWorkingPlanIfEmpty();
+  }
+
+  if (tab === "projectoverview") {
+    refreshProjectOverviewTab();
   }
 
   if (tab === "issue") {
@@ -7865,11 +7912,34 @@ function initRouter() {
   setActiveTab(TABS.includes(tab) ? tab : DEFAULT_TAB, payload);
 }
 
+/**
+ * Tab Project Overview — refresh analisi al load iframe e al cambio tab.
+ */
+function bindProjectOverviewIframe() {
+  const iframe = document.querySelector("#section-projectoverview iframe");
+
+  if (!(iframe instanceof HTMLIFrameElement) || iframe.dataset.bound === "1") {
+    return;
+  }
+
+  iframe.dataset.bound = "1";
+  projectOverviewIframe = iframe;
+
+  iframe.addEventListener("load", () => {
+    iframe.dataset.loaded = "1";
+
+    if (parseLocationHash().tab === "projectoverview") {
+      postProjectOverviewRefresh(iframe);
+    }
+  });
+}
+
 // --- init pagina ---
 // 1. Titolo sidebar da progetto istanziato
 initSidebarBrand();
 // 2. Router hash e tab sidebar
 initRouter();
+bindProjectOverviewIframe();
 // 3. Modal documentazione testScript (delegazione globale)
 bindScriptDocModalGlobal();
 // 4. Caricamento dati iniziale da API cruscotto — errori in .cruscotto-main

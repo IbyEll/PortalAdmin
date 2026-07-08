@@ -147,6 +147,11 @@ function parseStartupCli(argv) {
       continue;
     }
 
+    // Ignorato — propagato da run-all / catalogo TestTecnici
+    if (arg === "--json") {
+      continue;
+    }
+
     throw new Error(`Argomento sconosciuto: ${arg}`);
   }
 
@@ -185,13 +190,14 @@ async function main() {
     return;
   }
 
-  // 2. Validazione overlay obbligatorio — exit 1 via catch se mancante
-  if (!cli.overlay) {
+  // 2. Validazione overlay — argv, oppure PRJ_NAME da env (run-all / cruscotto)
+  const overlay = cli.overlay ?? process.env.PRJ_NAME?.trim() ?? null;
+
+  if (!overlay) {
     throw new Error("Specificare --overlay (es. JustLastOne, AdminDashBoard)");
   }
 
-  const overlay = cli.overlay;
-  const config  = await loadOverlayConfig(overlay);
+  const config = await loadOverlayConfig(overlay);
 
   if (!config) {
     throw new Error(`Overlay "${overlay}" non trovato`);

@@ -63,9 +63,8 @@ import { fetchJiraBacklog, loadJiraBacklog } from "../cruscotto.frontend/cruscot
 import {
   buildWorkingPlanGenerationReport
 } from "../cruscotto.lib/backlog.working.plan.analysis.mjs";
-import { issueTypeShortLabel } from "../admin.portal.lib/issue.display.mjs";
+import { formatWorkingPlanMarkdown } from "../cruscotto.lib/backlog.working.plan.service.mjs";
 import { ensureWorkingPlanLoaded, loadWorkingPlan } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
-import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 
 /**
  * Parsing argv CLI — help termina con exit 0 senza side effect.
@@ -126,109 +125,6 @@ function parseArgs(argv) {
   return out;
 }
 
-/**
- * Report markdown leggibile — blocchi sprint, fuori piano, suggestedNext e bozza.
- *
- * @param {Awaited<ReturnType<typeof buildWorkingPlanGenerationReport>>} report
- * @param {ReturnType<typeof buildAutoWorkingPlanDraft> | null} draft
- */
-function formatMarkdown(report, draft) {
-  const cfg = getProjectConfig();
-  const lines = [
-    `# Piano di lavoro — ${cfg.PRJ_JIRA_PREFIX}`
-  , ""
-  , `Generato: ${report.generatedAt}`
-  , `Story/epic aperte: ${report.openStoryCount} · scan repo: ${report.repoRefsScanned} key`
-  , ""
-  , "## Blocchi piano corrente"
-  , ""
-  , "| Sprint | Nome | Aperti | Fatto | Key aperte |"
-  , "| --- | --- | ---: | ---: | --- |"
-  ];
-
-  for (const block of report.workingPlanBlocks) {
-    const open = Array.isArray(block.openKeys) ? block.openKeys.join(", ") : "—";
-
-    lines.push(
-      `| ${block.sprint} | ${block.name} | ${block.openCount} | ${block.doneCount}/${block.total} | ${open || "—"} |`
-    );
-  }
-
-  if ((report.orderedDevelopmentQueue ?? []).length > 0) {
-    lines.push(
-      ""
-    , "## Ordine sviluppo proposto"
-    , ""
-    , "| # | Ordine | Issue | Titolo | Esito | Epic | Sprint |"
-    , "| ---: | --- | --- | --- | --- | --- | ---: |"
-    );
-
-    for (const row of report.orderedDevelopmentQueue) {
-      const typeLabel = issueTypeShortLabel(String(row.type ?? "")) ?? "";
-      const issueCell = typeLabel ? `${typeLabel} ${row.key}` : row.key;
-      const epicTypeLabel = issueTypeShortLabel(String(row.epicType ?? "Epic")) ?? "EPIC";
-      const epicCell = row.epicKey
-        ? `${epicTypeLabel} ${row.epicKey} — ${String(row.epicSummary ?? row.epicKey).slice(0, 40)}`
-        : "—";
-
-      lines.push(
-        `| ${row.rank} | ${row.devOrder} | ${issueCell} | ${String(row.summary).slice(0, 60)} | ${row.esito} | ${epicCell} | ${row.sprint} |`
-      );
-    }
-  }
-
-  if ((report.doneSprintMismatchQueue ?? []).length > 0) {
-    lines.push(
-      ""
-    , "## Fatto ma sprint non allineato"
-    , ""
-    , "| # | Sprint | Ordine | Issue | Stato Jira | Titolo | Esito | Epic |"
-    , "| ---: | ---: | --- | --- | --- | --- | --- | --- |"
-    );
-
-    for (const row of report.doneSprintMismatchQueue) {
-      const typeLabel = issueTypeShortLabel(String(row.type ?? "")) ?? "";
-      const issueCell = typeLabel ? `${typeLabel} ${row.key}` : row.key;
-      const epicTypeLabel = issueTypeShortLabel(String(row.epicType ?? "Epic")) ?? "EPIC";
-      const epicCell = row.epicKey
-        ? `${epicTypeLabel} ${row.epicKey} — ${String(row.epicSummary ?? row.epicKey).slice(0, 40)}`
-        : "—";
-
-      lines.push(
-        `| ${row.rank} | ${row.sprint} | ${row.devOrder} | ${issueCell} | ${row.status ?? "—"} | ${String(row.summary).slice(0, 60)} | ${row.esito} | ${epicCell} |`
-      );
-    }
-  }
-
-  if ((report.proposedSprints ?? []).length > 0) {
-    lines.push("", "## Sprint proposti", "");
-
-    for (const block of report.proposedSprints) {
-      lines.push(`### Sprint ${block.sprint} — ${block.name}`, "", block.description, "", "**Punti da smarcare:**", "");
-
-      for (const milestone of block.milestones ?? []) {
-        lines.push(`- ${milestone}`);
-      }
-
-      lines.push("", `Key: ${(block.keys ?? []).join(", ")}`, "");
-    }
-  }
-
-  if (report.openOutsidePlan.length > 0) {
-    lines.push("", "## Aperti fuori piano", "", "| Key | Epic | Esito repo | Summary |", "| --- | --- | --- | --- |");
-
-    for (const row of report.openOutsidePlan) {
-      lines.push(`| ${row.key} | ${row.epicKey ?? "—"} | ${row.esito} | ${String(row.summary).slice(0, 60)} |`);
-    }
-  }
-
-  if (draft?.length) {
-    lines.push("", "## Export bozza WORKING_PLAN", "", "```json", JSON.stringify(draft, null, 2), "```");
-  }
-
-  return lines.join("\n");
-}
-
 // 1. Argomenti CLI — parseArgs; --help esce 0 prima di I/O
 const args = parseArgs(process.argv.slice(2));
 
@@ -250,6 +146,7 @@ const workingPlan = await loadWorkingPlan();
 const report      = await buildWorkingPlanGenerationReport({
   issues: backlog.issues
 , boardSprintKeysByPlanName: backlog.boardSprintKeysByPlanName
+, jiraSprints               : backlog.jiraSprints
 , workingPlan
 });
 const draft = args.autoDraft || report.proposedSprints?.length
@@ -278,7 +175,7 @@ if (args.regenerate) {
 
 // 6. Serializza json|md — scrive --out su stderr log; stdout sempre payload testuale
 const text = args.format === "md"
-  ? formatMarkdown(report, draft)
+  ? formatWorkingPlanMarkdown(report, draft)
   : JSON.stringify(payload, null, 2);
 
 if (args.out) {

@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-06-26T21:38:24.185Z",
+  "generatedAt": "2026-07-03T04:36:09.324Z",
   "source": "unified",
   "metrics": {
-    "archProgressPct": 100,
-    "archScore": 12,
+    "archProgressPct": 92,
+    "archScore": 11,
     "archTotal": 12,
-    "openGaps": 0,
+    "openGaps": 1,
     "openBugs": 1,
     "doneFeatures": 3,
-    "parkingFiles": 45,
-    "parkingImports": 0,
-    "gap": 7,
-    "partial": 2,
+    "parkingFiles": 40,
+    "parkingImports": 1,
+    "gap": 8,
+    "partial": 3,
     "obsolete": 16,
-    "done": 23,
-    "total": 48
+    "done": 22,
+    "total": 49
   },
   "operational": [
     {
       "id": "op-arch",
       "title": "Architettura e avanzamento",
-      "badge": "12 voci",
+      "badge": "1 aperti · 12 voci",
       "open": false,
       "rows": [
         {
@@ -170,22 +170,6 @@
           "resolvedNote": ""
         },
         {
-          "id": "arch-jira-working-parked",
-          "sev": "info",
-          "status": "fatto",
-          "project": "PortalAdmin",
-          "voce": "Jira Working de-integata (PARKING)",
-          "dettaglio": "Completato / allineato allo stato target 2026-06.",
-          "paths": [
-            "PARKING_tocheck/cruscotto.jira.working.html"
-          ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
-          "category": "avanzamento",
-          "resolvedNote": ""
-        },
-        {
           "id": "arch-portal-paths-resolver",
           "sev": "info",
           "status": "fatto",
@@ -216,9 +200,59 @@
           "issueSummary": null,
           "category": "avanzamento",
           "resolvedNote": ""
+        },
+        {
+          "id": "arch-jira-working-parked",
+          "sev": "P1",
+          "status": "gap",
+          "project": "PortalAdmin",
+          "voce": "Jira Working de-integata (PARKING)",
+          "dettaglio": "Migrazione incompleta o assente.",
+          "paths": [
+            "PARKING_tocheck/cruscotto.jira.working.html"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "architettura",
+          "resolvedNote": "",
+          "create": {
+            "section": "Architettura e avanzamento",
+            "summary": "Jira Working de-integata (PARKING)",
+            "detail": "Migrazione incompleta o assente."
+          }
         }
       ],
       "partHeading": "Avanzamento operativo"
+    },
+    {
+      "id": "op-gap",
+      "title": "Gap analysis",
+      "badge": "1 aperti · 1 voci",
+      "open": true,
+      "rows": [
+        {
+          "id": "gap-parking-live",
+          "sev": "P1",
+          "status": "parziale",
+          "project": "PortalAdmin.Cruscotto",
+          "voce": "PARKING_tocheck referenziato da moduli attivi",
+          "dettaglio": "1 moduli .mjs fuori PARKING importano o re-exportano da staging.",
+          "paths": [
+            "admin.portal.JiraCORE/jiraCORE.working.plan.generate.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "gap",
+          "resolvedNote": "",
+          "create": {
+            "section": "Gap analysis",
+            "summary": "PARKING_tocheck referenziato da moduli attivi",
+            "detail": "1 moduli .mjs fuori PARKING importano o re-exportano da staging."
+          }
+        }
+      ]
     },
     {
       "id": "op-bug",
@@ -237,16 +271,11 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
           ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
+          "issueKey": "ADMIN-169",
+          "issueType": "Bug",
+          "issueSummary": "[Bug] regenerateProjectTreeHtml chiamata senza import",
           "category": "bug",
-          "resolvedNote": "",
-          "create": {
-            "section": "Bug",
-            "summary": "regenerateProjectTreeHtml chiamata senza import",
-            "detail": "POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck."
-          }
+          "resolvedNote": ""
         },
         {
           "id": "bug-ci-portal-paths",
@@ -271,14 +300,38 @@
       "open": true,
       "rows": [
         {
+          "id": "dep-runner-comments",
+          "sev": "P2",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "Commenti/doc citano runner/cruscotto.server.mjs (legacy)",
+          "dettaglio": "6 file attivi con path legacy; canonico cruscotto.frontend/cruscotto.server.mjs. · Ticket chiuso su Jira.",
+          "paths": [
+            "cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs",
+            "cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs",
+            "cruscotto.frontend/pillar-matrix.js",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json"
+          ],
+          "issueKey": "ADMIN-155",
+          "issueType": "Bug",
+          "issueSummary": "[Avanzamento] Commenti/doc citano runner/cruscotto.server.mjs",
+          "category": "deprecation",
+          "resolvedNote": "✅ Jira ADMIN-155 — Fatto"
+        },
+        {
           "id": "dep-portal-paths-consumers",
           "sev": "P2",
           "status": "gap",
           "project": "PortalAdmin",
           "voce": "Consumer residui su portal-paths (shim rimosso)",
-          "dettaglio": "4 file importano admin.portal.lib/portal-paths.mjs non più presente.",
+          "dettaglio": "7 file importano admin.portal.lib/portal-paths.mjs non più presente.",
           "paths": [
             "admin.portal.lib/product.manifest.mjs",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json",
             "package.json",
             "test.smoke/smoke-ci.mjs",
             "test.smoke/smoke-portal-paths.mjs"
@@ -288,20 +341,6 @@
           "issueSummary": "[Avanzamento] Consumer residui su portal-paths (shim rimosso)",
           "category": "deprecation",
           "resolvedNote": ""
-        },
-        {
-          "id": "dep-runner-comments",
-          "sev": "P2",
-          "status": "fatto",
-          "project": "PortalAdmin",
-          "voce": "Commenti/doc citano runner/cruscotto.server.mjs (legacy)",
-          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
-          "paths": [],
-          "issueKey": "ADMIN-155",
-          "issueType": "Bug",
-          "issueSummary": null,
-          "category": "deprecation",
-          "resolvedNote": "✅ ADMIN-155 — condizione repo assente"
         }
       ]
     },
@@ -450,7 +489,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -466,7 +505,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -482,7 +521,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -498,7 +537,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -538,7 +577,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -554,7 +593,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -570,7 +609,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -611,7 +650,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -627,7 +666,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -643,7 +682,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -659,7 +698,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -699,7 +738,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -736,7 +775,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -808,7 +847,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r3",
@@ -825,7 +864,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r4",
@@ -841,7 +880,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r5",
@@ -901,7 +940,7 @@
     {
       "id": "op-arch",
       "title": "Architettura e avanzamento",
-      "badge": "12 voci",
+      "badge": "1 aperti · 12 voci",
       "open": false,
       "rows": [
         {
@@ -1051,22 +1090,6 @@
           "resolvedNote": ""
         },
         {
-          "id": "arch-jira-working-parked",
-          "sev": "info",
-          "status": "fatto",
-          "project": "PortalAdmin",
-          "voce": "Jira Working de-integata (PARKING)",
-          "dettaglio": "Completato / allineato allo stato target 2026-06.",
-          "paths": [
-            "PARKING_tocheck/cruscotto.jira.working.html"
-          ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
-          "category": "avanzamento",
-          "resolvedNote": ""
-        },
-        {
           "id": "arch-portal-paths-resolver",
           "sev": "info",
           "status": "fatto",
@@ -1097,9 +1120,59 @@
           "issueSummary": null,
           "category": "avanzamento",
           "resolvedNote": ""
+        },
+        {
+          "id": "arch-jira-working-parked",
+          "sev": "P1",
+          "status": "gap",
+          "project": "PortalAdmin",
+          "voce": "Jira Working de-integata (PARKING)",
+          "dettaglio": "Migrazione incompleta o assente.",
+          "paths": [
+            "PARKING_tocheck/cruscotto.jira.working.html"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "architettura",
+          "resolvedNote": "",
+          "create": {
+            "section": "Architettura e avanzamento",
+            "summary": "Jira Working de-integata (PARKING)",
+            "detail": "Migrazione incompleta o assente."
+          }
         }
       ],
       "partHeading": "Avanzamento operativo"
+    },
+    {
+      "id": "op-gap",
+      "title": "Gap analysis",
+      "badge": "1 aperti · 1 voci",
+      "open": true,
+      "rows": [
+        {
+          "id": "gap-parking-live",
+          "sev": "P1",
+          "status": "parziale",
+          "project": "PortalAdmin.Cruscotto",
+          "voce": "PARKING_tocheck referenziato da moduli attivi",
+          "dettaglio": "1 moduli .mjs fuori PARKING importano o re-exportano da staging.",
+          "paths": [
+            "admin.portal.JiraCORE/jiraCORE.working.plan.generate.mjs"
+          ],
+          "issueKey": null,
+          "issueType": null,
+          "issueSummary": null,
+          "category": "gap",
+          "resolvedNote": "",
+          "create": {
+            "section": "Gap analysis",
+            "summary": "PARKING_tocheck referenziato da moduli attivi",
+            "detail": "1 moduli .mjs fuori PARKING importano o re-exportano da staging."
+          }
+        }
+      ]
     },
     {
       "id": "op-bug",
@@ -1118,16 +1191,11 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
           ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
+          "issueKey": "ADMIN-169",
+          "issueType": "Bug",
+          "issueSummary": "[Bug] regenerateProjectTreeHtml chiamata senza import",
           "category": "bug",
-          "resolvedNote": "",
-          "create": {
-            "section": "Bug",
-            "summary": "regenerateProjectTreeHtml chiamata senza import",
-            "detail": "POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck."
-          }
+          "resolvedNote": ""
         },
         {
           "id": "bug-ci-portal-paths",
@@ -1152,14 +1220,38 @@
       "open": true,
       "rows": [
         {
+          "id": "dep-runner-comments",
+          "sev": "P2",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "Commenti/doc citano runner/cruscotto.server.mjs (legacy)",
+          "dettaglio": "6 file attivi con path legacy; canonico cruscotto.frontend/cruscotto.server.mjs. · Ticket chiuso su Jira.",
+          "paths": [
+            "cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs",
+            "cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs",
+            "cruscotto.frontend/pillar-matrix.js",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json"
+          ],
+          "issueKey": "ADMIN-155",
+          "issueType": "Bug",
+          "issueSummary": "[Avanzamento] Commenti/doc citano runner/cruscotto.server.mjs",
+          "category": "deprecation",
+          "resolvedNote": "✅ Jira ADMIN-155 — Fatto"
+        },
+        {
           "id": "dep-portal-paths-consumers",
           "sev": "P2",
           "status": "gap",
           "project": "PortalAdmin",
           "voce": "Consumer residui su portal-paths (shim rimosso)",
-          "dettaglio": "4 file importano admin.portal.lib/portal-paths.mjs non più presente.",
+          "dettaglio": "7 file importano admin.portal.lib/portal-paths.mjs non più presente.",
           "paths": [
             "admin.portal.lib/product.manifest.mjs",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.html",
+            "cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json",
             "package.json",
             "test.smoke/smoke-ci.mjs",
             "test.smoke/smoke-portal-paths.mjs"
@@ -1169,20 +1261,6 @@
           "issueSummary": "[Avanzamento] Consumer residui su portal-paths (shim rimosso)",
           "category": "deprecation",
           "resolvedNote": ""
-        },
-        {
-          "id": "dep-runner-comments",
-          "sev": "P2",
-          "status": "fatto",
-          "project": "PortalAdmin",
-          "voce": "Commenti/doc citano runner/cruscotto.server.mjs (legacy)",
-          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
-          "paths": [],
-          "issueKey": "ADMIN-155",
-          "issueType": "Bug",
-          "issueSummary": null,
-          "category": "deprecation",
-          "resolvedNote": "✅ ADMIN-155 — condizione repo assente"
         }
       ]
     },
@@ -1329,7 +1407,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1345,7 +1423,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1361,7 +1439,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1377,7 +1455,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1417,7 +1495,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1433,7 +1511,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1449,7 +1527,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1490,7 +1568,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1506,7 +1584,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1522,7 +1600,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1538,7 +1616,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1578,7 +1656,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1615,7 +1693,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1687,7 +1765,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r3",
@@ -1704,7 +1782,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r4",
@@ -1720,7 +1798,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-06-26 21:38:24."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-03 04:36:09."
         },
         {
           "id": "audit-prio-r5",

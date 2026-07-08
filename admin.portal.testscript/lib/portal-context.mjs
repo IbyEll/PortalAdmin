@@ -55,6 +55,7 @@ import {
   loadOverlayConfig
 , resolveOverlayDashboardPort
 } from "../../admin.portal.lib/portal.instance.mjs";
+import { resolveDashboardListenPort } from "../../admin.portal.lib/portal.launch.dashboard.mjs";
 
 import { stripTrailingSlash } from "./http.mjs";
 
@@ -185,24 +186,52 @@ export async function resolveCruscottoContext(cli) {
     };
   }
 
-  // 3. Richiede --overlay se manca base — carica config e risolve porta dashboard
-  if (!cli.overlay) {
+  // 3. Overlay da CLI o PRJ_NAME — risolve porta dashboard da project.config
+  const overlay = cli.overlay ?? process.env.PRJ_NAME?.trim() ?? null;
+
+  if (!overlay) {
     throw new Error("Specificare --overlay, --base o DASHBOARD_URL");
   }
 
-  const config = await loadOverlayConfig(cli.overlay);
+  const config = await loadOverlayConfig(overlay);
 
   if (!config) {
-    throw new Error(`Overlay "${cli.overlay}" non trovato`);
+    throw new Error(`Overlay "${overlay}" non trovato`);
   }
 
-  const port = cli.port ?? await resolveOverlayDashboardPort(cli.overlay, config);
+  const port = cli.port ?? await resolveOverlayDashboardPort(overlay, config);
 
   return {
     base    : `http://127.0.0.1:${port}`
-  , overlay : cli.overlay
+  , overlay
   , config
   };
+}
+
+/**
+ * Env e argv extra per spawn figli testscript (run-all, cruscotto POST /api/run).
+ * Propaga DASHBOARD_URL e --overlay da PRJ_NAME quando il child non riceve flag CLI.
+ *
+ * @returns {{ env: NodeJS.ProcessEnv, args: string[] }}
+ */
+export function buildTestScriptChildContext() {
+  const overlay = process.env.PRJ_NAME?.trim() ?? null;
+
+  /** @type {NodeJS.ProcessEnv} */
+  const env = {};
+
+  if (!process.env.DASHBOARD_URL?.trim()) {
+    env.DASHBOARD_URL = `http://127.0.0.1:${resolveDashboardListenPort()}`;
+  }
+
+  /** @type {string[]} */
+  const args = [];
+
+  if (overlay) {
+    args.push("--overlay", overlay);
+  }
+
+  return { env, args };
 }
 
 /**

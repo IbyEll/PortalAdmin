@@ -30,7 +30,7 @@
  *   - authHealthUrl, apiHealthUrl, webUrl — override opzionali in checkServices
  *
  * Consumatori:
- *   - admin.portal.lib/test.run-all.mjs — checkProjectServices prima dei test funzionali
+ *   - cruscotto.lib/test.run.all.mjs — checkProjectServices prima dei test funzionali
  *   - server/cruscotto.health.mjs — checkDevStackServices per GET /api/health
  *
  * Export principali:

@@ -3686,6 +3686,24 @@ th.col-filter-head.col-dev-order .col-filter-trigger {
   cursor: help;
 }
 
+/* Identificativo — intestazione sprint vista Per Sprint */
+.key-main .sprint-ident-wrap.is-sprint-ident-jira {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.key-main .sprint-ident-wrap.is-sprint-ident-from-plan .sprint-ident-label-text {
+  color: var(--accent);
+}
+
+.key-main .sprint-ident-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  flex-wrap: wrap;
+}
+
 th.col-filter-head.col-sprint .col-filter-label::after {
   content: " · WP";
   font-size: 0.62rem;

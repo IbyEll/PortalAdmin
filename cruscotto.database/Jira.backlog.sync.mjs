@@ -36,6 +36,10 @@
  */
 
 import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import {
+  ensureWorkingPlanLoaded
+, enrichIssuesWithWorkingPlan
+} from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 
 import { openCruscottoDb, resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
 
@@ -267,6 +271,9 @@ export async function syncJiraBacklogSnapshot(backlog) {
  */
 export async function syncJiraBacklogFromApi() {
   const backlog = await fetchJiraBacklog();
+
+  await ensureWorkingPlanLoaded();
+  enrichIssuesWithWorkingPlan(backlog.issues);
 
   return syncJiraBacklogSnapshot(backlog);
 }

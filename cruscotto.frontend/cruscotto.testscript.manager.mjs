@@ -40,7 +40,7 @@
  * Dipendenze:
  *   - cruscotto.lib/test.catalog.mjs — discoverTestScripts, BLOCKED_SCRIPTS
  *   - admin.portal.lib/portal.paths.resolver.mjs — getPortalRoot, getProductRepoPath, getTestScriptDir
- *   - cruscotto.lib/test.run-all.mjs — child process per run tecnici
+ *   - cruscotto.lib/test.run.all.mjs — child process per run tecnici
  *
  * Export principali:
  *   - getRunStatus, isRunActive — snapshot stato run
@@ -64,6 +64,8 @@ import {
 , requireTestScriptDir
 } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+import { buildTestScriptChildContext } from "../admin.portal.testscript/lib/portal-context.mjs";
+import { resolveDashboardListenPort } from "../admin.portal.lib/portal.launch.dashboard.mjs";
 
 const testLog = createLogger("test");
 
@@ -208,7 +210,7 @@ function bindTestChildLogs(proc, scriptOrder) {
 }
 
 /**
- * Avvia admin.portal.lib/test.run-all.mjs — tutti gli script, una suite, un file o un singolo test case.
+ * Avvia cruscotto.lib/test.run.all.mjs — tutti gli script, una suite, un file o un singolo test case.
  *
  * @param {string} [productRepoRoot] — legacy; default da PRODUCT_REPO_PATH
  * @param {{ scriptRel?: string, suite?: string, testCase?: string }} [options]
@@ -231,7 +233,7 @@ export async function startRun(productRepoRoot, options = {}) {
 
   const productRoot = productRepoRoot ?? getProductRepoPath();
   const portalRoot  = getPortalRoot();
-  const runAll      = join(portalRoot, "lib", "test.run-all.mjs");
+  const runAll      = join(portalRoot, "cruscotto.lib", "test.run.all.mjs");
 
   const scriptRel = options.scriptRel?.replace(/\\/g, "/") ?? null;
   const suite     = options.suite?.replace(/\\/g, "/") ?? null;
@@ -312,11 +314,14 @@ export async function startRun(productRepoRoot, options = {}) {
   }
 
   // 6. Spawn run-all e aggancia parser stdout/stderr
+  const childCtx = buildTestScriptChildContext();
   child = spawn(process.execPath, args, {
     cwd   : portalRoot
   , env   : {
       ...process.env
+    , ...childCtx.env
     , PRODUCT_REPO_PATH: productRoot
+    , DASHBOARD_PORT   : String(resolveDashboardListenPort())
     }
   , stdio : ["ignore", "pipe", "pipe"]
   });

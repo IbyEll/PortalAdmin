@@ -41,27 +41,10 @@
 
 
 import { cruscottoDbFileExists, openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
-import { buildBacklogTree } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
-
-/**
- * @param {Array<{ id: number, name: string, state: string, startDate?: Date | null, endDate?: Date | null }>} rows
- */
-function indexJiraSprintsFromRows(rows) {
-  /** @type {Record<string, { id: number, name: string, state: string, startDate: string | null, endDate: string | null }>} */
-  const byName = {};
-
-  for (const sprint of rows) {
-    byName[ sprint.name] = {
-      id       : sprint.id
-    , name     : sprint.name
-    , state    : sprint.state
-    , startDate: sprint.startDate?.toISOString() ?? null
-    , endDate  : sprint.endDate?.toISOString() ?? null
-    };
-  }
-
-  return byName;
-}
+import {
+  buildBacklogTree
+, indexJiraSprintsByName
+} from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 
 /**
  * @param {string | null | undefined} raw
@@ -193,6 +176,15 @@ export async function loadJiraBacklogFromDb() {
     where: { syncRunId: syncRun.id }
   });
 
+  /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.mjs").JiraSprintInfo[]} */
+  const jiraSprintInfos = jiraSprints.map((sprint) => ({
+    id       : sprint.id
+  , name     : sprint.name
+  , state    : sprint.state
+  , startDate: sprint.startDate?.toISOString() ?? null
+  , endDate  : sprint.endDate?.toISOString() ?? null
+  }));
+
   /** @type {Record<string, string[]>} */
   const boardSprintKeysByPlanName = {};
 
@@ -243,14 +235,8 @@ export async function loadJiraBacklogFromDb() {
   , total                     : issues.length
   , epics                     : issues.filter((row) => row.tier === "epic").length
   , issues
-  , jiraSprints               : jiraSprints.map((sprint) => ({
-      id       : sprint.id
-    , name     : sprint.name
-    , state    : sprint.state
-    , startDate: sprint.startDate?.toISOString() ?? null
-    , endDate  : sprint.endDate?.toISOString() ?? null
-    }))
-  , jiraSprintsByName         : indexJiraSprintsFromRows(jiraSprints)
+  , jiraSprints               : jiraSprintInfos
+  , jiraSprintsByName         : indexJiraSprintsByName(jiraSprintInfos)
   , boardSprintKeysByPlanName
   , source                    : "cruscotto.database"
   , syncRunId                 : syncRun.id

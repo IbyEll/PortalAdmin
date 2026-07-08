@@ -96,7 +96,10 @@ const myProjectMod = await loadFirstOverlayModule([
 , "page.my-project.analysis.mjs"
 ]);
 
- 
+const myProjectFallbackMod = await tryImportModule(
+  join(PORTAL_ROOT, "cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs")
+);
+
 const projectOverviewMod = await loadFirstOverlayModule([
   `page.project.overview.${overlayName}.mjs`
 , "page.project.overview.mjs"

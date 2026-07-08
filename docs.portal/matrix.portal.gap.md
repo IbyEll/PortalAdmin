@@ -13,9 +13,15 @@
 | info | start:dev → admin.script.standalone | Completato / allineato allo stato target 2026-06. | admin.script.standalone/start-dev.mjs | fatto |
 | info | Smoke spostati in test.smoke/ | Completato / allineato allo stato target 2026-06. | test.smoke/ | fatto |
 | info | PROJECT_Base fallback | Completato / allineato allo stato target 2026-06. | PROJECT_Base/ | fatto |
-| info | Jira Working de-integata (PARKING) | Completato / allineato allo stato target 2026-06. | PARKING_tocheck/cruscotto.jira.working.html | fatto |
 | info | portal.paths.resolver canonico | Completato / allineato allo stato target 2026-06. | admin.portal.lib/portal.paths.resolver.mjs | fatto |
 | info | server/ legacy rimosso | Completato / allineato allo stato target 2026-06. | server/ | fatto |
+| P1 | Jira Working de-integata (PARKING) | Migrazione incompleta o assente. | PARKING_tocheck/cruscotto.jira.working.html | gap |
+
+## Gap analysis
+
+| Sev | Voce | Dettaglio | Path | Stato |
+| --- | --- | --- | --- | --- |
+| P1 | PARKING_tocheck referenziato da moduli attivi | 1 moduli .mjs fuori PARKING importano o re-exportano da staging. | admin.portal.JiraCORE/jiraCORE.working.plan.generate.mjs | parziale |
 
 ## Bug
 
@@ -28,8 +34,8 @@
 
 | Sev | Voce | Dettaglio | Path | Stato |
 | --- | --- | --- | --- | --- |
-| P2 | Consumer residui su portal-paths (shim rimosso) | 4 file importano admin.portal.lib/portal-paths.mjs non più presente. | admin.portal.lib/product.manifest.mjs, package.json, test.smoke/smoke-ci.mjs, test.smoke/smoke-portal-paths.mjs | gap |
-| P2 | Commenti/doc citano runner/cruscotto.server.mjs (legacy) | Non più rilevato nel codice attivo (PARKING/docs esclusi). | — | fatto |
+| P2 | Commenti/doc citano runner/cruscotto.server.mjs (legacy) | 6 file attivi con path legacy; canonico cruscotto.frontend/cruscotto.server.mjs. · Ticket chiuso su Jira. | cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs, cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs, cruscotto.frontend/pillar-matrix.js, cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json | fatto |
+| P2 | Consumer residui su portal-paths (shim rimosso) | 7 file importano admin.portal.lib/portal-paths.mjs non più presente. | admin.portal.lib/product.manifest.mjs, cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json, package.json, test.smoke/smoke-ci.mjs, test.smoke/smoke-portal-paths.mjs | gap |
 
 ## Feature completate
 

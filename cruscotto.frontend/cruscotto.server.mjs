@@ -92,8 +92,8 @@ import { fetchJiraBacklog, loadJiraBacklog } from "./cruscotto.jira.backlog.mjs"
 import { fetchJiraIssueDetail, fetchJiraIssueDetailFromDb } from "./cruscotto.jira.issue.view.mjs";
 import { fetchBacklogInsights, buildRepoAlignMap } from "./cruscotto.jira.backlog.insights.mjs";
 import {
-  applyWorkingPlanToIssues
-, ensureWorkingPlanLoaded
+  ensureWorkingPlanLoaded
+, enrichIssuesWithWorkingPlan
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
 import { fetchActiveWipForUi, fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
@@ -342,7 +342,7 @@ async function preflightRunTarget(options) {
  */
 async function enrichBacklogPayload(data) {
   await ensureWorkingPlanLoaded();
-  applyWorkingPlanToIssues(data.issues);
+  enrichIssuesWithWorkingPlan(data.issues);
   const repoRefs = scanRepoJiraReferences();
 
   data.repoAlign = buildRepoAlignMap(data.issues, repoRefs);

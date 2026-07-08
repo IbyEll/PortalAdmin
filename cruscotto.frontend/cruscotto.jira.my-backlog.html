@@ -874,6 +874,22 @@
      * @returns {number | null}
      */
     function resolveSprintNumForGroup(groupName, stories) {
+      const matching = stories.filter((row) => storyMatchesSprintGroupPlan(row, groupName));
+
+      if (matching.length) {
+        const planSprint = matching.find((row) => row.devSprint != null)?.devSprint;
+
+        if (planSprint != null) {
+          return planSprint;
+        }
+      }
+
+      const fromStory = stories.find((row) => row.devSprint != null)?.devSprint;
+
+      if (fromStory != null) {
+        return fromStory;
+      }
+
       const fromPlan = SPRINT_PLAN.find(
         (block) => normalizeSprintLabel(block.name) === normalizeSprintLabel(groupName)
       );
@@ -882,13 +898,7 @@
         return fromPlan.sprint;
       }
 
-      const matching = stories.filter((row) => storyMatchesSprintGroupPlan(row, groupName));
-
-      if (matching.length) {
-        return matching[0].devSprint ?? null;
-      }
-
-      return stories[0]?.devSprint ?? null;
+      return null;
     }
 
     /**
@@ -4193,9 +4203,19 @@
       }
 
       for (const [catalogKey, sprint] of Object.entries(jiraSprintCatalog)) {
-        if (catalogKey === key || catalogKey.includes(key) || key.includes(catalogKey)) {
+        const catalogNorm = normalizeSprintLabel(catalogKey);
+
+        if (catalogNorm === key || catalogNorm.includes(key) || key.includes(catalogNorm)) {
           return sprint;
         }
+      }
+
+      const fromList = (backlog?.jiraSprints ?? []).find(
+        (sprint) => normalizeSprintLabel(sprint.name) === key
+      );
+
+      if (fromList?.id != null) {
+        return fromList;
       }
 
       if (row.jiraSprintState) {
@@ -4209,7 +4229,40 @@
     }
 
     /**
-     * Stato colonna Status — WIP ha priorità su cache Jira per righe in jira_issue_wip.
+     * Opzioni render colonna Identificativo per intestazione sprint (vista Per Sprint).
+     *
+     * @param {typeof backlog.issues[number]} row
+     * @returns {{
+     *   jiraSprint: { id?: number, name: string, state: string } | null,
+     *   wpSprint: number | null,
+     *   wpName: string | null,
+     *   unplanned: boolean,
+     * }}
+     */
+    function sprintIdentificativoOpts(row) {
+      return {
+        jiraSprint : resolveJiraBoardSprint(row)
+      , wpSprint   : row.devSprint ?? null
+      , wpName     : row.devSprintName ?? row.summary ?? null
+      , unplanned  : CruscottoSprintDisplay?.isUnplannedSprintHeader?.(row) ?? false
+      };
+    }
+
+    /**
+     * @param {typeof backlog.issues[number]} row
+     * @returns {string}
+     */
+    function sprintIdentificativoExportLabel(row) {
+      const opts = sprintIdentificativoOpts(row);
+
+      if (CruscottoSprintDisplay?.formatSprintIdentificativoLabel) {
+        return CruscottoSprintDisplay.formatSprintIdentificativoLabel(opts);
+      }
+
+      return opts.wpSprint != null ? `Sprint ${opts.wpSprint}` : "—";
+    }
+
+    /**
      *
      * @param {typeof backlog.issues[number]} row
      * @param {Set<string>} sprintComplete
@@ -4750,9 +4803,19 @@
             keyMain.appendChild(createSprintRelatedOpenMark(openRelated));
           }
 
-          keyMain.appendChild(
-            document.createTextNode(row.devSprint ? `Sprint ${row.devSprint}` : "—")
-          );
+          const identWrap = document.createElement("span");
+          identWrap.className = "sprint-ident-wrap";
+
+          if (CruscottoSprintDisplay?.fillSprintIdentificativo) {
+            CruscottoSprintDisplay.fillSprintIdentificativo(
+              identWrap
+            , sprintIdentificativoOpts(row)
+            );
+          } else {
+            identWrap.textContent = row.devSprint ? `Sprint ${row.devSprint}` : "—";
+          }
+
+          keyMain.appendChild(identWrap);
         } else if (row.tier === "pillar") {
           keyMain.textContent = row.devOrder ? `#${row.devOrder}` : "Pilastro";
           keyMain.title = `${row.summary ?? "Pilastro"} · ${row.pillarIssueCount ?? 0} issue`;
@@ -5201,7 +5264,7 @@
         lines.push([
           esc(row.depth),
           esc(row.type),
-          esc(row.tier === "sprint" ? (row.devSprint ? `Sprint ${row.devSprint}` : "—") : row.key),
+          esc(row.tier === "sprint" ? sprintIdentificativoExportLabel(row) : row.key),
           esc(svilExport),
           esc(row.summary),
           esc(sprintExport),
