@@ -59,12 +59,12 @@ flowchart TB
       <tbody>
         <tr>
           <td><code>getPortalRoot()</code></td>
-          <td><code>admin.portal.lib/portal-paths.mjs</code></td>
+          <td><code>admin.portal.lib/portal.paths.resolver.mjs</code></td>
           <td>Path assoluto della root <code>PortalAdmin/</code></td>
         </tr>
         <tr>
           <td><code>getPortalDataDir()</code>, <code>data/reports/</code></td>
-          <td><code>portal-paths</code>, <code>reporter</code></td>
+          <td><code>portal.paths.resolver</code>, <code>reporter</code></td>
           <td>Dati locali admin (report JSON/HTML, cache)</td>
         </tr>
         <tr>
@@ -106,7 +106,7 @@ flowchart TB
       </tbody>
     </table>
 
-    <pre><code>// admin.portal.lib/portal-paths.mjs — risoluzione path product
+    <pre><code>// admin.portal.lib/portal.paths.resolver.mjs — risoluzione path product
 const raw  = process.env.PRODUCT_REPO_PATH?.trim();
 const path = raw ? resolve(raw) : resolve(DEFAULT_SIBLING);
 // DEFAULT_SIBLING = ../PRJ_REPO da project.config</code></pre>

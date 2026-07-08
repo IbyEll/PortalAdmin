@@ -4,12 +4,12 @@
  * ** TESTSCRIPT ** -- commentato il: 2026-06-23 21:05
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-23 21:05   by: IbyEll
- * modificato il: 2026-06-23 21:05   by: IbyEll
- * ticket refirement: ADMIN-90 path resolver e product.manifest
+ * modificato il: 2026-07-08 17:25   by: IbyEll
+ * ticket refirement: ADMIN-90 path resolver e product.manifest · ADMIN-156 rename da smoke-portal-paths
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
- *              Smoke portal paths — resolver root, product repo, testScript e manifest.
+ *              Smoke paths resolver — root portal, product repo, testScript e manifest.
  * ************************************************************************************************************************
  *
  * Descrizione funzionale:
@@ -28,7 +28,7 @@
  *   - PRJ_PRODUCT_MANIFEST — path manifest da project.config
  *
  * Uso:
- *   - node test.smoke/smoke-portal-paths.mjs
+ *   - node test.smoke/smoke-paths-resolver.mjs
  *
  * Exit code:
  *   0 — tutti i path e manifest validi
@@ -91,7 +91,7 @@ if (!PRODUCT_MANIFEST_PATH.startsWith(portal)) {
 const refs = scanRepoJiraReferences();
 const adminKeys = [...refs.keys()].filter((k) => k.startsWith("ADMIN-"));
 
-console.log("OK portal-paths smoke");
+console.log("OK paths-resolver smoke");
 console.log(`  portal : ${portal}`);
 console.log(`  product: ${product}`);
 console.log(`  testScript: ${testScript}`);

@@ -46,7 +46,7 @@ import { resolveProductRepoPath } from "../admin.portal.lib/portal.paths.resolve
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const STEPS = [
-  "test.smoke/smoke-portal-paths.mjs"
+  "test.smoke/smoke-paths-resolver.mjs"
 , "test.smoke/smoke-portal-config.mjs"
 , "test.smoke/smoke-workflow.mjs"
 , "test.smoke/smoke-cruscotto-db.mjs"

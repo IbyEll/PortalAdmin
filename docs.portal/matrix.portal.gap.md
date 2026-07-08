@@ -34,8 +34,8 @@
 
 | Sev | Voce | Dettaglio | Path | Stato |
 | --- | --- | --- | --- | --- |
-| P2 | Commenti/doc citano runner/cruscotto.server.mjs (legacy) | 6 file attivi con path legacy; canonico cruscotto.frontend/cruscotto.server.mjs. · Ticket chiuso su Jira. | cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs, cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs, cruscotto.frontend/pillar-matrix.js, cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json | fatto |
-| P2 | Consumer residui su portal-paths (shim rimosso) | 7 file importano admin.portal.lib/portal-paths.mjs non più presente. | admin.portal.lib/product.manifest.mjs, cruscotto.frontend/reports/working.plan.AdminDashBoard.fragment.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.html, cruscotto.frontend/reports/working.plan.AdminDashBoard.payload.json, package.json, test.smoke/smoke-ci.mjs, test.smoke/smoke-portal-paths.mjs | gap |
+| P2 | Commenti/doc citano runner/cruscotto.server.mjs (legacy) | 3 file attivi con path legacy; canonico cruscotto.frontend/cruscotto.server.mjs. · Ticket chiuso su Jira. | cruscotto.frontend/cruscotto.jira.my-project.analysis.mjs, cruscotto.frontend/cruscotto.jira.pillar.matrix.portal.generate.mjs, cruscotto.frontend/pillar-matrix.js | fatto |
+| P2 | Consumer residui su portal-paths (shim rimosso) | Non più rilevato nel codice attivo (PARKING/docs esclusi). | — | fatto |
 
 ## Feature completate
 

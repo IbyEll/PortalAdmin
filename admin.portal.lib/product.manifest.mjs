@@ -28,7 +28,7 @@
  * Consumatori:
  *   - server/dev-api.mjs — tab Requisiti e Servizi
  *   - admin.portal.lib/discovery.services.repo.mjs — piano avvio Process
- *   - test.smoke/smoke-portal-paths.mjs — smoke path e parse
+ *   - test.smoke/smoke-paths-resolver.mjs — smoke path e parse
  *
  * Export principali:
  *   - loadProductManifest — parse JSON con cache in-process

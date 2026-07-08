@@ -38,7 +38,7 @@ const DATA = {
     { id: "cov-orch-run-all", sev: "warn", status: "parziale", project: PA, voce: "Discovery run-all", dettaglio: "Test: smoke-run-all.mjs · Gap: solo --list, non esecuzione run", paths: ["admin.portal.lib/test.run.all.mjs"] },
   ],
   config: [
-    { id: "cov-cfg-paths", sev: "info", status: "coperto", project: PA, voce: "Path resolver / product repo", dettaglio: "Test: smoke-portal-paths.mjs", paths: ["admin.portal.lib/portal.paths.resolver.mjs"] },
+    { id: "cov-cfg-paths", sev: "info", status: "coperto", project: PA, voce: "Path resolver / product repo", dettaglio: "Test: smoke-paths-resolver.mjs", paths: ["admin.portal.lib/portal.paths.resolver.mjs"] },
     { id: "cov-cfg-overlay", sev: "info", status: "coperto", project: PA, voce: "Overlay / manifest / segnali", dettaglio: "Test: smoke-portal-config.mjs", paths: ["admin.portal.lib/project.config.mjs", "admin.portal.JiraCORE/jira.project.config.overlay.mjs"] },
     { id: "cov-cfg-refs", sev: "info", status: "coperto", project: PA, voce: "Scan citazioni Jira in repo", dettaglio: "Test: smoke-portal-config.mjs", paths: ["admin.portal.JiraCORE/jira.function.repo.refs.mjs"] },
     { id: "cov-cfg-workflow", sev: "info", status: "coperto", project: PA, voce: "Regole workflow .cursor", dettaglio: "Test: smoke-workflow.mjs", paths: [".cursor/rules/ADMIN-Workflow.mdc"] },
