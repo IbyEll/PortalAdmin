@@ -1,6 +1,6 @@
 ---
 description: Veve db step 1 — leggi parent e subtask da jira_issue (cache cruscotto)
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Veve DB — Leggi Jira (cache)

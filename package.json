@@ -29,6 +29,7 @@
     "test:config": "node test.smoke/smoke-portal-config.mjs",
     "test:workflow": "node test.smoke/smoke-workflow.mjs",
     "test:dashboard": "node test.smoke/smoke-dashboard.mjs",
+    "test:home": "node test.smoke/smoke-home.mjs",
     "test:cruscotto-db": "node test.smoke/smoke-cruscotto-db.mjs",
     "test:portal-e2e": "node test.smoke/smoke-portal-e2e.mjs",
     "test:cruscotto-startup": "node admin.portal.testscript/funzionali/test.cruscotto.startup.mjs",

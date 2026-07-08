@@ -1,6 +1,6 @@
 ---
 description: Veve db step 3 — upsert parent {KEY} in jira_issue_wip
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Veve DB — Aggiorna Story (WIP)

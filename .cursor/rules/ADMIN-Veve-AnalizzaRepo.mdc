@@ -1,6 +1,6 @@
 ---
-description: Veve step 2 — analizza repo per ADMIN-xxx (adattatore ADMIN-AnalizzaRepo)
-alwaysApply: true
+description: Veve MCP step 2 — analizza repo (standalone `veve {KEY}` only)
+alwaysApply: false
 ---
 
 # ADMIN Veve — Analizza repo

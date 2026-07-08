@@ -1,6 +1,6 @@
 ---
-description: Veve step 1 — leggi parent ADMIN-xxx e subtask (read-only Jira)
-alwaysApply: true
+description: Veve MCP step 1 — leggi parent e subtask (standalone `veve {KEY}` only)
+alwaysApply: false
 ---
 
 # ADMIN Veve — Leggi Jira

@@ -1,6 +1,6 @@
 ---
-description: Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)
-alwaysApply: true
+description: Workflow legacy MCP — solo `veve {KEY}` standalone; gogo/procedi/chiudi usano ADMIN-Workflow database.mdc
+alwaysApply: false
 ---
 
 # Workflow — progetto istanziato + `{JIRA_KEY}`

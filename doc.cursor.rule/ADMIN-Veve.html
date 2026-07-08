@@ -14,11 +14,10 @@
       <h1>ADMIN-Veve</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.mdc</code> ·
-        <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--veve">veve</span> ·
-        Aggiornato 2026-06-25 07:32
+        Aggiornato 2026-07-08 22:25
       </p>
-      <p class="lead">Veve grooming {KEY} — leggi Jira, analizza repo, aggiorna story/subtask; anche step 3 di ADMIN-Workflow</p>
+      <p class="lead">Veve MCP standalone <code>veve {KEY}</code> — non usare su gogo/procedi (vedi ADMIN-Veve.db.mdc)</p>
     </header>
 
     <article class="mdc-body">
@@ -30,7 +29,7 @@
 <tr><td>4</td><td><code>ADMIN-Veve-AggiornaSubtask.mdc</code> · <code>.cursor/templates/veve/veve-subtask.md</code></td></tr></tbody></table>
 <h3>Trigger</h3>
 <table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
-<tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Step 3</strong> di <code>ADMIN-Workflow.mdc</code> — silenzioso (<code>ADMIN-Silence.mdc</code>)</td></tr>
+<tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Non</strong> applicare — usare <code>ADMIN-Veve.db.mdc</code> (step 3 workflow database)</td></tr>
 <tr><td><code>chiudi</code></td><td><strong>Non</strong> esegue veve</td></tr></tbody></table>
 <p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code> del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
 <p>Variante <strong>DB</strong> (cache + WIP): <code>ADMIN-Veve.db.mdc</code> · <code>veve db {KEY}</code> · step 3 di <code>ADMIN-Workflow database.mdc</code>.</p>

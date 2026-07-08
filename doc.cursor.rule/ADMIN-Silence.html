@@ -15,7 +15,7 @@
       <p class="meta">
         <code>.cursor/rules/ADMIN-Silence.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span> ·
-        Aggiornato 2026-06-25 07:32
+        Aggiornato 2026-07-08 22:25
       </p>
       <p class="lead">ADMIN procedi — START + silenzio + END; tra START e END zero narrativa tecnica</p>
     </header>
@@ -30,7 +30,7 @@
 <tr><td><strong>Blocker</strong></td><td>Solo errori commit/Jira/git</td></tr></tbody></table>
 <p><strong>Vietato</strong> tra START e END: narrativa, path file, diff, dump Jira, domande.</p>
 <h3>Jira nel workflow</h3>
-<ul><li><strong>Step 3 veve</strong> (<code>procedi</code>/<code>gogo</code>): <code>CallMcpTool</code> <code>user-atlassian</code> ammesso — silenzioso in chat</li><li><strong>Step 0, ok chiudi, chiudi:</strong> solo Task «Jira Auto» — mai MCP diretto</li><li><strong><code>veve {KEY}</code> standalone:</strong> MCP ammesso — chat libera (non è workflow)</li></ul>
+<ul><li><strong>Step 3 veve db</strong> (<code>procedi</code>/<code>gogo</code>): solo DB <code>jira_issue</code> / <code>jira_issue_wip</code> — silenzioso in chat</li><li><strong>Step 0–7:</strong> solo WIP DB — nessun MCP / Jira Auto</li><li><strong>Step 8 PUSH:</strong> sync Jira da WIP + <code>close-story.mjs</code> — silenzioso in chat</li><li><strong><code>veve {KEY}</code> MCP standalone:</strong> MCP ammesso — chat libera (non è workflow)</li></ul>
 <h3>Blocker</h3>
 <p>Working tree sporco, push/PR/Jira falliti → END parziale con <code>Errori:</code> — stop fino a fix utente.</p>
     </article>

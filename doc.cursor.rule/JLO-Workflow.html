@@ -16,20 +16,21 @@
         <code>.cursor/rules/JLO-Workflow.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--workflow">workflow</span> ·
-        Aggiornato 2026-06-25 07:32
+        Aggiornato 2026-07-08 22:25
       </p>
-      <p class="lead">Alias workflow — ADMIN-Workflow.mdc; JLO = progetto istanziato JustLastOne (PRJ_JIRA_PREFIX=JLO)</p>
+      <p class="lead">Alias workflow — ADMIN-Workflow database.mdc; JLO = progetto istanziato JustLastOne (PRJ_JIRA_PREFIX=JLO)</p>
     </header>
 
     <article class="mdc-body">
 <h2>JLO-Workflow (progetto istanziato)</h2>
-<p>Regola canonica: <strong><code>.cursor/rules/ADMIN-Workflow.mdc</code></strong>.</p>
+<p>Regola canonica: <strong><code>.cursor/rules/ADMIN-Workflow database.mdc</code></strong>.</p>
 <table><thead><tr><th>Overlay</th><th><code>PRJ_NAME=JustLastOne</code></th></tr></thead><tbody><tr><td>Repo workflow</td><td><code>PRODUCT_REPO_PATH</code> → checkout <strong>JustLastOne</strong> (non il solo host PortalAdmin)</td></tr>
 <tr><td><code>JIRA_KEY</code></td><td><code>JLO</code> (= <code>PRJ_JIRA_PREFIX</code>)</td></tr>
 <tr><td>Branch</td><td><code>STORY---JLO-{num}-{slug}</code></td></tr></tbody></table>
 <p>Comandi: <code>gogo JLO-507</code> · <code>chiudi fast Story JLO-930</code> — <strong>stop</strong> se istanza non allineata a JustLastOne.</p>
-<p>Pipeline: step 3 <strong>veve</strong> su <code>JLO-{num}</code> prima di Step 0 — vedi <code>ADMIN-Workflow.mdc</code> § Step 3.</p>
+<p>Pipeline: step 3 <strong>veve db</strong> su <code>JLO-{num}</code> prima di Step 0 — vedi <code>ADMIN-Workflow database.mdc</code> § Step 3.</p>
 <p>Ticket <strong>ADMIN</strong>: stessa regola con overlay <code>AdminDashBoard</code> e repo workflow PortalAdmin.</p>
+<p>Workflow MCP legacy (solo <code>veve {KEY}</code>): <code>ADMIN-Workflow.mdc</code> · <code>ADMIN-Veve.mdc</code>.</p>
     </article>
 
     <footer>

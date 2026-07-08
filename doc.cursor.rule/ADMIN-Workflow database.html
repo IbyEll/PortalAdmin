@@ -14,10 +14,11 @@
       <h1>ADMIN-Workflow database</h1>
       <p class="meta">
         <code>.cursor/rules/ADMIN-Workflow database.mdc</code> ·
+        <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--workflow">workflow</span> ·
-        Aggiornato 2026-06-25 07:37
+        Aggiornato 2026-07-08 22:25
       </p>
-      <p class="lead">Workflow — procedi/gogo/chiudi su ticket {JIRA_KEY}-xxx solo sul progetto istanziato (PRODUCT_REPO_PATH)</p>
+      <p class="lead">Workflow database MyBacklog — procedi/gogo/chiudi su {JIRA_KEY}-xxx (WIP cruscotto DB, veve db step 3, PUSH step 8)</p>
     </header>
 
     <article class="mdc-body">
@@ -97,7 +98,7 @@ git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
 <h3>Pre-flight git (step 2)</h3>
 <p>Nel <strong>repo workflow</strong> (<code>PRODUCT_REPO_PATH</code>):</p>
 <ol><li><code>git status --porcelain</code> — vuoto (no stash automatico agente)</li><li><code>git fetch origin</code> · <code>main</code> allineato a <code>origin/main</code></li><li><strong>Nessuna PR aperta</strong> sul repo workflow — <code>gh pr list --state open</code>; se ≥1 → <strong>Stop</strong> (merge o chiudi prima di <code>gogo</code> / <code>procedi</code>)</li><li><code>git checkout main &amp;&amp; git pull &amp;&amp; git checkout -b {TIPO}---{JIRA_KEY}-{num}-{slug}</code> (solo se nuova branch)</li></ol>
-<p>Vedi gate PR in <code>ADMIN-Workflow.mdc</code> § Pre-flight git (step 2.3).</p>
+<p>Runtime: <code>checkNoOpenPullRequests()</code> in <code>admin.portal/portal.cursor.agent.workflow.mjs</code> · API <code>GET /api/workflow/gogo-preflight</code>.</p>
 <hr />
 <h3>Step 3 — Veve DB (grooming → <code>jira_issue_wip</code>)</h3>
 <p><strong>Obbligatorio</strong> su <code>procedi</code> / <code>gogo</code> su <code>{KEY}</code> — dopo pre-flight git, <strong>prima</strong> di Step 0.</p>

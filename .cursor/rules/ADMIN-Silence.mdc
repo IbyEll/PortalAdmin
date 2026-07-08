@@ -21,9 +21,10 @@ alwaysApply: true
 
 ## Jira nel workflow
 
-- **Step 3 veve** (`procedi`/`gogo`): `CallMcpTool` `user-atlassian` ammesso — silenzioso in chat
-- **Step 0, ok chiudi, chiudi:** solo Task «Jira Auto» — mai MCP diretto
-- **`veve {KEY}` standalone:** MCP ammesso — chat libera (non è workflow)
+- **Step 3 veve db** (`procedi`/`gogo`): solo DB `jira_issue` / `jira_issue_wip` — silenzioso in chat
+- **Step 0–7:** solo WIP DB — nessun MCP / Jira Auto
+- **Step 8 PUSH:** sync Jira da WIP + `close-story.mjs` — silenzioso in chat
+- **`veve {KEY}` MCP standalone:** MCP ammesso — chat libera (non è workflow)
 
 ## Blocker
 

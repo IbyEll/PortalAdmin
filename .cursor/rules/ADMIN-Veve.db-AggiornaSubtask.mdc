@@ -1,6 +1,6 @@
 ---
 description: Veve db step 4 — upsert subtask in jira_issue_wip
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Veve DB — Aggiorna Subtask (WIP)

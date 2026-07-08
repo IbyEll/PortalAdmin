@@ -1,11 +1,11 @@
 ---
-description: Alias workflow — ADMIN-Workflow.mdc; JLO = progetto istanziato JustLastOne (PRJ_JIRA_PREFIX=JLO)
+description: Alias workflow — ADMIN-Workflow database.mdc; JLO = progetto istanziato JustLastOne (PRJ_JIRA_PREFIX=JLO)
 alwaysApply: true
 ---
 
 # JLO-Workflow (progetto istanziato)
 
-Regola canonica: **`.cursor/rules/ADMIN-Workflow.mdc`**.
+Regola canonica: **`.cursor/rules/ADMIN-Workflow database.mdc`**.
 
 | | |
 | --- | --- |
@@ -16,6 +16,8 @@ Regola canonica: **`.cursor/rules/ADMIN-Workflow.mdc`**.
 
 Comandi: `gogo JLO-507` · `chiudi fast Story JLO-930` — **stop** se istanza non allineata a JustLastOne.
 
-Pipeline: step 3 **veve** su `JLO-{num}` prima di Step 0 — vedi `ADMIN-Workflow.mdc` § Step 3.
+Pipeline: step 3 **veve db** su `JLO-{num}` prima di Step 0 — vedi `ADMIN-Workflow database.mdc` § Step 3.
 
 Ticket **ADMIN**: stessa regola con overlay `AdminDashBoard` e repo workflow PortalAdmin.
+
+Workflow MCP legacy (solo `veve {KEY}`): `ADMIN-Workflow.mdc` · `ADMIN-Veve.mdc`.

@@ -97,6 +97,65 @@ jobs:
           PRODUCT_REPO_PATH: ${{ github.workspace }}/just-last-one
         run: npm run test:portal-e2e
 
+  smoke-admin-overlay:
+    name: AdminDashBoard overlay + HOME smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PortalAdmin
+        uses: actions/checkout@v4
+        with:
+          path: portal-admin
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: portal-admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: portal-admin
+        run: npm ci
+
+      - name: Verify PRODUCT_REPO_PATH (self-hosted overlay)
+        working-directory: portal-admin
+        env:
+          PRJ_NAME: AdminDashBoard
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/portal-admin
+        run: npm run test:paths
+
+      - name: Portal config smoke (AdminDashBoard)
+        working-directory: portal-admin
+        env:
+          PRJ_NAME: AdminDashBoard
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/portal-admin
+        run: npm run test:config
+
+      - name: Workflow rules smoke (AdminDashBoard)
+        working-directory: portal-admin
+        env:
+          PRJ_NAME: AdminDashBoard
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/portal-admin
+        run: npm run test:workflow
+
+      - name: Dashboard server smoke (AdminDashBoard :3998)
+        working-directory: portal-admin
+        env:
+          PRJ_NAME: AdminDashBoard
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/portal-admin
+          DASHBOARD_PORT: "3998"
+        run: npm run test:dashboard
+
+      - name: Portal HOME smoke (ADMIN-168)
+        working-directory: portal-admin
+        env:
+          PRJ_NAME: AdminDashBoard
+          PRODUCT_REPO_PATH: ${{ github.workspace }}/portal-admin
+          PORTAL_HOME_PORT: "3990"
+        run: npm run test:home
+
   jira-sync:
     name: Jira backlog sync (optional)
     needs: smoke
