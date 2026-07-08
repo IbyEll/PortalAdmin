@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-07-08T20:26:11.185Z",
+  "generatedAt": "2026-07-08T22:11:49.862Z",
   "source": "unified",
   "metrics": {
     "archProgressPct": 92,
     "archScore": 11,
     "archTotal": 12,
     "openGaps": 1,
-    "openBugs": 1,
+    "openBugs": 0,
     "doneFeatures": 3,
     "parkingFiles": 38,
     "parkingImports": 1,
-    "gap": 5,
-    "partial": 3,
+    "gap": 4,
+    "partial": 2,
     "obsolete": 16,
-    "done": 25,
+    "done": 27,
     "total": 49
   },
   "operational": [
@@ -228,7 +228,7 @@
     {
       "id": "op-gap",
       "title": "Gap analysis",
-      "badge": "1 aperti · 1 voci",
+      "badge": "1 aperti · 2 voci",
       "open": true,
       "rows": [
         {
@@ -251,32 +251,29 @@
             "summary": "PARKING_tocheck referenziato da moduli attivi",
             "detail": "1 moduli .mjs fuori PARKING importano o re-exportano da staging."
           }
+        },
+        {
+          "id": "audit-prio-r7",
+          "sev": "P2",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "audit-prio-r7",
+          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
+          "paths": [],
+          "issueKey": "ADMIN-195",
+          "issueType": "Bug",
+          "issueSummary": null,
+          "category": "gap",
+          "resolvedNote": "✅ ADMIN-195 — condizione repo assente"
         }
       ]
     },
     {
       "id": "op-bug",
       "title": "Bug",
-      "badge": "1 aperti · 2 voci",
-      "open": true,
+      "badge": "2 voci",
+      "open": false,
       "rows": [
-        {
-          "id": "bug-tree-regenerate",
-          "sev": "P1",
-          "status": "gap",
-          "project": "PortalAdmin",
-          "voce": "regenerateProjectTreeHtml chiamata senza import",
-          "dettaglio": "POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck.",
-          "paths": [
-            "cruscotto.frontend/cruscotto.server.mjs",
-            "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
-          ],
-          "issueKey": "ADMIN-169",
-          "issueType": "Bug",
-          "issueSummary": "[Bug] regenerateProjectTreeHtml chiamata senza import",
-          "category": "bug",
-          "resolvedNote": ""
-        },
         {
           "id": "bug-ci-portal-paths",
           "sev": "P1",
@@ -290,6 +287,20 @@
           "issueSummary": null,
           "category": "bug",
           "resolvedNote": "✅ ADMIN-154 — condizione repo assente"
+        },
+        {
+          "id": "bug-tree-regenerate",
+          "sev": "P1",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "bug-tree-regenerate",
+          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
+          "paths": [],
+          "issueKey": "ADMIN-169",
+          "issueType": "Bug",
+          "issueSummary": null,
+          "category": "bug",
+          "resolvedNote": "✅ ADMIN-169 — condizione repo assente"
         }
       ]
     },
@@ -426,7 +437,7 @@
           "status": "fatto",
           "project": "PortalAdmin.Cruscotto",
           "voce": "CI job AdminDashBoard + smoke admin:home",
-          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990.",
+          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. · Ticket chiuso su Jira.",
           "paths": [
             ".github/workflows/portal-smoke.yml",
             "test.smoke/smoke-home.mjs"
@@ -435,7 +446,7 @@
           "issueType": "Story",
           "issueSummary": "[Avanzamento] CI job AdminDashBoard + smoke admin:home",
           "category": "miglioramento",
-          "resolvedNote": ""
+          "resolvedNote": "✅ Jira ADMIN-168 — Fatto"
         },
         {
           "id": "imp-readme-sync",
@@ -479,7 +490,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -495,7 +506,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -511,7 +522,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -527,7 +538,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -567,7 +578,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -583,7 +594,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -599,7 +610,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -640,7 +651,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -656,7 +667,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -672,7 +683,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -688,7 +699,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -728,7 +739,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -765,7 +776,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -806,7 +817,7 @@
       "id": "audit-priority",
       "title": "Priorità backlog (R1–R7)",
       "open": true,
-      "badge": "2 aperti · 3 obsolete · 7 voci",
+      "badge": "1 aperti · 3 obsolete · 6 voci",
       "rows": [
         {
           "id": "audit-prio-r1",
@@ -837,7 +848,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r3",
@@ -854,7 +865,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r4",
@@ -870,7 +881,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r5",
@@ -899,7 +910,7 @@
           "status": "fatto",
           "project": "PortalAdmin.Cruscotto",
           "voce": "R6 — CI AdminDashBoard + HOME",
-          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990.",
+          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. · Ticket chiuso su Jira.",
           "paths": [
             ".github/workflows/portal-smoke.yml",
             "test.smoke/smoke-home.mjs"
@@ -907,22 +918,7 @@
           "issueKey": "ADMIN-168",
           "issueType": "Story",
           "issueSummary": "[Avanzamento] CI job AdminDashBoard + smoke admin:home",
-          "resolvedNote": "✅ ADMIN-168 — condizione repo assente o risolta"
-        },
-        {
-          "id": "audit-prio-r7",
-          "sev": "P2",
-          "status": "parziale",
-          "project": "PortalAdmin",
-          "voce": "R7 — Jira config unico + scan paths",
-          "dettaglio": "Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs",
-          "paths": [
-            "admin.portal.JiraCORE/jira.project.config.mjs"
-          ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
-          "resolvedNote": ""
+          "resolvedNote": "✅ Jira ADMIN-168 — Fatto"
         }
       ]
     }
@@ -1139,7 +1135,7 @@
     {
       "id": "op-gap",
       "title": "Gap analysis",
-      "badge": "1 aperti · 1 voci",
+      "badge": "1 aperti · 2 voci",
       "open": true,
       "rows": [
         {
@@ -1162,32 +1158,29 @@
             "summary": "PARKING_tocheck referenziato da moduli attivi",
             "detail": "1 moduli .mjs fuori PARKING importano o re-exportano da staging."
           }
+        },
+        {
+          "id": "audit-prio-r7",
+          "sev": "P2",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "audit-prio-r7",
+          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
+          "paths": [],
+          "issueKey": "ADMIN-195",
+          "issueType": "Bug",
+          "issueSummary": null,
+          "category": "gap",
+          "resolvedNote": "✅ ADMIN-195 — condizione repo assente"
         }
       ]
     },
     {
       "id": "op-bug",
       "title": "Bug",
-      "badge": "1 aperti · 2 voci",
-      "open": true,
+      "badge": "2 voci",
+      "open": false,
       "rows": [
-        {
-          "id": "bug-tree-regenerate",
-          "sev": "P1",
-          "status": "gap",
-          "project": "PortalAdmin",
-          "voce": "regenerateProjectTreeHtml chiamata senza import",
-          "dettaglio": "POST route in cruscotto.server.mjs → ReferenceError a runtime; sorgente in PARKING_tocheck.",
-          "paths": [
-            "cruscotto.frontend/cruscotto.server.mjs",
-            "PARKING_tocheck/cruscotto.jira.project.tree.plan.mjs"
-          ],
-          "issueKey": "ADMIN-169",
-          "issueType": "Bug",
-          "issueSummary": "[Bug] regenerateProjectTreeHtml chiamata senza import",
-          "category": "bug",
-          "resolvedNote": ""
-        },
         {
           "id": "bug-ci-portal-paths",
           "sev": "P1",
@@ -1201,6 +1194,20 @@
           "issueSummary": null,
           "category": "bug",
           "resolvedNote": "✅ ADMIN-154 — condizione repo assente"
+        },
+        {
+          "id": "bug-tree-regenerate",
+          "sev": "P1",
+          "status": "fatto",
+          "project": "PortalAdmin",
+          "voce": "bug-tree-regenerate",
+          "dettaglio": "Non più rilevato nel codice attivo (PARKING/docs esclusi).",
+          "paths": [],
+          "issueKey": "ADMIN-169",
+          "issueType": "Bug",
+          "issueSummary": null,
+          "category": "bug",
+          "resolvedNote": "✅ ADMIN-169 — condizione repo assente"
         }
       ]
     },
@@ -1337,7 +1344,7 @@
           "status": "fatto",
           "project": "PortalAdmin.Cruscotto",
           "voce": "CI job AdminDashBoard + smoke admin:home",
-          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990.",
+          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. · Ticket chiuso su Jira.",
           "paths": [
             ".github/workflows/portal-smoke.yml",
             "test.smoke/smoke-home.mjs"
@@ -1346,7 +1353,7 @@
           "issueType": "Story",
           "issueSummary": "[Avanzamento] CI job AdminDashBoard + smoke admin:home",
           "category": "miglioramento",
-          "resolvedNote": ""
+          "resolvedNote": "✅ Jira ADMIN-168 — Fatto"
         },
         {
           "id": "imp-readme-sync",
@@ -1388,7 +1395,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1404,7 +1411,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1420,7 +1427,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1436,7 +1443,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1476,7 +1483,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1492,7 +1499,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1508,7 +1515,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1549,7 +1556,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1565,7 +1572,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1581,7 +1588,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1597,7 +1604,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1637,7 +1644,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1674,7 +1681,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1715,7 +1722,7 @@
       "id": "audit-priority",
       "title": "Priorità backlog (R1–R7)",
       "open": true,
-      "badge": "2 aperti · 3 obsolete · 7 voci",
+      "badge": "1 aperti · 3 obsolete · 6 voci",
       "rows": [
         {
           "id": "audit-prio-r1",
@@ -1746,7 +1753,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r3",
@@ -1763,7 +1770,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r4",
@@ -1779,7 +1786,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 22:11:49."
         },
         {
           "id": "audit-prio-r5",
@@ -1808,7 +1815,7 @@
           "status": "fatto",
           "project": "PortalAdmin.Cruscotto",
           "voce": "R6 — CI AdminDashBoard + HOME",
-          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990.",
+          "dettaglio": "Job smoke-admin-overlay in portal-smoke.yml con test:home su :3990. · Ticket chiuso su Jira.",
           "paths": [
             ".github/workflows/portal-smoke.yml",
             "test.smoke/smoke-home.mjs"
@@ -1816,22 +1823,7 @@
           "issueKey": "ADMIN-168",
           "issueType": "Story",
           "issueSummary": "[Avanzamento] CI job AdminDashBoard + smoke admin:home",
-          "resolvedNote": "✅ ADMIN-168 — condizione repo assente o risolta"
-        },
-        {
-          "id": "audit-prio-r7",
-          "sev": "P2",
-          "status": "parziale",
-          "project": "PortalAdmin",
-          "voce": "R7 — Jira config unico + scan paths",
-          "dettaglio": "Rimuovere path fantasma server/, scripts/ da jira.project.config.mjs",
-          "paths": [
-            "admin.portal.JiraCORE/jira.project.config.mjs"
-          ],
-          "issueKey": null,
-          "issueType": null,
-          "issueSummary": null,
-          "resolvedNote": ""
+          "resolvedNote": "✅ Jira ADMIN-168 — Fatto"
         }
       ]
     }

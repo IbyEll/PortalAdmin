@@ -386,6 +386,29 @@ body {
   background: color-mix(in srgb, var(--pass) 5%, transparent);
 }
 
+.working-plan-report .wp-active-sprint-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.working-plan-report .wp-btn-close-sprint {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+.working-plan-report .wp-btn-close-sprint:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.working-plan-report .wp-active-sprint-action {
+  display: block;
+  margin-top: 0.5rem;
+}
+
 .working-plan-report .wp-table.wp-table--active-sprint tbody tr.is-story-done td {
   background: color-mix(in srgb, var(--pass) 4%, transparent);
 }

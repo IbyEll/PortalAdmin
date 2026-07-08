@@ -1872,6 +1872,46 @@ function postProjectOverviewRefresh(iframe, opts = {}) {
   }
 }
 
+/**
+ * Notifica iframe MyBacklog di ricaricare GET /api/jira/my-backlog (cache DB).
+ *
+ * @param {HTMLIFrameElement} iframe
+ * @param {{ reason?: string, sprintId?: number | null }} [opts]
+ */
+function postMyBacklogRefresh(iframe, opts = {}) {
+  try {
+    iframe.contentWindow?.postMessage({
+      type    : "cruscotto:my-backlog-refresh"
+    , reason  : opts.reason ?? "sprint-update"
+    , sprintId: opts.sprintId ?? null
+    }, location.origin);
+  } catch {
+    /* iframe non pronto */
+  }
+}
+
+/** @type {HTMLIFrameElement | null} */
+let myBacklogIframe = null;
+
+/**
+ * Richiede refresh tabella MyBacklog quando la tab è in iframe (es. dopo chiusura sprint WP).
+ *
+ * @param {{ reason?: string, sprintId?: number | null }} [opts]
+ */
+function refreshMyBacklogTab(opts = {}) {
+  if (!(myBacklogIframe instanceof HTMLIFrameElement)) {
+    myBacklogIframe = document.querySelector("#section-mybacklog iframe");
+  }
+
+  const iframe = myBacklogIframe;
+
+  if (!(iframe instanceof HTMLIFrameElement)) {
+    return;
+  }
+
+  postMyBacklogRefresh(iframe, opts);
+}
+
 /** @type {HTMLIFrameElement | null} */
 let projectOverviewIframe = null;
 
@@ -7279,6 +7319,13 @@ function renderWorkingPlanTab() {
       return;
     }
 
+    const closeSprintBtn = target.closest(".wp-btn-close-sprint");
+
+    if (closeSprintBtn instanceof HTMLButtonElement) {
+      void closeActiveJiraSprint(closeSprintBtn);
+      return;
+    }
+
     const btn = target.closest(".wp-btn-create-sprint");
 
     if (btn instanceof HTMLButtonElement) {
@@ -7663,6 +7710,9 @@ function getSelectedBacklogKeys(section) {
   return keys;
 }
 
+/** Valore select backlog — crea nuovo sprint con numerazione piano. */
+const BACKLOG_NEW_SPRINT_VALUE = "__new__";
+
 /**
  * @param {HTMLElement | null} section
  */
@@ -7717,20 +7767,30 @@ async function addBacklogSelectionToSprint(btn) {
     return;
   }
 
-  const sprintSel = section.querySelector("[data-wp-backlog-sprint-select]");
-  const actionEl  = section.querySelector("[data-wp-backlog-action]");
-  const sprintNum   = sprintSel instanceof HTMLSelectElement ? Number(sprintSel.value) : NaN;
+  const sprintSel   = section.querySelector("[data-wp-backlog-sprint-select]");
+  const actionEl    = section.querySelector("[data-wp-backlog-action]");
+  const outputEl    = document.getElementById("working-plan-output");
+  const statusEl    = document.getElementById("working-plan-status");
+  const sprintVal   = sprintSel instanceof HTMLSelectElement ? sprintSel.value : "";
   const keys        = getSelectedBacklogKeys(section);
+  const isNewSprint = sprintVal === BACKLOG_NEW_SPRINT_VALUE;
+  const sprintNum   = isNewSprint
+    ? Number(section.dataset.wpNextSprint)
+    : Number(sprintVal);
   const report      = lastWorkingPlanPayload?.report;
-  const block       = report && typeof report === "object" && Array.isArray(report.proposedSprints)
+  const block       = !isNewSprint && report && typeof report === "object" && Array.isArray(report.proposedSprints)
     ? report.proposedSprints.find((row) => Number(row.sprint) === sprintNum && !row.backlogPool)
     : null;
 
-  if (!Number.isFinite(sprintNum) || sprintNum < 1 || keys.length === 0) {
+  if (!sprintVal || keys.length === 0) {
     return;
   }
 
-  if (!block) {
+  if (!isNewSprint && (!Number.isFinite(sprintNum) || sprintNum < 1)) {
+    return;
+  }
+
+  if (!isNewSprint && !block) {
     if (actionEl instanceof HTMLElement) {
       actionEl.hidden = false;
       actionEl.textContent = "Rigenera il piano prima di assegnare issue allo sprint.";
@@ -7746,19 +7806,31 @@ async function addBacklogSelectionToSprint(btn) {
   if (actionEl instanceof HTMLElement) {
     actionEl.hidden = false;
     actionEl.className = "wp-backlog-action wp-sprint-action";
-    actionEl.textContent = `Assegnazione ${keys.length} issue allo sprint ${sprintNum}…`;
+    actionEl.textContent = isNewSprint
+      ? `Creazione sprint ${sprintNum} con ${keys.length} issue…`
+      : `Assegnazione ${keys.length} issue allo sprint ${sprintNum}…`;
   }
 
   try {
+    /** @type {Record<string, unknown>} */
+    const payload = {
+      keys
+    , refreshPlan: true
+    };
+
+    if (isNewSprint) {
+      payload.createNew = true;
+      payload.sprint    = sprintNum;
+    } else {
+      payload.sprint      = block.sprint;
+      payload.name        = block.name;
+      payload.description = block.description ?? "";
+    }
+
     const res = await fetch("/api/jira/working-plan/create-sprint", {
       method  : "POST"
     , headers : { "Content-Type": "application/json" }
-    , body    : JSON.stringify({
-        sprint     : block.sprint
-      , name       : block.name
-      , description: block.description ?? ""
-      , keys
-      })
+    , body    : JSON.stringify(payload)
     });
     const data = await res.json().catch(() => ({}));
 
@@ -7766,48 +7838,52 @@ async function addBacklogSelectionToSprint(btn) {
       throw new Error(String(data.error ?? `HTTP ${res.status}`));
     }
 
+    if (typeof data.html === "string" && data.html.trim() && outputEl) {
+      lastWorkingPlanPayload = data.payload ?? null;
+      await applyWorkingPlanHtml(outputEl, data.html, new Map());
+    }
+
+    const planSprint = Number(data.planSprint ?? sprintNum);
+    const message    = String(data.message ?? `${keys.length} issue assegnate`);
+
     if (actionEl instanceof HTMLElement) {
       actionEl.className = "wp-backlog-action wp-sprint-action is-ok";
-      actionEl.textContent = String(data.message ?? `${keys.length} issue assegnate`);
+      actionEl.textContent = message;
     }
+
+    if (statusEl) {
+      statusEl.textContent = isNewSprint
+        ? `Sprint ${planSprint} creato su Jira · piano rigenerato`
+        : `Issue assegnate allo sprint ${planSprint} · piano rigenerato`;
+    }
+
+    refreshMyBacklogTab({
+      reason  : isNewSprint ? "create-sprint" : "assign-sprint"
+    , sprintId: Number(data.sprintId) || null
+    });
 
     if (reportPayloadHasSprintStatus(report)) {
       if (!report.jiraSprintStatusByPlanNum) {
         report.jiraSprintStatusByPlanNum = {};
       }
 
-      report.jiraSprintStatusByPlanNum[String(sprintNum)] = {
-        state    : "future"
-      , message  : String(data.message ?? "Issue aggiunte")
-      , boardUrl : data.boardUrl ?? null
+      report.jiraSprintStatusByPlanNum[String(planSprint)] = {
+        sprintId    : data.sprintId ?? null
+      , sprintName  : data.sprintName ?? block?.name ?? ""
+      , state       : "future"
+      , message
+      , boardUrl    : data.boardUrl ?? null
+      , matchedKeys : Number(data.issueCount ?? keys.length)
+      , totalKeys   : keys.length
       };
     }
 
-    section.querySelectorAll(".wp-backlog-check:checked").forEach((node) => {
-      if (node instanceof HTMLInputElement) {
-        node.checked = false;
-      }
-    });
+    const refreshedSection = getBacklogPoolSection(outputEl ?? section);
 
-    syncBacklogPoolToolbar(section);
-
-    const outputEl = document.getElementById("working-plan-output");
-
-    if (outputEl) {
-      outputEl.querySelectorAll(`[data-wp-sprint-status="${sprintNum}"]`).forEach((node) => {
-        if (!(node instanceof HTMLElement)) {
-          return;
-        }
-
-        node.hidden    = false;
-        node.className = "wp-sprint-action is-ok";
-
-        if (data.boardUrl) {
-          node.innerHTML = `${escapeHtml(String(data.message ?? "Issue aggiunte"))} — <a href="${escapeHtml(String(data.boardUrl))}" target="_blank" rel="noopener noreferrer">Board Jira</a>`;
-        } else {
-          node.textContent = String(data.message ?? "Issue aggiunte");
-        }
-      });
+    if (refreshedSection instanceof HTMLElement) {
+      syncBacklogPoolToolbar(refreshedSection);
+    } else {
+      syncBacklogPoolToolbar(section);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -7819,7 +7895,9 @@ async function addBacklogSelectionToSprint(btn) {
   } finally {
     workingPlanSprintCreateBusy = false;
     btn.disabled = false;
-    syncBacklogPoolToolbar(section);
+    const liveSection = getBacklogPoolSection(document.getElementById("working-plan-output") ?? section);
+
+    syncBacklogPoolToolbar(liveSection instanceof HTMLElement ? liveSection : section);
   }
 }
 
@@ -7915,12 +7993,104 @@ async function createJiraSprintFromCard(btn) {
       , message     : String(data.message ?? "Sprint creato su Jira")
       };
     }
+
+    refreshMyBacklogTab({ reason: "create-sprint", sprintId: Number(data.sprintId) || null });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
     if (statusEl instanceof HTMLElement) {
       statusEl.className = "wp-sprint-action is-error";
       statusEl.textContent = message;
+    }
+  } finally {
+    workingPlanSprintCreateBusy = false;
+    btn.disabled = false;
+  }
+}
+
+/**
+ * Chiude sprint Jira attivo (tutte Fatto), sync DB e rigenera Working Plan.
+ *
+ * @param {HTMLButtonElement} btn
+ */
+async function closeActiveJiraSprint(btn) {
+  if (workingPlanSprintCreateBusy || workingPlanActionBusy) {
+    return;
+  }
+
+  const jiraSprintId = Number(btn.dataset.wpJiraSprintId);
+  const planSprint   = Number(btn.dataset.wpPlanSprint);
+  const section      = btn.closest("[data-wp-active-sprint]");
+  const actionEl     = section instanceof HTMLElement
+    ? section.querySelector("[data-wp-active-sprint-action]")
+    : null;
+  const outputEl     = document.getElementById("working-plan-output");
+  const statusEl     = document.getElementById("working-plan-status");
+
+  if (!Number.isFinite(jiraSprintId) || jiraSprintId < 1) {
+    return;
+  }
+
+  workingPlanSprintCreateBusy = true;
+  btn.disabled = true;
+
+  if (actionEl instanceof HTMLElement) {
+    actionEl.hidden = false;
+    actionEl.className = "wp-active-sprint-action wp-sprint-action";
+    actionEl.textContent = "Chiusura sprint su Jira e aggiornamento cache…";
+  }
+
+  if (statusEl) {
+    statusEl.textContent = "Chiusura sprint attivo…";
+  }
+
+  try {
+    const res = await fetch("/api/jira/working-plan/close-sprint", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({
+        jiraSprintId
+      , planSprint: Number.isFinite(planSprint) ? planSprint : undefined
+      , saveHtml  : true
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(String(data.error ?? `HTTP ${res.status}`));
+    }
+
+    if (typeof data.html === "string" && data.html.trim() && outputEl) {
+      lastWorkingPlanPayload = data.payload ?? null;
+      await applyWorkingPlanHtml(outputEl, data.html, new Map());
+    }
+
+    const message = String(data.message ?? data.close?.message ?? "Sprint chiuso");
+    const boardUrl = typeof data.close?.boardUrl === "string" ? data.close.boardUrl : "";
+
+    if (actionEl instanceof HTMLElement) {
+      actionEl.className = "wp-active-sprint-action wp-sprint-action is-ok";
+      actionEl.innerHTML = boardUrl
+        ? `${escapeHtml(message)} — <a href="${escapeHtml(boardUrl)}" target="_blank" rel="noopener noreferrer">Board Jira</a>`
+        : escapeHtml(message);
+    }
+
+    if (statusEl) {
+      const patchedAt = data.dbPatch?.patchedAt ?? data.payload?.fetchedAt ?? "";
+      statusEl.textContent = `Sprint chiuso${patchedAt ? ` · cache ${patchedAt}` : ""} · piano rigenerato`;
+    }
+
+    refreshMyBacklogTab({ reason: "close-sprint", sprintId: jiraSprintId });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (actionEl instanceof HTMLElement) {
+      actionEl.className = "wp-active-sprint-action wp-sprint-action is-error";
+      actionEl.textContent = message;
+    }
+
+    if (statusEl) {
+      statusEl.textContent = `Errore: ${message}`;
     }
   } finally {
     workingPlanSprintCreateBusy = false;

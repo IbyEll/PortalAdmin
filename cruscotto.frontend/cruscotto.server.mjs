@@ -1405,11 +1405,36 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/jira/working-plan/create-sprint" && req.method === "POST") {
     try {
       const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
-      const sprint = Number(body.sprint);
-      const name   = String(body.name ?? "").trim();
-      const keys   = Array.isArray(body.keys)
+      const keys = Array.isArray(body.keys)
         ? body.keys.map((key) => String(key).trim()).filter(Boolean)
         : [];
+      const createNew = Boolean(body.createNew);
+
+      if (keys.length === 0) {
+        sendJson(res, 400, { error: "Campo keys obbligatorio (array non vuoto)" }, req);
+        return;
+      }
+
+      const { runCreateJiraSprint } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+
+      if (createNew) {
+        const sprint = Number(body.sprint);
+        const result = await runCreateJiraSprint({
+          createNew   : true
+        , keys
+        , sprint      : Number.isFinite(sprint) && sprint >= 1 ? sprint : undefined
+        , name        : typeof body.name === "string" ? body.name : undefined
+        , description : typeof body.description === "string" ? body.description : undefined
+        , refreshPlan : body.refreshPlan !== false
+        , dryRun      : Boolean(body.dryRun)
+        });
+
+        sendJson(res, 200, { ok: true, ...result }, req);
+        return;
+      }
+
+      const sprint = Number(body.sprint);
+      const name   = String(body.name ?? "").trim();
 
       if (!Number.isFinite(sprint) || sprint < 1) {
         sendJson(res, 400, { error: "Campo sprint obbligatorio (numero ≥ 1)" }, req);
@@ -1421,21 +1446,43 @@ async function handleApi(req, res, urlPath) {
         return;
       }
 
-      if (keys.length === 0) {
-        sendJson(res, 400, { error: "Campo keys obbligatorio (array non vuoto)" }, req);
-        return;
-      }
-
-      const { runCreateJiraSprint } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
       const result = await runCreateJiraSprint({
         sprint
       , name
       , description: typeof body.description === "string" ? body.description : undefined
       , keys
-      , dryRun     : Boolean(body.dryRun)
+      , dryRun       : Boolean(body.dryRun)
+      , refreshPlan  : body.refreshPlan !== false
       });
 
       sendJson(res, 200, { ok: true, ...result }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/working-plan/close-sprint" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const jiraSprintId = Number(body.jiraSprintId ?? body.sprintId);
+
+      if (!Number.isFinite(jiraSprintId) || jiraSprintId < 1) {
+        sendJson(res, 400, { error: "Campo jiraSprintId obbligatorio (numero ≥ 1)" }, req);
+        return;
+      }
+
+      const { runCloseActiveJiraSprint } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const result = await runCloseActiveJiraSprint({
+        jiraSprintId
+      , planSprint: Number(body.planSprint) || undefined
+      , dryRun    : Boolean(body.dryRun)
+      , saveHtml  : body.saveHtml !== false
+      });
+
+      sendJson(res, 200, result, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);

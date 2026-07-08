@@ -2510,6 +2510,21 @@
        */
       function resolveSprintJiraState(headerName, stories, subtasksByParent) {
         const target = normalizeSprintLabel(headerName);
+        const catalogSprint = jiraSprintCatalog[target];
+
+        if (catalogSprint?.state === "active" || catalogSprint?.state === "future" || catalogSprint?.state === "closed") {
+          return catalogSprint.state;
+        }
+
+        for (const [catalogKey, sprint] of Object.entries(jiraSprintCatalog)) {
+          const catalogNorm = normalizeSprintLabel(catalogKey);
+
+          if ((catalogNorm === target || catalogNorm.includes(target) || target.includes(catalogNorm))
+            && (sprint.state === "active" || sprint.state === "future" || sprint.state === "closed")) {
+            return sprint.state;
+          }
+        }
+
         let sawActive = false;
         let sawFuture = false;
         let sawClosed = false;
@@ -5745,6 +5760,22 @@
 
     document.getElementById("btn-sync-jira")?.addEventListener("click", () => syncJiraBacklog());
     document.getElementById("btn-reload")?.addEventListener("click", () => loadBacklog());
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== location.origin) {
+        return;
+      }
+
+      const data = event.data;
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      if (data.type === "cruscotto:my-backlog-refresh") {
+        void loadBacklog();
+      }
+    });
     document.getElementById("btn-insights")?.addEventListener("click", () => runRepoInsights());
     document.getElementById("btn-clear-insights")?.addEventListener("click", () => clearInsightLog());
     document.getElementById("btn-expand")?.addEventListener("click", expandAll);

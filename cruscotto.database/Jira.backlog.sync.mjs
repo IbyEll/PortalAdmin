@@ -277,3 +277,144 @@ export async function syncJiraBacklogFromApi() {
 
   return syncJiraBacklogSnapshot(backlog);
 }
+
+/**
+ * Aggiorna catalogo sprint in SQLite — senza fetch Jira né wipe sync_run.
+ * Usato dopo chiusura sprint su board quando basta allineare jira_sprint.state.
+ *
+ * @param {number} sprintId
+ * @param {{ name?: string, state?: string, startDate?: string | null, endDate?: string | null, completeDate?: string | null }} patch
+ * @returns {Promise<{ sprintId: number, state: string, patchedAt: string, created?: boolean }>}
+ */
+export async function patchJiraSprintInDb(sprintId, patch) {
+  const id = Number(sprintId);
+
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error("sprintId non valido per patch DB");
+  }
+
+  const db        = await openCruscottoDb();
+  const state     = String(patch.state ?? "closed");
+  const endSource = patch.endDate ?? patch.completeDate ?? null;
+  const endDate   = endSource ? new Date(endSource) : null;
+  const startDate = patch.startDate ? new Date(patch.startDate) : null;
+  const name      = String(patch.name ?? "").trim() || `Sprint ${id}`;
+  const existing  = await db.jiraSprint.findUnique({ where: { id } });
+
+  if (!existing) {
+    await db.jiraSprint.create({
+      data: {
+        id
+      , name
+      , state
+      , startDate: startDate && !Number.isNaN(startDate.getTime()) ? startDate : null
+      , endDate  : endDate && !Number.isNaN(endDate.getTime()) ? endDate : null
+      }
+    });
+
+    return {
+      sprintId
+    , state
+    , patchedAt: new Date().toISOString()
+    , created  : true
+    };
+  }
+
+  await db.jiraSprint.update({
+    where: { id }
+  , data : {
+      ...(patch.name ? { name } : {})
+    , state
+    , ...(patch.startDate !== undefined
+      ? { startDate: startDate && !Number.isNaN(startDate.getTime()) ? startDate : null }
+      : {})
+    , ...(endSource !== undefined
+      ? { endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null }
+      : {})
+    }
+  });
+
+  return {
+    sprintId
+  , state
+  , patchedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Allinea cache SQLite dopo creazione/assegnazione sprint Jira — sprint future + link issue.
+ *
+ * @param {{
+ *   sprintId: number
+ * , sprintName: string
+ * , state?: string
+ * , issueKeys?: string[]
+ * }} input
+ * @returns {Promise<{ sprintId: number, linkedCount: number, patchedAt: string }>}
+ */
+export async function ensureJiraSprintIssuesInDb(input) {
+  const sprintId = Number(input.sprintId);
+
+  if (!Number.isFinite(sprintId) || sprintId <= 0) {
+    throw new Error("sprintId non valido per ensure DB");
+  }
+
+  await patchJiraSprintInDb(sprintId, {
+    name : input.sprintName
+  , state: input.state ?? "future"
+  });
+
+  const db      = await openCruscottoDb();
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    return {
+      sprintId
+    , linkedCount: 0
+    , patchedAt  : new Date().toISOString()
+    };
+  }
+
+  let linkedCount = 0;
+
+  for (const rawKey of input.issueKeys ?? []) {
+    const jiraKey = String(rawKey).trim();
+
+    if (!jiraKey) {
+      continue;
+    }
+
+    const issue = await db.jiraIssue.findFirst({
+      where: { jiraKey, syncRunId: syncRun.id }
+    });
+
+    if (!issue) {
+      continue;
+    }
+
+    await db.jiraIssueSprint.upsert({
+      where: {
+        issueId_sprintId: {
+          issueId  : issue.id
+        , sprintId
+        }
+      }
+    , create: {
+        issueId  : issue.id
+      , sprintId
+      }
+    , update: {}
+    });
+
+    linkedCount += 1;
+  }
+
+  return {
+    sprintId
+  , linkedCount
+  , patchedAt: new Date().toISOString()
+  };
+}
