@@ -171,4 +171,17 @@ export const PRODUCT_REPO_SIGNALS = [
   , tests : ["test.smoke/smoke-home.mjs"]
   }
 
+, {
+    key   : "ADMIN-169"
+  , label : "fix"
+  , paths : [
+      "lib"
+      , "admin.portal.JiraCORE"
+      , "scripts"
+      , "admin.portal.lib"
+      , "test.smoke"
+      , "admin.script.standalone"
+    ]
+  }
+
 ];
