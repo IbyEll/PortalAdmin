@@ -977,11 +977,39 @@
     /**
      * Story/Bug/Todo già chiusa in Jira — niente gogo.
      *
-     * @param {{ status?: string }} row
+     * @param {{ status?: string, isDone?: boolean }} row
+     * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean } | null | undefined} [wip]
      * @returns {boolean}
      */
-    function isJiraRowDone(row) {
+    function isJiraRowDone(row, wip) {
+      if (row?.isDone === true) {
+        return true;
+      }
+
+      if (wip?.isDone === true) {
+        return true;
+      }
+
+      if (wip?.inWip && /^(fatto|completato|done|closed|resolved)$/i.test(String(wip.status ?? "").trim())) {
+        return true;
+      }
+
       return /^(fatto|completato|done|closed|resolved)$/i.test(String(row?.status ?? "").trim());
+    }
+
+    /**
+     * Workflow gogo/PUSH/PR concluso — niente gogo né PR in colonna Svil.
+     *
+     * @param {{ status?: string, isDone?: boolean }} row
+     * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean, awaitingPush?: boolean, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} [wip]
+     * @returns {boolean}
+     */
+    function isRowWorkflowClosed(row, wip) {
+      if (isJiraRowDone(row, wip)) {
+        return true;
+      }
+
+      return isPrWorkflowComplete(wip) && wip?.awaitingPush !== true;
     }
 
     /**
@@ -1507,6 +1535,18 @@
       }
 
       registerPrPollingFromWipMap();
+
+      const active = resolveWipActiveParentKey();
+
+      if (active) {
+        const issueRow = (issues ?? []).find((hit) => hit.key === active);
+        const activeWip = wipStatusMap[active];
+
+        if (isRowWorkflowClosed(issueRow ?? { status: activeWip?.status }, activeWip)) {
+          setWipActiveParentKey(null);
+          clearGogoRowHighlight();
+        }
+      }
     }
 
     /**
@@ -2176,7 +2216,7 @@
         return true;
       }
 
-      if (isJiraRowDone(row)) {
+      if (isRowWorkflowClosed(row, wip)) {
         return false;
       }
 
@@ -5258,7 +5298,7 @@
                 return "PUSH";
               }
 
-              return isJiraRowDone(row) ? "" : "gogo";
+              return isRowWorkflowClosed(row, wip) ? "" : "gogo";
             })()
           : "";
         lines.push([
@@ -5312,6 +5352,8 @@
       collapsedByMode.epic.clear();
       collapsedByMode.sprint.clear();
       collapsedByMode.pillar.clear();
+      wipStatusMap = {};
+      setWipActiveParentKey(null);
 
       try {
         const res = await fetch("/api/jira/my-backlog");
