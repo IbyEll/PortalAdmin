@@ -1327,18 +1327,6 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
-  if (urlPath === "/api/jira/project-tree/regenerate" && req.method === "POST") {
-    try {
-      const result = await regenerateProjectTreeHtml();
-      sendJson(res, 200, result, req);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      sendJson(res, 502, { error: message }, req);
-    }
-
-    return;
-  }
-
   if (urlPath === "/api/jira/working-plan/regenerate" && req.method === "POST") {
     try {
       const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));

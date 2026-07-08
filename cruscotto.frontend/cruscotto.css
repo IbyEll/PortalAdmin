@@ -314,6 +314,19 @@ body {
   font-size: 0.78rem;
 }
 
+.working-plan-report .wp-story-done,
+.working-plan-report .wp-milestone-item.is-story-done,
+.working-plan-report .wp-key-chip.is-story-done {
+  text-decoration: line-through;
+  opacity: 0.72;
+}
+
+.working-plan-report .wp-milestone-item.is-story-done .issue-type,
+.working-plan-report .wp-key-chip.is-story-done .issue-type {
+  text-decoration: none;
+  opacity: 1;
+}
+
 .working-plan-report .wp-esito {
   display: inline-block;
   font-size: 0.82rem;
@@ -364,6 +377,68 @@ body {
 .working-plan-report .wp-sprint-grid {
   display: grid;
   gap: 1rem;
+}
+
+.working-plan-report .wp-section--active-sprint {
+  border: 1px solid color-mix(in srgb, var(--pass) 35%, var(--border));
+  border-radius: 10px;
+  padding: 0.85rem 1rem 1rem;
+  background: color-mix(in srgb, var(--pass) 5%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--active-sprint tbody tr.is-story-done td {
+  background: color-mix(in srgb, var(--pass) 4%, transparent);
+}
+
+.working-plan-report .wp-section--backlog-pool {
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 10px;
+  padding: 0.85rem 1rem 1rem;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.working-plan-report .wp-backlog-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.working-plan-report .wp-backlog-meta {
+  margin: 0;
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+.working-plan-report .wp-backlog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.working-plan-report .wp-backlog-assign-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.working-plan-report .wp-backlog-sprint-select {
+  min-width: 14rem;
+}
+
+.working-plan-report .wp-table.wp-table--backlog-pool th.wp-col-check,
+.working-plan-report .wp-table.wp-table--backlog-pool td.wp-col-check {
+  width: 2rem;
+  text-align: center;
+}
+
+.working-plan-report .wp-table.wp-table--backlog-pool tbody tr.is-story-done td {
+  background: color-mix(in srgb, var(--pass) 4%, transparent);
 }
 
 .working-plan-report .wp-sprint-card {
