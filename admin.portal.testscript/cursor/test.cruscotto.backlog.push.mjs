@@ -36,7 +36,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,6 +67,7 @@ import {
 
 const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const PUSH_CLI = resolve(ROOT, "admin.portal.JiraCORE/jiraCORE.wip.push.mjs");
+const PR_POLL_MODULE = resolve(ROOT, "admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs");
 const PUSH_TEST_KEY = String(process.env.WIP_PUSH_TEST_KEY ?? "").trim().toUpperCase();
 
 /** @type {import("../admin.portal.lib/http.mjs").TestResult[]} */
@@ -105,6 +106,35 @@ async function main() {
     assert(resolveRowWorkflowControl("sprint", row, { prUrl: "https://github.com/x/y/pull/1" }) === "pr", "pr");
     assert(resolveRowWorkflowControl("sprint", row, null) === "gogo", "gogo default");
     assert(resolveRowWorkflowControl("epic", row, null) === "gogo", "gogo epic");
+    assert(
+      resolveRowWorkflowControl(
+        "sprint"
+      , { tier: "task", key: "ADMIN-168", isStoryLike: true, status: "Da fare" }
+      , {
+          awaitingPush: false
+        , pushedAt    : "2026-07-08T20:29:38.824Z"
+        , prUrl       : "https://github.com/IbyEll/PortalAdmin/pull/21"
+        }
+      ) === "pr"
+    , "post push — PR link not gogo"
+    );
+    assert(
+      resolveRowWorkflowControl(
+        "sprint"
+      , {
+          tier          : "task"
+        , key           : "ADMIN-168"
+        , isStoryLike   : true
+        , status        : "Fatto"
+        , isDone        : true
+        , prPollComplete: true
+        , prState       : "MERGED"
+        , awaitingPush  : false
+        }
+      , null
+      ) === "none"
+    , "done merged row meta without wip — no gogo"
+    );
     assert(
       resolveRowWorkflowControl(
         "sprint"
@@ -161,6 +191,16 @@ async function main() {
 
   await runTest("CLI jiraCORE.wip.push.mjs — file presente", async () => {
     assert(existsSync(PUSH_CLI), `assente: ${PUSH_CLI}`);
+    const src = readFileSync(PUSH_CLI, "utf8");
+    assert(src.includes("syncJiraIssueCacheFromWip"), "sync cache jira_issue");
+    assert(src.includes("purgeIfAligned: false"), "no purge WIP su PUSH");
+  }, results);
+
+  await runTest("jiraCORE.wip.pr.poll — purge WIP post-merge", async () => {
+    assert(existsSync(PR_POLL_MODULE), `assente: ${PR_POLL_MODULE}`);
+    const src = readFileSync(PR_POLL_MODULE, "utf8");
+    assert(src.includes("purgeWipBundleIfCacheAligned"), "purge WIP dopo merge");
+    assert(src.includes("syncJiraIssueCacheFromWip"), "sync cache prima di purge");
   }, results);
 
   logSection("Backlog HTML");

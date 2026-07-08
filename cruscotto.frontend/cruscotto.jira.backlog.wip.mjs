@@ -49,6 +49,7 @@ import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtF
  *   prMergedAt: string | null
  *   prAppliedAt: string | null
  *   prPollComplete: boolean
+ *   pushedAt?: string | null
  *   ac: WipCheckItem[]
  *   dod: WipCheckItem[]
  *   acSummary: string | null
@@ -68,6 +69,60 @@ const DONE_STATUS_RE = /^(fatto|completato|done|closed|resolved)$/i;
  */
 export function isJiraStatusDone(status) {
   return DONE_STATUS_RE.test(String(status ?? "").trim());
+}
+
+/**
+ * Metadati workflow da riga backlog cache (post-PUSH / merge senza riga WIP).
+ *
+ * @param {{
+ *   isDone?: boolean
+ *   status?: string
+ *   prPollComplete?: boolean
+ *   backlogStar?: boolean
+ *   prMergedAt?: string
+ *   pushedAt?: string
+ *   prUrl?: string
+ *   prState?: string
+ *   awaitingPush?: boolean
+ *   prAppliedAt?: string
+ *   prTitle?: string
+ * } | null | undefined} row
+ * @returns {WipStatusEntry | null}
+ */
+export function wipStatusFromBacklogRow(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  if (
+    row.isDone !== true
+    && row.prPollComplete !== true
+    && row.backlogStar !== true
+    && !row.prMergedAt
+    && !row.pushedAt
+    && !(typeof row.prUrl === "string" && row.prUrl.startsWith("http"))
+    && row.prState !== "MERGED"
+    && row.prState !== "CLOSED"
+  ) {
+    return null;
+  }
+
+  return {
+    awaitingPush  : row.awaitingPush === true
+  , prUrl         : typeof row.prUrl === "string" && row.prUrl.startsWith("http") ? row.prUrl : null
+  , prTitle       : typeof row.prTitle === "string" ? row.prTitle : null
+  , prState       : typeof row.prState === "string" ? row.prState : null
+  , prMergedAt    : typeof row.prMergedAt === "string" ? row.prMergedAt : null
+  , prAppliedAt   : typeof row.prAppliedAt === "string" ? row.prAppliedAt : null
+  , prPollComplete: row.prPollComplete === true || Boolean(row.prMergedAt)
+  , pushedAt      : typeof row.pushedAt === "string" ? row.pushedAt : null
+  , isDone        : row.isDone === true
+  , status        : typeof row.status === "string" ? row.status : null
+  , ac            : []
+  , dod           : []
+  , acSummary     : null
+  , dodSummary    : null
+  };
 }
 
 /**
@@ -125,6 +180,30 @@ export function isRowWorkflowClosed(row, wip) {
   }
 
   if (isJiraStatusDone(row?.status)) {
+    return true;
+  }
+
+  if (row?.prPollComplete === true || row?.backlogStar === true || row?.prMergedAt) {
+    return row?.awaitingPush !== true;
+  }
+
+  if (row?.prState === "MERGED" || row?.prState === "CLOSED") {
+    return true;
+  }
+
+  if (row?.pushedAt && row?.awaitingPush !== true) {
+    return true;
+  }
+
+  if (wip?.prPollComplete === true || wip?.prMergedAt) {
+    return wip?.awaitingPush !== true;
+  }
+
+  if (wip?.prState === "MERGED" || wip?.prState === "CLOSED") {
+    return true;
+  }
+
+  if (wip?.pushedAt && wip?.awaitingPush !== true) {
     return true;
   }
 
@@ -259,6 +338,9 @@ export function buildWipStatusEntry(row, opts = {}) {
     : prPollComplete
       ? (prMergedAt ?? prClosedAt ?? (typeof raw.prLastPolledAt === "string" ? raw.prLastPolledAt : null))
       : null;
+  const pushedAt = typeof raw.pushedAt === "string" && raw.pushedAt.trim()
+    ? raw.pushedAt.trim()
+    : null;
 
   const gogoAwaitingPush = typeof raw.gogoCompletedAt === "string"
     && raw.gogoCompletedAt.trim()
@@ -274,6 +356,7 @@ export function buildWipStatusEntry(row, opts = {}) {
   , prState
   , prAppliedAt
   , prPollComplete
+  , pushedAt
   , ac
   , dod
   , acSummary: ac.length > 0 ? `${acDone}/${ac.length}` : null
@@ -504,7 +587,13 @@ export async function fetchWipStatusByKeys(keys) {
     for (const row of cacheRows) {
       const raw = parseRawFields(row.rawFields);
 
-      if (raw.prPollComplete === true || raw.backlogStar === true || raw.prMergedAt) {
+      if (
+        raw.prPollComplete === true
+        || raw.backlogStar === true
+        || raw.prMergedAt
+        || raw.pushedAt
+        || (typeof raw.prUrl === "string" && raw.prUrl.startsWith("http") && raw.awaitingPush === false)
+      ) {
         byKey[row.jiraKey] = buildWipStatusEntry(row);
       }
     }

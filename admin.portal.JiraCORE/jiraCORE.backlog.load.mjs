@@ -117,8 +117,21 @@ function wipPrMetaFromRawFields(rawFields) {
     const prUrl          = typeof parsed.prUrl === "string" && parsed.prUrl.startsWith("http")
       ? parsed.prUrl
       : undefined;
+    const pushedAt       = typeof parsed.pushedAt === "string" ? parsed.pushedAt : undefined;
+    const awaitingPush   = parsed.awaitingPush === true
+      ? true
+      : (parsed.awaitingPush === false ? false : undefined);
 
-    if (!prPollComplete && !backlogStar && !prState && !prMergedAt && !prUrl && !prTitle) {
+    if (
+      !prPollComplete
+      && !backlogStar
+      && !prState
+      && !prMergedAt
+      && !prUrl
+      && !prTitle
+      && !pushedAt
+      && awaitingPush == null
+    ) {
       return {};
     }
 
@@ -130,6 +143,8 @@ function wipPrMetaFromRawFields(rawFields) {
     , ...(prMergedAt ? { prMergedAt } : {})
     , ...(prTitle ? { prTitle } : {})
     , ...(prUrl ? { prUrl } : {})
+    , ...(pushedAt ? { pushedAt } : {})
+    , ...(awaitingPush != null ? { awaitingPush } : {})
     };
   } catch {
     return {};
@@ -208,6 +223,7 @@ export async function loadJiraBacklogFromDb() {
     , isStoryLike      : row.isStoryLike
     , summary          : row.summary
     , status           : row.status
+    , isDone           : row.isDone === true
     , parentKey        : row.parentJiraKey
     , depth            : row.depth
     , hasChildren      : row.hasChildren

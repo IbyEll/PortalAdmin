@@ -23,7 +23,8 @@ alwaysApply: true
 
 - **Step 3 veve db** (`procedi`/`gogo`): solo DB `jira_issue` / `jira_issue_wip` — silenzioso in chat
 - **Step 0–7:** solo WIP DB — nessun MCP / Jira Auto
-- **Step 8 PUSH:** sync Jira da WIP + `close-story.mjs` — silenzioso in chat
+- **Step 8 PUSH:** Atlassian + `jira_issue` da WIP + `close-story.mjs` — silenzioso in chat
+- **Step 9 PR poll:** merge → purge `jira_issue_wip` — silenzioso in chat
 - **`veve {KEY}` MCP standalone:** MCP ammesso — chat libera (non è workflow)
 
 ## Blocker

@@ -17,7 +17,7 @@
  *   - Workflow database chiude il ciclo veve→WIP→Jira senza Task Jira Auto manuale.
  *
  *   A cosa serve:
- *   - Carica bundle WIP, sync description live, transizione Fatto, invoca close-story (catalogo → push → PR).
+ *   - Carica bundle WIP, sync description live, transizione Fatto, close-story (PR), sync jira_issue cache.
  *
  * Generalizzazione:
  *   Si — --key ADMIN o JLO; flag --dry-run, --skip-jira, --skip-close.
@@ -47,6 +47,7 @@ import {
 , markWipPushed
 , parseWipRawFields
 , normalizeIssueKey
+, syncJiraIssueCacheFromWip
 } from "./jiraCORE.wip.db.mjs";
 import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
 
@@ -174,6 +175,7 @@ export async function pushWipStory(parentKey, opts = {}) {
   , jira     : { subtasks: [], parent: null }
   , close    : null
   , wip      : null
+  , cache    : null
   };
 
   if (!skipJira) {
@@ -218,6 +220,15 @@ export async function pushWipStory(parentKey, opts = {}) {
     : null;
 
   out.wip = await markWipPushed(key, { prUrl, prTitle, dryRun });
+
+  if (!dryRun) {
+    out.cache = await syncJiraIssueCacheFromWip(key, {
+      cacheSyncedFromWipAt: new Date().toISOString()
+    }, { purgeIfAligned: false });
+  } else {
+    out.cache = { dryRun: true, skipped: "cache_sync_after_push" };
+  }
+
   out.ok = true;
   out.prUrl = prUrl;
   out.prTitle = prTitle;

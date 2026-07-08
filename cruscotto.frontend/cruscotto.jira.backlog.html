@@ -889,6 +889,30 @@
         return true;
       }
 
+      if (row?.prPollComplete === true || row?.backlogStar === true || row?.prMergedAt) {
+        return row?.awaitingPush !== true;
+      }
+
+      if (row?.prState === "MERGED" || row?.prState === "CLOSED") {
+        return true;
+      }
+
+      if (row?.pushedAt && row?.awaitingPush !== true) {
+        return true;
+      }
+
+      if (wip?.prPollComplete === true || wip?.prMergedAt) {
+        return wip?.awaitingPush !== true;
+      }
+
+      if (wip?.prState === "MERGED" || wip?.prState === "CLOSED") {
+        return true;
+      }
+
+      if (wip?.pushedAt && wip?.awaitingPush !== true) {
+        return true;
+      }
+
       return isPrWorkflowComplete(wip) && wip?.awaitingPush !== true;
     }
 
@@ -1175,12 +1199,45 @@
 
     /**
      * @param {string} issueKey
-     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null } | undefined}
+     * @param {{ isDone?: boolean, status?: string, prPollComplete?: boolean, backlogStar?: boolean, prMergedAt?: string, pushedAt?: string, prUrl?: string, prState?: string, awaitingPush?: boolean, prAppliedAt?: string } | null | undefined} [row]
+     * @returns {{ awaitingPush?: boolean, prUrl?: string | null, ac?: Array<{ checked: boolean, text: string }>, dod?: Array<{ checked: boolean, text: string }>, acSummary?: string | null, dodSummary?: string | null, pushedAt?: string | null, isDone?: boolean, status?: string | null, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | undefined}
      */
-    function getWipStatus(issueKey) {
+    function getWipStatus(issueKey, row) {
       const key = String(issueKey ?? "").trim().toUpperCase();
+      const wip = wipStatusMap[key];
 
-      return wipStatusMap[key];
+      if (wip) {
+        return wip;
+      }
+
+      if (!row) {
+        return undefined;
+      }
+
+      if (
+        row.isDone === true
+        || row.prPollComplete === true
+        || row.backlogStar === true
+        || row.prMergedAt
+        || row.pushedAt
+        || (typeof row.prUrl === "string" && row.prUrl.startsWith("http"))
+        || row.prState === "MERGED"
+        || row.prState === "CLOSED"
+      ) {
+        return {
+          awaitingPush  : row.awaitingPush === true
+        , prUrl         : typeof row.prUrl === "string" ? row.prUrl : null
+        , prState       : row.prState ?? null
+        , prMergedAt    : row.prMergedAt ?? null
+        , prAppliedAt   : row.prAppliedAt ?? null
+        , prPollComplete: row.prPollComplete === true || Boolean(row.prMergedAt)
+        , pushedAt      : typeof row.pushedAt === "string" ? row.pushedAt : null
+        , isDone        : row.isDone === true
+        , status        : typeof row.status === "string" ? row.status : null
+        };
+      }
+
+      return undefined;
     }
 
     /**
@@ -1481,7 +1538,7 @@
      * @param {{ status?: string }} row
      */
     function appendRowWorkflowControl(keyCell, issueKey, row) {
-      const wip = getWipStatus(issueKey);
+      const wip = getWipStatus(issueKey, row);
       const prUrl = wip && !isPrWorkflowComplete(wip) && typeof wip.prUrl === "string" && wip.prUrl.startsWith("http")
         ? wip.prUrl
         : null;
@@ -4518,13 +4575,8 @@
         }
         seedDefaultCollapsed();
 
+        await refreshWipStatusMap(backlog.issues);
         applyFilters();
-
-        void refreshWipStatusMap(backlog.issues).then(() => {
-          if (backlog) {
-            applyFilters();
-          }
-        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
 

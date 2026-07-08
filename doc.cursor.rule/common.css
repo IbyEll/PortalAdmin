@@ -282,8 +282,44 @@ footer {
   font-size: 1rem;
 }
 
-.card p {
-  margin: 0;
+.flow-card {
+  margin: 0 0 2rem;
+  padding: 1.25rem 1.35rem;
+}
+
+.flow-card > h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  color: var(--turquoise);
+}
+
+.flow-card .flow-sub {
+  margin: 0 0 1rem;
   font-size: 0.88rem;
   color: var(--muted);
 }
+
+.flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.25rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.flow-legend .dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+
+.dot--agent { background: var(--accent); }
+.dot--cruscotto { background: var(--turquoise); }
+.dot--db { background: var(--purple); }
+.dot--ext { background: var(--skip); }

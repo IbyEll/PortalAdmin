@@ -3,7 +3,7 @@
  * ** LIBRARY MODULE ** -- commentato il: 2026-06-23 21:30
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-23 21:30   by: IbyEll
- * modificato il: 2026-06-23 21:30   by: IbyEll
+ * modificato il: 2026-07-08 22:35   by: IbyEll
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -36,6 +36,13 @@
  *
  * ------------------------------------------------------------------------------------------------------------------------
  */
+
+import {
+  isRowWorkflowClosed
+, wipStatusFromBacklogRow
+} from "../../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs";
+
+export { isRowWorkflowClosed };
 
 /**
  * @param {string} issueKey
@@ -94,52 +101,22 @@ export function resolveRowWorkflowControl(viewMode, row, wip) {
     return "none";
   }
 
-  const prUrl = resolveWipPrUrl(wip);
+  const resolved = wip ?? wipStatusFromBacklogRow(row);
+  const prUrl    = resolveWipPrUrl(resolved);
 
   if (prUrl) {
     return "pr";
   }
 
-  if (isAwaitingPushWip(wip)) {
+  if (isAwaitingPushWip(resolved)) {
     return "push";
   }
 
-  if (isRowWorkflowClosed(row, wip)) {
+  if (isRowWorkflowClosed(row, resolved)) {
     return "none";
   }
 
   return "gogo";
-}
-
-const DONE_STATUS_RE = /^(fatto|completato|done|closed|resolved)$/i;
-
-/**
- * @param {{ status?: string, isDone?: boolean }} row
- * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean, awaitingPush?: boolean, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} [wip]
- * @returns {boolean}
- */
-export function isRowWorkflowClosed(row, wip) {
-  if (row?.isDone === true) {
-    return true;
-  }
-
-  if (wip?.isDone === true) {
-    return true;
-  }
-
-  if (wip?.inWip && DONE_STATUS_RE.test(String(wip.status ?? "").trim())) {
-    return true;
-  }
-
-  if (DONE_STATUS_RE.test(String(row?.status ?? "").trim())) {
-    return true;
-  }
-
-  if (wip?.prPollComplete === true || wip?.prMergedAt) {
-    return wip?.awaitingPush !== true;
-  }
-
-  return wip?.prState === "MERGED" || wip?.prState === "CLOSED";
 }
 
 /**

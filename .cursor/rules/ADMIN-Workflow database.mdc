@@ -105,7 +105,8 @@ Varianti: `FULL silent`, `chiudi fast`, `ok chiudi` — regole silenzio/output c
 | 5 | Implementazione | subtask + commit + **ok chiudi → WIP** |
 | 6 | END-A | parent ancora Da fare in WIP |
 | 7 | Chiusura locale | `chiudi` → **parent WIP** → END-B → **backlog** |
-| 8 | **PUSH** (cruscotto) | Sync **Jira** da WIP + `close-story.mjs` (PR) |
+| 8 | **PUSH** (cruscotto) | Sync **Atlassian** + **`jira_issue`** da WIP + `close-story.mjs` (PR) |
+| 9 | **PR poll** (cruscotto) | Merge PR → sync cache → **purge `jira_issue_wip`** |
 
 Step **1–7** = agente chat (`gogo` / `procedi` / `chiudi`). Step **8** = **solo** da cruscotto (PUSH post step 7).
 
@@ -247,17 +248,17 @@ Template testo locale (in `raw_fields`): `.cursor/templates/workflow/chiudi-pare
 
 ---
 
-## Step 8 — PUSH (Jira da WIP + PR)
+## Step 8 — PUSH (Atlassian + cache `jira_issue` + PR)
 
 **Solo cruscotto** — invocato dal pulsante **PUSH** sulla riga backlog **dopo** step 7 completato.
 
 **Prerequisito:** parent `{KEY}` in `jira_issue_wip` con `is_done = true` e `raw_fields.awaitingPush = true`.
 
 1. **Leggi WIP** — parent + tutte le subtask `{KEY}` / `parent_jira_key = {KEY}`
-2. **Sync Jira live** — da `raw_fields` WIP verso Atlassian:
-   - Subtask: `editJiraIssue` description + transizione **Fatto** (template `ok-chiudi-subtask.md`)
-   - Parent: `editJiraIssue` + transizione **Fatto** (template `chiudi-parent.md`)
-   - Invocazione: **Task «Jira Auto»** o MCP `user-atlassian` — **solo** in step 8
+2. **Sync Jira live (Atlassian)** — da `raw_fields` WIP verso cloud:
+   - Subtask: description ADF + transizione **Fatto** (`jiraCORE.jira.live.mjs`)
+   - Parent: description + transizione **Fatto**
+   - REST `JIRA_EMAIL` / `JIRA_API_TOKEN` — **non** MCP in chat agente
 3. **Git / PR** — `close-story.mjs` sul **repo workflow** (ordine fisso):
    ```bash
    node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY}
@@ -265,14 +266,51 @@ Template testo locale (in `raw_fields`): `.cursor/templates/workflow/chiudi-pare
    a. **Catalogo segnali** — `REPO_IMPLEMENTATION_SIGNALS` + commit su branch ticket  
    b. **Push branch** — `git push -u origin {branch}` (se ahead o assente su remote)  
    c. **PR** — riusa PR aperta o `gh pr create` su `main`
-4. **Update WIP post-push** — merge `raw_fields`: `prUrl`, `jiraSyncedAt`, **`awaitingPush: false`**, `pushedAt` (ISO)
+4. **Update WIP post-push** — `markWipPushed`: merge `raw_fields` con `prUrl`, `prTitle`, `jiraSyncedAt`, **`awaitingPush: false`**, `pushedAt`, `prState: OPEN`, `prPollActive: true`
+5. **Sync cache locale `jira_issue`** — **obbligatorio** subito dopo step 4:
+   - `syncJiraIssueCacheFromWip({KEY}, { cacheSyncedFromWipAt })` con **`purgeIfAligned: false`**
+   - Copia colonne mirror + `raw_fields` da ogni riga WIP (parent + subtask) nella riga `jira_issue` dello stesso `jira_key`
+   - MyBacklog legge da `jira_issue` — senza questo step la UI perde metadati PUSH/PR al refresh
+
+| Tabella | Step 8 |
+| --- | --- |
+| **Atlassian** | description + Fatto (live REST) |
+| **`jira_issue_wip`** | update `raw_fields` post-push (riga **resta** fino a merge PR) |
+| **`jira_issue`** | update da WIP (cache backlog cruscotto) |
 
 | Trigger UI | Effetto |
 | --- | --- |
-| Pulsante **PUSH** backlog | Avvia step 8 per `{KEY}` |
+| Pulsante **PUSH** backlog | `POST /api/jira/wip/push` → step 8 |
 | GOGO / procedi / chiudi | **Non** esegue step 8 |
 
-**Output cruscotto:** riga aggiornata con PR URL; parent Jira + WIP allineati.
+**Script:** `admin.portal.JiraCORE/jiraCORE.wip.push.mjs --key {KEY}`
+
+**Output cruscotto:** riga aggiornata con link PR; cache `jira_issue` + WIP allineati; Jira cloud allineato.
+
+---
+
+## Step 9 — PR merge → purge WIP
+
+Dopo step 8, il cruscotto **poll** lo stato PR (tab backlog / `POST /api/jira/wip/pr-poll`).
+
+| Evento | Azione |
+| --- | --- |
+| PR **OPEN** | Aggiorna `prLastPolledAt` in WIP; riga WIP **resta** |
+| PR **MERGED** o **CLOSED** | 1. Update WIP: `prPollComplete`, `prMergedAt`, `backlogStar`, `status` Fatto · 2. `syncJiraIssueCacheFromWip` → `jira_issue` · 3. **`purgeWipBundleIfCacheAligned`** — **elimina** parent + subtask da **`jira_issue_wip`** |
+
+**Purge WIP** — condizioni (tutte):
+
+| # | Condizione |
+| --- | --- |
+| 1 | `prPollComplete === true` oppure `prMergedAt` valorizzato |
+| 2 | Ogni riga WIP del bundle ha controparte `jira_issue` **allineata** (`verifyWipBundleAlignedWithCache`) |
+| 3 | `deleteMany` su `jira_issue_wip` per `jira_key` parent + subtask |
+
+Se purge fallisce (mismatch cache): WIP **non** eliminato — backlog usa comunque metadati da `jira_issue.raw_fields`.
+
+**Script:** `admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs` · modulo `pollWipPullRequest` in `jiraCORE.wip.pr.poll.mjs`
+
+**Vietato** eliminare WIP prima del merge PR o senza sync cache completata.
 
 ---
 
@@ -312,13 +350,15 @@ Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
 | Step 3 veve db | `jira_issue` read · `jira_issue_wip` write |
 | Step 0 piano | `jira_issue_wip` read |
 | Ok chiudi subtask | `jira_issue_wip` update subtask |
-| **Step 7 chiudi** | **`jira_issue_wip` update parent** — no Jira · no PR |
-| **Step 8 PUSH** | **Jira sync da WIP** + `close-story.mjs` (PR) |
+| **Step 7 chiudi** | **`jira_issue_wip` update parent** — no Atlassian · no PR |
+| **Step 8 PUSH** | **Atlassian** sync + **`jira_issue`** sync da WIP + `close-story.mjs` (PR); WIP resta |
+| **Step 9 PR merge** | **`jira_issue`** sync finale · **delete `jira_issue_wip`** (purge) |
 
 | Fase | Invocazione |
 | --- | --- |
 | Step 0–7 | Solo DB WIP — nessun Jira Auto / MCP |
-| Step 8 PUSH | Leggi WIP → Jira Auto / MCP (subtask + parent Fatto) → `close-story.mjs` |
+| Step 8 PUSH | WIP → Atlassian REST + WIP → `jira_issue` + `close-story.mjs` |
+| Step 9 PR poll | `jiraCORE.wip.pr.poll.mjs` — gh PR state → cache → purge WIP |
 
 ---
 
@@ -330,7 +370,8 @@ Regola: `ADMIN-AnalizzaRepo.mdc` · skill `jlo-analizza-repo`
 | **PROGRESS** | Tabella Macrostep |
 | **END-A** | Implementazione WIP completata; parent `awaitingPush` false |
 | **END-B / END-B-FAST** | Step 7 — WIP chiuso; **PR: —**; backlog mostra **PUSH** |
-| **Post PUSH (step 8)** | END con PR URL + Jira allineato |
+| **Post PUSH (step 8)** | PR URL; Atlassian + `jira_issue` + WIP allineati |
+| **Post merge PR (step 9)** | WIP purgato; backlog da `jira_issue` + stellina |
 
 Formato END step 7 — repo = **progetto istanziato** (PR vuoto fino a PUSH):
 

@@ -1009,6 +1009,30 @@
         return true;
       }
 
+      if (row?.prPollComplete === true || row?.backlogStar === true || row?.prMergedAt) {
+        return row?.awaitingPush !== true;
+      }
+
+      if (row?.prState === "MERGED" || row?.prState === "CLOSED") {
+        return true;
+      }
+
+      if (row?.pushedAt && row?.awaitingPush !== true) {
+        return true;
+      }
+
+      if (wip?.prPollComplete === true || wip?.prMergedAt) {
+        return wip?.awaitingPush !== true;
+      }
+
+      if (wip?.prState === "MERGED" || wip?.prState === "CLOSED") {
+        return true;
+      }
+
+      if (wip?.pushedAt && wip?.awaitingPush !== true) {
+        return true;
+      }
+
       return isPrWorkflowComplete(wip) && wip?.awaitingPush !== true;
     }
 
@@ -1464,9 +1488,12 @@
       }
 
       if (
-        row.prPollComplete === true
+        row.isDone === true
+        || row.prPollComplete === true
         || row.backlogStar === true
         || row.prMergedAt
+        || row.pushedAt
+        || (typeof row.prUrl === "string" && row.prUrl.startsWith("http"))
         || row.prState === "MERGED"
         || row.prState === "CLOSED"
       ) {
@@ -1477,6 +1504,9 @@
         , prMergedAt    : row.prMergedAt ?? null
         , prAppliedAt   : row.prAppliedAt ?? null
         , prPollComplete: row.prPollComplete === true || Boolean(row.prMergedAt)
+        , pushedAt      : typeof row.pushedAt === "string" ? row.pushedAt : null
+        , isDone        : row.isDone === true
+        , status        : typeof row.status === "string" ? row.status : null
         };
       }
 
@@ -1499,9 +1529,10 @@
             : null;
 
           setWipActiveParentKey(nextKey);
-          wipStatusMap = active.byKey && typeof active.byKey === "object"
-            ? { ...active.byKey }
-            : {};
+          wipStatusMap = {
+            ...wipStatusMap
+          , ...(active.byKey && typeof active.byKey === "object" ? active.byKey : {})
+          };
         }
       } catch {
         /* mantieni stato precedente */
@@ -1881,6 +1912,12 @@
 
         if (result.ok && result.mode === "push") {
           highlightGogoRow(issueKey);
+
+          mergeWipStatusEntry(issueKey, {
+            awaitingPush: false
+          , pushedAt    : new Date().toISOString()
+          , ...(result.prUrl ? { prUrl: result.prUrl } : {})
+          });
 
           if (result.prUrl) {
             saveGogoPrUrl(issueKey, result.prUrl);
@@ -5377,13 +5414,8 @@
         }
         seedDefaultCollapsed();
 
+        await refreshWipStatusMap(backlog.issues);
         applyFilters();
-
-        void refreshWipStatusMap(backlog.issues).then(() => {
-          if (backlog) {
-            applyFilters();
-          }
-        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
 

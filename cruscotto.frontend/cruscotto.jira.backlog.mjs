@@ -183,6 +183,7 @@ export function backlogTier(type) {
  *   isStoryLike: boolean,
  *   summary: string,
  *   status: string,
+ *   isDone?: boolean,
  *   parentKey: string | null,
  *   depth: number,
  *   hasChildren: boolean,
@@ -201,6 +202,8 @@ export function backlogTier(type) {
  *   prMergedAt?: string,
  *   prTitle?: string,
  *   prUrl?: string,
+ *   pushedAt?: string,
+ *   awaitingPush?: boolean,
  * }} JiraBacklogRow
  */
 
