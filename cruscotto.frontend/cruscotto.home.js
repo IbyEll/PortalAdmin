@@ -7235,10 +7235,47 @@ function renderWorkingPlanTab() {
       <div id="working-plan-output" class="working-plan-report-wrap" aria-live="polite"></div>
     </section>`;
 
+  document.getElementById("working-plan-output")?.addEventListener("change", (event) => {
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const section = target.closest("[data-wp-backlog-pool]");
+
+    if (!section || !(section instanceof HTMLElement)) {
+      return;
+    }
+
+    if (!target.matches(".wp-backlog-check, .wp-backlog-check-all, [data-wp-backlog-sprint-select]")) {
+      return;
+    }
+
+    if (target.matches(".wp-backlog-check-all") && target instanceof HTMLInputElement) {
+      const checked = target.checked;
+
+      section.querySelectorAll(".wp-backlog-check[data-wp-backlog-key]").forEach((node) => {
+        if (node instanceof HTMLInputElement) {
+          node.checked = checked;
+        }
+      });
+    }
+
+    syncBacklogPoolToolbar(section);
+  });
+
   document.getElementById("working-plan-output")?.addEventListener("click", (event) => {
     const target = event.target;
 
     if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const backlogBtn = target.closest(".wp-btn-backlog-add-sprint");
+
+    if (backlogBtn instanceof HTMLButtonElement) {
+      void addBacklogSelectionToSprint(backlogBtn);
       return;
     }
 
@@ -7330,7 +7367,7 @@ function captureWorkingPlanSprintStatuses(root) {
 function initWorkingPlanTableResize(root) {
   const scope = root ?? document;
 
-  scope.querySelectorAll("table.wp-table--dev-queue, .wp-table-wrap > table.wp-table--dev-queue").forEach((node) => {
+  scope.querySelectorAll("table.wp-table--dev-queue, table.wp-table--backlog-pool, table.wp-table--active-sprint, .wp-table-wrap > table.wp-table--dev-queue, .wp-table-wrap > table.wp-table--backlog-pool, .wp-table-wrap > table.wp-table--active-sprint").forEach((node) => {
     if (node instanceof HTMLTableElement || (node && node.tagName === "TABLE")) {
       globalThis.CruscottoTableColumnResize?.initTable(node, { force: true });
     }
@@ -7403,6 +7440,7 @@ async function applyWorkingPlanHtml(outputEl, html, preserved) {
   }
 
   initWorkingPlanTableResize(outputEl);
+  initBacklogPoolControls(outputEl);
 }
 
 /**
@@ -7438,6 +7476,7 @@ async function loadSavedWorkingPlanIfEmpty() {
     lastWorkingPlanPayload = data.payload ?? null;
     await ensureWorkingPlanIssueDisplayStyles(outputEl);
     initWorkingPlanTableResize(outputEl);
+    initBacklogPoolControls(outputEl);
 
     if (statusEl) {
       statusEl.textContent = data.savedAt
@@ -7589,6 +7628,207 @@ async function runWorkingPlanAction(kind) {
       obsBtn.disabled = false;
     }
   }
+}
+
+/**
+ * @param {ParentNode} root
+ * @returns {HTMLElement | null}
+ */
+function getBacklogPoolSection(root) {
+  const node = root.querySelector("[data-wp-backlog-pool]");
+
+  return node instanceof HTMLElement ? node : null;
+}
+
+/**
+ * @param {HTMLElement} section
+ * @returns {string[]}
+ */
+function getSelectedBacklogKeys(section) {
+  /** @type {string[]} */
+  const keys = [];
+
+  section.querySelectorAll(".wp-backlog-check:checked").forEach((node) => {
+    if (!(node instanceof HTMLInputElement)) {
+      return;
+    }
+
+    const key = String(node.dataset.wpBacklogKey ?? "").trim();
+
+    if (key) {
+      keys.push(key);
+    }
+  });
+
+  return keys;
+}
+
+/**
+ * @param {HTMLElement | null} section
+ */
+function syncBacklogPoolToolbar(section) {
+  if (!section) {
+    return;
+  }
+
+  const selected  = getSelectedBacklogKeys(section);
+  const sprintSel = section.querySelector("[data-wp-backlog-sprint-select]");
+  const addBtn    = section.querySelector("[data-wp-backlog-add-sprint]");
+  const countEl   = section.querySelector("[data-wp-backlog-selection]");
+  const sprintVal = sprintSel instanceof HTMLSelectElement ? sprintSel.value : "";
+
+  if (countEl instanceof HTMLElement) {
+    countEl.textContent = `${selected.length} selezionate`;
+  }
+
+  if (addBtn instanceof HTMLButtonElement) {
+    addBtn.disabled = selected.length === 0 || !sprintVal;
+  }
+
+  const openChecks = [...section.querySelectorAll(".wp-backlog-check[data-wp-backlog-key]")];
+  const checkAll   = section.querySelector("[data-wp-backlog-check-all]");
+
+  if (checkAll instanceof HTMLInputElement && openChecks.length > 0) {
+    checkAll.checked       = openChecks.every((node) => node instanceof HTMLInputElement && node.checked);
+    checkAll.indeterminate = !checkAll.checked && openChecks.some((node) => node instanceof HTMLInputElement && node.checked);
+  }
+}
+
+/**
+ * @param {ParentNode} root
+ */
+function initBacklogPoolControls(root) {
+  syncBacklogPoolToolbar(getBacklogPoolSection(root));
+}
+
+/**
+ * Sposta issue selezionate dal pool backlog allo sprint proposto scelto (Jira agile).
+ *
+ * @param {HTMLButtonElement} btn
+ */
+async function addBacklogSelectionToSprint(btn) {
+  if (workingPlanSprintCreateBusy) {
+    return;
+  }
+
+  const section = btn.closest("[data-wp-backlog-pool]");
+
+  if (!(section instanceof HTMLElement)) {
+    return;
+  }
+
+  const sprintSel = section.querySelector("[data-wp-backlog-sprint-select]");
+  const actionEl  = section.querySelector("[data-wp-backlog-action]");
+  const sprintNum   = sprintSel instanceof HTMLSelectElement ? Number(sprintSel.value) : NaN;
+  const keys        = getSelectedBacklogKeys(section);
+  const report      = lastWorkingPlanPayload?.report;
+  const block       = report && typeof report === "object" && Array.isArray(report.proposedSprints)
+    ? report.proposedSprints.find((row) => Number(row.sprint) === sprintNum && !row.backlogPool)
+    : null;
+
+  if (!Number.isFinite(sprintNum) || sprintNum < 1 || keys.length === 0) {
+    return;
+  }
+
+  if (!block) {
+    if (actionEl instanceof HTMLElement) {
+      actionEl.hidden = false;
+      actionEl.textContent = "Rigenera il piano prima di assegnare issue allo sprint.";
+      actionEl.className = "wp-backlog-action wp-sprint-action is-error";
+    }
+
+    return;
+  }
+
+  workingPlanSprintCreateBusy = true;
+  btn.disabled = true;
+
+  if (actionEl instanceof HTMLElement) {
+    actionEl.hidden = false;
+    actionEl.className = "wp-backlog-action wp-sprint-action";
+    actionEl.textContent = `Assegnazione ${keys.length} issue allo sprint ${sprintNum}…`;
+  }
+
+  try {
+    const res = await fetch("/api/jira/working-plan/create-sprint", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({
+        sprint     : block.sprint
+      , name       : block.name
+      , description: block.description ?? ""
+      , keys
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(String(data.error ?? `HTTP ${res.status}`));
+    }
+
+    if (actionEl instanceof HTMLElement) {
+      actionEl.className = "wp-backlog-action wp-sprint-action is-ok";
+      actionEl.textContent = String(data.message ?? `${keys.length} issue assegnate`);
+    }
+
+    if (reportPayloadHasSprintStatus(report)) {
+      if (!report.jiraSprintStatusByPlanNum) {
+        report.jiraSprintStatusByPlanNum = {};
+      }
+
+      report.jiraSprintStatusByPlanNum[String(sprintNum)] = {
+        state    : "future"
+      , message  : String(data.message ?? "Issue aggiunte")
+      , boardUrl : data.boardUrl ?? null
+      };
+    }
+
+    section.querySelectorAll(".wp-backlog-check:checked").forEach((node) => {
+      if (node instanceof HTMLInputElement) {
+        node.checked = false;
+      }
+    });
+
+    syncBacklogPoolToolbar(section);
+
+    const outputEl = document.getElementById("working-plan-output");
+
+    if (outputEl) {
+      outputEl.querySelectorAll(`[data-wp-sprint-status="${sprintNum}"]`).forEach((node) => {
+        if (!(node instanceof HTMLElement)) {
+          return;
+        }
+
+        node.hidden    = false;
+        node.className = "wp-sprint-action is-ok";
+
+        if (data.boardUrl) {
+          node.innerHTML = `${escapeHtml(String(data.message ?? "Issue aggiunte"))} — <a href="${escapeHtml(String(data.boardUrl))}" target="_blank" rel="noopener noreferrer">Board Jira</a>`;
+        } else {
+          node.textContent = String(data.message ?? "Issue aggiunte");
+        }
+      });
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (actionEl instanceof HTMLElement) {
+      actionEl.className = "wp-backlog-action wp-sprint-action is-error";
+      actionEl.textContent = message;
+    }
+  } finally {
+    workingPlanSprintCreateBusy = false;
+    btn.disabled = false;
+    syncBacklogPoolToolbar(section);
+  }
+}
+
+/**
+ * @param {unknown} report
+ * @returns {report is Record<string, unknown> & { jiraSprintStatusByPlanNum?: Record<string, unknown> }}
+ */
+function reportPayloadHasSprintStatus(report) {
+  return Boolean(report) && typeof report === "object";
 }
 
 /**
