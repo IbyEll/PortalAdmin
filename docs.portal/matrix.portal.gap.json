@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-08T19:53:38.386Z",
+  "generatedAt": "2026-07-08T20:26:11.185Z",
   "source": "unified",
   "metrics": {
     "archProgressPct": 92,
@@ -479,7 +479,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -495,7 +495,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -511,7 +511,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -527,7 +527,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -567,7 +567,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -583,7 +583,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -599,7 +599,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -640,7 +640,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -656,7 +656,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -672,7 +672,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -688,7 +688,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -728,7 +728,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -765,7 +765,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -837,7 +837,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r3",
@@ -854,7 +854,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r4",
@@ -870,7 +870,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r5",
@@ -1388,7 +1388,7 @@
             "PARKING_tocheck/cruscotto.jira.my-project.analysis.mjs",
             "admin.portal.lib/overlay/dashboard.project.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1404,7 +1404,7 @@
             "cruscotto.frontend/cruscotto.jira.backlog.pillars.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1420,7 +1420,7 @@
             "admin.portal.JiraCORE/jiraCORE.close.story.mjs",
             "PARKING_tocheck/pillar-matrix-targeted.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1436,7 +1436,7 @@
             "cruscotto.frontend/cruscotto.server.mjs",
             "PARKING_tocheck/cruscotto.jira.pillar.matrix.portal.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1476,7 +1476,7 @@
           "paths": [
             "PARKING_tocheck/cruscotto.frontend/jira/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1492,7 +1492,7 @@
             "admin.portal.lib/overlay/dashboard.project.mjs",
             ".cursor/rules/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1508,7 +1508,7 @@
             "admin.portal.lib/discovery.services.repo.mjs",
             "lib/product.manifest.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1549,7 +1549,7 @@
             "cruscotto.frontend/cruscotto.jira.working.order.mjs",
             "admin.portal.lib/overlay/working.plan.overlay.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1565,7 +1565,7 @@
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs",
             "admin.script.standalone/confluence.pillar.matrix.generate.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1581,7 +1581,7 @@
             "PARKING_tocheck/pillar-matrix-diff.mjs",
             "admin.script.standalone/confluence.pillar.matrix.publish.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1597,7 +1597,7 @@
             "package.json",
             "admin.portal.testscript/funzionali/test.cruscotto.startup.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1637,7 +1637,7 @@
             "admin.portal.JiraCORE/jira.function.repo.refs.mjs",
             "test.smoke/smoke-portal-config.mjs"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1674,7 +1674,7 @@
             "server/",
             "runner/"
           ],
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38.",
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11.",
           "issueKey": null,
           "issueType": null,
           "issueSummary": null
@@ -1746,7 +1746,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r3",
@@ -1763,7 +1763,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r4",
@@ -1779,7 +1779,7 @@
           "issueKey": null,
           "issueType": null,
           "issueSummary": null,
-          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 19:53:38."
+          "resolvedNote": "⚠ voce non più rilevata dallo scan (storico catalogo) · Ultimo scan 2026-07-08 20:26:11."
         },
         {
           "id": "audit-prio-r5",
