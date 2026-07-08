@@ -58,6 +58,108 @@ import { hasWorkflowAdvancementData, parseWorkflowRawFields, resolveWipClosedAtF
  *   inWip?: boolean
  * }} WipStatusEntry */
 
+const DONE_STATUS_RE = /^(fatto|completato|done|closed|resolved)$/i;
+
+/**
+ * Stato Jira terminal (Fatto / Done / …).
+ *
+ * @param {string | null | undefined} status
+ * @returns {boolean}
+ */
+export function isJiraStatusDone(status) {
+  return DONE_STATUS_RE.test(String(status ?? "").trim());
+}
+
+/**
+ * PR mergiata o chiusa — niente link PR in colonna Svil.
+ *
+ * @param {{ prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} wip
+ * @returns {boolean}
+ */
+export function isPrWorkflowComplete(wip) {
+  if (!wip) {
+    return false;
+  }
+
+  if (wip.prPollComplete === true || wip.prMergedAt) {
+    return true;
+  }
+
+  return wip.prState === "MERGED" || wip.prState === "CLOSED";
+}
+
+/**
+ * URL PR da mostrare in UI — null se workflow PR concluso.
+ *
+ * @param {{ prUrl?: string | null } | null | undefined} wip
+ * @returns {string | null}
+ */
+export function resolveRowPrUrl(wip) {
+  if (isPrWorkflowComplete(wip)) {
+    return null;
+  }
+
+  const url = wip?.prUrl;
+
+  return typeof url === "string" && url.startsWith("http") ? url : null;
+}
+
+/**
+ * Ticket chiuso in Jira o workflow gogo/PUSH/PR completato — niente gogo.
+ *
+ * @param {{ status?: string, isDone?: boolean } | null | undefined} row
+ * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean, awaitingPush?: boolean } | null | undefined} wip
+ * @returns {boolean}
+ */
+export function isRowWorkflowClosed(row, wip) {
+  if (row?.isDone === true) {
+    return true;
+  }
+
+  if (wip?.isDone === true) {
+    return true;
+  }
+
+  if (wip?.inWip && isJiraStatusDone(wip.status)) {
+    return true;
+  }
+
+  if (isJiraStatusDone(row?.status)) {
+    return true;
+  }
+
+  return isPrWorkflowComplete(wip) && wip?.awaitingPush !== true;
+}
+
+/**
+ * @param {{ isDone?: boolean, status?: string | null, rawFields?: string | null }} row
+ * @param {Record<string, unknown>} raw
+ * @returns {boolean}
+ */
+function isWipBundleUiClosed(row, raw) {
+  if (row.isDone === true && isJiraStatusDone(row.status)) {
+    return true;
+  }
+
+  if (raw.pushedAt) {
+    return true;
+  }
+
+  if (isPrWorkflowComplete({
+    prPollComplete: raw.prPollComplete === true
+  , prMergedAt    : typeof raw.prMergedAt === "string" ? raw.prMergedAt : null
+  , prState       : typeof raw.prState === "string" ? raw.prState : null
+  })) {
+    return raw.awaitingPush !== true;
+  }
+
+  if (isJiraStatusDone(row.status) && (raw.wipClosedAt || raw.gogoCompletedAt)) {
+    return true;
+  }
+
+  return false;
+}
+
 /** @typedef {'in_progress' | 'subtasks_complete' | 'awaiting_push' | 'published'} WipWorkflowPhase */
 
 /** @typedef {WipStatusEntry & {
@@ -442,6 +544,10 @@ export async function fetchActiveWipForUi() {
 
     const raw = parseRawFields(row.rawFields);
 
+    if (isWipBundleUiClosed(row, raw)) {
+      continue;
+    }
+
     if (raw.gogoStartedAt || raw.workflowSource === "gogo") {
       parentKeys.add(row.jiraKey);
     }
@@ -463,6 +569,11 @@ export async function fetchActiveWipForUi() {
     }
 
     const raw = parseRawFields(row.rawFields);
+
+    if (isWipBundleUiClosed(row, raw)) {
+      continue;
+    }
+
     const ts  = Date.parse(
       typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : (row.syncedAt?.toISOString() ?? "")
     ) || 0;

@@ -843,11 +843,53 @@
     /**
      * Story/Bug/Todo già chiusa in Jira — niente gogo (PUSH se awaitingPush in WIP).
      *
-     * @param {{ status?: string }} row
+     * @param {{ status?: string, isDone?: boolean }} row
+     * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean } | null | undefined} [wip]
      * @returns {boolean}
      */
-    function isJiraRowDone(row) {
+    function isJiraRowDone(row, wip) {
+      if (row?.isDone === true) {
+        return true;
+      }
+
+      if (wip?.isDone === true) {
+        return true;
+      }
+
+      if (wip?.inWip && /^(fatto|completato|done|closed|resolved)$/i.test(String(wip.status ?? "").trim())) {
+        return true;
+      }
+
       return /^(fatto|completato|done|closed|resolved)$/i.test(String(row?.status ?? "").trim());
+    }
+
+    /**
+     * @param {{ prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} wip
+     * @returns {boolean}
+     */
+    function isPrWorkflowComplete(wip) {
+      if (!wip) {
+        return false;
+      }
+
+      if (wip.prPollComplete === true || wip.prMergedAt) {
+        return true;
+      }
+
+      return wip.prState === "MERGED" || wip.prState === "CLOSED";
+    }
+
+    /**
+     * @param {{ status?: string, isDone?: boolean }} row
+     * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean, awaitingPush?: boolean, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null, prUrl?: string | null } | null | undefined} [wip]
+     * @returns {boolean}
+     */
+    function isRowWorkflowClosed(row, wip) {
+      if (isJiraRowDone(row, wip)) {
+        return true;
+      }
+
+      return isPrWorkflowComplete(wip) && wip?.awaitingPush !== true;
     }
 
     /**
@@ -1440,7 +1482,9 @@
      */
     function appendRowWorkflowControl(keyCell, issueKey, row) {
       const wip = getWipStatus(issueKey);
-      const prUrl = wip?.prUrl ?? null;
+      const prUrl = wip && !isPrWorkflowComplete(wip) && typeof wip.prUrl === "string" && wip.prUrl.startsWith("http")
+        ? wip.prUrl
+        : null;
 
       if (prUrl) {
         keyCell.appendChild(createGogoPrLink(issueKey, prUrl));
@@ -1452,7 +1496,7 @@
         return;
       }
 
-      if (isJiraRowDone(row)) {
+      if (isRowWorkflowClosed(row, wip)) {
         return;
       }
 
@@ -4450,6 +4494,7 @@
       collapsedByMode.epic.clear();
       collapsedByMode.sprint.clear();
       collapsedByMode.pillar.clear();
+      wipStatusMap = {};
 
       try {
         const res = await fetch("/api/jira/backlog");

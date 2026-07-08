@@ -105,12 +105,27 @@ async function main() {
     assert(resolveRowWorkflowControl("sprint", row, { prUrl: "https://github.com/x/y/pull/1" }) === "pr", "pr");
     assert(resolveRowWorkflowControl("sprint", row, null) === "gogo", "gogo default");
     assert(resolveRowWorkflowControl("epic", row, null) === "gogo", "gogo epic");
+    assert(
+      resolveRowWorkflowControl(
+        "sprint"
+      , { tier: "task", key: "ADMIN-156", isStoryLike: true, status: "Fatto" }
+      , {
+          isDone         : true
+        , status         : "Fatto"
+        , prPollComplete : true
+        , prState        : "MERGED"
+        , awaitingPush   : false
+        }
+      ) === "none"
+    , "done merged — no gogo"
+    );
     assert(isAwaitingPushWip({ awaitingPush: true }), "awaiting");
     assert(!isAwaitingPushWip({ awaitingPush: false }), "not awaiting");
     assert(
       resolveWipPrUrl({ prUrl: "https://github.com/o/r/pull/2" }) === "https://github.com/o/r/pull/2"
     , "pr url"
     );
+    assert(resolveWipPrUrl({ prUrl: "https://github.com/o/r/pull/2", prPollComplete: true }) === null, "merged pr hidden");
   }, results);
 
   await runTest("parsePushApiRequest — validazione body API", async () => {

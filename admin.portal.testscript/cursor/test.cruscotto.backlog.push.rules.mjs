@@ -58,6 +58,14 @@ export function isAwaitingPushWip(wip) {
  * @returns {string | null}
  */
 export function resolveWipPrUrl(wip) {
+  if (wip?.prPollComplete === true || wip?.prMergedAt) {
+    return null;
+  }
+
+  if (wip?.prState === "MERGED" || wip?.prState === "CLOSED") {
+    return null;
+  }
+
   const url = wip?.prUrl;
 
   return typeof url === "string" && url.startsWith("http") ? url : null;
@@ -96,7 +104,42 @@ export function resolveRowWorkflowControl(viewMode, row, wip) {
     return "push";
   }
 
+  if (isRowWorkflowClosed(row, wip)) {
+    return "none";
+  }
+
   return "gogo";
+}
+
+const DONE_STATUS_RE = /^(fatto|completato|done|closed|resolved)$/i;
+
+/**
+ * @param {{ status?: string, isDone?: boolean }} row
+ * @param {{ isDone?: boolean, status?: string | null, inWip?: boolean, awaitingPush?: boolean, prPollComplete?: boolean, prMergedAt?: string | null, prState?: string | null } | null | undefined} [wip]
+ * @returns {boolean}
+ */
+export function isRowWorkflowClosed(row, wip) {
+  if (row?.isDone === true) {
+    return true;
+  }
+
+  if (wip?.isDone === true) {
+    return true;
+  }
+
+  if (wip?.inWip && DONE_STATUS_RE.test(String(wip.status ?? "").trim())) {
+    return true;
+  }
+
+  if (DONE_STATUS_RE.test(String(row?.status ?? "").trim())) {
+    return true;
+  }
+
+  if (wip?.prPollComplete === true || wip?.prMergedAt) {
+    return wip?.awaitingPush !== true;
+  }
+
+  return wip?.prState === "MERGED" || wip?.prState === "CLOSED";
 }
 
 /**
