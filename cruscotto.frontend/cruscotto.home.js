@@ -358,6 +358,13 @@ let cursorAgentPollTimer = null;
 /** @type {number} */
 let cursorAgentLogCursor = 0;
 
+/** Seq già renderizzate — evita duplicati se poll concorrenti. */
+/** @type {Set<number>} */
+let cursorAgentLogSeenSeq = new Set();
+
+/** Guard poll log agent — una richiesta in flight alla volta. */
+let cursorAgentLogPollInFlight = false;
+
 /** Filtro livello log Cursor Agent (ADMIN-164). */
 let cursorAgentLogLevelFilter = "all";
 
@@ -7342,6 +7349,16 @@ function appendCursorAgentLogLine(outputEl, line) {
     return;
   }
 
+  const seq = Number(line.seq);
+
+  if (Number.isFinite(seq) && seq > 0) {
+    if (cursorAgentLogSeenSeq.has(seq)) {
+      return;
+    }
+
+    cursorAgentLogSeenSeq.add(seq);
+  }
+
   const stream = line.stream === "assistant"
     ? "assistant"
     : line.stream === "workflow"
@@ -7376,24 +7393,37 @@ async function pollCursorAgentLogs() {
   const statusEl = document.getElementById("cursor-agent-status-line");
   const badgeEl  = document.getElementById("cursor-agent-badge");
 
-  if (!outputEl) {
+  if (!outputEl || cursorAgentLogPollInFlight) {
     return;
   }
+
+  cursorAgentLogPollInFlight = true;
 
   try {
     const data = await apiGet(`/api/logs?cursor=${cursorAgentLogCursor}&source=agent&extended=1`);
     const lines = Array.isArray(data.lines) ? data.lines : [];
+    let appended = false;
 
     for (const line of lines) {
       if (!logRowPassesLevelFilter(line, cursorAgentLogLevelFilter)) {
         continue;
       }
 
-      appendCursorAgentLogLine(outputEl, /** @type {{ text?: string, stream?: string }} */ (line));
+      const before = outputEl.childElementCount;
+      appendCursorAgentLogLine(outputEl, /** @type {{ text?: string, stream?: string, seq?: number }} */ (line));
+
+      if (outputEl.childElementCount > before) {
+        appended = true;
+      }
     }
 
-    if (lines.length > 0) {
-      cursorAgentLogCursor = Number(data.cursor) || cursorAgentLogCursor;
+    const nextCursor = Number(data.cursor);
+
+    if (Number.isFinite(nextCursor) && nextCursor >= cursorAgentLogCursor) {
+      cursorAgentLogCursor = nextCursor;
+    }
+
+    if (appended) {
       outputEl.scrollTop = outputEl.scrollHeight;
     }
 
@@ -7418,6 +7448,8 @@ async function pollCursorAgentLogs() {
     }
   } catch {
     // poll silenzioso
+  } finally {
+    cursorAgentLogPollInFlight = false;
   }
 }
 
@@ -8458,6 +8490,7 @@ async function renderCursorAgent() {
         outputEl.innerHTML = "";
       }
       cursorAgentLogCursor = 0;
+      cursorAgentLogSeenSeq = new Set();
     } catch {
       // ignore
     }

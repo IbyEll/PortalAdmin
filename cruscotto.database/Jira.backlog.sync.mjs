@@ -36,6 +36,7 @@
  */
 
 import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import { syncMatrixRowsFromJiraDone } from "../docs.portal.lib/matrix.db.adapter.mjs";
 import {
   ensureWorkingPlanLoaded
 , enrichIssuesWithWorkingPlan
@@ -241,11 +242,16 @@ export async function syncJiraBacklogSnapshot(backlog) {
       },
     });
 
+    const matrixSync = await syncMatrixRowsFromJiraDone({ syncRunId: syncRun.id }).catch(() => ({
+      updated: 0
+    }));
+
     return {
       syncRunId  : syncRun.id
     , issueCount : backlog.issues.length
     , dbPath     : resolveCruscottoDbPath()
     , fetchedAt  : backlog.fetchedAt
+    , matrixRowsResolved: matrixSync.updated ?? 0
     };
   } catch (err) {
     try {

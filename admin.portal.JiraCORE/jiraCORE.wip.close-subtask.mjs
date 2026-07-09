@@ -93,6 +93,10 @@ async function reopenWipSubtaskRow(db, child) {
  * @param {Set<string>} childKeys
  */
 async function reopenMisassignedWipSubtasks(parentKey, commits, childKeys) {
+  if (!commits.length) {
+    return;
+  }
+
   const db       = await openCruscottoDb();
   const children = await loadWipChildren(db, parentKey);
 

@@ -19,71 +19,23 @@ import {
 } from "./cruscotto.db.config.mjs";
 import {
   MATRIX_KIND_PORTAL_GAP
-, dbRowToMatrixRow
 , loadMatrixRowEvents
-, startMatrixRun
-, upsertMatrixRows
 } from "./matrix.db.mjs";
-import { persistFindingIssueLink } from "../docs.portal.lib/matrix.finding-issues.store.mjs";
-import { MATRIX_SECTION_TITLES } from "../docs.portal.lib/matrix.finding.sections.mjs";
-import { summarizeMatrixSections } from "../docs.portal.lib/matrix.render.mjs";
 import {
-  buildUnifiedMatrixSections
-, resolveUnifiedHistoryPaths
-} from "../docs.portal.lib/matrix.unified.mjs";
+  buildUnifiedMatrixSectionsWithDb
+, matrixSectionsFromDbRows
+, persistUnifiedMatrixSections
+} from "../docs.portal.lib/matrix.db.adapter.mjs";
+import { persistFindingIssueLink } from "../docs.portal.lib/matrix.finding-issues.store.mjs";
+import { summarizeMatrixSections } from "../docs.portal.lib/matrix.render.mjs";
+import { resolveUnifiedHistoryPaths } from "../docs.portal.lib/matrix.unified.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DOCS_DIR    = join(PORTAL_ROOT, "docs.portal");
 
 /** @typedef {import("../docs.portal.lib/matrix.render.mjs").MatrixSection} MatrixSection */
 
-/**
- * @param {string | null | undefined} sectionId
- * @returns {string}
- */
-export function matrixSectionTitleFromId(sectionId) {
-  const raw = String(sectionId ?? "unknown").trim();
-
-  if (!raw || raw === "unknown") {
-    return "Matrice";
-  }
-
-  const stripped = raw.replace(/^(op-|audit-)/, "");
-  const titled   = MATRIX_SECTION_TITLES[stripped];
-
-  if (titled) {
-    return raw.startsWith("audit-") ? `Audit — ${titled}` : titled;
-  }
-
-  return raw.replace(/-/g, " ");
-}
-
-/**
- * @param {import("@prisma/client").MatrixRow[]} dbRows
- * @returns {MatrixSection[]}
- */
-export function matrixSectionsFromDbRows(dbRows) {
-  /** @type {Map<string, MatrixSection>} */
-  const bySection = new Map();
-
-  for (const dbRow of dbRows) {
-    const sectionId = dbRow.sectionId ?? "unknown";
-    const row       = dbRowToMatrixRow(dbRow, dbRow.findingIssue ?? null);
-
-    if (!bySection.has(sectionId)) {
-      bySection.set(sectionId, {
-        id    : sectionId
-      , title : matrixSectionTitleFromId(sectionId)
-      , open  : false
-      , rows  : []
-      });
-    }
-
-    bySection.get(sectionId).rows.push(row);
-  }
-
-  return [...bySection.values()].sort((a, b) => a.id.localeCompare(b.id));
-}
+export { matrixSectionsFromDbRows, matrixSectionTitleFromId } from "../docs.portal.lib/matrix.db.adapter.mjs";
 
 /**
  * @param {{ matrixKind?: string }} [opts]
@@ -245,26 +197,19 @@ export async function regenerateMatrixPortalGap(opts = {}) {
   await openCruscottoDb();
 
   const history = resolveUnifiedHistoryPaths(DOCS_DIR);
-  const built   = await buildUnifiedMatrixSections(PORTAL_ROOT, {
+  const built   = await buildUnifiedMatrixSectionsWithDb(PORTAL_ROOT, {
     auditJsonPath   : history.auditJsonPath
   , legacyJsonPaths : history.legacyJsonPaths
   , previousJsonPath: join(DOCS_DIR, "matrix.portal.gap.json")
-  });
-
-  const run = await startMatrixRun({
-    matrixKind
+  , matrixKind
   , source
-  , metrics: {
-      gap     : built.report.metrics?.gap ?? null
-    , partial : built.report.metrics?.partial ?? null
-    , sections: built.sections.length
-    }
+  , readFromDb      : true
   });
 
-  const upsertStats = await upsertMatrixRows({
-    matrixKind
-  , matrixRunId: run.id
-  , sections   : built.sections
+  const db        = await openCruscottoDb();
+  const latestRun = await db.matrixRun.findFirst({
+    where  : { matrixKind }
+  , orderBy: { generatedAt: "desc" }
   });
 
   /** @type {{ html?: string, merge?: boolean } | null} */
@@ -279,9 +224,9 @@ export async function regenerateMatrixPortalGap(opts = {}) {
   return {
     ok          : true
   , matrixKind
-  , runId       : run.id
-  , generatedAt : run.generatedAt.toISOString()
-  , upsertStats
+  , runId       : latestRun?.id ?? null
+  , generatedAt : latestRun?.generatedAt?.toISOString() ?? new Date().toISOString()
+  , fromDb      : built.fromDb ?? false
   , sectionCount: built.sections.length
   , htmlSaved   : saveHtml
   , htmlMerge   : htmlResult?.merge ?? null

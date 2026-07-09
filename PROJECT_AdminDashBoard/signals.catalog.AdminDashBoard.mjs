@@ -227,4 +227,17 @@ export const PRODUCT_REPO_SIGNALS = [
   , tests : ["technical/test.matrix.api.e2e.mjs"]
   }
 
+, {
+    key   : "ADMIN-174"
+  , label : "fix"
+  , paths : [
+      "admin.portal.lib"
+      , "admin.portal.JiraCORE"
+      , "test.smoke"
+      , "lib"
+      , "admin.script.standalone"
+      , "cruscotto.database"
+    ]
+  }
+
 ];

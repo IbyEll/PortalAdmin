@@ -311,43 +311,45 @@ function updateGeneratedMeta(html, iso) {
  * @param {Map<string, string>} prev
  * @param {string} verifiedAtIso
  * @param {(key: string, sig: string, prev: Map<string, string>) => boolean} isFresh
- * @param {{ metrics?: { label: string, value: string | number, meta?: string }[], metricsBadge?: string }} [opts]
+ * @param {{ metrics?: { label: string, value: string | number, meta?: string }[], metricsBadge?: string, metricsOnly?: boolean }} [opts]
  * @returns {string}
  */
 export function refreshMatrixPageHtml(html, sections, prev, verifiedAtIso, isFresh, opts = {}) {
   const verifiedAt = verifiedAtIso.slice(0, 16).replace("T", " ");
   let out          = stripAnalysisChecksBlocks(html);
 
-  for (const section of sections) {
-    const blockRe = new RegExp(
-      `(<!-- FINDINGS:${section.id} -->\\s*<table>[\\s\\S]*?<tbody>)([\\s\\S]*?)(</tbody>[\\s\\S]*?</table>\\s*<!-- /FINDINGS:${section.id} -->)`
-    );
+  if (!opts.metricsOnly) {
+    for (const section of sections) {
+      const blockRe = new RegExp(
+        `(<!-- FINDINGS:${section.id} -->\\s*<table>[\\s\\S]*?<tbody>)([\\s\\S]*?)(</tbody>[\\s\\S]*?</table>\\s*<!-- /FINDINGS:${section.id} -->)`
+      );
 
-    if (blockRe.test(out)) {
-      out = out.replace(blockRe, (full, head, tbody, tail) => {
-        const merged = mergeMatrixSectionTbody(tbody, section, verifiedAt, prev, isFresh);
+      if (blockRe.test(out)) {
+        out = out.replace(blockRe, (full, head, tbody, tail) => {
+          const merged = mergeMatrixSectionTbody(tbody, section, verifiedAt, prev, isFresh);
 
-        if (merged === tbody) {
-          return full;
+          if (merged === tbody) {
+            return full;
+          }
+
+          return `${head}${merged}${tail}`;
+        });
+
+        if (section.badge) {
+          out = syncMatrixCardBadge(out, section.id, section.badge);
         }
 
-        return `${head}${merged}${tail}`;
-      });
-
-      if (section.badge) {
-        out = syncMatrixCardBadge(out, section.id, section.badge);
+        continue;
       }
 
-      continue;
-    }
+      if (!out.includes(`data-adv-section="${section.id}"`)) {
+        const sectionHtml = renderMatrixSection(section);
+        const anchor      = out.includes('<p class="meta">Artefatti:')
+          ? '<p class="meta">Artefatti:'
+          : "</div>\n  <script";
 
-    if (!out.includes(`data-adv-section="${section.id}"`)) {
-      const sectionHtml = renderMatrixSection(section);
-      const anchor      = out.includes('<p class="meta">Artefatti:')
-        ? '<p class="meta">Artefatti:'
-        : "</div>\n  <script";
-
-      out = out.replace(anchor, `${sectionHtml}\n    ${anchor}`);
+        out = out.replace(anchor, `${sectionHtml}\n    ${anchor}`);
+      }
     }
   }
 

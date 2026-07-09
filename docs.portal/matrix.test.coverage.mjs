@@ -11,13 +11,19 @@ import { dirname, join } from "node:path";
 
 import { refreshMatrixPageHtml } from "../docs.portal.lib/matrix.refresh.mjs";
 import {
+  enrichMatrixSectionsFromJira
+, loadUnifiedMatrixSectionsFromDb
+, MATRIX_KIND_TEST_COVERAGE
+, persistUnifiedMatrixSections
+} from "../docs.portal.lib/matrix.db.adapter.mjs";
+import { isMatrixDbPrimary } from "../docs.portal.lib/matrix.persist.config.mjs";
+import {
   renderMatrixPage
 , summarizeMatrixSections
 } from "../docs.portal.lib/matrix.render.mjs";
-import { isFreshEntry, parsePreviousAutoStates, stripFreshMarks } from "../docs.portal.lib/docs.portal.refresh.mjs";
+import { isFreshEntry, stripFreshMarks } from "../docs.portal.lib/docs.portal.refresh.mjs";
 import {
-  enrichMatrixRowsWithIssueRefinement
-, ensureMatrixRowCreateMeta
+  ensureMatrixRowCreateMeta
 } from "../docs.portal.lib/matrix.finding.issues.mjs";
 
 const __dirname   = dirname(fileURLToPath(import.meta.url));
@@ -214,13 +220,27 @@ export function generateTestCoverageHtml(sections) {
 
 /**
  * @param {{ fullRender?: boolean }} [opts]
- * @returns {Promise<{ html: string, sections: import("../docs.portal.lib/matrix.render.mjs").MatrixSection[], merge: boolean }>}
+ * @returns {Promise<{ html: string, sections: import("../docs.portal.lib/matrix.render.mjs").MatrixSection[], merge: boolean, fromDb: boolean }>}
  */
 export async function runTestCoverageMatrix({ fullRender = false } = {}) {
-  const sections = buildTestCoverageSections();
-  const allRows  = sections.flatMap((section) => section.rows);
+  let sections = buildTestCoverageSections();
+  const dbPrimary = isMatrixDbPrimary();
 
-  await enrichMatrixRowsWithIssueRefinement(allRows, PORTAL_ROOT);
+  await persistUnifiedMatrixSections({
+    matrixKind: MATRIX_KIND_TEST_COVERAGE
+  , sections
+  , source    : "matrix.test.coverage"
+  });
+
+  if (dbPrimary) {
+    const fromDb = await loadUnifiedMatrixSectionsFromDb(MATRIX_KIND_TEST_COVERAGE);
+
+    if (fromDb.length > 0) {
+      sections = fromDb;
+    }
+  }
+
+  await enrichMatrixSectionsFromJira(sections, PORTAL_ROOT);
   const summary  = summarizeMatrixSections(sections);
   const metrics  = [
     { value: summary.total, meta: "Feature mappate" }
@@ -230,21 +250,21 @@ export async function runTestCoverageMatrix({ fullRender = false } = {}) {
   , { value: 8, meta: "Step smoke CI" }
   , { value: "P1–P2", meta: "Priorità chiuse" }
   ];
-  const mergeMode = !fullRender && existsSync(OUT);
+  const useFullRender = fullRender || dbPrimary;
+  const mergeMode     = !useFullRender && existsSync(OUT);
   let html;
 
   if (mergeMode) {
     const existing = readFileSync(OUT, "utf8");
-    const prev     = parsePreviousAutoStates(existing);
     let out        = stripFreshMarks(existing);
 
     out = refreshMatrixPageHtml(
       out
     , sections
-    , prev
+    , new Map()
     , new Date().toISOString()
     , isFreshEntry
-    , { metrics, metricsBadge: `${summary.gap} gap · ${summary.partial} parziali` }
+    , { metrics, metricsBadge: `${summary.gap} gap · ${summary.partial} parziali`, metricsOnly: dbPrimary }
     );
     html = out;
   } else {
@@ -253,16 +273,16 @@ export async function runTestCoverageMatrix({ fullRender = false } = {}) {
 
   writeFileSync(OUT, html, "utf8");
 
-  return { html, sections, merge: mergeMode };
+  return { html, sections, merge: mergeMode, fromDb: dbPrimary };
 }
 
 const isCliMain = process.argv[1]
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isCliMain) {
-  const fullRender = process.argv.includes("--full");
+  const fullRender = process.argv.includes("--full") || !process.argv.includes("--merge");
 
-  void runTestCoverageMatrix({ fullRender }).then(({ sections, merge }) => {
+  void runTestCoverageMatrix({ fullRender }).then(({ sections, merge, fromDb }) => {
     const summary = summarizeMatrixSections(sections);
 
     console.log(`Wrote ${OUT}${fullRender ? " (full)" : merge ? " (merge)" : ""} (${summary.total} rows, ${summary.gap} gaps)`);
