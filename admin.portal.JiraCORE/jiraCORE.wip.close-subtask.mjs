@@ -33,6 +33,130 @@ function parseIssueKeysFromText(text) {
 }
 
 /**
+ * Il messaggio commit deve citare esplicitamente la subtask (no mapping per indice).
+ *
+ * @param {{ message: string }} commit
+ * @param {string} subKey
+ * @param {Set<string>} childKeys
+ * @returns {boolean}
+ */
+function commitClosesSubtask(commit, subKey, childKeys) {
+  if (!childKeys.has(subKey)) {
+    return false;
+  }
+
+  return parseIssueKeysFromText(commit.message).includes(subKey);
+}
+
+/**
+ * @param {Array<{ hash: string, message: string }>} commits
+ * @param {Set<string>} childKeys
+ * @returns {Array<{ hash: string, message: string }>}
+ */
+function commitsForWipSubtasks(commits, childKeys) {
+  return commits.filter((commit) => {
+    const keys = parseIssueKeysFromText(commit.message);
+
+    return keys.some((issueKey) => childKeys.has(issueKey));
+  });
+}
+
+/**
+ * @param {import("@prisma/client").PrismaClient} db
+ * @param {{ jiraKey: string, rawFields?: string | null }} child
+ */
+async function reopenWipSubtaskRow(db, child) {
+  const raw     = parseWipRawFields(child.rawFields);
+  const now     = new Date().toISOString();
+  const nextRaw = { ...raw };
+
+  delete nextRaw.closedAt;
+  delete nextRaw.commitHash;
+  nextRaw.reopenedAt = now;
+
+  await db.jiraIssueWip.update({
+    where: { jiraKey: child.jiraKey }
+  , data : {
+      status   : "Da fare"
+    , isDone   : false
+    , rawFields: JSON.stringify(nextRaw)
+    , syncedAt : new Date()
+    }
+  });
+}
+
+/**
+ * Riapre subtask chiuse con commit il cui messaggio non cita la key (mapping per indice legacy).
+ *
+ * @param {string} parentKey
+ * @param {Array<{ hash: string, message: string }>} commits
+ * @param {Set<string>} childKeys
+ */
+async function reopenMisassignedWipSubtasks(parentKey, commits, childKeys) {
+  const db       = await openCruscottoDb();
+  const children = await loadWipChildren(db, parentKey);
+
+  for (const child of children) {
+    if (child.isDone !== true) {
+      continue;
+    }
+
+    const raw   = parseWipRawFields(child.rawFields);
+    const short = typeof raw.commitHash === "string" ? raw.commitHash.trim().slice(0, 12) : "";
+
+    if (!short) {
+      await reopenWipSubtaskRow(db, child);
+      continue;
+    }
+
+    const commit = commits.find((row) => row.hash.startsWith(short));
+
+    if (!commit || !commitClosesSubtask(commit, child.jiraKey, childKeys)) {
+      await reopenWipSubtaskRow(db, child);
+    }
+  }
+}
+
+/**
+ * Parent marcato Fatto/PUSH con subtask ancora aperte — torna in corso.
+ *
+ * @param {string} parentKey
+ * @param {ReturnType<typeof readGitWorkflowInfo>} git
+ */
+async function reconcileParentWipIfSubtasksOpen(parentKey, git) {
+  const key        = normalizeIssueKey(parentKey);
+  const db         = await openCruscottoDb();
+  const children   = await loadWipChildren(db, key);
+  const parent     = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
+
+  if (!parent || areAllWipSubtasksDone(children)) {
+    return null;
+  }
+
+  const raw     = parseWipRawFields(parent.rawFields);
+  const nextRaw = {
+    ...raw
+  , awaitingPush    : false
+  , gogoCompletedAt : null
+  , wipClosedAt     : null
+  , chiudiParent    : false
+  , gogoInProgress  : true
+  };
+
+  await db.jiraIssueWip.update({
+    where: { jiraKey: key }
+  , data : {
+      status   : "In corso"
+    , isDone   : false
+    , rawFields: JSON.stringify(nextRaw)
+    , syncedAt : new Date()
+    }
+  });
+
+  return touchParentWipProgress(key, { git });
+}
+
+/**
  * Ultimo commit sul branch ticket rispetto a main — null se main..branch è vuoto.
  *
  * @param {string} parentKey
@@ -255,21 +379,25 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
 
   const commits = listBranchCommitsSinceMain(ticketBranch);
 
+  await reopenMisassignedWipSubtasks(key, commits, childKeys);
+
+  const childrenAfterReopen = await loadWipChildren(db, key);
+
   for (const { hash, message } of commits) {
     for (const issueKey of parseIssueKeysFromText(message)) {
-      if (issueKey === key || !childKeys.has(issueKey)) {
+      if (!childKeys.has(issueKey)) {
         continue;
       }
 
-      const child = children.find((row) => row.jiraKey === issueKey);
+      const child = childrenAfterReopen.find((row) => row.jiraKey === issueKey);
 
-      if (!child) {
+      if (!child || child.isDone === true) {
         continue;
       }
 
       const shortHash = hash ? hash.slice(0, 12) : null;
 
-      if (child.isDone === true) {
+      if (!shortHash) {
         continue;
       }
 
@@ -283,43 +411,6 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
     }
   }
 
-  const openChildren = children.filter((row) => row.isDone !== true);
-  const unmapped     = commits.filter((commit) => {
-    const keys = parseIssueKeysFromText(commit.message);
-
-    return keys.length === 0 || keys.every((issueKey) => issueKey === key || !childKeys.has(issueKey));
-  });
-
-  let commitIdx = 0;
-
-  for (const child of openChildren) {
-    if (child.isDone === true) {
-      continue;
-    }
-
-    const keyed = commits.find((commit) => parseIssueKeysFromText(commit.message).includes(child.jiraKey));
-
-    if (keyed) {
-      continue;
-    }
-
-    const mapped = unmapped[commitIdx];
-
-    if (!mapped) {
-      break;
-    }
-
-    commitIdx += 1;
-
-    await closeWipSubtask(child.jiraKey, {
-      parentKey         : key
-    , commitHash        : resolveSubtaskCommitHash(key, mapped ?? null, git)
-    , skipParentFinalize: true
-    });
-    closed.push(child.jiraKey);
-    child.isDone = true;
-  }
-
   await resyncWipCommitHashesFromGit(key);
 
   const freshChildren = await loadWipChildren(db, key);
@@ -329,6 +420,7 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
   if (areAllWipSubtasksDone(freshChildren)) {
     advancement = await closeParentWipForPush(key);
   } else {
+    await reconcileParentWipIfSubtasksOpen(key, git);
     advancement = await touchParentWipProgress(key, { git });
   }
 
@@ -496,40 +588,35 @@ export async function closeRemainingWipSubtasksAfterGogo(parentKey, opts = {}) {
   const now      = opts.now ?? new Date().toISOString();
   const children = await loadWipChildren(db, key);
   const open     = children.filter((row) => row.isDone !== true);
+  const childKeys = new Set(children.map((row) => row.jiraKey));
 
   if (!open.length) {
     return { parentKey: key, closed: [] };
   }
 
   const ticketBranch = resolveTicketBranchName(key, git);
-  const commits      = listBranchCommitsSinceMain(ticketBranch);
+  const commits      = commitsForWipSubtasks(listBranchCommitsSinceMain(ticketBranch), childKeys);
   /** @type {string[]} */
   const closed       = [];
 
-  let commitIdx = 0;
-
   for (const child of open) {
-    const keyed  = commits.find((commit) => parseIssueKeysFromText(commit.message).includes(child.jiraKey));
-    const mapped = keyed ?? commits[commitIdx];
-    const hash   = resolveSubtaskCommitHash(key, mapped ?? null, git);
+    const keyed = commits.find((commit) => commitClosesSubtask(commit, child.jiraKey, childKeys));
 
-    if (!keyed && mapped) {
-      commitIdx += 1;
-    }
-
-    if (!hash) {
+    if (!keyed?.hash) {
       continue;
     }
 
     await closeWipSubtask(child.jiraKey, {
       parentKey         : key
-    , commitHash        : hash
+    , commitHash        : keyed.hash.slice(0, 12)
     , skipParentFinalize: true
     });
     closed.push(child.jiraKey);
   }
 
-  const parentAdvancement = await closeParentWipForPush(key, { git, pr, now });
+  const parentAdvancement = areAllWipSubtasksDone(await loadWipChildren(db, key))
+    ? await closeParentWipForPush(key, { git, pr, now })
+    : await touchParentWipProgress(key, { git });
 
   return { parentKey: key, closed, parentAdvancement };
 }
