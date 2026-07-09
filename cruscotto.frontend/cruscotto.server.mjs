@@ -49,6 +49,8 @@
  *   - GET  /api/jira/issue/:KEY/db — dettaglio issue da cache cruscotto DB
  *   - GET  /api/jira/wip/status · POST /api/jira/wip/push · POST /api/jira/wip/pr-poll — workflow database
  *   - POST /api/jira/wip/sync-progress — aggiorna WIP da git durante gogo
+ *   - GET  /api/matrix/portal-gap · GET /api/matrix/runs · GET /api/matrix/rows/:findingId/events
+ *   - POST /api/matrix/regenerate (dev-only) · POST /api/matrix/finding-issue
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
  *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
@@ -1765,6 +1767,110 @@ async function handleApi(req, res, urlPath) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 500, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/portal-gap" && req.method === "GET") {
+    try {
+      const url        = new URL(req.url ?? "", "http://localhost");
+      const matrixKind = url.searchParams.get("kind") ?? undefined;
+      const { loadMatrixPortalGap } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const data = await loadMatrixPortalGap({ matrixKind });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/runs" && req.method === "GET") {
+    try {
+      const url        = new URL(req.url ?? "", "http://localhost");
+      const matrixKind = url.searchParams.get("kind") ?? undefined;
+      const limit      = url.searchParams.get("limit") ?? undefined;
+      const { loadMatrixRuns } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const data = await loadMatrixRuns({ matrixKind, limit: limit ? Number(limit) : undefined });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  const matrixEventsMatch = urlPath.match(/^\/api\/matrix\/rows\/([^/]+)\/events$/);
+
+  if (matrixEventsMatch && req.method === "GET") {
+    try {
+      const url        = new URL(req.url ?? "", "http://localhost");
+      const matrixKind = url.searchParams.get("kind") ?? undefined;
+      const { loadMatrixRowEventsApi } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const data = await loadMatrixRowEventsApi({
+        findingId : decodeURIComponent(matrixEventsMatch[1])
+      , matrixKind
+      });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/finding-issue" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const { persistMatrixFindingIssueApi } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const data = await persistMatrixFindingIssueApi({
+        findingId    : String(body.findingId ?? "")
+      , key          : String(body.key ?? "")
+      , issueType    : typeof body.issueType === "string" ? body.issueType : undefined
+      , matrixKind   : typeof body.matrixKind === "string" ? body.matrixKind : undefined
+      , linkedSource : typeof body.linkedSource === "string" ? body.linkedSource : undefined
+      });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status  = /obblig/i.test(message) ? 400 : 502;
+      sendJson(res, status, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/regenerate" && req.method === "POST") {
+    try {
+      const { isLocalDevMatrixRequest, regenerateMatrixPortalGap } = await import(
+        "../cruscotto.lib/matrix.api.service.mjs"
+      );
+
+      if (!isLocalDevMatrixRequest(req)) {
+        sendJson(res, 403, { error: "POST /api/matrix/regenerate consentito solo in dev locale" }, req);
+        return;
+      }
+
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const data = await regenerateMatrixPortalGap({
+        matrixKind : typeof body.matrixKind === "string" ? body.matrixKind : undefined
+      , saveHtml   : body.saveHtml !== false
+      , fullRender : Boolean(body.fullRender)
+      , source     : typeof body.source === "string" ? body.source : undefined
+      });
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
     }
 
     return;
