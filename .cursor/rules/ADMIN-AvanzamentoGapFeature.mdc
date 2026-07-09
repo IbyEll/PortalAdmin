@@ -13,6 +13,7 @@ alwaysApply: false
 | `analizza avanzamento` · `avanzamento gap feature` | Esegui analisi + rigenera HTML |
 | Modifica architettura host significativa | Rigenerare pagina dopo implementazione |
 | `node docs.portal/matrix.portal.gap.analysis.mjs` | CLI diretta |
+| `POST /api/matrix/regenerate` (cruscotto localhost) | Equivalente API scan + upsert DB |
 
 ## Artefatti
 
@@ -20,6 +21,7 @@ alwaysApply: false
 | --- | --- |
 | `docs.portal.lib/matrix.gap.scan.mjs` | Scansione finding + metriche |
 | `docs.portal/matrix.portal.gap.analysis.mjs` | CLI analisi + render HTML/JSON/MD |
+| `cruscotto.lib/matrix.api.service.mjs` | API REST matrice cruscotto (`/api/matrix/*`) |
 | `docs.portal/matrix.portal.gap.html` | Pagina unificata servita su HOME `/docs/` (avanzamento + audit + obsoleto) |
 | `docs.portal.lib/matrix.unified.mjs` | Builder sezioni operativo + audit con dedup |
 | `docs.portal.lib/docs.portal.analysis.mjs` | 15 controlli automatici base |
