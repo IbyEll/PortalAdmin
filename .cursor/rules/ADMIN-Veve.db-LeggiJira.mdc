@@ -21,8 +21,8 @@ alwaysApply: true
 
 1. Verifica `cruscottoDbFileExists()` — stop se DB assente.
 2. Carica backlog da DB (`loadJiraBacklogFromDb()`).
-3. Trova riga parent `{KEY}` in `issues`.
-4. Elenca subtask: `parentJiraKey === {KEY}` (o gerarchia `relatedKeys` se presente).
+3. Trova riga parent `{KEY}` in `issues` — campo **`key`** (alias `jiraKey` su righe da `loadJiraBacklogFromDb`).
+4. Elenca subtask: `parentKey === {KEY}` (DB: `parentJiraKey`).
 5. Segnala orphan / key invalide rispetto al parent.
 
 ## Output

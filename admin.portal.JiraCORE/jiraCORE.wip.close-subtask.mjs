@@ -218,7 +218,13 @@ export async function closeWipSubtask(subKey, opts = {}) {
   let parentAdvancement = null;
 
   if (!opts.skipParentFinalize && parentKey) {
-    parentAdvancement = await closeParentWipForPush(parentKey);
+    const freshSiblings = await loadWipChildren(db, parentKey);
+
+    if (areAllWipSubtasksDone(freshSiblings)) {
+      parentAdvancement = await closeParentWipForPush(parentKey);
+    } else {
+      parentAdvancement = await touchParentWipProgress(parentKey);
+    }
   }
 
   return {
@@ -234,7 +240,7 @@ export async function closeWipSubtask(subKey, opts = {}) {
  * Scansiona commit git del branch ticket e chiude subtask WIP citate nel messaggio.
  *
  * @param {string} parentKey
- * @returns {Promise<{ parentKey: string, closed: string[] }>}
+ * @returns {Promise<{ parentKey: string, closed: string[], advancement: import("../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null }>}
  */
 export async function syncWipSubtasksFromGitCommits(parentKey) {
   const key          = normalizeIssueKey(parentKey);
@@ -314,13 +320,23 @@ export async function syncWipSubtasksFromGitCommits(parentKey) {
     child.isDone = true;
   }
 
-  if (closed.length > 0) {
-    await closeParentWipForPush(key);
-  }
-
   await resyncWipCommitHashesFromGit(key);
 
-  return { parentKey: key, closed: [...new Set(closed)] };
+  const freshChildren = await loadWipChildren(db, key);
+  /** @type {import("../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null} */
+  let advancement = null;
+
+  if (areAllWipSubtasksDone(freshChildren)) {
+    advancement = await closeParentWipForPush(key);
+  } else {
+    advancement = await touchParentWipProgress(key, { git });
+  }
+
+  return {
+    parentKey: key
+  , closed   : [...new Set(closed)]
+  , advancement
+  };
 }
 
 /**
@@ -396,6 +412,70 @@ export async function resyncWipCommitHashesFromGit(parentKey) {
     , syncedAt : new Date()
     }
   });
+}
+
+/**
+ * Parent WIP in corso — branch, commit e subtask chiuse (ripresa dopo interruzione).
+ *
+ * @param {string} parentKey
+ * @param {{
+ *   git?: ReturnType<typeof readGitWorkflowInfo>
+ *   pr?: ReturnType<typeof resolvePrUrlForIssueKey>
+ *   now?: string
+ * }} [opts]
+ * @returns {Promise<import("../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null>}
+ */
+export async function touchParentWipProgress(parentKey, opts = {}) {
+  const key = normalizeIssueKey(parentKey);
+  const db  = await openCruscottoDb();
+  const parent = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
+
+  if (!parent) {
+    return null;
+  }
+
+  const git      = opts.git ?? readGitWorkflowInfo(key);
+  const pr       = opts.pr ?? resolvePrUrlForIssueKey(key);
+  const now      = opts.now ?? new Date().toISOString();
+  const children = await loadWipChildren(db, key);
+  const raw      = parseWipRawFields(parent.rawFields);
+  const storedBranch = typeof raw.branch === "string" ? raw.branch.trim() : "";
+  const branch = isTicketWorkflowBranch(storedBranch, key)
+    ? storedBranch
+    : (pr.branch ?? resolveTicketBranchName(key, git) ?? (git.branch !== "—" ? git.branch : null));
+  const branchTip = shortBranchTipHash(key, git);
+  const closedSubtasks = children
+    .filter((row) => row.isDone === true)
+    .map((row) => row.jiraKey);
+
+  /** @type {Record<string, unknown>} */
+  const nextRaw = {
+    ...raw
+  , gogoInProgress   : true
+  , wipLastSyncAt    : now
+  , wipClosedSubtasks: closedSubtasks
+  , branch           : branch ?? raw.branch ?? null
+  , commitHash       : branchTip ?? raw.commitHash ?? null
+  };
+
+  const updated = await db.jiraIssueWip.update({
+    where: { jiraKey: key }
+  , data : {
+      rawFields: JSON.stringify(nextRaw)
+    , syncedAt : new Date()
+    }
+  });
+
+  return buildWipAdvancementEntry(updated, children, { inWip: true });
+}
+
+/**
+ * Sync progresso WIP da git — alias esplicito per API/UI durante gogo.
+ *
+ * @param {string} parentKey
+ */
+export async function syncWipProgressFromGit(parentKey) {
+  return syncWipSubtasksFromGitCommits(parentKey);
 }
 
 /**

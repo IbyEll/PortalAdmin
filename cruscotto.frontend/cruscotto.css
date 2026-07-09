@@ -2590,6 +2590,18 @@ body.ttecnici-modal-open { overflow: hidden; }
   white-space: pre-wrap;
 }
 
+.process-console-ts {
+  color: #64748b;
+  font-size: 0.82em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.process-console-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .process-console-head {
   display: flex;
   flex-wrap: wrap;

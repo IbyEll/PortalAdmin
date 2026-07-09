@@ -218,6 +218,7 @@ export async function loadJiraBacklogFromDb() {
 
     return {
       key              : row.jiraKey
+    , jiraKey          : row.jiraKey
     , type             : row.issueType
     , tier             : /** @type {"epic"|"task"|"subtask"} */ (row.tier)
     , isStoryLike      : row.isStoryLike

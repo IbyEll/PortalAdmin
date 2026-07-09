@@ -752,12 +752,25 @@ function renderProcessConsoleTabsMarkup() {
  * @param {HTMLElement} pane
  * @param {string} stream
  * @param {string} text
+ * @param {string} [level]
+ * @param {string} [at]
  */
-function appendProcessConsoleLineToPane(pane, stream, text, level) {
+function appendProcessConsoleLineToPane(pane, stream, text, level, at) {
+  if (stream === "assistant") {
+    appendLogLineToContainer(pane, "assistant", at, text);
+    return;
+  }
+
   const lineEl = document.createElement("div");
   const lvl    = level ? ` process-console-level-${level}` : "";
   lineEl.className = `process-console-line process-console-${stream}${lvl}`;
-  lineEl.innerHTML = formatProcessConsoleLineHtml(text);
+
+  if (stream === "stdout" && text.includes("<span class=\"process-console-pkg")) {
+    lineEl.innerHTML = formatProcessConsoleLineHtml(text);
+  } else {
+    setProcessConsoleLineContent(lineEl, at, text);
+  }
+
   pane.appendChild(lineEl);
 }
 
@@ -1620,7 +1633,13 @@ function appendProcessConsoleLines(lines) {
       const pane = getProcessConsolePane(tabId);
 
       if (pane instanceof HTMLElement) {
-        appendProcessConsoleLineToPane(pane, stream, text, String(row.level ?? "info"));
+        appendProcessConsoleLineToPane(
+          pane
+        , stream
+        , text
+        , String(row.level ?? "info")
+        , typeof row.at === "string" ? row.at : undefined
+        );
       }
     }
   }
@@ -7154,9 +7173,169 @@ async function hydrateProcessStack(root) {
 }
 
 // --- tab Cursor Agent — SDK local/cloud in background ---
+
+/**
+ * @param {string | undefined} iso
+ * @returns {string}
+ */
+function formatLogTimestamp(iso) {
+  if (!iso) {
+    return "";
+  }
+
+  const d = new Date(iso);
+
+  if (Number.isNaN(d.getTime())) {
+    return "";
+  }
+
+  const pad = (n) => String(n).padStart(2, "0");
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * @param {HTMLElement} row
+ * @param {string | undefined} at
+ * @param {string} text
+ */
+function setProcessConsoleLineContent(row, at, text) {
+  const ts = formatLogTimestamp(at);
+
+  if (ts) {
+    const stamp = document.createElement("span");
+
+    stamp.className   = "process-console-ts";
+    stamp.textContent = `${ts} `;
+    row.appendChild(stamp);
+  }
+
+  const body = document.createElement("span");
+
+  body.className   = "process-console-text";
+  body.textContent = text;
+  row.appendChild(body);
+}
+
+/**
+ * Assistant SDK — unisci token/delta sulla stessa riga; messaggi distinti su righe separate.
+ *
+ * @param {HTMLElement} container
+ * @param {string} text
+ * @returns {boolean}
+ */
+function tryMergeAssistantLogChunk(container, text) {
+  const last = container.lastElementChild;
+
+  if (!(last instanceof HTMLElement) || !last.classList.contains("process-console-assistant")) {
+    return false;
+  }
+
+  if (/^\n{2,}/.test(text)) {
+    return false;
+  }
+
+  const body = last.querySelector(".process-console-text");
+
+  if (!(body instanceof HTMLElement)) {
+    return false;
+  }
+
+  const existing = body.textContent ?? "";
+  const incoming = text;
+
+  if (!incoming) {
+    return true;
+  }
+
+  if (incoming === existing) {
+    return true;
+  }
+
+  // SDK cumulativo già visto — sostituisci, non concatenare
+  if (incoming.startsWith(existing)) {
+    body.textContent = incoming;
+    return true;
+  }
+
+  if (existing.startsWith(incoming)) {
+    return true;
+  }
+
+  const trimmedExisting = existing.trimEnd();
+  const trimmedIncoming = incoming.trimStart();
+
+  // Nuovo messaggio dopo frase completa — riga dedicata
+  if (
+    trimmedExisting.length > 0
+    && /[.!?]["']?\s*$/.test(trimmedExisting)
+    && /^[A-ZÀ-ÖØ-Þ]/.test(trimmedIncoming)
+    && trimmedIncoming.length > 12
+  ) {
+    return false;
+  }
+
+  body.textContent = existing + incoming;
+
+  return true;
+}
+
+/**
+ * @param {HTMLElement} container
+ * @param {string} stream
+ * @param {string | undefined} at
+ * @param {string} text
+ */
+function appendLogLineToContainer(container, stream, at, text) {
+  const raw = String(text ?? "");
+
+  if (!raw) {
+    return;
+  }
+
+  /** @type {string[]} */
+  const segments = [];
+  let buffer     = "";
+
+  for (const part of raw.split(/(\n{2,})/)) {
+    if (/^\n{2,}$/.test(part)) {
+      if (buffer) {
+        segments.push(buffer);
+        buffer = "";
+      }
+
+      continue;
+    }
+
+    buffer += part;
+  }
+
+  if (buffer) {
+    segments.push(buffer);
+  }
+
+  for (const segment of segments) {
+    const chunk = segment.replace(/^\n+/, "").replace(/\n+$/, "");
+
+    if (!chunk) {
+      continue;
+    }
+
+    if (stream === "assistant" && tryMergeAssistantLogChunk(container, chunk)) {
+      continue;
+    }
+
+    const row = document.createElement("div");
+
+    row.className = `process-console-line process-console-${stream}`;
+    setProcessConsoleLineContent(row, at, chunk);
+    container.appendChild(row);
+  }
+}
+
 /**
  * @param {HTMLElement | null} outputEl
- * @param {{ seq?: number, stream?: string, text?: string }} line
+ * @param {{ seq?: number, stream?: string, text?: string, at?: string }} line
  */
 function appendCursorAgentLogLine(outputEl, line) {
   if (!outputEl || !line.text) {
@@ -7171,19 +7350,7 @@ function appendCursorAgentLogLine(outputEl, line) {
         ? "stderr"
         : "system";
 
-  if (stream === "assistant") {
-    const last = outputEl.lastElementChild;
-
-    if (last instanceof HTMLElement && last.classList.contains("process-console-assistant")) {
-      last.textContent += line.text;
-      return;
-    }
-  }
-
-  const row = document.createElement("div");
-  row.className = `process-console-line process-console-${stream}`;
-  row.textContent = line.text;
-  outputEl.appendChild(row);
+  appendLogLineToContainer(outputEl, stream, line.at, line.text);
 }
 
 function stopCursorAgentPolling() {
