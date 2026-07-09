@@ -47,6 +47,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { BASE_REPO_SIGNALS_CATALOG_POLICY } from "../admin.portal.JiraCORE/jira.project.config.mjs";
 import { JIRA_PROJECT_KEYS, REPO_IMPLEMENTATION_SIGNALS } from "../admin.portal.JiraCORE/jira.project.config.overlay.mjs";
 import {
   getProjectConfig
@@ -81,6 +82,19 @@ if (projectHasProductDatabase()) {
 
   if (!seedPath || !existsSync(seedPath)) {
     console.error(`FAIL: PRJ_SEED assente: ${project.PRJ_SEED}`);
+    process.exit(1);
+  }
+}
+
+const phantomScanPrefixes = ["server/", "scripts/"];
+const scanPrefixes        = [
+  ...BASE_REPO_SIGNALS_CATALOG_POLICY.meaningfulPathPrefixes
+, ...BASE_REPO_SIGNALS_CATALOG_POLICY.pathPriority.map((row) => row.prefix)
+];
+
+for (const prefix of scanPrefixes) {
+  if (phantomScanPrefixes.includes(prefix)) {
+    console.error("FAIL: phantom Jira scan path prefix in catalog policy", { prefix, phantomScanPrefixes });
     process.exit(1);
   }
 }
