@@ -253,4 +253,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-196"
+  , label : "Guard Jira scan config against phantom server/ and scripts/ paths"
+  , paths : [
+      "admin.portal.lib"
+      , "admin.portal.JiraCORE"
+      , "test.smoke"
+      , "lib"
+      , "admin.script.standalone"
+      , "cruscotto.database"
+    ]
+  }
+
 ];
