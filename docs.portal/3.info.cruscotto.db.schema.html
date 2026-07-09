@@ -15,8 +15,9 @@
       <h1>Cruscotto DB — schema SQLite</h1>
       <p class="meta">
         Fonte: <code>cruscotto.database/prisma/schema.prisma</code> ·
-        migration: <code>20260614210000_init</code>, <code>20260622120000_jira_issue_wip</code> ·
-        aggiornato 2026-06-25
+        migration: <code>20260614210000_init</code>, <code>20260622120000_jira_issue_wip</code>,
+        <code>20260709030000_matrix_tables</code> ·
+        aggiornato 2026-07-09
       </p>
       <p class="lead">
         Cache backlog Jira per overlay istanziato (<code>PRJ_NAME</code>).
@@ -39,6 +40,12 @@
         <li><a href="#tbl-jira_issue_sprint">jira_issue_sprint</a></li>
         <li><a href="#tbl-jira_issue_link">jira_issue_link</a></li>
         <li><a href="#tbl-working_plan_sprint_keys">working_plan_sprint_keys</a></li>
+        <li><a href="#matrix-panoramica">Matrici (matrix_*)</a></li>
+        <li><a href="#tbl-matrix_run">matrix_run</a></li>
+        <li><a href="#tbl-matrix_catalog">matrix_catalog</a></li>
+        <li><a href="#tbl-matrix_row">matrix_row</a></li>
+        <li><a href="#tbl-matrix_row_event">matrix_row_event</a></li>
+        <li><a href="#tbl-matrix_finding_issue">matrix_finding_issue</a></li>
         <li><a href="#raw-fields">raw_fields (JSON)</a></li>
         <li><a href="#riferimenti">Riferimenti codice</a></li>
       </ul>
@@ -47,8 +54,9 @@
     <h2 id="panoramica">Panoramica</h2>
 
     <div class="callout callout-ok">
-      <strong>7 tabelle</strong> SQLite · provider Prisma <code>sqlite</code> ·
+      <strong>12 tabelle</strong> SQLite · provider Prisma <code>sqlite</code> ·
       un solo <code>sync_run</code> attivo per volta (reset a ogni sync Jira).
+      Tabelle <code>matrix_*</code> — vedi <a href="/docs/9.feature.matrix.database.html">9.feature.matrix.database</a>.
     </div>
 
     <div class="doc-table-wrap">
@@ -96,6 +104,31 @@
             <td>Issue keys per sprint nel working plan</td>
             <td>Per nome sprint piano</td>
           </tr>
+          <tr>
+            <td><code>matrix_run</code></td>
+            <td>Snapshot run matrice (gap, test coverage, …)</td>
+            <td>1+ per rigenerazione scan</td>
+          </tr>
+          <tr>
+            <td><code>matrix_catalog</code></td>
+            <td>Definizioni stabili finding (seed AUDIT_CATALOG)</td>
+            <td>~40 voci audit</td>
+          </tr>
+          <tr>
+            <td><code>matrix_row</code></td>
+            <td>Stato corrente riga matrice per <code>finding_id</code></td>
+            <td>Per run + finding</td>
+          </tr>
+          <tr>
+            <td><code>matrix_row_event</code></td>
+            <td>Storico append-only eventi riga</td>
+            <td>Per transizione stato</td>
+          </tr>
+          <tr>
+            <td><code>matrix_finding_issue</code></td>
+            <td>Link finding ↔ <code>jira_key</code></td>
+            <td>Opzionale per riga</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -112,6 +145,12 @@ erDiagram
   jira_sprint ||--o{ jira_issue_sprint : sprint
   jira_issue ||--o{ jira_issue_link : from_key
   jira_issue ||--o{ jira_issue_link : to_key
+  sync_run ||--o{ matrix_run : matrix_snapshot
+  matrix_run ||--o{ matrix_row : contains
+  matrix_row ||--o{ matrix_row_event : history
+  matrix_row ||--o| matrix_finding_issue : links
+  jira_issue ||--o| matrix_finding_issue : "jira_key match"
+  matrix_catalog ||--o{ matrix_row : "finding_id"
 
   sync_run {
     TEXT id PK
@@ -669,6 +708,33 @@ erDiagram
       </table>
     </div>
 
+    <h2 id="matrix-panoramica">Matrici — tabelle <code>matrix_*</code></h2>
+
+    <p class="lead">
+      Persistenza matrici avanzamento/gap/audit — proposta
+      <a href="/docs/9.feature.matrix.database.html">9.feature.matrix.database</a>.
+      Story <code>ADMIN-171</code> · join logico <code>matrix_finding_issue.jira_key</code> ↔
+      <code>jira_issue.jira_key</code> (nessuna FK Prisma su snapshot Jira).
+    </p>
+
+    <h3 id="tbl-matrix_run">Tabella <code>matrix_run</code></h3>
+    <p class="table-note">Un run di rigenerazione matrice; opzionale correlazione <code>sync_run_id</code> con sync Jira.</p>
+
+    <h3 id="tbl-matrix_catalog">Tabella <code>matrix_catalog</code></h3>
+    <p class="table-note">Seed idempotente da <code>AUDIT_CATALOG</code> in <code>docs.portal.lib/matrix.repo.audit.mjs</code>.</p>
+
+    <h3 id="tbl-matrix_row">Tabella <code>matrix_row</code></h3>
+    <p class="table-note">
+      PK composta <code>(finding_id, matrix_kind)</code> · stati:
+      <code>gap</code> | <code>parziale</code> | <code>open</code> | <code>fatto</code> | <code>obsoleto</code>.
+    </p>
+
+    <h3 id="tbl-matrix_row_event">Tabella <code>matrix_row_event</code></h3>
+    <p class="table-note">Storico append-only: <code>scan_detected</code>, <code>status_change</code>, <code>issue_linked</code>, …</p>
+
+    <h3 id="tbl-matrix_finding_issue">Tabella <code>matrix_finding_issue</code></h3>
+    <p class="table-note">Sostituisce <code>matrix.finding-issues.json</code> · <code>jira_key</code> univoco.</p>
+
     <!-- raw_fields -->
     <h2 id="raw-fields">Colonna <code>raw_fields</code> (JSON)</h2>
 
@@ -831,7 +897,8 @@ erDiagram
       <li><code>cruscotto.database/Jira.backlog.sync.mjs</code> — popolamento <code>jira_issue</code></li>
       <li><code>admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs</code> — enroll/finalize gogo → WIP</li>
       <li><code>admin.portal.JiraCORE/jiraCORE.wip.db.mjs</code> — gate PUSH, <code>markWipPushed</code></li>
-      <li><code>cruscotto.frontend/cruscotto.jira.wip.mjs</code> — lettura stato WIP per UI</li>
+      <li><code>cruscotto.database/matrix.catalog.seed.mjs</code> — seed <code>matrix_catalog</code> da AUDIT_CATALOG</li>
+      <li><code>docs.portal/9.feature.matrix.database.html</code> — proposta ER matrici</li>
       <li><code>.cursor/rules/ADMIN-Workflow database.mdc</code> — semantica step 7–8 e merge <code>raw_fields</code></li>
     </ul>
 

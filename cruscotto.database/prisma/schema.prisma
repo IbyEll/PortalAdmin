@@ -19,6 +19,7 @@ model SyncRun {
   issues             JiraIssue[]
   wipIssues          JiraIssueWip[]
   workingPlanSprints WorkingPlanSprintKeys[]
+  matrixRuns         MatrixRun[]
 
   @@map("sync_run")
 }
@@ -135,4 +136,98 @@ model WorkingPlanSprintKeys {
   syncRun SyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
 
   @@map("working_plan_sprint_keys")
+}
+
+/// Snapshot run matrice (portal_gap, test_coverage, …).
+model MatrixRun {
+  id          String    @id @default(uuid())
+  matrixKind  String    @map("matrix_kind")
+  generatedAt DateTime  @default(now()) @map("generated_at")
+  source      String
+  metricsJson String?   @map("metrics_json")
+  syncRunId   String?   @map("sync_run_id")
+
+  syncRun SyncRun?          @relation(fields: [syncRunId], references: [id], onDelete: SetNull)
+  rows    MatrixRow[]
+  events  MatrixRowEvent[]
+
+  @@index([matrixKind])
+  @@index([syncRunId])
+  @@map("matrix_run")
+}
+
+/// Definizioni stabili catalogo matrice (seed da AUDIT_CATALOG).
+model MatrixCatalog {
+  findingId      String  @id @map("finding_id")
+  matrixKind     String  @map("matrix_kind")
+  sectionId      String  @map("section_id")
+  defaultVoce    String? @map("default_voce")
+  scanIdsJson    String? @map("scan_ids_json")
+  auditEntryJson String? @map("audit_entry_json")
+
+  @@index([matrixKind])
+  @@index([sectionId])
+  @@map("matrix_catalog")
+}
+
+/// Stato corrente riga matrice per finding_id.
+model MatrixRow {
+  findingId    String   @map("finding_id")
+  matrixKind   String   @map("matrix_kind")
+  matrixRunId  String   @map("matrix_run_id")
+  sectionId    String?  @map("section_id")
+  status       String
+  sev          String?
+  project      String?
+  voce         String?
+  dettaglio    String?
+  pathsJson    String?  @map("paths_json")
+  resolvedNote String?  @map("resolved_note")
+  contentSig   String?  @map("content_sig")
+  firstSeenAt  DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at")
+
+  matrixRun    MatrixRun           @relation(fields: [matrixRunId], references: [id], onDelete: Cascade)
+  events       MatrixRowEvent[]
+  findingIssue MatrixFindingIssue?
+
+  @@id([findingId, matrixKind])
+  @@index([matrixRunId])
+  @@index([status])
+  @@map("matrix_row")
+}
+
+/// Storico append-only eventi riga matrice.
+model MatrixRowEvent {
+  id          String   @id @default(uuid())
+  findingId   String   @map("finding_id")
+  matrixKind  String   @map("matrix_kind")
+  matrixRunId String   @map("matrix_run_id")
+  at          DateTime @default(now())
+  eventType   String   @map("event_type")
+  oldStatus   String?  @map("old_status")
+  newStatus   String?  @map("new_status")
+  note        String?
+
+  matrixRun MatrixRun @relation(fields: [matrixRunId], references: [id], onDelete: Cascade)
+  matrixRow MatrixRow @relation(fields: [findingId, matrixKind], references: [findingId, matrixKind], onDelete: Cascade)
+
+  @@index([findingId, matrixKind])
+  @@index([matrixRunId])
+  @@map("matrix_row_event")
+}
+
+/// Link finding matrice ↔ ticket Jira (sostituisce matrix.finding-issues.json).
+model MatrixFindingIssue {
+  findingId    String   @map("finding_id")
+  matrixKind   String   @map("matrix_kind")
+  jiraKey      String   @unique @map("jira_key")
+  issueType    String?  @map("issue_type")
+  linkedAt     DateTime @default(now()) @map("linked_at")
+  linkedSource String?  @map("linked_source")
+
+  matrixRow MatrixRow @relation(fields: [findingId, matrixKind], references: [findingId, matrixKind], onDelete: Cascade)
+
+  @@id([findingId, matrixKind])
+  @@map("matrix_finding_issue")
 }
