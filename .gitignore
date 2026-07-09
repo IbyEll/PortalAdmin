@@ -31,6 +31,7 @@ cruscotto.database/*
 !cruscotto.database/Jira.backlog.sync.mjs
 !cruscotto.database/matrix.db.mjs
 !cruscotto.database/matrix.db.import.mjs
+!cruscotto.database/matrix.api.service.mjs
 !cruscotto.database/package.json
 !cruscotto.database/package-lock.json
 
