@@ -7910,6 +7910,50 @@ function reportPayloadHasSprintStatus(report) {
 }
 
 /**
+ * Blocco sprint piano per creazione Jira — da proposedSprints o da coda ordine sviluppo.
+ *
+ * @param {number} sprintNum
+ * @param {Record<string, unknown> | null | undefined} report
+ * @returns {{ sprint: number, name: string, description?: string, keys: string[] } | null}
+ */
+function resolveWpSprintBlockForCreate(sprintNum, report) {
+  if (!report || typeof report !== "object") {
+    return null;
+  }
+
+  const fromProposed = Array.isArray(report.proposedSprints)
+    ? report.proposedSprints.find((row) => Number(row.sprint) === sprintNum)
+    : null;
+
+  if (fromProposed && Array.isArray(fromProposed.keys) && fromProposed.keys.length > 0) {
+    return {
+      sprint     : Number(fromProposed.sprint)
+    , name       : String(fromProposed.name ?? `Sprint ${sprintNum}`)
+    , description: typeof fromProposed.description === "string" ? fromProposed.description : ""
+    , keys       : fromProposed.keys.map((key) => String(key))
+    };
+  }
+
+  const queueRows = Array.isArray(report.orderedDevelopmentQueue)
+    ? report.orderedDevelopmentQueue.filter((row) => Number(row.sprint) === sprintNum)
+    : [];
+
+  if (!queueRows.length) {
+    return null;
+  }
+
+  const keys = [...new Set(queueRows.map((row) => String(row.key).trim()).filter(Boolean))];
+  const first = queueRows[0];
+
+  return {
+    sprint     : sprintNum
+  , name       : String(first.sprintName ?? `Sprint ${sprintNum}`)
+  , description: ""
+  , keys
+  };
+}
+
+/**
  * Crea su Jira lo sprint proposto dalla card Working Plan.
  *
  * @param {HTMLButtonElement} btn
@@ -7921,9 +7965,8 @@ async function createJiraSprintFromCard(btn) {
 
   const sprintNum = Number(btn.dataset.wpSprint);
   const reportPayload = lastWorkingPlanPayload?.report;
-  const block = reportPayload && typeof reportPayload === "object" && Array.isArray(reportPayload.proposedSprints)
-    ? reportPayload.proposedSprints.find((row) => Number(row.sprint) === sprintNum)
-    : null;
+  const block = resolveWpSprintBlockForCreate(sprintNum, reportPayload);
+  const outputEl = document.getElementById("working-plan-output");
 
   const scope = btn.closest(".wp-sprint-actions, [data-wp-sprint-card]");
   const statusEl = scope instanceof HTMLElement
@@ -7966,6 +8009,11 @@ async function createJiraSprintFromCard(btn) {
       throw new Error(String(data.error ?? `HTTP ${res.status}`));
     }
 
+    if (typeof data.html === "string" && data.html.trim() && outputEl) {
+      lastWorkingPlanPayload = data.payload ?? null;
+      await applyWorkingPlanHtml(outputEl, data.html, new Map());
+    }
+
     if (statusEl instanceof HTMLElement) {
       const message = escapeHtml(String(data.message ?? "Sprint creato su Jira"));
       const boardUrl = typeof data.boardUrl === "string" ? data.boardUrl : "";
@@ -7976,7 +8024,7 @@ async function createJiraSprintFromCard(btn) {
         : message;
     }
 
-    if (reportPayload && typeof reportPayload === "object") {
+    if (reportPayload && typeof reportPayload === "object" && !data.html) {
       if (!reportPayload.jiraSprintStatusByPlanNum || typeof reportPayload.jiraSprintStatusByPlanNum !== "object") {
         reportPayload.jiraSprintStatusByPlanNum = {};
       }
@@ -7986,7 +8034,7 @@ async function createJiraSprintFromCard(btn) {
       reportPayload.jiraSprintStatusByPlanNum[String(sprintNum)] = {
         sprintId    : data.sprintId ?? null
       , sprintName  : data.sprintName ?? block.name
-      , state       : "future"
+      , state       : data.state ?? "future"
       , boardUrl    : typeof data.boardUrl === "string" ? data.boardUrl : ""
       , matchedKeys : Number(data.issueCount ?? totalKeys)
       , totalKeys
@@ -7994,7 +8042,10 @@ async function createJiraSprintFromCard(btn) {
       };
     }
 
-    refreshMyBacklogTab({ reason: "create-sprint", sprintId: Number(data.sprintId) || null });
+    refreshMyBacklogTab({
+      reason  : "create-sprint"
+    , sprintId: Number(data.sprintId) || null
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 

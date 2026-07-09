@@ -5,22 +5,22 @@
       "prjName": "AdminDashboard",
       "productRepoPath": "C:/Users/Casa/PortalAdmin",
       "dashboardPort": 3998,
-      "activatedAt": "2026-07-08T22:08:40.703Z",
+      "activatedAt": "2026-07-09T00:53:50.762Z",
       "reloadRequired": false,
       "prepare": {
         "status": "done",
-        "startedAt": "2026-07-08T22:08:40.703Z",
-        "finishedAt": "2026-07-08T22:08:41.234Z",
+        "startedAt": "2026-07-09T00:53:50.762Z",
+        "finishedAt": "2026-07-09T00:53:51.303Z",
         "exitCode": 0,
         "logTail": "[portal-prepare] overlay=AdminDashBoard product=AdminDashboard\n[portal-prepare] repo=C:\\Users\\Casa\\PortalAdmin\n[portal-prepare] istanzia cruscotto backlog DB…\n[portal-prepare] cruscotto DB caricato: C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\cruscotto_AdminDashBoard.db\n[portal-prepare] catalogo OK — C:\\Users\\Casa\\PortalAdmin\\PROJECT_AdminDashBoard\\test.catalog.AdminDashBoard.mjs\n[portal-prepare] prepare product stack (--prepare-only --no-db)…\ncruscotto.process.start.all.services — stack Auth + API + Web\nProduct: C:\\Users\\Casa\\PortalAdmin\nPortal:  C:\\Users\\Casa\\PortalAdmin\n\n[1/3] Refresh database saltato (--no-db)\n\n[2/3] Prepare product repo condiviso (npm, .env, build workspace)…\n\n=== Verifica file .env ===\n\n  ok  .env\n\nPrepare completato (--prepare-only).\nAvvio stack: node cruscotto.frontend/cruscotto.process.start.all.services.mjs --no-build\n[portal-prepare] completato\n"
       },
       "dashboard": {
         "status": "starting",
-        "startedAt": "2026-07-08T22:08:43.246Z",
+        "startedAt": "2026-07-09T00:53:55.240Z",
         "finishedAt": null,
         "exitCode": null,
         "logTail": "[cruscotto] avvio AdminDashBoard su :3998…\nAdmin Dashboard  http://localhost:3998/\nProgetto: AdminDashboard (AdminDashBoard) · Jira ADMIN\nStatic: cruscotto.frontend/ (+ jira insight assets)\n",
-        "pid": 79964
+        "pid": 31512
       }
     }
   }

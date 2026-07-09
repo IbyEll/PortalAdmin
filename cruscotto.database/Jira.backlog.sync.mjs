@@ -39,6 +39,7 @@ import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/crusco
 import {
   ensureWorkingPlanLoaded
 , enrichIssuesWithWorkingPlan
+, buildSubtaskDevOrderPlan
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 
 import { openCruscottoDb, resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
@@ -273,7 +274,7 @@ export async function syncJiraBacklogFromApi() {
   const backlog = await fetchJiraBacklog();
 
   await ensureWorkingPlanLoaded();
-  enrichIssuesWithWorkingPlan(backlog.issues);
+  await enrichIssuesWithWorkingPlan(backlog.issues, backlog.jiraSprints ?? []);
 
   return syncJiraBacklogSnapshot(backlog);
 }
@@ -415,6 +416,194 @@ export async function ensureJiraSprintIssuesInDb(input) {
   return {
     sprintId
   , linkedCount
+  , patchedAt: new Date().toISOString()
+  };
+}
+
+const DEV_SORT_SPRINT_SCALE = 1_000_000;
+const DEV_SORT_SEQ_SCALE    = 1_000;
+
+/**
+ * @param {number} sprint
+ * @param {number} seq
+ */
+function devOrderLabelForPatch(sprint, seq) {
+  return `${sprint}.${seq}`;
+}
+
+/**
+ * @param {number} sprint
+ * @param {number} seq
+ */
+function devSortKeyForPatch(sprint, seq) {
+  return sprint * DEV_SORT_SPRINT_SCALE + seq * DEV_SORT_SEQ_SCALE;
+}
+
+/**
+ * Subtask sotto parent — devOrder x.x.N e ordine da suggestSubtaskOrder.
+ *
+ * @param {import("@prisma/client").PrismaClient} db
+ * @param {string} syncRunId
+ * @param {string} parentJiraKey
+ * @param {string} parentDevOrder
+ * @param {number} parentDevSort
+ */
+async function patchSubtaskDevOrderForParentInDb(db, syncRunId, parentJiraKey, parentDevOrder, parentDevSort) {
+  const subtasks = await db.jiraIssue.findMany({
+    where: { parentJiraKey, syncRunId, tier: "subtask" }
+  });
+
+  if (!subtasks.length) {
+    return;
+  }
+
+  const plan = buildSubtaskDevOrderPlan(
+    parentDevOrder
+  , parentDevSort
+  , subtasks.map((sub) => ({ key: sub.jiraKey, summary: String(sub.summary ?? "") }))
+  );
+
+  for (const item of plan) {
+    const sub = subtasks.find((row) => row.jiraKey === item.key);
+
+    if (!sub) {
+      continue;
+    }
+
+    await db.jiraIssue.update({
+      where: { id: sub.id }
+    , data : {
+        devOrder: item.devOrder
+      , devSort : item.devSort
+      }
+    });
+  }
+}
+
+/**
+ * Persiste devOrder/devSprint su jira_issue (ultimo sync run) — sprint creato da Working Plan.
+ *
+ * @param {{
+ *   planSprint: number
+ * , sprintName: string
+ * , rootKeys: string[]
+ * }} input
+ * @returns {Promise<{ patchedCount: number, patchedAt: string }>}
+ */
+export async function patchSprintDevOrderInDb(input) {
+  const planSprint = Number(input.planSprint);
+  const sprintName = String(input.sprintName ?? `Sprint ${planSprint}`).trim() || `Sprint ${planSprint}`;
+  const rootKeys   = (input.rootKeys ?? []).map((key) => String(key).trim()).filter(Boolean);
+
+  if (!Number.isFinite(planSprint) || planSprint <= 0 || !rootKeys.length) {
+    return { patchedCount: 0, patchedAt: new Date().toISOString() };
+  }
+
+  const db      = await openCruscottoDb();
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    return { patchedCount: 0, patchedAt: new Date().toISOString() };
+  }
+
+  let patchedCount = 0;
+
+  for (let index = 0; index < rootKeys.length; index += 1) {
+    const key      = rootKeys[index];
+    const seq      = index + 1;
+    const devOrder = devOrderLabelForPatch(planSprint, seq);
+    const devSort  = devSortKeyForPatch(planSprint, seq);
+
+    const issue = await db.jiraIssue.findFirst({
+      where: { jiraKey: key, syncRunId: syncRun.id }
+    });
+
+    if (!issue) {
+      continue;
+    }
+
+    await db.jiraIssue.update({
+      where: { id: issue.id }
+    , data : {
+        devOrder
+      , devSort
+      , devSprint    : planSprint
+      , devSprintName: sprintName
+      }
+    });
+
+    patchedCount += 1;
+
+    await patchSubtaskDevOrderForParentInDb(db, syncRun.id, key, devOrder, devSort);
+  }
+
+  return {
+    patchedCount
+  , patchedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Allinea devOrder cache SQLite dal report Working Plan (sprint Jira + coda proposta).
+ *
+ * @param {Parameters<import("../cruscotto.lib/backlog.working.plan.loader.mjs").buildDevOrderEntriesFromReport>[0]} report
+ * @returns {Promise<{ patchedCount: number, patchedAt: string }>}
+ */
+export async function syncReportDevOrderToDb(report) {
+  const { buildDevOrderEntriesFromReport } = await import("../cruscotto.lib/backlog.working.plan.loader.mjs");
+  const entries = buildDevOrderEntriesFromReport(report);
+
+  if (!entries.size) {
+    return { patchedCount: 0, patchedAt: new Date().toISOString() };
+  }
+
+  const db      = await openCruscottoDb();
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    return { patchedCount: 0, patchedAt: new Date().toISOString() };
+  }
+
+  let patchedCount = 0;
+
+  for (const [key, hit] of entries) {
+    const issue = await db.jiraIssue.findFirst({
+      where: { jiraKey: key, syncRunId: syncRun.id }
+    });
+
+    if (!issue) {
+      continue;
+    }
+
+    await db.jiraIssue.update({
+      where: { id: issue.id }
+    , data : {
+        devOrder      : hit.devOrder
+      , devSort       : hit.devSort
+      , devSprint     : hit.devSprint
+      , devSprintName : hit.devSprintName
+      }
+    });
+
+    patchedCount += 1;
+
+    await patchSubtaskDevOrderForParentInDb(
+      db
+    , syncRun.id
+    , key
+    , hit.devOrder
+    , hit.devSort
+    );
+  }
+
+  return {
+    patchedCount
   , patchedAt: new Date().toISOString()
   };
 }

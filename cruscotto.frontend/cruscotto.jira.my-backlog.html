@@ -729,7 +729,9 @@
       "—": "— Fuori piano",
     };
 
-    /** Nomi sprint dal piano JLO_WORKING_PLAN (allineato a jira-working-order.mjs). */
+    /** Sprint piano backlog / «Fuori piano» — ordine 999.x */
+    const OUT_OF_PLAN_DEV_SPRINT = 999;
+
     const SPRINT_PLAN = [
       { sprint: 1, name: "Sprint 1 — Completato" },
       { sprint: 2, name: "Sprint 2 — Fase 0" },
@@ -2497,7 +2499,16 @@
         list.sort((a, b) => compareStoriesInSprintGroup(a, b, groupName));
       }
 
-      unplanned.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
+      unplanned.sort((a, b) => {
+        const sortA = a.devSort ?? Number.MAX_SAFE_INTEGER;
+        const sortB = b.devSort ?? Number.MAX_SAFE_INTEGER;
+
+        if (sortA !== sortB) {
+          return sortA - sortB;
+        }
+
+        return a.key.localeCompare(b.key, undefined, { numeric: true });
+      });
 
       /** @type {typeof issues} */
       const flat = [];
@@ -2665,7 +2676,7 @@
         const headerKey = bucket === "unplanned"
           ? `${SPRINT_HEADER_PREFIX}unplanned`
           : `${SPRINT_HEADER_PREFIX}${bucket}`;
-        const resolvedNum = bucket === "unplanned" ? null : sprintNum;
+        const resolvedNum = bucket === "unplanned" ? OUT_OF_PLAN_DEV_SPRINT : sprintNum;
         const blockSort = sprintBlockSortKey(headerName, stories);
         const jiraSprintState = resolveSprintJiraState(headerName, stories, subtasksByParent);
 
@@ -2755,7 +2766,7 @@
         );
       }
 
-      appendSprintBlock("unplanned", "— Fuori piano", unplanned);
+      appendSprintBlock("unplanned", "— Fuori piano", unplanned, OUT_OF_PLAN_DEV_SPRINT);
 
       return flat;
     }
@@ -3618,7 +3629,7 @@
      * @returns {string[]}
      */
     function devOrderFilterOptions(query = "") {
-      const base = ["1", "2", "3", "4", "5", "6", "7", "8", "—"];
+      const base = ["1", "2", "3", "4", "5", "6", "7", "8", "999", "—"];
       const q = query.trim().toLowerCase();
 
       return base.filter((value) => !q || value.toLowerCase().includes(q));

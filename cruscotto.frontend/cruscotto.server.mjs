@@ -342,7 +342,7 @@ async function preflightRunTarget(options) {
  */
 async function enrichBacklogPayload(data) {
   await ensureWorkingPlanLoaded();
-  enrichIssuesWithWorkingPlan(data.issues);
+  await enrichIssuesWithWorkingPlan(data.issues, data.jiraSprints ?? []);
   const repoRefs = scanRepoJiraReferences();
 
   data.repoAlign = buildRepoAlignMap(data.issues, repoRefs);
