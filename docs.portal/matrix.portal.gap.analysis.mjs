@@ -49,16 +49,17 @@ import { dirname, join } from "node:path";
 
 import { buildPortalGapMatrixMetrics } from "../docs.portal.lib/matrix.gap.mjs";
 import { refreshMatrixPageHtml } from "../docs.portal.lib/matrix.refresh.mjs";
-import { isFreshEntry, parsePreviousAutoStates, stripFreshMarks } from "../docs.portal.lib/docs.portal.refresh.mjs";
+import { isFreshEntry, stripFreshMarks } from "../docs.portal.lib/docs.portal.refresh.mjs";
 import {
   buildUnifiedJsonPayload
 , buildUnifiedMatrixMetrics
-, buildUnifiedMatrixSections
 , generateUnifiedMatrixHtml
 , matrixSectionsToMarkdown
 , resolveUnifiedHistoryPaths
 , summarizeUnifiedSections
 } from "../docs.portal.lib/matrix.unified.mjs";
+import { buildUnifiedMatrixSectionsWithDb } from "../docs.portal.lib/matrix.db.adapter.mjs";
+import { isMatrixDbPrimary, shouldWriteMatrixJson } from "../docs.portal.lib/matrix.persist.config.mjs";
 import { runAnalysisProcedure } from "./matrix.portal.gap.analysis.procedure.mjs";
 
 const DOCS_DIR    = dirname(fileURLToPath(import.meta.url));
@@ -113,7 +114,7 @@ export function writeUnifiedMatrixArtifacts(sections, report, operational, audit
 /** @deprecated Usare generateUnifiedMatrixHtml via runFullGapAnalysis */
 export async function generateGapMatrixHtml(report) {
   const history = resolveUnifiedHistoryPaths(DOCS_DIR);
-  const { sections } = await buildUnifiedMatrixSections(PORTAL_ROOT, {
+  const { sections } = await buildUnifiedMatrixSectionsWithDb(PORTAL_ROOT, {
     auditJsonPath   : history.auditJsonPath
   , legacyJsonPaths : history.legacyJsonPaths
   , previousJsonPath: OUT_JSON
@@ -124,23 +125,32 @@ export async function generateGapMatrixHtml(report) {
 }
 
 /**
- * @param {{ fullRender?: boolean }} [opts]
- * @returns {Promise<{ html: string, sections: import("../docs.portal.lib/matrix.render.mjs").MatrixSection[], report: object, merge: boolean }>}
+ * @param {{ fullRender?: boolean, mergeMetrics?: boolean }} [opts]
+ * @returns {Promise<{ html: string, sections: import("../docs.portal.lib/matrix.render.mjs").MatrixSection[], report: object, merge: boolean, fromDb: boolean }>}
  */
-export async function runFullGapAnalysis({ fullRender = false } = {}) {
+export async function runFullGapAnalysis({ fullRender = false, mergeMetrics = false } = {}) {
   const history = resolveUnifiedHistoryPaths(DOCS_DIR);
+  const dbPrimary = isMatrixDbPrimary();
 
-  const { sections, report, operational, audit } = await buildUnifiedMatrixSections(PORTAL_ROOT, {
-    auditJsonPath  : history.auditJsonPath
-  , legacyJsonPaths: history.legacyJsonPaths
+  const { sections, report, operational, audit, fromDb } = await buildUnifiedMatrixSectionsWithDb(PORTAL_ROOT, {
+    auditJsonPath   : history.auditJsonPath
+  , legacyJsonPaths : history.legacyJsonPaths
   , previousJsonPath: OUT_JSON
+  , readFromDb      : dbPrimary
   });
 
   const { metrics, metricsBadge } = buildUnifiedMatrixMetrics(report, sections);
 
-  writeUnifiedMatrixArtifacts(sections, report, operational, audit);
+  if (shouldWriteMatrixJson()) {
+    writeUnifiedMatrixArtifacts(sections, report, operational, audit);
+  }
 
-  let mergeMode = !fullRender && existsSync(OUT_HTML);
+  const useFullRender = fullRender || dbPrimary;
+  let mergeMode       = !useFullRender && existsSync(OUT_HTML);
+
+  if (mergeMode && dbPrimary) {
+    mergeMode = mergeMetrics;
+  }
 
   if (mergeMode) {
     const existing = readFileSync(OUT_HTML, "utf8");
@@ -154,16 +164,20 @@ export async function runFullGapAnalysis({ fullRender = false } = {}) {
 
   if (mergeMode) {
     const existing = readFileSync(OUT_HTML, "utf8");
-    const prev     = parsePreviousAutoStates(existing);
     let out        = stripFreshMarks(existing);
 
     out = refreshMatrixPageHtml(
       out
     , sections
-    , prev
+    , new Map()
     , report.generatedAt
     , isFreshEntry
-    , { metrics, metricsBadge, metricsCardTitle: "Sintesi PortalAdmin — operativo + audit" }
+    , {
+        metrics
+      , metricsBadge
+      , metricsCardTitle: "Sintesi PortalAdmin — operativo + audit"
+      , metricsOnly     : true
+      }
     );
 
     const mermaidIdx = out.indexOf('data-adv-section="diagram"');
@@ -181,7 +195,7 @@ export async function runFullGapAnalysis({ fullRender = false } = {}) {
 
   writeFileSync(OUT_HTML, html, "utf8");
 
-  return { html, sections, report, merge: mergeMode };
+  return { html, sections, report, merge: mergeMode, fromDb: Boolean(fromDb) };
 }
 
 /** @deprecated alias storico procedura step 3 */
@@ -196,10 +210,11 @@ const isCliMain = process.argv[1]
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isCliMain) {
-  const stdoutHtml = process.argv.includes("--stdout-html");
-  const fullRender = process.argv.includes("--full");
+  const stdoutHtml   = process.argv.includes("--stdout-html");
+  const fullRender   = process.argv.includes("--full") || !process.argv.includes("--merge");
+  const mergeMetrics = process.argv.includes("--merge");
 
-  runFullGapAnalysis({ fullRender })
+  runFullGapAnalysis({ fullRender, mergeMetrics })
     .then(({ html, sections, report, merge }) => {
       if (stdoutHtml) {
         process.stdout.write(html);
