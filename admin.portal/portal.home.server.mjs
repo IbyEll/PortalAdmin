@@ -597,7 +597,7 @@ async function handleApi(req, res, urlPath) {
 
   if (isMatrixFindingLinksGet) {
     try {
-      sendJson(res, 200, { links: loadFindingIssueLinksObject() }, req);
+      sendJson(res, 200, { links: await loadFindingIssueLinksObject() }, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 502, { error: message }, req);
