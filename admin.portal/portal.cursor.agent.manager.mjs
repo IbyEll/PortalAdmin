@@ -211,15 +211,24 @@ let wipGitSyncTimer = null;
 /** @type {ReturnType<typeof setTimeout> | null} */
 let wipGitSyncDebounceTimer = null;
 
+/** Subtask già annunciate in log WIP sync — evita spam a ogni poll git. */
+/** @type {Set<string>} */
+let wipGitSyncLoggedClosed = new Set();
+
 /**
  * @param {string} parentKey
  */
 async function runWipGitSync(parentKey) {
   try {
     const result = await syncWipSubtasksFromGitCommits(parentKey);
+    const newlyClosed = result.closed.filter((key) => !wipGitSyncLoggedClosed.has(key));
 
-    if (result.closed.length > 0) {
-      pushLogLine("workflow", `WIP — ${result.closed.length} subtask: ${result.closed.join(", ")}`);
+    if (newlyClosed.length > 0) {
+      for (const key of newlyClosed) {
+        wipGitSyncLoggedClosed.add(key);
+      }
+
+      pushLogLine("workflow", `WIP — ${newlyClosed.length} subtask: ${newlyClosed.join(", ")}`);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -252,6 +261,7 @@ function scheduleWipGitSync(parentKey) {
  */
 function startWipGitSyncPoll(parentKey) {
   stopWipGitSyncPoll();
+  wipGitSyncLoggedClosed = new Set();
   void runWipGitSync(parentKey);
 
   wipGitSyncTimer = setInterval(() => {
