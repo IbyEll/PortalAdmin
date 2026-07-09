@@ -187,15 +187,33 @@ async function main() {
     /** @type {string[]} */
     const assistantChunks = [];
 
+    /** Testo cumulativo del turno assistant corrente (tra un tool e l'altro). */
+    let assistantTurnText = "";
+
     for await (const event of run.stream()) {
       if (event.type === "assistant") {
         const text = extractAssistantText(event);
 
-        if (text) {
-          assistantChunks.push(text);
-          emit({ type: "log", stream: "assistant", text });
+        if (!text) {
+          continue;
+        }
+
+        let emitText = "";
+
+        if (text.startsWith(assistantTurnText)) {
+          emitText = text.slice(assistantTurnText.length);
+        } else if (text !== assistantTurnText) {
+          emitText = text;
+        }
+
+        assistantTurnText = text;
+
+        if (emitText) {
+          assistantChunks.push(emitText);
+          emit({ type: "log", stream: "assistant", text: emitText });
         }
       } else if (event.type === "tool_use") {
+        assistantTurnText = "";
         const name = event.message?.name ?? "tool";
         emit({ type: "log", stream: "system", text: `[tool] ${name}` });
       }

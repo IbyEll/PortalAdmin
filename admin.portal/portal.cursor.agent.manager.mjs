@@ -58,8 +58,57 @@ import {
 , checkNoOpenPullRequests
 , parseWorkflowPrompt
 } from "./portal.cursor.agent.workflow.mjs";
-import { finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
+import { finalizeWipAfterGogo, enrollIssueInWip } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
 import { syncWipSubtasksFromGitCommits } from "../admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs";
+import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
+import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
+
+const agentLog = createLogger("agent");
+
+const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * @param {number | null | undefined} pid
+ * @returns {boolean}
+ */
+function isAgentPidAlive(pid) {
+  const n = Number(pid);
+
+  if (!Number.isFinite(n) || n <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(n, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ripulisce stato running orfano (worker morto / server riavviato con pid stale).
+ */
+function reconcileAgentRunningState() {
+  if (!state.running) {
+    return;
+  }
+
+  const childAlive = child != null;
+  const pidAlive   = isAgentPidAlive(state.pid);
+
+  if (childAlive || pidAlive) {
+    return;
+  }
+
+  state.running    = false;
+  state.finishedAt = state.finishedAt ?? new Date().toISOString();
+  state.status     = state.status === "running" ? "error" : state.status;
+  state.error      = state.error ?? "Processo agent non più attivo — stato ripulito";
+  state.pid        = null;
+  stopWipGitSyncPoll();
+  void persistState();
+}
 
 /**
  * @param {string} workflowKey
@@ -78,12 +127,38 @@ async function runFinalizeWipAfterAgent(workflowKey, status) {
     pushLogLine("stderr", `finalize WIP ${workflowKey} fallito: ${message}`);
   }
 }
-import { getPortalRoot } from "../admin.portal.lib/portal.paths.resolver.mjs";
-import { clearLogs, createLogger, getLogs } from "../admin.portal.lib/portal.log.mjs";
 
-const agentLog = createLogger("agent");
+/**
+ * WIP + blocco START dopo spawn worker — non blocca l'avvio agent.
+ *
+ * @param {{ kind: "gogo" | "procedi", parentKey: string }} workflow
+ */
+async function bootstrapWorkflowRun(workflow) {
+  try {
+    await enrollIssueInWip(workflow.parentKey);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    pushLogLine("stderr", `WIP enroll ${workflow.parentKey}: ${message}`);
+  }
 
-const ADMIN_PORTAL_DIR = dirname(fileURLToPath(import.meta.url));
+  startWipGitSyncPoll(workflow.parentKey);
+
+  try {
+    const startBlock = await buildWorkflowStartBlock(workflow);
+    pushLogLine("workflow", startBlock);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    pushLogLine("workflow", [
+      "─".repeat(72)
+    , `START — ${workflow.kind} ${workflow.parentKey}`
+    , "─".repeat(72)
+    , ""
+    , `⚠ Step 0 parziale: ${message}`
+    , ""
+    , "─".repeat(72)
+    ].join("\n"));
+  }
+}
 
 /**
  * @typedef {{
@@ -133,23 +208,66 @@ let child = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let wipGitSyncTimer = null;
 
+/** @type {ReturnType<typeof setTimeout> | null} */
+let wipGitSyncDebounceTimer = null;
+
 /**
- * Durante gogo — allinea subtask WIP dai commit git ogni 15s.
+ * @param {string} parentKey
+ */
+async function runWipGitSync(parentKey) {
+  try {
+    const result = await syncWipSubtasksFromGitCommits(parentKey);
+
+    if (result.closed.length > 0) {
+      pushLogLine("workflow", `WIP — ${result.closed.length} subtask: ${result.closed.join(", ")}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    pushLogLine("stderr", `WIP sync ${parentKey}: ${message}`);
+  }
+}
+
+/**
+ * @param {string} parentKey
+ */
+function scheduleWipGitSync(parentKey) {
+  if (!parentKey) {
+    return;
+  }
+
+  if (wipGitSyncDebounceTimer != null) {
+    clearTimeout(wipGitSyncDebounceTimer);
+  }
+
+  wipGitSyncDebounceTimer = setTimeout(() => {
+    wipGitSyncDebounceTimer = null;
+    void runWipGitSync(parentKey);
+  }, 2000);
+}
+
+/**
+ * Durante gogo — allinea subtask WIP dai commit git (immediato + ogni 5s).
  *
  * @param {string} parentKey
  */
 function startWipGitSyncPoll(parentKey) {
   stopWipGitSyncPoll();
+  void runWipGitSync(parentKey);
 
   wipGitSyncTimer = setInterval(() => {
-    void syncWipSubtasksFromGitCommits(parentKey).catch(() => {});
-  }, 15000);
+    void runWipGitSync(parentKey);
+  }, 5000);
 }
 
 function stopWipGitSyncPoll() {
   if (wipGitSyncTimer != null) {
     clearInterval(wipGitSyncTimer);
     wipGitSyncTimer = null;
+  }
+
+  if (wipGitSyncDebounceTimer != null) {
+    clearTimeout(wipGitSyncDebounceTimer);
+    wipGitSyncDebounceTimer = null;
   }
 }
 
@@ -201,6 +319,15 @@ async function loadPersistedState() {
     if (data?.lastRunId && !state.runId) {
       state.runId = data.lastRunId;
     }
+
+    const persisted = data?.state;
+
+    if (persisted?.running === true && !isAgentPidAlive(persisted.pid)) {
+      state.status     = "error";
+      state.error      = "Sessione agent precedente non più attiva";
+      state.finishedAt = typeof data.savedAt === "string" ? data.savedAt : new Date().toISOString();
+      void persistState();
+    }
   } catch {
     // nessuno stato precedente
   }
@@ -212,6 +339,7 @@ await loadPersistedState();
  * @returns {CursorAgentStatus}
  */
 export function getCursorAgentStatus() {
+  reconcileAgentRunningState();
   return { ...state };
 }
 
@@ -219,7 +347,8 @@ export function getCursorAgentStatus() {
  * @returns {boolean}
  */
 export function isCursorAgentActive() {
-  return state.running;
+  reconcileAgentRunningState();
+  return state.running === true && (child != null || isAgentPidAlive(state.pid));
 }
 
 /**
@@ -272,6 +401,16 @@ function handleWorkerLine(line) {
         : "system"
     );
     pushLogLine(stream, line.text);
+
+    if (
+      state.workflowKey
+      && stream === "system"
+      && /\[tool\]/i.test(line.text)
+      && /\b(shell|bash|terminal|git|commit|write|edit|strreplace)\b/i.test(line.text)
+    ) {
+      scheduleWipGitSync(state.workflowKey);
+    }
+
     return;
   }
 
@@ -398,11 +537,13 @@ export async function startCursorAgent(options) {
     return { started: false, error: "prompt obbligatorio" };
   }
 
+  reconcileAgentRunningState();
+
   if (!isCursorAgentConfigured()) {
     return { started: false, error: "CURSOR_API_KEY non configurata in .env" };
   }
 
-  if (state.running) {
+  if (isCursorAgentActive()) {
     return { started: false, error: "agent già in esecuzione" };
   }
 
@@ -461,39 +602,6 @@ export async function startCursorAgent(options) {
     return { started: false, error: message };
   }
 
-  state.running    = true;
-  state.startedAt  = new Date().toISOString();
-  state.finishedAt = null;
-  state.runtime    = runtime;
-  state.prompt     = prompt;
-  state.status     = "running";
-  state.error      = null;
-  state.runId      = null;
-  state.workflowKey  = null;
-  state.workflowKind = null;
-
-  if (workflow) {
-    state.workflowKey  = workflow.parentKey;
-    state.workflowKind = workflow.kind;
-    startWipGitSyncPoll(workflow.parentKey);
-
-    try {
-      const startBlock = await buildWorkflowStartBlock(workflow);
-      pushLogLine("workflow", startBlock);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      pushLogLine("workflow", [
-        "─".repeat(72)
-      , `START — ${workflow.kind} ${workflow.parentKey}`
-      , "─".repeat(72)
-      , ""
-      , `⚠ Step 0 parziale: ${message}`
-      , ""
-      , "─".repeat(72)
-      ].join("\n"));
-    }
-  }
-
   pushLogLine("system", `=== Avvio worker Cursor (${runtime}) ===`);
 
   const workerPath = getCursorAgentWorkerPath();
@@ -504,7 +612,28 @@ export async function startCursorAgent(options) {
   , stdio : ["ignore", "pipe", "pipe"]
   });
 
-  state.pid = child.pid ?? null;
+  if (!child || !child.pid) {
+    child = null;
+    return { started: false, error: "spawn worker fallito" };
+  }
+
+  state.running    = true;
+  state.startedAt  = new Date().toISOString();
+  state.finishedAt = null;
+  state.runtime    = runtime;
+  state.prompt     = prompt;
+  state.status     = "running";
+  state.error      = null;
+  state.runId      = null;
+  state.workflowKey  = null;
+  state.workflowKind = null;
+  state.pid        = child.pid;
+
+  if (workflow) {
+    state.workflowKey  = workflow.parentKey;
+    state.workflowKind = workflow.kind;
+    void bootstrapWorkflowRun(workflow);
+  }
 
   let stdoutBuf = "";
 
@@ -595,7 +724,9 @@ export async function startCursorAgent(options) {
  * @returns {{ ok: boolean, error?: string }}
  */
 export function cancelCursorAgent() {
-  if (!state.running || !child) {
+  reconcileAgentRunningState();
+
+  if (!isCursorAgentActive() || !child) {
     return { ok: false, error: "nessun agent in esecuzione" };
   }
 

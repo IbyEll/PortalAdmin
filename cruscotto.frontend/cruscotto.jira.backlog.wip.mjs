@@ -211,17 +211,16 @@ export function isRowWorkflowClosed(row, wip) {
 }
 
 /**
- * @param {{ isDone?: boolean, status?: string | null, rawFields?: string | null }} row
+ * Bundle WIP ancora visibile in MyBacklog (non ancora PUSH/PR chiuso).
+ *
+ * @param {{ isDone?: boolean, status?: string | null } | null} parent
+ * @param {Array<{ isDone?: boolean }>} subtasks
  * @param {Record<string, unknown>} raw
  * @returns {boolean}
  */
-function isWipBundleUiClosed(row, raw) {
-  if (row.isDone === true && isJiraStatusDone(row.status)) {
-    return true;
-  }
-
+function isWipBundleStillVisible(parent, subtasks, raw) {
   if (raw.pushedAt) {
-    return true;
+    return false;
   }
 
   if (isPrWorkflowComplete({
@@ -229,17 +228,28 @@ function isWipBundleUiClosed(row, raw) {
   , prMergedAt    : typeof raw.prMergedAt === "string" ? raw.prMergedAt : null
   , prState       : typeof raw.prState === "string" ? raw.prState : null
   })) {
-    return raw.awaitingPush !== true;
+    return raw.awaitingPush === true;
   }
 
-  if (isJiraStatusDone(row.status) && (raw.wipClosedAt || raw.gogoCompletedAt)) {
+  if (raw.awaitingPush === true) {
     return true;
   }
 
-  return false;
+  if (raw.gogoInProgress === true) {
+    return true;
+  }
+
+  if (subtasks.some((row) => row.isDone !== true)) {
+    return true;
+  }
+
+  if (parent && parent.isDone === true && isJiraStatusDone(parent.status)) {
+    return true;
+  }
+
+  return Boolean(parent || subtasks.length > 0);
 }
 
-/** @typedef {'in_progress' | 'subtasks_complete' | 'awaiting_push' | 'published'} WipWorkflowPhase */
 
 /** @typedef {WipStatusEntry & {
  *   inWip: true
@@ -557,17 +567,43 @@ export async function fetchWipStatusByKeys(keys) {
   const rows = await db.jiraIssueWip.findMany({
     where: { jiraKey: { in: normalized } }
   , select: {
-      jiraKey   : true
-    , rawFields : true
-    , isDone    : true
-    , status    : true
+      jiraKey       : true
+    , parentJiraKey : true
+    , rawFields     : true
+    , isDone        : true
+    , status        : true
     }
   });
+
+  const parentKeys = rows
+    .filter((row) => !row.parentJiraKey)
+    .map((row) => row.jiraKey);
+
+  const childRows = parentKeys.length > 0
+    ? await db.jiraIssueWip.findMany({
+        where: { parentJiraKey: { in: parentKeys } }
+      , select: {
+          jiraKey       : true
+        , parentJiraKey : true
+        , rawFields     : true
+        , isDone        : true
+        , status        : true
+        }
+      })
+    : [];
+
+  const mergedRows = [...rows];
+
+  for (const child of childRows) {
+    if (!mergedRows.some((row) => row.jiraKey === child.jiraKey)) {
+      mergedRows.push(child);
+    }
+  }
 
   /** @type {Record<string, WipStatusEntry>} */
   const byKey = {};
 
-  for (const row of rows) {
+  for (const row of mergedRows) {
     byKey[row.jiraKey] = buildWipStatusEntry(row, { inWip: true });
   }
 
@@ -623,21 +659,7 @@ export async function fetchActiveWipForUi() {
   for (const row of allWip) {
     if (row.parentJiraKey) {
       parentKeys.add(row.parentJiraKey);
-    }
-  }
-
-  for (const row of allWip) {
-    if (row.parentJiraKey) {
-      continue;
-    }
-
-    const raw = parseRawFields(row.rawFields);
-
-    if (isWipBundleUiClosed(row, raw)) {
-      continue;
-    }
-
-    if (raw.gogoStartedAt || raw.workflowSource === "gogo") {
+    } else {
       parentKeys.add(row.jiraKey);
     }
   }
@@ -651,21 +673,20 @@ export async function fetchActiveWipForUi() {
   let latestTs        = 0;
 
   for (const key of parentKeys) {
-    const row = allWip.find((hit) => hit.jiraKey === key);
+    const parent   = allWip.find((hit) => hit.jiraKey === key) ?? null;
+    const subtasks = allWip.filter((hit) => hit.parentJiraKey === key);
+    const raw      = parent ? parseRawFields(parent.rawFields) : {};
 
-    if (!row) {
+    if (!isWipBundleStillVisible(parent, subtasks, raw)) {
       continue;
     }
 
-    const raw = parseRawFields(row.rawFields);
-
-    if (isWipBundleUiClosed(row, raw)) {
-      continue;
-    }
-
-    const ts  = Date.parse(
-      typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : (row.syncedAt?.toISOString() ?? "")
-    ) || 0;
+    const ts = Math.max(
+      Date.parse(typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : "") || 0
+    , Date.parse(typeof raw.wipLastSyncAt === "string" ? raw.wipLastSyncAt : "") || 0
+    , parent ? (Date.parse(parent.syncedAt?.toISOString() ?? "") || 0) : 0
+    , ...subtasks.map((row) => Date.parse(row.syncedAt?.toISOString() ?? "") || 0)
+    );
 
     if (ts >= latestTs) {
       latestTs        = ts;

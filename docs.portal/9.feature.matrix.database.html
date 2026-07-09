@@ -459,16 +459,17 @@ sequenceDiagram
       <code>enrichFindingsWithIssueRefinement</code>, future pagine cruscotto Avanzamento.
     </p>
 
-    <h2 id="jira">Backlog Jira (proposta)</h2>
+    <h2 id="jira">Backlog Jira</h2>
 
     <p>
-      Story e subtask <strong>da creare</strong> su progetto ADMIN con label <code>[MATRIX]</code>.
-      Le key sotto sono placeholder — sostituire con key reali alla creazione.
+      Story e subtask su progetto ADMIN con label <code>[MATRIX]</code> — Epic
+      <a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-170">ADMIN-170</a>.
     </p>
 
     <h3>Story 1 — Schema DB matrici</h3>
     <p>
-      <strong>ADMIN-???</strong> — [MATRIX] Persistenza matrici: schema Prisma e migration cruscotto
+      <strong><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-171">ADMIN-171</a></strong>
+      — [MATRIX] Schema DB matrici — Prisma e migration
     </p>
     <table class="doc-table">
       <thead>
@@ -477,23 +478,23 @@ sequenceDiagram
       <tbody>
         <tr>
           <td>Design ER <code>matrix_*</code> + review con doc 9.feature</td>
-          <td>ADMIN-???-1</td>
-          <td>Schema approvato; diagramma in 3.info.cruscotto.db.schema.html</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-175">ADMIN-175</a></td>
+          <td>Schema approvato; diagramma in <a href="3.info.cruscotto.db.schema.html#er-diagram">3.info.cruscotto.db.schema.html</a></td>
         </tr>
         <tr>
           <td>Migration Prisma <code>matrix_run</code>, <code>matrix_row</code>, …</td>
-          <td>ADMIN-???-2</td>
-          <td><code>npm run db:migrate</code> ok su overlay AdminDashBoard e JustLastOne</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-176">ADMIN-176</a></td>
+          <td><code>npm run db:migrate</code> ok su overlay AdminDashBoard</td>
         </tr>
         <tr>
           <td>Seed <code>matrix_catalog</code> da AUDIT_CATALOG + checklist arch</td>
-          <td>ADMIN-???-3</td>
-          <td>Seed idempotente; count righe catalogo ≥ voci audit attuali</td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-178">ADMIN-178</a></td>
+          <td>Seed idempotente via <code>cruscotto.database/matrix.catalog.seed.mjs</code></td>
         </tr>
         <tr>
           <td>Test Prisma round-trip insert/select matrix_row</td>
-          <td>ADMIN-???-4</td>
-          <td>Test tecnico in <code>admin.portal.testscript/</code></td>
+          <td><a href="https://myfuturejobsearch.atlassian.net/browse/ADMIN-177">ADMIN-177</a></td>
+          <td>Test in <code>admin.portal.testscript/technical/test.matrix.row.roundtrip.mjs</code></td>
         </tr>
       </tbody>
     </table>

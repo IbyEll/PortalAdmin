@@ -48,6 +48,7 @@
  *   - GET  /api/jira/issue/:KEY — dettaglio issue live (ADMIN-*, JLO-*)
  *   - GET  /api/jira/issue/:KEY/db — dettaglio issue da cache cruscotto DB
  *   - GET  /api/jira/wip/status · POST /api/jira/wip/push · POST /api/jira/wip/pr-poll — workflow database
+ *   - POST /api/jira/wip/sync-progress — aggiorna WIP da git durante gogo
  *   - GET  /api/cruscotto/project — config progetto attivo (bootstrap UI)
  *   - GET  /api/portal/projects, /api/portal/instance · POST /api/portal/instance
  *   - GET  /, /app.html — SPA cruscotto; alias cruscotto.js, backlog.html, …
@@ -96,7 +97,7 @@ import {
 , enrichIssuesWithWorkingPlan
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 import { scanRepoJiraReferences } from "../admin.portal.JiraCORE/jira.function.repo.refs.mjs";
-import { fetchActiveWipForUi, fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
+import { fetchActiveWipForUi, fetchWipAdvancementForIssue, fetchWipStatusByKeys } from "./cruscotto.jira.backlog.wip.mjs";
 import { pushWipStory } from "../admin.portal.JiraCORE/jiraCORE.wip.push.mjs";
 import { pollWipPullRequest } from "../admin.portal.JiraCORE/jiraCORE.wip.pr.poll.mjs";
 import { enrollIssueInWip, finalizeWipAfterGogo } from "../admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs";
@@ -1596,6 +1597,34 @@ async function handleApi(req, res, urlPath) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(res, 409, { ok: false, error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/jira/wip/sync-progress" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const key  = String(body.key ?? "").trim().toUpperCase();
+
+      if (!/^(ADMIN|JLO)-\d+$/.test(key)) {
+        sendJson(res, 400, { error: "key non valida (ADMIN-xxx o JLO-xxx)" }, req);
+        return;
+      }
+
+      const synced = await syncWipSubtasksFromGitCommits(key);
+      const wip    = synced.advancement ?? await fetchWipAdvancementForIssue(key);
+
+      sendJson(res, 200, {
+        ok          : true
+      , parentKey   : synced.parentKey
+      , closed      : synced.closed
+      , advancement : synced.advancement
+      , wip
+      }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { ok: false, error: message }, req);
     }
 
     return;
