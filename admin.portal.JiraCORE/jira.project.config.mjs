@@ -140,8 +140,6 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
   , "cruscotto.lib/"
   , "cruscotto.frontend/"
   , "lib/"
-  , "server/"
-  , "scripts/"
   , "testScript/"
   , "test.smoke/"
   ]
@@ -154,8 +152,6 @@ export const BASE_REPO_SIGNALS_CATALOG_POLICY = {
   , { prefix: "cruscotto.lib/", priority: 2 }
   , { prefix: "cruscotto.frontend/", priority: 3 }
   , { prefix: "lib/", priority: 3 }
-  , { prefix: "server/", priority: 3 }
-  , { prefix: "scripts/", priority: 3 }
   , { prefix: "admin.script.standalone/", priority: 3 }
   , { prefix: "test.smoke/", priority: 4 }
   , { prefix: "docs/", priority: 9 }
