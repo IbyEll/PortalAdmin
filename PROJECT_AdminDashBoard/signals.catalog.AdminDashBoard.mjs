@@ -184,4 +184,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-171"
+  , label : "fix mybacklog"
+  , paths : [
+      "lib"
+      , "admin.portal.JiraCORE"
+      , "admin.portal.lib"
+      , "test.smoke"
+      , "admin.script.standalone"
+      , "cruscotto.database"
+    ]
+  }
+
 ];
