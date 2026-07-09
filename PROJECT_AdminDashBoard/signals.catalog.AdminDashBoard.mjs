@@ -240,4 +240,17 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-195"
+  , label : "OTRERS"
+  , paths : [
+      "admin.portal.lib"
+      , "admin.portal.JiraCORE"
+      , "test.smoke"
+      , "lib"
+      , "admin.script.standalone"
+      , "cruscotto.database"
+    ]
+  }
+
 ];
