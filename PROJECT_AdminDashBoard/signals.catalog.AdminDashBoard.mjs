@@ -213,4 +213,18 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-173"
+  , label : "Wire matrix finding-issue and regenerate routes to cruscotto.database service."
+  , paths : [
+      "admin.portal.lib"
+      , "admin.portal.JiraCORE"
+      , "test.smoke"
+      , "lib"
+      , "admin.script.standalone"
+      , "cruscotto.database"
+    ]
+  , tests : ["technical/test.matrix.api.e2e.mjs"]
+  }
+
 ];

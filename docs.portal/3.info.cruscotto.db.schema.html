@@ -46,6 +46,7 @@
         <li><a href="#tbl-matrix_row">matrix_row</a></li>
         <li><a href="#tbl-matrix_row_event">matrix_row_event</a></li>
         <li><a href="#tbl-matrix_finding_issue">matrix_finding_issue</a></li>
+        <li><a href="#matrix-api">API matrice</a></li>
         <li><a href="#raw-fields">raw_fields (JSON)</a></li>
         <li><a href="#riferimenti">Riferimenti codice</a></li>
       </ul>
@@ -735,6 +736,57 @@ erDiagram
     <h3 id="tbl-matrix_finding_issue">Tabella <code>matrix_finding_issue</code></h3>
     <p class="table-note">Sostituisce <code>matrix.finding-issues.json</code> · <code>jira_key</code> univoco.</p>
 
+    <h2 id="matrix-api">API matrice cruscotto</h2>
+
+    <p class="lead">
+      Endpoint REST su <code>cruscotto.server.mjs</code> (porta dashboard) — story
+      <code>ADMIN-173</code>. Consumer: toolbar docs «Aggiorna analisi», agenti, future tab Avanzamento.
+    </p>
+
+    <div class="doc-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Metodo</th>
+            <th>Descrizione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>GET /api/matrix/portal-gap</code></td>
+            <td>GET</td>
+            <td>Sezioni + righe correnti da <code>matrix_row</code> · query <code>?kind=portal_gap</code></td>
+          </tr>
+          <tr>
+            <td><code>GET /api/matrix/runs</code></td>
+            <td>GET</td>
+            <td>Storico snapshot <code>matrix_run</code> · <code>?kind=</code> · <code>?limit=20</code></td>
+          </tr>
+          <tr>
+            <td><code>GET /api/matrix/rows/:findingId/events</code></td>
+            <td>GET</td>
+            <td>Audit trail append-only <code>matrix_row_event</code> per voce</td>
+          </tr>
+          <tr>
+            <td><code>POST /api/matrix/finding-issue</code></td>
+            <td>POST</td>
+            <td>Body JSON <code>{ findingId, key, issueType? }</code> → upsert <code>matrix_finding_issue</code></td>
+          </tr>
+          <tr>
+            <td><code>POST /api/matrix/regenerate</code></td>
+            <td>POST</td>
+            <td>Scan repo + upsert DB + HTML (equivalente CLI) · <strong>solo localhost</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="meta">
+      Modulo servizio: <code>cruscotto.database/matrix.api.service.mjs</code> ·
+      test: <code>admin.portal.testscript/technical/test.matrix.api.e2e.mjs</code>
+    </p>
+
     <!-- raw_fields -->
     <h2 id="raw-fields">Colonna <code>raw_fields</code> (JSON)</h2>
 
@@ -898,6 +950,7 @@ erDiagram
       <li><code>admin.portal.JiraCORE/jiraCORE.wip.enroll.mjs</code> — enroll/finalize gogo → WIP</li>
       <li><code>admin.portal.JiraCORE/jiraCORE.wip.db.mjs</code> — gate PUSH, <code>markWipPushed</code></li>
       <li><code>cruscotto.database/matrix.catalog.seed.mjs</code> — seed <code>matrix_catalog</code> da AUDIT_CATALOG</li>
+      <li><code>cruscotto.database/matrix.api.service.mjs</code> — API REST matrice (ADMIN-173)</li>
       <li><code>docs.portal/9.feature.matrix.database.html</code> — proposta ER matrici</li>
       <li><code>.cursor/rules/ADMIN-Workflow database.mdc</code> — semantica step 7–8 e merge <code>raw_fields</code></li>
     </ul>
