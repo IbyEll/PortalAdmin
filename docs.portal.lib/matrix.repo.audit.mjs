@@ -655,7 +655,7 @@ export async function buildRepoAuditSectionsFromReport(portalRoot, previousJsonP
   const { rows: prevRows, sectionById: prevSectionById } = previousJsonPath
     ? loadPreviousAuditCatalog(previousJsonPath, { legacyJsonPaths: opts.legacyJsonPaths })
     : { rows: new Map(), sectionById: new Map() };
-  const issueLinks = loadFindingIssueLinks();
+  const issueLinks = await loadFindingIssueLinks();
 
   /** @type {Map<string, MatrixRow>} */
   const rowsById = new Map();
