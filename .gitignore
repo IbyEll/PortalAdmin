@@ -5,6 +5,10 @@ node_modules/
 !admin.portal.lib/
 !admin.portal.lib/**
 
+# docs.portal.lib — ignorato da gitignore globale *.lib sul path
+!docs.portal.lib/
+!docs.portal.lib/**
+
 # Local env (never commit secrets)
 .env
 .env.local
@@ -25,6 +29,8 @@ cruscotto.database/*
 !cruscotto.database/matrix.catalog.seed.mjs
 !cruscotto.database/load-backlog.mjs
 !cruscotto.database/Jira.backlog.sync.mjs
+!cruscotto.database/matrix.db.mjs
+!cruscotto.database/matrix.db.import.mjs
 !cruscotto.database/package.json
 !cruscotto.database/package-lock.json
 

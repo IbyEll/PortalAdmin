@@ -197,4 +197,20 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-172"
+  , label : "matrix.db persistence layer"
+  , paths : [
+      "cruscotto.database/matrix.db.mjs"
+    , "cruscotto.database/matrix.db.import.mjs"
+    , "docs.portal.lib/matrix.finding-issues.store.mjs"
+    , "docs.portal.lib/matrix.persist.config.mjs"
+    ]
+  , tests : [
+      "admin.portal.testscript/technical/test.matrix.db.mjs"
+    , "admin.portal.testscript/technical/test.matrix.db.import.mjs"
+    , "admin.portal.testscript/technical/test.matrix.persist.parity.mjs"
+    ]
+  }
+
 ];

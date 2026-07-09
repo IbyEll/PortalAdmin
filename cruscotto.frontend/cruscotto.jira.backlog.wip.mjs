@@ -401,6 +401,11 @@ export function resolveWipWorkflowPhase(row, subtaskRows) {
   const raw = parseRawFields(row.rawFields);
   const subtasksTotal = subtaskRows.length;
   const subtasksDone  = subtaskRows.filter((sub) => sub.isDone === true).length;
+
+  if (subtasksTotal > 0 && subtasksDone < subtasksTotal) {
+    return "in_progress";
+  }
+
   const prUrl         = typeof raw.prUrl === "string" && raw.prUrl.startsWith("http")
     ? raw.prUrl
     : null;

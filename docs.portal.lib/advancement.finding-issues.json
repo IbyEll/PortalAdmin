@@ -1,0 +1,22 @@
+{
+  "bug-ci-portal-paths": {
+    "key": "ADMIN-154",
+    "issueType": "Bug",
+    "createdAt": "2026-06-24T11:39:24.054Z"
+  },
+  "dep-runner-comments": {
+    "key": "ADMIN-155",
+    "issueType": "Bug",
+    "createdAt": "2026-06-25T01:40:26.181Z"
+  },
+  "dep-portal-paths-consumers": {
+    "key": "ADMIN-156",
+    "issueType": "Bug",
+    "createdAt": "2026-06-25T14:06:16.394Z"
+  },
+  "imp-ci-admin-overlay": {
+    "key": "ADMIN-168",
+    "issueType": "Story",
+    "createdAt": "2026-06-26T00:50:51.522Z"
+  }
+}
