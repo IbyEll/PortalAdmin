@@ -1776,7 +1776,7 @@ async function handleApi(req, res, urlPath) {
     try {
       const url        = new URL(req.url ?? "", "http://localhost");
       const matrixKind = url.searchParams.get("kind") ?? undefined;
-      const { loadMatrixPortalGap } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const { loadMatrixPortalGap } = await import("../cruscotto.database/matrix.api.service.mjs");
       const data = await loadMatrixPortalGap({ matrixKind });
 
       sendJson(res, 200, data, req);
@@ -1793,7 +1793,7 @@ async function handleApi(req, res, urlPath) {
       const url        = new URL(req.url ?? "", "http://localhost");
       const matrixKind = url.searchParams.get("kind") ?? undefined;
       const limit      = url.searchParams.get("limit") ?? undefined;
-      const { loadMatrixRuns } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const { loadMatrixRuns } = await import("../cruscotto.database/matrix.api.service.mjs");
       const data = await loadMatrixRuns({ matrixKind, limit: limit ? Number(limit) : undefined });
 
       sendJson(res, 200, data, req);
@@ -1811,7 +1811,7 @@ async function handleApi(req, res, urlPath) {
     try {
       const url        = new URL(req.url ?? "", "http://localhost");
       const matrixKind = url.searchParams.get("kind") ?? undefined;
-      const { loadMatrixRowEventsApi } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const { loadMatrixRowEventsApi } = await import("../cruscotto.database/matrix.api.service.mjs");
       const data = await loadMatrixRowEventsApi({
         findingId : decodeURIComponent(matrixEventsMatch[1])
       , matrixKind
@@ -1829,7 +1829,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/matrix/finding-issue" && req.method === "POST") {
     try {
       const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
-      const { persistMatrixFindingIssueApi } = await import("../cruscotto.lib/matrix.api.service.mjs");
+      const { persistMatrixFindingIssueApi } = await import("../cruscotto.database/matrix.api.service.mjs");
       const data = await persistMatrixFindingIssueApi({
         findingId    : String(body.findingId ?? "")
       , key          : String(body.key ?? "")
@@ -1851,7 +1851,7 @@ async function handleApi(req, res, urlPath) {
   if (urlPath === "/api/matrix/regenerate" && req.method === "POST") {
     try {
       const { isLocalDevMatrixRequest, regenerateMatrixPortalGap } = await import(
-        "../cruscotto.lib/matrix.api.service.mjs"
+        "../cruscotto.database/matrix.api.service.mjs"
       );
 
       if (!isLocalDevMatrixRequest(req)) {
