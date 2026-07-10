@@ -55,6 +55,7 @@ export const PORTAL_API_CRUSCOTTO_SCRIPTS = [
 , "jira/test.jira.backlog.mjs"
 , "cursor/test.api.cursor.agent.mjs"
 , "cursor/test.cruscotto.backlog.push.mjs"
+, "technical/test.portal.api.suite.mjs"
 ];
 
 /** Script HOME opzionali — saltati con --skip-home (smoke CI). */
