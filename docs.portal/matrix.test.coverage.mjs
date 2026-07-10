@@ -44,7 +44,7 @@ const CR = "PortalAdmin.Cruscotto";
 const DATA = {
   orch: [
     { id: "cov-orch-smoke-ci", sev: "info", status: "coperto", project: PA, voce: "Smoke CI aggregate", dettaglio: "Test: npm run test:ci · Gap: —", paths: ["test.smoke/smoke-ci.mjs"] },
-    { id: "cov-orch-portal-api", sev: "warn", status: "parziale", project: PA, voce: "API read-only suite", dettaglio: "Test: npm run test:portal-api · Gap: richiede cruscotto up se non in CI", paths: ["admin.portal.testscript/run-portal-api.mjs"] },
+    { id: "cov-orch-portal-api", sev: "info", status: "coperto", project: PA, voce: "API read-only suite", dettaglio: "Test: npm run test:portal-api · smoke-portal-api in test:ci · GET /api/tecnici/suite", paths: ["admin.portal.testscript/run-portal-api.mjs", "admin.portal.lib/portal.api.suite.mjs"] },
     { id: "cov-p1-portal-api-ci", sev: "P1", status: "fatto", project: PA, voce: "Portal API in CI", dettaglio: "Test: smoke-portal-api in test:ci · Gap: —", paths: ["test.smoke/smoke-portal-api.mjs"] },
     { id: "cov-orch-run-all", sev: "warn", status: "parziale", project: PA, voce: "Discovery run-all", dettaglio: "Test: smoke-run-all.mjs · Gap: solo --list, non esecuzione run", paths: ["admin.portal.lib/test.run.all.mjs"] },
   ],
