@@ -11,6 +11,11 @@ import { dirname, join } from "node:path";
 
 import { refreshMatrixPageHtml } from "../docs.portal.lib/matrix.refresh.mjs";
 import {
+  TEST_COVERAGE_COLUMNS
+, TEST_COVERAGE_PRIORITY_SECTION
+, TEST_COVERAGE_SECTION_DEFS
+} from "../docs.portal.lib/matrix.test-coverage.meta.mjs";
+import {
   enrichMatrixSectionsFromJira
 , loadUnifiedMatrixSectionsFromDb
 , MATRIX_KIND_TEST_COVERAGE
@@ -133,22 +138,6 @@ const DATA = {
   ],
 };
 
-const SECTION_DEFS = [
-  { id: "orch", title: "Orchestrazione", open: true }
-, { id: "config", title: "Config, path, workflow (offline)" }
-, { id: "db", title: "Cruscotto DB" }
-, { id: "spa", title: "HTTP statico / SPA shell", open: true }
-, { id: "apiHealth", title: "API — health / bootstrap" }
-, { id: "apiDev", title: "API — dev / meta" }
-, { id: "apiRepo", title: "API — repo services / Process", open: true }
-, { id: "apiRun", title: "API — run / report" }
-, { id: "apiJira", title: "API — Jira", open: true }
-, { id: "apiPortal", title: "API — portal instance" }
-, { id: "apiCursor", title: "API — Cursor agent" }
-, { id: "apiHome", title: "Portal HOME" }
-, { id: "funz", title: "Funzionali (fuori CI default)" }
-];
-
 const priorityRows = [
   { id: "cov-prio-p1", sev: "P1", status: "fatto", project: PA, voce: "smoke-portal-api.mjs in test:ci", dettaglio: "Completato 2026-06-25", paths: ["test.smoke/smoke-portal-api.mjs"] },
   { id: "cov-prio-p2", sev: "P2", status: "fatto", project: CR, voce: "test.repo.services.processes.mjs", dettaglio: "Completato 2026-06-25", paths: ["admin.portal.testscript/repo/test.repo.services.processes.mjs"] },
@@ -162,48 +151,54 @@ const priorityRows = [
  */
 export function buildTestCoverageSections() {
   return [
-    ...SECTION_DEFS.map((def) => ({
+    ...TEST_COVERAGE_SECTION_DEFS.map((def) => ({
       id     : def.id
     , title  : def.title
     , open   : def.open ?? false
     , badge  : `${DATA[def.id].length} voci`
     , rows   : DATA[def.id].map((row) => ensureMatrixRowCreateMeta(row, def.title))
-    , columns: ["Sev", "Issue refirement", "Project", "Feature", "Test · gap", "Implementazione", "Stato"]
+    , columns: TEST_COVERAGE_COLUMNS
     }))
   , {
-      id     : "priority"
-    , title  : "Priorità backlog test"
-    , open   : true
+      id     : TEST_COVERAGE_PRIORITY_SECTION.id
+    , title  : TEST_COVERAGE_PRIORITY_SECTION.title
+    , open   : TEST_COVERAGE_PRIORITY_SECTION.open
     , badge  : `${priorityRows.filter((r) => r.status === "gap").length} aperti · ${priorityRows.length} voci`
-    , rows   : priorityRows.map((row) => ensureMatrixRowCreateMeta(row, "Priorità backlog test"))
-    , columns: ["Sev", "Issue refirement", "Project", "Feature", "Test · gap", "Implementazione", "Stato"]
+    , rows   : priorityRows.map((row) => ensureMatrixRowCreateMeta(row, TEST_COVERAGE_PRIORITY_SECTION.title))
+    , columns: TEST_COVERAGE_COLUMNS
     }
   ];
 }
 
 /**
  * @param {import("../docs.portal.lib/matrix.render.mjs").MatrixSection[]} sections
- * @returns {string}
+ * @param {{ generatedAt?: string, runId?: string | null, runSource?: string | null, embed?: boolean }} [opts]
+ * @returns {import("../docs.portal.lib/matrix.render.mjs").MatrixPageConfig}
  */
-export function generateTestCoverageHtml(sections) {
-  const summary = summarizeMatrixSections(sections);
-  const today   = new Date().toISOString().slice(0, 10);
+export function buildTestCoveragePageConfig(sections, opts = {}) {
+  const summary     = summarizeMatrixSections(sections);
+  const generatedAt = opts.generatedAt ?? new Date().toISOString();
+  const date        = generatedAt.slice(0, 19).replace("T", " ");
+  const today       = generatedAt.slice(0, 10);
 
-  return renderMatrixPage({
+  return {
     title      : "Matrice copertura test — PortalAdmin"
   , pageTitle  : "PortalAdmin — Matrice copertura test"
-  , generatedAt: new Date().toISOString()
+  , generatedAt
   , metaHtml   : [
-      `Feature → test → gap · ${today} · correlati:`
-    , `<a href="test-coverage-portaladmin.html">audit narrativo</a>,`
-    , `<a href="portal-gap-matrix.html">gap analysis</a>,`
+      `Matrice DB · ${date}`
+    , opts.runId ? `· run <code>${opts.runId}</code>` : ""
+    , opts.runSource ? `· fonte <code>${opts.runSource}</code>` : ""
+    , `· Feature → test → gap · ${today} · correlati:`
     , `<a href="matrix.portal.gap.html">avanzamento repo</a>,`
-    , `<a href="test-coverage-matrix.md">sorgente MD</a>`
+    , `<a href="matrix.test.coverage.md">sorgente MD</a>`
     ].join(" ")
-  , leadHtml   : [
-      "Mappatura tracciabile di implementazione, test automatici e gap."
-    , "Template: <code>docs.portal.lib/matrix.render.mjs</code>."
-    ].join(" ")
+  , leadHtml   : opts.embed
+      ? ""
+      : [
+          "Mappatura tracciabile di implementazione, test automatici e gap."
+        , "Dati da tabelle <code>matrix_*</code> (<code>matrix_kind=test_coverage</code>)."
+        ].join(" ")
   , metrics    : [
       { value: summary.total, meta: "Feature mappate" }
     , { value: summary.done, meta: "Coperte / fatte" }
@@ -212,24 +207,37 @@ export function generateTestCoverageHtml(sections) {
     , { value: 8, meta: "Step smoke CI" }
     , { value: "P1–P2", meta: "Priorità chiuse" }
     ]
-  , metricsBadge: `${summary.gap} gap · ${summary.partial} parziali`
+  , metricsBadge    : `${summary.gap} gap · ${summary.partial} parziali`
+  , metricsCardTitle: "Sintesi copertura test"
   , sections
-  , footerHtml : "Rigenera: <code>node docs.portal/matrix.test.coverage.mjs</code>"
-  });
+  , footerHtml : [
+      "Persistenza:"
+    , `<code>matrix_kind=test_coverage</code> ·`
+    , `${sections.reduce((acc, sec) => acc + sec.rows.length, 0)} righe`
+    ].join(" ")
+  };
+}
+
+/**
+ * @param {import("../docs.portal.lib/matrix.render.mjs").MatrixSection[]} sections
+ * @returns {string}
+ */
+export function generateTestCoverageHtml(sections) {
+  return renderMatrixPage(buildTestCoveragePageConfig(sections));
 }
 
 /**
  * @param {{ fullRender?: boolean }} [opts]
  * @returns {Promise<{ html: string, sections: import("../docs.portal.lib/matrix.render.mjs").MatrixSection[], merge: boolean, fromDb: boolean }>}
  */
-export async function runTestCoverageMatrix({ fullRender = false } = {}) {
+export async function runTestCoverageMatrix({ fullRender = false, source = "matrix.test.coverage" } = {}) {
   let sections = buildTestCoverageSections();
   const dbPrimary = isMatrixDbPrimary();
 
   await persistUnifiedMatrixSections({
     matrixKind: MATRIX_KIND_TEST_COVERAGE
   , sections
-  , source    : "matrix.test.coverage"
+  , source
   });
 
   if (dbPrimary) {
@@ -240,7 +248,7 @@ export async function runTestCoverageMatrix({ fullRender = false } = {}) {
     }
   }
 
-  await enrichMatrixSectionsFromJira(sections, PORTAL_ROOT);
+  await enrichMatrixSectionsFromJira(sections, PORTAL_ROOT, { matrixKind: MATRIX_KIND_TEST_COVERAGE });
   const summary  = summarizeMatrixSections(sections);
   const metrics  = [
     { value: summary.total, meta: "Feature mappate" }

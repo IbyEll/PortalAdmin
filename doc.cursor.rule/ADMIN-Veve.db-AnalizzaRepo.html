@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db-AnalizzaRepo — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -16,17 +34,34 @@
         <code>.cursor/rules/ADMIN-Veve.db-AnalizzaRepo.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 17:15
       </p>
-      <p class="lead">Veve db step 2 — analizza repo per {KEY} (adattatore ADMIN-AnalizzaRepo)</p>
+      <p class="lead">Veve db step 2 — gap analysis repo (input per groom e subtask test)</p>
     </header>
+
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Step 2 — Gap repo</h2>
+      <p class="flow-sub">Solo lettura — nessuna scrittura DB in questo step.</p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart LR
+  A["Keys parent\n+ subtask"] --> B["scanRepoJiraReferences\nPRODUCT_REPO_PATH"]
+  B --> C["analyzeIssueKeys"]
+  C --> D["Stato repo ✅⚠️❌"]
+  C --> E["suggestSubtaskOrder"]
+  D --> F["Step 3–4 groom\n+ infer test subtask"]
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  class A,B,C,D,E,F step</pre>
+      </div>
+    </section>
 
     <article class="mdc-body">
 <h2>Veve DB — Analizza repo</h2>
 <p>Esegui regola canonica <code>.cursor/rules/ADMIN-AnalizzaRepo.mdc</code> + skill <code>jlo-analizza-repo</code>.</p>
 <p>Prerequisito: <strong>Leggi DB</strong> (<code>ADMIN-Veve.db-LeggiJira.mdc</code>) nella stessa sessione.</p>
-<p>Output: tabella Stato repo + <strong>Subtask vs repo</strong> (Key | Esito | File | Gap) — identico a veve MCP.</p>
-<p><strong>Vietato:</strong> scrittura su <code>jira_issue_wip</code> in questo step (solo step 3–4 db).</p>
+<p>CLI: <code>node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY} --format md</code></p>
+<p>Output: tabella Stato repo + <strong>Subtask vs repo</strong> — alimenta groom step 3–4 e <code>suggestVeveMissingSubtasks</code> (implementazione + test).</p>
+<p><strong>Vietato:</strong> scrittura su <code>jira_issue</code> / <code>jira_issue_wip</code> in questo step (solo step 3–4).</p>
     </article>
 
     <footer>

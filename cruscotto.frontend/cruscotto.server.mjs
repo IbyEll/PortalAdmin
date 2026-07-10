@@ -179,6 +179,12 @@ const PORTAL_ROOT    = join(SERVER_DIR, "..");
 const CRUSCOTTO_DIR  = join(PORTAL_ROOT, "cruscotto.frontend");
 const PORTAL_LIB_DIR = join(PORTAL_ROOT, "admin.portal.lib");
 
+/** Asset matrice — stesso layout docs.portal/matrix.portal.gap.html nel cruscotto. */
+const MATRIX_STATIC_FILES = {
+  "matrix/docs.style.css"    : join(PORTAL_ROOT, "docs.portal", "docs.style.css")
+, "matrix/matrix.toolbar.mjs": join(CRUSCOTTO_DIR, "cruscotto.matrix.toolbar.mjs")
+};
+
 /** Asset insight — URL brevi in HTML cruscotto (inglobati in cruscotto.css). */
 const INSIGHT_STATIC_FILES = {
   "insight-toolbar.css" : join(CRUSCOTTO_DIR, "cruscotto.css")
@@ -369,6 +375,12 @@ async function sendBacklogJson(res, req, data) {
  */
 function resolveCruscottoStaticFile(rel) {
   // 1. Risoluzione path — insight jira/, alias brevi o file sotto cruscotto.frontend/
+  if (MATRIX_STATIC_FILES[rel]) {
+    const file = MATRIX_STATIC_FILES[rel];
+
+    return { file, rootDir: dirname(file) };
+  }
+
   if (INSIGHT_STATIC_FILES[rel]) {
     const file = INSIGHT_STATIC_FILES[rel];
 
@@ -440,6 +452,31 @@ async function serveStatic(req, res) {
     , "Cache-Control": "no-cache, must-revalidate"
     });
     res.end(page);
+    return;
+  }
+
+  if (urlPath === "/matrix.html") {
+    const url        = new URL(req.url ?? "", "http://localhost");
+    const embed      = url.searchParams.get("embed") === "1";
+    const matrixKind = url.searchParams.get("kind") ?? undefined;
+
+    try {
+      const { renderMatrixPageHtml } = await import("../cruscotto.database/matrix.api.service.mjs");
+      const html = await renderMatrixPageHtml({ embed, matrixKind });
+
+      applyCors(res, req);
+      res.writeHead(200, {
+        "Content-Type" : "text/html; charset=utf-8"
+      , "Cache-Control": "no-cache, must-revalidate"
+      });
+      res.end(html);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      applyCors(res, req);
+      res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(`Matrice DB non disponibile: ${message}`);
+    }
+
     return;
   }
 
@@ -1494,6 +1531,33 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/jira/working-plan/epic-ref" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const issueKey = String(body.issueKey ?? body.key ?? "").trim();
+
+      if (!issueKey) {
+        sendJson(res, 400, { error: "Campo issueKey obbligatorio" }, req);
+        return;
+      }
+
+      const { runSetWorkingPlanEpicRef } = await import("../cruscotto.lib/backlog.working.plan.service.mjs");
+      const result = await runSetWorkingPlanEpicRef({
+        issueKey
+      , epicKey : body.epicKey == null ? null : String(body.epicKey)
+      , source  : body.source === "api" ? "api" : "db"
+      , saveHtml: body.saveHtml !== false
+      });
+
+      sendJson(res, 200, result, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
  
 
   if (urlPath === "/api/cursor/config" && req.method === "GET") {
@@ -1826,6 +1890,63 @@ async function handleApi(req, res, urlPath) {
     return;
   }
 
+  if (urlPath === "/api/matrix/kinds" && req.method === "GET") {
+    try {
+      const { loadMatrixRegistryApi } = await import("../cruscotto.database/matrix.api.service.mjs");
+      const data = await loadMatrixRegistryApi();
+
+      sendJson(res, 200, data, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/finding-issues" && req.method === "GET") {
+    try {
+      const url        = new URL(req.url ?? "", "http://localhost");
+      const matrixKind = url.searchParams.get("kind") ?? undefined;
+      const { loadMatrixFindingIssuesApi } = await import("../cruscotto.database/matrix.api.service.mjs");
+      const links = await loadMatrixFindingIssuesApi(matrixKind);
+
+      sendJson(res, 200, { links, matrixKind: matrixKind ?? null }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: message }, req);
+    }
+
+    return;
+  }
+
+  if (urlPath === "/api/matrix/create-issue" && req.method === "POST") {
+    try {
+      const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
+      const {
+        createMatrixFindingIssueOnly
+      , runMatrixFindingIssueVeveDb
+      } = await import("../cruscotto.database/matrix.api.service.mjs");
+      const created = await createMatrixFindingIssueOnly(body);
+
+      try {
+        await syncJiraBacklogFromApi();
+      } catch (err) {
+        console.warn("[matrix/create-issue] sync backlog DB:", err instanceof Error ? err.message : err);
+      }
+
+      const veve = await runMatrixFindingIssueVeveDb(created, body);
+
+      sendJson(res, 201, { ...created, veve }, req);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status  = /obblig/i.test(message) ? 400 : 502;
+      sendJson(res, status, { error: message }, req);
+    }
+
+    return;
+  }
+
   if (urlPath === "/api/matrix/finding-issue" && req.method === "POST") {
     try {
       const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
@@ -1850,7 +1971,7 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/matrix/regenerate" && req.method === "POST") {
     try {
-      const { isLocalDevMatrixRequest, regenerateMatrixPortalGap } = await import(
+      const { isLocalDevMatrixRequest, regenerateMatrix } = await import(
         "../cruscotto.database/matrix.api.service.mjs"
       );
 
@@ -1860,7 +1981,7 @@ async function handleApi(req, res, urlPath) {
       }
 
       const body = /** @type {Record<string, unknown>} */ (await readJsonBody(req));
-      const data = await regenerateMatrixPortalGap({
+      const data = await regenerateMatrix({
         matrixKind : typeof body.matrixKind === "string" ? body.matrixKind : undefined
       , saveHtml   : body.saveHtml !== false
       , fullRender : Boolean(body.fullRender)
@@ -1963,6 +2084,9 @@ async function handleRequest(req, res) {
     , "mybacklog"
     , "workingplan"
     , "issue"
+    , "projectoverview"
+    , "matrix"
+    , "matrixcoverage"
     , "process"
     , "cursor"
     ]);

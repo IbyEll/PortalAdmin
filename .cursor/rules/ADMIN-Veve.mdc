@@ -1,11 +1,11 @@
 ---
-description: Veve MCP standalone `veve {KEY}` — non usare su gogo/procedi (vedi ADMIN-Veve.db.mdc)
+description: Veve MCP standalone `veve {KEY}` — Jira live; workflow usa ADMIN-Veve.db.mdc
 alwaysApply: false
 ---
 
-# Veve — `veve {KEY}` e workflow step 3
+# Veve — `veve {KEY}` (MCP Jira live)
 
-Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggiorna Subtask**.
+Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggiorna Subtask** (aggiorna esistenti; **crea mancanti** implementazione + `[Test]` se gap chiaro).
 
 | Step veve | Regola |
 | --- | --- |
@@ -19,21 +19,27 @@ Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggi
 | Contesto | Comportamento |
 | --- | --- |
 | `veve {KEY}` | Standalone — chat libera, sequenza completa |
-| `procedi` / `gogo {KEY}` | **Non** applicare — usare `ADMIN-Veve.db.mdc` (step 3 workflow database) |
+| `procedi` / `gogo {KEY}` | **Non** MCP veve — usare **`ADMIN-Veve.db.mdc`** (step 3 workflow database) |
+| Matrix **CREA** | **`ADMIN-Veve.db.mdc`** programmatico (`runVeveDbForIssueKey`, `writeTarget: jira_issue`) |
 | `chiudi` | **Non** esegue veve |
 
 `{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).
 
-Variante **DB** (cache + WIP): `ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 di `ADMIN-Workflow database.mdc`.
+## Variante DB (canonica workflow)
 
-**MCP veve:** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
+`ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 di `ADMIN-Workflow database.mdc` — **stessi template**, persistenza su `jira_issue` / `jira_issue_wip` invece di `editJiraIssue`.
+
+**MCP veve (questa regola):** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
 
 ## Runtime programmatico (server / CI)
 
-Stessa sequenza 1→4 di questa regola, **senza** agente Cursor né MCP — per script, CI e pagina Avanzamento.
+Sequenza 1→4 **senza** agente Cursor né MCP — Jira REST diretto:
 
 | Contesto | Entrypoint |
 | --- | --- |
-| Jira REST | `admin.portal.JiraCORE/jiraCORE.jira.live.mjs` (non `CallMcpTool`) |
+| Jira REST groom | `admin.portal.JiraCORE/jiraCORE.jira.live.mjs` |
+| DB groom (workflow) | `admin.portal.JiraCORE/jiraCORE.veve.db.mjs` → `runVeveDbForIssueKey` |
+
+Preferire **veve DB** quando esiste cache cruscotto; MCP veve solo standalone o key assente in DB.
 
 **Vietato:** branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).

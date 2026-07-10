@@ -94,6 +94,14 @@
         <span class="nav-label">Project Overview</span>
         <span class="nav-hint muted">sintesi</span>
       </button>
+      <button type="button" data-tab="matrix">
+        <span class="nav-label">Matrix Gap</span>
+        <span class="nav-hint muted">audit</span>
+      </button>
+      <button type="button" data-tab="matrixcoverage">
+        <span class="nav-label">Matrix Test</span>
+        <span class="nav-hint muted">copertura</span>
+      </button>
       <button type="button" data-tab="cursor">
         <span class="nav-label">Cursor Agent</span>
         <span class="nav-hint muted">local / cloud</span>
@@ -132,6 +140,12 @@
       </section>
       <section id="section-projectoverview" class="hidden" aria-label="Project Overview">
         <iframe class="jira-working-frame" src="/project-overview.html" title="Project Overview — panoramica progetto"></iframe>
+      </section>
+      <section id="section-matrix" class="hidden" aria-label="Matrix Gap">
+        <iframe class="jira-working-frame" src="/matrix.html?embed=1&amp;kind=portal_gap" title="Matrix — avanzamento gap audit da DB"></iframe>
+      </section>
+      <section id="section-matrixcoverage" class="hidden" aria-label="Matrix Test Coverage">
+        <iframe class="jira-working-frame" src="/matrix.html?embed=1&amp;kind=test_coverage" title="Matrix — copertura test da DB"></iframe>
       </section>
       <section id="section-cursor" class="hidden" aria-label="Cursor Agent"></section>
     </main>

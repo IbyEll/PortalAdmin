@@ -138,6 +138,16 @@ model WorkingPlanSprintKeys {
   @@map("working_plan_sprint_keys")
 }
 
+/// Epic di riferimento impostata manualmente per story senza parent epic in Jira.
+model JiraIssueEpicRef {
+  jiraKey     String   @id @map("jira_key")
+  epicJiraKey String   @map("epic_jira_key")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([epicJiraKey])
+  @@map("jira_issue_epic_ref")
+}
+
 /// Snapshot run matrice (portal_gap, test_coverage, …).
 model MatrixRun {
   id          String    @id @default(uuid())

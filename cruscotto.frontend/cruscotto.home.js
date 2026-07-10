@@ -289,7 +289,7 @@ function buildProcessStackFooterModel(services) {
 }
 
 // --- router — tab, hash e meta pagina ---
-const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "workingplan", "issue", "projectoverview", "pillarmatrix", "process", "cursor"];
+const TABS = ["requisiti", "servizi", "test", "testtecnici", "testfunzionali", "jiraproject", "backlog", "mybacklog", "workingplan", "issue", "projectoverview", "matrix", "matrixcoverage", "pillarmatrix", "process", "cursor"];
 const DEFAULT_TAB = "requisiti";
 
 /** Hash legacy — tab rimosse, reindirizza alla default. */
@@ -985,6 +985,14 @@ const PAGE_META = {
 , projectoverview: {
     title    : "Project Overview"
   , subtitle : "Avanzamento, backlog, sintesi, test e gap"
+  }
+, matrix: {
+    title    : "Matrix Gap"
+  , subtitle : "Matrice avanzamento, gap e audit — dati da tabelle matrix_* (portal_gap)"
+  }
+, matrixcoverage: {
+    title    : "Matrix Test"
+  , subtitle : "Matrice copertura test — feature, test automatici e gap (test_coverage)"
   }
 , pillarmatrix: {
     title    : "Matrice pilastri"
@@ -7532,7 +7540,14 @@ function renderWorkingPlanTab() {
       return;
     }
 
-    if (target.closest("a, button, .col-resize-handle, input, select, textarea, label")) {
+    const epicBtn = target.closest(".wp-btn-set-epic");
+
+    if (epicBtn instanceof HTMLButtonElement) {
+      void saveWorkingPlanEpicRef(epicBtn);
+      return;
+    }
+
+    if (target.closest("a, button, .col-resize-handle, input, select, textarea, label, .wp-epic-picker")) {
       return;
     }
 
@@ -7804,9 +7819,7 @@ async function runWorkingPlanAction(kind) {
     statusEl.textContent = label;
   }
 
-  if (outputEl && kind === "regenerate") {
-    outputEl.innerHTML = `<p class="muted working-plan-loading">${escapeHtml(label)}</p>`;
-  } else if (outputEl && kind !== "regenerate") {
+  if (outputEl && kind !== "regenerate") {
     outputEl.innerHTML = "";
   }
 
@@ -7873,6 +7886,80 @@ async function runWorkingPlanAction(kind) {
     if (obsBtn instanceof HTMLButtonElement) {
       obsBtn.disabled = false;
     }
+  }
+}
+
+/**
+ * Salva epic di riferimento manuale per una story orphan e rigenera il piano.
+ *
+ * @param {HTMLButtonElement} btn
+ */
+async function saveWorkingPlanEpicRef(btn) {
+  if (workingPlanActionBusy) {
+    return;
+  }
+
+  const picker   = btn.closest(".wp-epic-picker");
+  const issueKey = picker instanceof HTMLElement ? String(picker.dataset.wpEpicIssue ?? "").trim() : "";
+  const select   = picker?.querySelector(".wp-epic-select");
+  const epicKey  = select instanceof HTMLSelectElement ? select.value.trim() : "";
+  const outputEl = document.getElementById("working-plan-output");
+  const statusEl = document.getElementById("working-plan-status");
+
+  if (!issueKey) {
+    return;
+  }
+
+  if (!epicKey) {
+    if (statusEl) {
+      statusEl.textContent = `Seleziona un'epic prima di salvare (${issueKey})`;
+    }
+
+    return;
+  }
+
+  workingPlanActionBusy = true;
+  btn.disabled = true;
+
+  if (statusEl) {
+    statusEl.textContent = `Salvataggio epic su Jira per ${issueKey}…`;
+  }
+
+  try {
+    const res = await fetch("/api/jira/working-plan/epic-ref", {
+      method  : "POST"
+    , headers : { "Content-Type": "application/json" }
+    , body    : JSON.stringify({
+        issueKey
+      , epicKey: epicKey || null
+      , source : "db"
+      , saveHtml: true
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(String(data.error ?? `HTTP ${res.status}`));
+    }
+
+    lastWorkingPlanPayload = data.payload ?? null;
+
+    if (outputEl && typeof data.html === "string" && data.html.trim()) {
+      await applyWorkingPlanHtml(outputEl, data.html, new Map());
+    }
+
+    if (statusEl) {
+      statusEl.textContent = String(data.message ?? `Epic salvata per ${issueKey}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+
+    if (statusEl) {
+      statusEl.textContent = `Errore epic: ${message}`;
+    }
+  } finally {
+    workingPlanActionBusy = false;
+    btn.disabled = false;
   }
 }
 

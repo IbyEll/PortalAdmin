@@ -51,7 +51,7 @@
     direction TB
     S1["1 Verifica branch"]
     S2["2 Pre-flight git"]
-    S3["3 Veve DB"]
+    S3["3 Veve DB\ncrea subtask [Test]"]
     S4["4 Step 0 piano WIP"]
     S5["5 Implementazione + ok chiudi"]
     S6["6 END-A"]
@@ -189,7 +189,7 @@ git branch -r --list 'origin/STORY---{JIRA_KEY}-{num}-*'
 <table><thead><tr><th>Sotto-step</th><th>Regola</th></tr></thead><tbody><tr><td>3.1</td><td><code>ADMIN-Veve.db-LeggiJira.mdc</code> — leggi parent + subtask da <code>jira_issue</code></td></tr>
 <tr><td>3.2</td><td><code>ADMIN-AnalizzaRepo.mdc</code> — gap analysis repo workflow</td></tr>
 <tr><td>3.3</td><td><code>ADMIN-Veve.db-AggiornaStory.mdc</code> — upsert parent in <code>jira_issue_wip</code></td></tr>
-<tr><td>3.4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> — upsert ogni subtask in <code>jira_issue_wip</code></td></tr></tbody></table>
+<tr><td>3.4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> — crea subtask test mancanti + upsert ogni subtask in <code>jira_issue_wip</code></td></tr></tbody></table>
 <table><thead><tr><th>Aspetto</th><th>Regola</th></tr></thead><tbody><tr><td>Chat</td><td><strong>Silenzioso</strong> — <code>ADMIN-Silence.mdc</code>; output veve solo in sessione per Step 0</td></tr>
 <tr><td>Jira</td><td><strong>Vietato MCP</strong> — lettura cache DB; scrittura solo <code>jira_issue_wip</code></td></tr>
 <tr><td>Git / codice</td><td><strong>Vietato</strong> — no commit, no branch, no implementazione</td></tr>
@@ -273,7 +273,7 @@ node admin.portal.JiraCORE/jiraCORE.close.story.mjs --key {KEY} --dry-run</code>
 <p><strong>Aree</strong> da <code>PRJ_NAME</code> / overlay — es. JustLastOne: <code>apps/</code>, <code>packages/</code>, <code>testScript/</code> · AdminDashBoard: <code>admin.portal.lib/</code>, <code>cruscotto/</code>, <code>admin.portal.testscript/</code></p>
 <hr />
 <h3>Jira — invocazione</h3>
-<table><thead><tr><th>Fase workflow</th><th>Jira / DB</th></tr></thead><tbody><tr><td>Step 3 veve db</td><td><code>jira_issue</code> read · <code>jira_issue_wip</code> write</td></tr>
+<table><thead><tr><th>Fase workflow</th><th>Jira / DB</th></tr></thead><tbody><tr><td>Step 3 veve db</td><td><code>jira_issue</code> read · Jira REST crea subtask · <code>jira_issue_wip</code> write (Matrix CREA → <code>jira_issue</code>)</td></tr>
 <tr><td>Step 0 piano</td><td><code>jira_issue_wip</code> read</td></tr>
 <tr><td>Ok chiudi subtask</td><td><code>jira_issue_wip</code> update subtask</td></tr>
 <tr><td><strong>Step 7 chiudi</strong></td><td><strong><code>jira_issue_wip</code> update parent</strong> — no Atlassian · no PR</td></tr>

@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Veve DB — Leggi Jira (cache)
 
+Equivalente veve MCP step 1 (`ADMIN-Veve-LeggiJira.mdc`): stesso **output sessione**, fonte **SQLite** invece di `CallMcpTool`.
+
 ## Trigger
 
 `leggi jira db {KEY}` · `veve db {KEY}` · step 3.1 workflow database
@@ -16,21 +18,32 @@ alwaysApply: true
 | DB | SQLite cruscotto — `openCruscottoDb()` / `loadJiraBacklogFromDb()` |
 | Tabella | `jira_issue` dell'ultimo `sync_run` con `status=success` |
 | Modulo | `admin.portal.JiraCORE/jiraCORE.backlog.load.mjs` |
+| Ensure key | `ensureJiraIssuesInCache([KEY])` — post Matrix CREA o key singola |
 
 ## Applicazione
 
-1. Verifica `cruscottoDbFileExists()` — stop se DB assente.
-2. Carica backlog da DB (`loadJiraBacklogFromDb()`).
-3. Trova riga parent `{KEY}` in `issues` — campo **`key`** (alias `jiraKey` su righe da `loadJiraBacklogFromDb`).
-4. Elenca subtask: `parentKey === {KEY}` (DB: `parentJiraKey`).
-5. Segnala orphan / key invalide rispetto al parent.
+1. Verifica `cruscottoDbFileExists()` — **stop** se DB assente.
+2. Opzionale: `ensureJiraIssuesInCache([{KEY}])` se key appena creata e non ancora in sync bulk.
+3. Carica backlog da DB (`loadJiraBacklogFromDb()`).
+4. Trova riga parent `{KEY}` in `issues` — campo **`key`** (alias `jiraKey`).
+5. Elenca subtask: `parentJiraKey === {KEY}` (o `parentKey` su righe normalizzate).
+6. Segnala **orphan** (subtask senza parent in cache) · **key invalide** (prefisso ≠ overlay).
 
 ## Output
 
-Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide · `syncRunId` per step 3–4.
+Identico a veve MCP step 1, più metadati DB:
+
+- Parent: key, tipo, stato, summary
+- Tabella subtask (key, summary, stato, tipo)
+- Orphan · key invalide
+- **`syncRunId`** — obbligatorio per step 3–4 (stesso sync della sessione)
 
 ## Fallback
 
-Key assente in `jira_issue` → **stop** — suggerire `npm run db:sync` o veve MCP (`ADMIN-Veve-LeggiJira.mdc`).
+| Esito | Azione |
+| --- | --- |
+| Key assente dopo ensure | **Stop** — `npm run db:sync` |
+| DB non migrato | `node cruscotto.database/migrate.mjs` |
+| Serve Jira live senza cache | `veve {KEY}` MCP (`ADMIN-Veve-LeggiJira.mdc`) — solo standalone |
 
-**Vietato:** MCP Jira, `editJiraIssue`, branch, commit.
+**Vietato:** MCP Jira in questo step · `editJiraIssue` · scrittura `jira_issue_wip` · branch · commit.

@@ -280,12 +280,14 @@
           ? formatShortDate(issue.dbMeta.syncedAt)
           : "—";
         const descFrom    = issue.dbMeta?.descriptionFrom === "jira-cache"
-          ? "Description in cache"
+          ? "Description testo cache"
           : issue.dbMeta?.descriptionFrom === "wip"
             ? "Description WIP"
             : issue.dbMeta?.descriptionFrom === "jira-live"
-              ? "Description live"
-              : "—";
+              ? "Description HTML (come Jira)"
+              : issue.dbMeta?.descriptionFrom === "cache"
+                ? "Description veve cache"
+                : "—";
 
         wipAdvancementEl.innerHTML = [
           "<div class=\"issue-wip-advancement__head\">"
@@ -466,10 +468,10 @@
           : issue.dbMeta?.descriptionFrom === "cache"
             ? "description veve in raw_fields cache"
             : issue.dbMeta?.descriptionFrom === "jira-cache"
-              ? "description Jira in raw_fields (sync DB)"
+              ? "description testo cache (offline)"
               : issue.dbMeta?.descriptionFrom === "jira-live"
-              ? "description Jira live (fallback)"
-              : "solo metadati (nessuna description in DB)";
+                ? "description HTML come Apri da Jira"
+                : "solo metadati (nessuna description in DB)";
         const wipNote  = issue.dbMeta?.hasWip ? " · riga WIP presente" : "";
 
         sourceBanner.className = "issue-source-banner is-db";

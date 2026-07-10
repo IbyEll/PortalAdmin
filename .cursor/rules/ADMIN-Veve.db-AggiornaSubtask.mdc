@@ -1,34 +1,68 @@
 ---
-description: Veve db step 4 — upsert subtask in jira_issue_wip
+description: Veve db step 4 — crea subtask mancanti + upsert ogni figlia in jira_issue_wip
 alwaysApply: true
 ---
 
 # Veve DB — Aggiorna Subtask (WIP)
 
+Equivalente veve MCP step 4 (`ADMIN-Veve-AggiornaSubtask.mdc`): stesso template, groom su **DB** — più creazione subtask mancanti da gap (come design JLO / veve MCP).
+
 ## Trigger
 
-`aggiorna subtask db {KEY}` · `veve db {KEY}` step 4
+`aggiorna subtask db {KEY}` · `veve db {KEY}` step 4 · post Matrix CREA
 
-## Per ogni subtask
+## Fase A — Crea subtask mancanti (se gap chiaro)
+
+Prima del groom, `suggestVeveMissingSubtasks` — **aggiunge** oltre a quelle già in Jira:
+
+### Implementazione (da analisi path / layer)
+
+| Layer | Prefix summary | Quando |
+| --- | --- | --- |
+| Schema | `[Schema]` | path `prisma`, `schema`, migrations |
+| API | `[API]` | `apps/api`, endpoint |
+| Web | `[Web]` | `apps/web`, UI product |
+| Cruscotto | `[Cruscotto]` | `cruscotto.frontend`, `admin.portal` |
+| … | vedi `VEVE_LAYER_CONFIG` | gap ⚠️/❌ su layer assente in subtask esistenti |
+
+### Test (sempre in aggiunta, se mancanti)
+
+| Ruolo | Summary tipo | Quando |
+| --- | --- | --- |
+| Tecnico | `[Test] TestScript tecnico — …` | gap non ✅ · path `technical/`, `test.tecnici` |
+| Funzionale | `[Test] TestScript funzionale — …` | UI/cruscotto · `funzionali/` · matrice `test_coverage` |
+
+Creazione (unica chiamata Jira REST ammessa in veve DB):
+
+1. `createJiraIssue({ projectKey, issueTypeKey: "SUBTASK", summary, parentKey: {KEY} })` — `jiraCORE.jira.create.mjs`
+2. `ensureJiraIssuesInCache([nuoveKey])` — refresh `jira_issue`
+3. **Ripeti step 3** sul parent se ordine subtask cambia
+
+Salta proposta se esiste già subtask con summary compatibile (`subtaskMatchesImplementationLayer` / `subtaskMatchesTestRole`).
+
+Opzioni runtime: `createSubtasks: false` · `dryRun: true`.
+
+## Fase B — Groom ogni subtask
 
 Template: `.cursor/templates/veve/veve-subtask.md`
 
-Upsert in **`jira_issue_wip`**: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — da gap analysis.
+Per **ogni** subtask del parent `{KEY}` (esistenti + appena create), in ordine `suggestSubtaskOrder`:
+
+- Obiettivo, Stato repo (solo se area contemplata con ✅/⚠️/❌)
+- AC/DoD, file coinvolti, dipendenze, **ordine N/M**
 
 Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaSubtask.mdc`.
 
-## Scrittura DB
+## Scrittura DB (per ogni subtask)
 
-Per ogni subtask del parent `{KEY}`:
-
-1. Riga sorgente da `jira_issue` (se presente) o dati da Leggi DB step 1.
-2. Compila `veveDescription` dal template subtask.
-3. **Upsert** `jira_issue_wip` per `jira_key` subtask:
+1. Riga sorgente da `jira_issue` (post-ensure).
+2. Compila `veveDescription` dal template.
+3. **Upsert** `jira_issue_wip` (o `jira_issue` se CREA) per `jira_key` subtask:
 
 | Campo | Valore |
 | --- | --- |
 | `parent_jira_key` | `{KEY}` |
-| `raw_fields` | JSON con `veveDescription`, `files`, `orderN`, `orderM`, `gap` |
-| Altri campi | Mirror da `jira_issue` o default da Leggi DB |
+| `raw_fields` | `veveDescription`, `gap`, `files`, `orderN`, `orderM`, `parentVeveKey`, `workflowSource` |
+| Altri campi | Mirror da `jira_issue` |
 
-**Vietato:** MCP Jira, branch, commit, Fatto (salvo richiesta).
+**Vietato:** MCP Jira per edit description · `editJiraIssue` groom · branch · commit · Fatto (salvo richiesta).

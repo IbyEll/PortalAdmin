@@ -5,10 +5,32 @@ alwaysApply: true
 
 # Veve DB — Analizza repo
 
-Esegui regola canonica `.cursor/rules/ADMIN-AnalizzaRepo.mdc` + skill `jlo-analizza-repo`.
+Equivalente veve MCP step 2 (`ADMIN-Veve-AnalizzaRepo.mdc` / `ADMIN-AnalizzaRepo.mdc`): **stessa CLI**, stesso output — prerequisito **Leggi DB** invece di Leggi Jira MCP.
 
-Prerequisito: **Leggi DB** (`ADMIN-Veve.db-LeggiJira.mdc`) nella stessa sessione.
+## Trigger
 
-Output: tabella Stato repo + **Subtask vs repo** (Key | Esito | File | Gap) — identico a veve MCP.
+`analizza repo {KEY}` in contesto `veve db` · step 3.2 workflow database
 
-**Vietato:** scrittura su `jira_issue_wip` in questo step (solo step 3–4 db).
+## Esecuzione
+
+Regola canonica `.cursor/rules/ADMIN-AnalizzaRepo.mdc` + skill `jlo-analizza-repo`.
+
+```bash
+node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent {KEY} --format md
+```
+
+Prerequisito: **Leggi DB** (`ADMIN-Veve.db-LeggiJira.mdc`) nella stessa sessione — usa elenco subtask da step 1.
+
+## Output
+
+- Tabella **Stato repo** (aree ✅/⚠️/❌)
+- **Subtask vs repo** (Key | Esito | File | Gap)
+- **Ordine subtask consigliato** — input step 3–4 e `suggestVeveMissingSubtasks`
+
+Alimenta:
+
+- compilazione template `veve-story-parent.md` / `veve-subtask.md`
+- `suggestVeveImplementationSubtasks` (layer schema → admin)
+- `suggestVeveTestSubtasks` (`[Test]` tecnico / funzionale)
+
+**Vietato:** scrittura su `jira_issue` / `jira_issue_wip` in questo step (solo step 3–4).

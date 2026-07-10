@@ -1184,56 +1184,53 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   const hadWipVeve       = typeof wipRaw.veveDescription === "string" && Boolean(wipRaw.veveDescription.trim());
   const hadCacheVeve     = typeof issueRaw.veveDescription === "string" && Boolean(issueRaw.veveDescription.trim());
   const hadCacheJiraDesc = typeof issueRaw.jiraDescription === "string" && Boolean(issueRaw.jiraDescription.trim());
-  let veveMd             = hadWipVeve
+  const veveMarkdown     = hadWipVeve
     ? wipRaw.veveDescription.trim()
     : hadCacheVeve
       ? issueRaw.veveDescription.trim()
-      : hadCacheJiraDesc
-        ? issueRaw.jiraDescription.trim()
-        : "";
+      : "";
+  const jiraPlainDesc    = hadCacheJiraDesc ? issueRaw.jiraDescription.trim() : "";
+
+  /**
+   * @param {string} markdown
+   * @returns {string}
+   */
+  function descriptionHtmlFromVeveMarkdown(markdown) {
+    const md = String(markdown ?? "").trim();
+
+    if (!md) {
+      return "";
+    }
+
+    return enhanceVeveDescriptionHtml(
+      rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(md))
+    );
+  }
 
   /** @type {{ descriptionHtml: string, descriptionText: string } | null} */
-  let liveDesc    = null;
-  let syncedToWip = false;
+  let liveDesc = null;
 
-  if (!veveMd) {
+  // Senza veve markdown in DB: usa renderedFields Jira (stesso HTML di «Apri da Jira»)
+  if (!veveMarkdown) {
     try {
       liveDesc = await fetchJiraIssueDescriptionOnly(key);
-      const snap = liveDesc.descriptionText.trim();
-
-      if (snap || liveDesc.descriptionHtml) {
-        if (wipRow && snap) {
-          await db.jiraIssueWip.update({
-            where: { jiraKey: key }
-          , data : {
-              rawFields: JSON.stringify({
-                ...wipRaw
-              , veveDescription         : snap
-              , jiraDescriptionSyncedAt : new Date().toISOString()
-              })
-            }
-          });
-          syncedToWip = true;
-          veveMd      = snap;
-        } else if (snap) {
-          veveMd = snap;
-        }
-      }
     } catch {
-      // Jira live non disponibile — description resta vuota
+      // offline — fallback su testo cache + veveMarkdownToHtml
     }
   }
 
   /** @type {"wip" | "cache" | "jira-cache" | "jira-live" | "none"} */
-  const descriptionFrom = !veveMd && !liveDesc?.descriptionHtml
+  const descriptionFrom = !veveMarkdown && !jiraPlainDesc && !liveDesc?.descriptionHtml
     ? "none"
-    : hadWipVeve || syncedToWip
+    : hadWipVeve
       ? "wip"
       : hadCacheVeve
         ? "cache"
-        : hadCacheJiraDesc
-          ? "jira-cache"
-          : "jira-live";
+        : liveDesc?.descriptionHtml
+          ? "jira-live"
+          : hadCacheJiraDesc
+            ? "jira-cache"
+            : "jira-live";
 
   const merged = mergeJiraIssueCacheWithWip(row, wipRow ?? undefined);
 
@@ -1249,18 +1246,19 @@ export async function fetchJiraIssueDetailFromDb(issueKey) {
   , wipFieldOverrides: [...wipFieldOverrideSet]
   };
 
-  const descriptionText = veveMd || liveDesc?.descriptionText?.trim() || "";
+  const descriptionText = veveMarkdown
+    || jiraPlainDesc
+    || liveDesc?.descriptionText?.trim()
+    || "";
 
   let descriptionHtml = "";
 
-  if (hadWipVeve || hadCacheVeve || syncedToWip || hadCacheJiraDesc) {
-    descriptionHtml = veveMd
-      ? enhanceVeveDescriptionHtml(rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(veveMd)))
-      : "";
+  if (veveMarkdown) {
+    descriptionHtml = descriptionHtmlFromVeveMarkdown(veveMarkdown);
   } else if (liveDesc?.descriptionHtml) {
     descriptionHtml = liveDesc.descriptionHtml;
-  } else if (veveMd) {
-    descriptionHtml = enhanceVeveDescriptionHtml(rewriteJiraBrowseLinksInHtml(veveMarkdownToHtml(veveMd)));
+  } else if (jiraPlainDesc) {
+    descriptionHtml = descriptionHtmlFromVeveMarkdown(jiraPlainDesc);
   }
 
   const sprints = row.sprints.map(({ sprint }) => ({

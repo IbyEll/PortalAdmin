@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db-AggiornaSubtask — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -16,26 +34,58 @@
         <code>.cursor/rules/ADMIN-Veve.db-AggiornaSubtask.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 17:15
       </p>
-      <p class="lead">Veve db step 4 — upsert subtask in jira_issue_wip</p>
+      <p class="lead">Veve db step 4 — crea subtask mancanti (impl + test) + groom ogni figlia su DB</p>
     </header>
 
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Step 4 — Subtask</h2>
+      <p class="flow-sub">
+        Runtime: <code>suggestVeveMissingSubtasks</code> → <code>createJiraIssue</code> →
+        <code>buildVeveSubtaskMarkdown</code> → <code>writeVeveDbRow</code>.
+      </p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart LR
+  A["Subtask in\njira_issue"] --> B{"Manca impl layer\no [Test]?"}
+  B -->|sì| C["createJiraIssue\nSubtask + parent"]
+  C --> D["ensureJiraIssuesInCache"]
+  B -->|no| E["buildVeveSubtaskMarkdown"]
+  D --> E
+  E --> F{"writeTarget"}
+  F -->|workflow| G[("jira_issue_wip")]
+  F -->|CREA Matrix| H[("jira_issue")]
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  classDef store fill:#2d2463,stroke:#b794f6,color:#e7ecf3
+  class A,B,C,D,E step
+  class G,H store</pre>
+      </div>
+    </section>
+
     <article class="mdc-body">
-<h2>Veve DB — Aggiorna Subtask (WIP)</h2>
+<h2>Veve DB — Aggiorna Subtask</h2>
 <h3>Trigger</h3>
-<p><code>aggiorna subtask db {KEY}</code> · <code>veve db {KEY}</code> step 4</p>
-<h3>Per ogni subtask</h3>
+<p><code>aggiorna subtask db {KEY}</code> · <code>veve db {KEY}</code> step 4 · post Matrix <strong>CREA</strong></p>
+<h3>Fase A — Crea subtask mancanti</h3>
+<p><code>suggestVeveMissingSubtasks</code> — implementazione per layer + test:</p>
+<table><thead><tr><th>Tipo</th><th>Summary</th><th>Quando</th></tr></thead><tbody>
+<tr><td>Impl</td><td><code>[Cruscotto]</code> <code>[API]</code> … + path</td><td>Layer gap ⚠️/❌ senza subtask compatibile</td></tr>
+<tr><td>Test tecnico</td><td><code>[Test] TestScript tecnico — …</code></td><td>Gap non ✅ · path technical</td></tr>
+<tr><td>Test funzionale</td><td><code>[Test] TestScript funzionale — …</code></td><td>UI/cruscotto · test_coverage</td></tr>
+</tbody></table>
+<p>REST <code>createJiraIssue</code> → <code>ensureJiraIssuesInCache</code> → ripeti step 3 parent.</p>
+<h3>Fase B — Groom ogni subtask</h3>
 <p>Template: <code>.cursor/templates/veve/veve-subtask.md</code></p>
-<p>Upsert in <strong><code>jira_issue_wip</code></strong>: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — da gap analysis.</p>
+<p>Per ogni figlia: Obiettivo, Stato repo, AC/DoD, file coinvolti, ordine N/M — da gap analysis.</p>
 <p>Sezioni e <strong>checkbox AC/DoD (B poi A)</strong>: come <code>ADMIN-Veve-AggiornaSubtask.mdc</code>.</p>
 <h3>Scrittura DB</h3>
-<p>Per ogni subtask del parent <code>{KEY}</code>:</p>
-<ol><li>Riga sorgente da <code>jira_issue</code> (se presente) o dati da Leggi DB step 1.</li><li>Compila <code>veveDescription</code> dal template subtask.</li><li><strong>Upsert</strong> <code>jira_issue_wip</code> per <code>jira_key</code> subtask:</li></ol>
-<table><thead><tr><th>Campo</th><th>Valore</th></tr></thead><tbody><tr><td><code>parent_jira_key</code></td><td><code>{KEY}</code></td></tr>
-<tr><td><code>raw_fields</code></td><td>JSON con <code>veveDescription</code>, <code>files</code>, <code>orderN</code>, <code>orderM</code>, <code>gap</code></td></tr>
-<tr><td>Altri campi</td><td>Mirror da <code>jira_issue</code> o default da Leggi DB</td></tr></tbody></table>
-<p><strong>Vietato:</strong> MCP Jira, branch, commit, Fatto (salvo richiesta).</p>
+<table><thead><tr><th>Campo</th><th>Valore</th></tr></thead><tbody>
+<tr><td><code>parent_jira_key</code></td><td><code>{KEY}</code></td></tr>
+<tr><td><code>raw_fields</code></td><td>JSON: <code>veveDescription</code>, <code>files</code>, <code>orderN</code>, <code>orderM</code>, <code>gap</code></td></tr>
+<tr><td>Destinazione</td><td><code>jira_issue_wip</code> (workflow) o <code>jira_issue</code> (CREA Matrix)</td></tr>
+</tbody></table>
+<p><strong>Vietato:</strong> MCP Jira per edit description, branch, commit, Fatto (salvo richiesta).</p>
     </article>
 
     <footer>

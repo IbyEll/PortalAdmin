@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -16,35 +34,107 @@
         <code>.cursor/rules/ADMIN-Veve.db.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 18:15
       </p>
-      <p class="lead">Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database (MyBacklog)</p>
+      <p class="lead">Veve DB programmatico — cache <code>jira_issue</code>, gap repo, crea subtask test mancanti, groom <code>raw_fields</code> (WIP o cache)</p>
     </header>
+
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Flusso veve DB</h2>
+      <p class="flow-sub">
+        Entrypoint: <code>admin.portal.JiraCORE/jiraCORE.veve.db.mjs</code> ·
+        <code>runVeveDbForIssueKey</code>.
+        Step agente 1→4 · runtime Matrix <strong>CREA</strong> e workflow database step 3.
+      </p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart TB
+  subgraph TR["Trigger"]
+    T1["veve db {KEY}"]
+    T2["Matrix CREA\nPOST /api/matrix/create-issue"]
+    T3["gogo / procedi\nstep 3 workflow DB"]
+  end
+
+  subgraph VDB["runVeveDbForIssueKey"]
+    direction TB
+    S1["1 ensureJiraIssuesInCache parent"]
+    S2["2 analyzeIssueKeys\ngap repo"]
+    S3{"3 subtask mancanti?\nimpl + [Test]"}
+    S4["createJiraIssue Subtask\nREST · non editJiraIssue"]
+    S5["ensureJiraIssuesInCache subtask"]
+    S6["4 buildVeve markdown\nparent + ogni subtask"]
+    S7{"writeTarget?"}
+    S8[("jira_issue\nraw_fields · CREA")]
+    S9[("jira_issue_wip\nworkflow DB")]
+    S1 --> S2 --> S3
+    S3 -->|sì, gap chiaro| S4 --> S5 --> S6
+    S3 -->|no| S6
+    S6 --> S7
+    S7 -->|jira_issue| S8
+    S7 -->|jira_issue_wip| S9
+  end
+
+  REPO["PRODUCT_REPO_PATH\nscan segnali"]
+  JIRA["Jira Cloud"]
+
+  T1 & T2 & T3 --> S1
+  REPO --> S2
+  S4 --> JIRA
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  classDef store fill:#2d2463,stroke:#b794f6,color:#e7ecf3
+  classDef ext fill:#3d3422,stroke:#fbbf24,color:#e7ecf3
+  class S1,S2,S4,S5,S6 step
+  class S8,S9 store
+  class JIRA,REPO ext</pre>
+      </div>
+      <div class="flow-legend">
+        <span><span class="dot dot--agent"></span>Step veve DB</span>
+        <span><span class="dot dot--db"></span>Persistenza groomed</span>
+        <span><span class="dot dot--ext"></span>Jira / repo</span>
+      </div>
+    </section>
 
     <article class="mdc-body">
 <h2>Veve DB — <code>veve db {KEY}</code> e workflow database step 3</h2>
-<p>Variante <strong>cruscotto SQLite</strong>: legge cache <code>jira_issue</code>, analizza repo, persiste coda WIP in <code>jira_issue_wip</code> — <strong>senza</strong> MCP Jira.</p>
-<p>Sequenza: <strong>Leggi DB</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna story WIP</strong> → <strong>Aggiorna subtask WIP</strong>.</p>
-<table><thead><tr><th>Step veve db</th><th>Regola</th></tr></thead><tbody><tr><td>1</td><td><code>ADMIN-Veve.db-LeggiJira.mdc</code></td></tr>
-<tr><td>2</td><td><code>ADMIN-AnalizzaRepo.mdc</code> (stessa di veve MCP)</td></tr>
-<tr><td>3</td><td><code>ADMIN-Veve.db-AggiornaStory.mdc</code> · <code>.cursor/templates/veve/veve-story-parent.md</code></td></tr>
-<tr><td>4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> · <code>.cursor/templates/veve/veve-subtask.md</code></td></tr></tbody></table>
+<p>Variante <strong>cruscotto SQLite</strong>: <strong>stessa sequenza e template</strong> di <a href="ADMIN-Veve.html">veve MCP</a>, ma lettura <code>jira_issue</code> e groom su <code>jira_issue_wip</code> (o <code>jira_issue</code> post-CREA) — <strong>non</strong> <code>editJiraIssue</code> / MCP per description.</p>
+<p>Sequenza: <strong>Leggi DB</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna story WIP</strong> → <strong>Aggiorna subtask WIP</strong> (crea mancanti implementazione + <code>[Test]</code> + groom).</p>
+<table><thead><tr><th>Step veve db</th><th>Regola</th><th>≈ veve MCP</th></tr></thead><tbody>
+<tr><td>1</td><td><code>ADMIN-Veve.db-LeggiJira.mdc</code></td><td>Leggi Jira MCP</td></tr>
+<tr><td>2</td><td><code>ADMIN-AnalizzaRepo.mdc</code></td><td>identica</td></tr>
+<tr><td>3</td><td><code>ADMIN-Veve.db-AggiornaStory.mdc</code> · <code>veve-story-parent.md</code></td><td>Aggiorna Story</td></tr>
+<tr><td>4</td><td><code>ADMIN-Veve.db-AggiornaSubtask.mdc</code> · <code>veve-subtask.md</code></td><td>Aggiorna Subtask + crea</td></tr></tbody></table>
+<h3>Parità veve</h3>
+<table><thead><tr><th></th><th>Veve MCP</th><th>Veve DB</th></tr></thead><tbody>
+<tr><td>Template</td><td><code>veve-story-parent.md</code> / <code>veve-subtask.md</code></td><td><strong>Stessi</strong></td></tr>
+<tr><td>Stato repo / AC·DoD</td><td>✅⚠️❌ · regola B poi A</td><td><strong>Stesso</strong></td></tr>
+<tr><td>Crea subtask</td><td>Step 4 · impl + test</td><td>Step 4 · <code>suggestVeveMissingSubtasks</code></td></tr>
+<tr><td>Scrittura description</td><td>Jira Cloud</td><td><code>raw_fields.veveDescription</code> su DB</td></tr>
+</tbody></table>
 <h3>Trigger</h3>
 <table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve db {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
-<tr><td><code>procedi</code> / <code>gogo {KEY}</code> con <code>ADMIN-Workflow database.mdc</code></td><td><strong>Step 3</strong> — silenzioso (<code>ADMIN-Silence.mdc</code>)</td></tr>
+<tr><td><code>procedi</code> / <code>gogo {KEY}</code> con workflow database</td><td><strong>Step 3</strong> — silenzioso (<code>ADMIN-Silence.mdc</code>)</td></tr>
+<tr><td>Matrix <strong>CREA</strong></td><td>Post <code>createMatrixFindingIssue</code> → <code>runVeveDbForIssueKey</code> con <code>writeTarget: jira_issue</code></td></tr>
 <tr><td><code>chiudi</code></td><td><strong>Non</strong> esegue veve db</td></tr></tbody></table>
 <p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code> del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
 <h3>Prerequisito DB</h3>
 <table><thead><tr><th>Controllo</th><th>Stop se</th></tr></thead><tbody><tr><td><code>cruscotto.db</code></td><td>Assente o non migrato (<code>node cruscotto.database/migrate.mjs</code>)</td></tr>
-<tr><td>Sync cache</td><td>Nessun <code>sync_run</code> success con <code>jira_issue</code> per <code>{KEY}</code></td></tr>
+<tr><td>Sync cache</td><td>Nessun <code>sync_run</code> success con <code>jira_issue</code> per <code>{KEY}</code> (salvo <code>ensureJiraIssuesInCache</code> post-CREA)</td></tr>
 <tr><td>Overlay</td><td><code>CRUSCOTTO_DB_PATH</code> / <code>PRJ_NAME</code> non allineati</td></tr></tbody></table>
 <p>Sync backlog: <code>npm run db:sync</code> (host PortalAdmin) prima del primo <code>veve db</code> su key assente in cache.</p>
-<h3>Persistenza WIP</h3>
-<p>Tabella <code>jira_issue_wip</code> (modello Prisma <code>JiraIssueWip</code>) — stessa struttura di <code>jira_issue</code>.</p>
-<table><thead><tr><th>Operazione</th><th>Tabella</th></tr></thead><tbody><tr><td>Lettura parent/subtask</td><td><code>jira_issue</code> (ultimo sync success)</td></tr>
-<tr><td>Scrittura groomed</td><td><code>jira_issue_wip</code> — upsert per <code>jira_key</code></td></tr></tbody></table>
-<p>Testo veve (Obiettivo, AC/DoD, …) da template → campo <code>raw_fields</code> JSON: <code>{ &quot;veveDescription&quot;: &quot;…&quot;, &quot;gap&quot;: {…} }</code>.</p>
-<p><strong>Vietato:</strong> <code>CallMcpTool</code> Jira, <code>editJiraIssue</code>, branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).</p>
+<h3>Subtask automatiche (step 4 — fase A)</h3>
+<p><code>suggestVeveMissingSubtasks</code> propone e crea su Jira (REST, non MCP groom) se assenti:</p>
+<ul>
+<li><strong>Implementazione</strong> — <code>[Schema]</code> <code>[API]</code> <code>[Web]</code> <code>[Cruscotto]</code> … da layer path gap</li>
+<li><strong>Test tecnico</strong> — <code>[Test] TestScript tecnico — …</code></li>
+<li><strong>Test funzionale</strong> — <code>[Test] TestScript funzionale — …</code></li>
+</ul>
+<p>Poi <code>ensureJiraIssuesInCache</code> → groom ogni subtask (fase B) · ripeti step 3 parent se ordine cambia.</p>
+<h3>Persistenza groomed</h3>
+<table><thead><tr><th>Contesto</th><th>Lettura</th><th>Scrittura <code>veveDescription</code></th></tr></thead><tbody>
+<tr><td>Workflow database · <code>veve db</code></td><td><code>jira_issue</code></td><td><code>jira_issue_wip</code> — upsert</td></tr>
+<tr><td>Matrix <strong>CREA</strong></td><td><code>jira_issue</code></td><td><code>jira_issue.raw_fields</code> — merge</td></tr></tbody></table>
+<p>Campo JSON: <code>{ "veveDescription": "…", "gapSummary": "…", "workflowSource": "veve-db", … }</code>.</p>
+<p><strong>Vietato:</strong> <code>CallMcpTool</code> Jira, <code>editJiraIssue</code> (salvo creazione subtask REST), branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).</p>
     </article>
 
     <footer>

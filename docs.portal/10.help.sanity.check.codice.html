@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>10. HELP - PortalAdmin — Sanity check codice</title>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!--
+------------------------------------------------------------------------------------------------------------------------
+ ** PAGE HTML ** -- commentato il: 2026-07-10 18:40
+------------------------------------------------------------------------------------------------------------------------
+ creato     il: 2026-07-10 18:40   by: Cursor Agent
+ modificato il: 2026-07-10 18:40   by: Cursor Agent
+------------------------------------------------------------------------------------------------------------------------
+
+************************************************************************************************************************
+*              Sanity check codice PortalAdmin — ridondanze, gap, miglioramenti e strumenti disponibili.
+************************************************************************************************************************
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - Documentare in modo persistente come eseguire un sanity check del repo PortalAdmin
+      (ridondanze, codice inutilizzato, drift architetturale, gap test).
+
+    A cosa serve:
+    - Guida operativa con comandi CLI, artefatti generati, UI Documenti e strumenti complementari.
+
+  Generalizzazione:
+    No — guida dedicata al checkout host PortalAdmin e alle matrici docs.portal.
+
+  Input: —
+
+  Servita da:
+    - admin.portal/portal.home.server.mjs — URL /docs/10.help.sanity.check.codice.html
+
+  Asset collegati:
+    - docs.style.css — foglio stili condiviso documenti
+    - utility.toolbar.document.js — toolbar Aggiorna / Rigenera (iniettata da DOCS-CHROME)
+
+  Documenti correlati:
+    - matrix.portal.gap.html — report unificato avanzamento + audit
+    - matrix.test.coverage.html — copertura test
+    - 9.feature.matrix.database.html — matrice su DB cruscotto
+
+  -->
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Sanity check codice PortalAdmin</h1>
+      <p class="meta">
+        Guida operativa · luglio 2026 ·
+        repo <a href="https://github.com/IbyEll/PortalAdmin">IbyEll/PortalAdmin</a>
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="matrix.portal.gap.html">Avanzamento / gap</a> ·
+        <a href="matrix.test.coverage.html">Copertura test</a> ·
+        <a href="9.feature.matrix.database.html">Matrice database</a> ·
+        <a href="4.info.PortalAdmin.development.html">Visione sviluppo</a>
+      </nav>
+      <p class="lead">
+        In PortalAdmin esiste già un sistema di <strong>sanity check orientato al progetto</strong>,
+        non un generico linter tipo ESLint o Knip. È pensato per architettura, ridondanze, drift,
+        gap e miglioramenti — non per rilevare automaticamente ogni export mai importato.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#strumento-principale">1. Strumento principale — matrice unificata</a></li>
+        <li><a href="#varianti-cli">2. Varianti CLI</a></li>
+        <li><a href="#ui">3. Visualizzazione in UI</a></li>
+        <li><a href="#complementari">4. Check complementari</a></li>
+        <li><a href="#non-copre">5. Cosa non copre oggi</a></li>
+        <li><a href="#workflow">6. Workflow consigliato</a></li>
+        <li><a href="#note">7. Note e riferimenti</a></li>
+      </ul>
+    </nav>
+
+    <div class="oneliner" id="strumento-principale">
+      <strong>In una riga:</strong>
+      dalla root del repo esegui
+      <code>node docs.portal/matrix.portal.gap.analysis.mjs</code>
+      e consulta <code>docs.portal/matrix.portal.gap.html</code> — sezioni operativo
+      (<code>op-*</code>) e audit (<code>audit-*</code>, anchor <code>#audit-parking</code>).
+    </div>
+
+    <h2 id="strumento-principale-h2">1. Strumento principale — matrice unificata</h2>
+    <p>Il comando canonico dalla root del repository:</p>
+    <pre><code>node docs.portal/matrix.portal.gap.analysis.mjs</code></pre>
+
+    <h3>Artefatti generati</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Artefatto</th>
+          <th>Contenuto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>docs.portal/matrix.portal.gap.html</code></td>
+          <td>Report HTML navigabile (avanzamento + audit)</td>
+        </tr>
+        <tr>
+          <td><code>docs.portal/matrix.portal.gap.json</code></td>
+          <td>Dati strutturati per diff e review offline</td>
+        </tr>
+        <tr>
+          <td><code>docs.portal/matrix.portal.gap.md</code></td>
+          <td>Versione markdown</td>
+        </tr>
+        <tr>
+          <td><code>docs.portal/repo-audit-ridondanze-gap.json</code></td>
+          <td>Sottoinsieme audit ridondanze (storico)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Cosa analizza</h3>
+    <p>Regola Cursor: <code>.cursor/rules/ADMIN-AvanzamentoGapFeature.mdc</code></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Metodo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Architettura</strong></td>
+          <td><code>existsSync</code> + checklist migrazioni (overlay, dual server, JiraCORE, docs, path smoke)</td>
+        </tr>
+        <tr>
+          <td><strong>Ridondanze e drift</strong></td>
+          <td>Catalogo audit in <code>docs.portal.lib/matrix.repo.audit.mjs</code> — sezione <code>redundancy</code></td>
+        </tr>
+        <tr>
+          <td><strong>Gap / bug</strong></td>
+          <td>Import mancanti, path npm errati, moduli orfani (grep su sorgenti)</td>
+        </tr>
+        <tr>
+          <td><strong>Deprecation</strong></td>
+          <td>Consumer di path legacy (<code>portal-paths</code>, <code>runner/</code>, ecc.)</td>
+        </tr>
+        <tr>
+          <td><strong>Feature / miglioramenti</strong></td>
+          <td>Catalogo curato in <code>docs.portal.lib/matrix.gap.scan.mjs</code></td>
+        </tr>
+        <tr>
+          <td><strong>Priorità R1–R7</strong></td>
+          <td>Backlog tecnico ordinato nella sezione audit</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Moduli coinvolti:</p>
+    <ul>
+      <li><code>docs.portal.lib/matrix.gap.scan.mjs</code> — scansione finding e metriche</li>
+      <li><code>docs.portal.lib/docs.portal.analysis.mjs</code> — 15 controlli automatici base</li>
+      <li><code>docs.portal.lib/matrix.unified.mjs</code> — builder sezioni operativo + audit con dedup</li>
+      <li><code>docs.portal/matrix.portal.gap.analysis.procedure.mjs</code> — orchestratore step 1→4</li>
+    </ul>
+
+    <h2 id="varianti-cli">2. Varianti CLI</h2>
+    <pre><code># Descrizione step della procedura
+node docs.portal/matrix.portal.gap.analysis.procedure.mjs --describe
+
+# Solo HTML su stdout
+node docs.portal/matrix.portal.gap.analysis.mjs --stdout-html
+
+# Render completo senza merge sull'HTML esistente
+node docs.portal/matrix.portal.gap.analysis.mjs --full</code></pre>
+
+    <h2 id="ui">3. Visualizzazione in UI</h2>
+    <p>Con <code>npm run admin:home</code> attivo:</p>
+    <ol>
+      <li>Apri la HOME portal → tab <strong>Documenti</strong></li>
+      <li>Apri <a href="matrix.portal.gap.html">matrix.portal.gap.html</a> dall'indice</li>
+      <li>Usa <strong>Rigenera</strong> sulla toolbar per rilanciare lo scan</li>
+    </ol>
+    <p>In alternativa, dal cruscotto in dev locale:</p>
+    <ul>
+      <li><code>POST /api/matrix/regenerate</code> — equivalente API con persistenza su DB matrice</li>
+      <li><code>POST /api/docs/regenerate</code> — rigenera singola pagina matrice dalla HOME</li>
+    </ul>
+
+    <h2 id="complementari">4. Check complementari</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Strumento</th>
+          <th>Comando</th>
+          <th>Focus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Copertura test</strong></td>
+          <td><code>node docs.portal/matrix.test.coverage.mjs</code></td>
+          <td>Aree senza smoke o test automatici</td>
+        </tr>
+        <tr>
+          <td><strong>Smoke CI</strong></td>
+          <td><code>npm run test:ci</code></td>
+          <td>Integrità path, config, workflow, DB, API</td>
+        </tr>
+        <tr>
+          <td><strong>Backlog obsoleto</strong></td>
+          <td><code>npm run backlog:obsolete</code></td>
+          <td>Ticket Jira «Da fare» probabilmente superati dal repo</td>
+        </tr>
+        <tr>
+          <td><strong>Gap per ticket</strong></td>
+          <td><code>node admin.portal.JiraCORE/jiraCORE.repo.issuekey.gap.analysis.mjs --parent ADMIN-xxx --format md</code></td>
+          <td>Allineamento Jira ↔ codice (workflow veve / procedi)</td>
+        </tr>
+        <tr>
+          <td><strong>Controlli base (15)</strong></td>
+          <td>Pulsante <strong>Aggiorna</strong> su ogni doc HTML</td>
+          <td><code>docs.portal.lib/docs.portal.analysis.mjs</code> — health, overlay, smoke path</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="non-copre">5. Cosa non copre oggi</h2>
+    <p>Nel repository <strong>non</strong> risultano configurati strumenti generici per:</p>
+    <ul>
+      <li>export o funzioni mai importate (es. Knip, <code>ts-prune</code>)</li>
+      <li>dipendenze npm inutilizzate (depcheck)</li>
+      <li>linting statico (ESLint)</li>
+    </ul>
+    <p>
+      La matrice PortalAdmin è <strong>rule-based + grep + catalogo curato</strong>: ottima per
+      drift architetturale e ridondanze note, meno per «tutto il codice morto» in automatico.
+    </p>
+
+    <h2 id="workflow">6. Workflow consigliato per un sanity check completo</h2>
+    <pre><code>1. node docs.portal/matrix.portal.gap.analysis.mjs
+2. Apri matrix.portal.gap.html → sezioni audit-* e #audit-parking
+3. node docs.portal/matrix.test.coverage.mjs
+4. npm run test:ci
+5. (opzionale) npm run backlog:obsolete -- --format md</code></pre>
+
+    <p>
+      In chat Cursor puoi anche chiedere all'agente: <strong>analizza avanzamento</strong> —
+      attiva la regola <code>ADMIN-AvanzamentoGapFeature</code> che rigenera e interpreta la matrice.
+    </p>
+
+    <h2 id="note">7. Note e riferimenti</h2>
+    <h3>Distinzione Aggiorna vs matrice gap</h3>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th><strong>Aggiorna</strong> (toolbar docs)</th>
+          <th><strong>matrix.portal.gap</strong></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Trigger</td>
+          <td>UI Documenti</td>
+          <td>CLI / regola / agente</td>
+        </tr>
+        <tr>
+          <td>Output</td>
+          <td>Sezione auto in ogni doc esistente</td>
+          <td>Pagina dedicata completa</td>
+        </tr>
+        <tr>
+          <td>Scope</td>
+          <td>Controlli + tabella per titolo pagina</td>
+          <td>Report trasversale categorizzato</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Categorie e severità output matrice</h3>
+    <p>
+      Categorie: <code>avanzamento</code> · <code>architettura</code> · <code>gap</code> ·
+      <code>bug</code> · <code>deprecation</code> · <code>feature</code> · <code>miglioramento</code>
+    </p>
+    <p>Severità: <code>P0</code> · <code>P1</code> · <code>P2</code> · <code>info</code></p>
+
+    <h3>Nota su audit ridondanze legacy</h3>
+    <p>
+      <code>docs.portal.lib/registry.regenerate.mjs</code> cita ancora
+      <code>matrix.repo.audit.ridondanze.gap.mjs</code>, ma quel file non esiste più:
+      l'audit ridondanze è stato <strong>unificato</strong> in
+      <code>matrix.portal.gap.analysis.mjs</code>. Usa sempre quello.
+    </p>
+
+    <h3>Sezioni audit da consultare per ridondanze</h3>
+    <ul>
+      <li><code>#audit-parking</code> — moduli <code>PARKING_tocheck</code> ancora live nel flusso</li>
+      <li>Sezione <strong>Ridondanze e drift</strong> — duplicati Jira, overlay drift, alias path</li>
+      <li>Sezione <strong>Miglioramenti consigliati</strong> — promote PARKING, CI, comcom</li>
+      <li>Sezione <strong>Priorità backlog (R1–R7)</strong> — ordine interventi suggerito</li>
+    </ul>
+  </div>
+  <script src="/docs/utility.toolbar.document.js" defer></script>
+</body>
+</html>

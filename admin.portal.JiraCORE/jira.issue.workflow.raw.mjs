@@ -47,10 +47,21 @@
 /** @typedef {Record<string, unknown>} WorkflowRawFields */
 
 /**
- * Chiavi avanzamento workflow copiate da jira_issue_wip a jira_issue al sync post-merge.
+ * Chiavi veve DB (grooming cache) da preservare al sync backlog.
  *
  * @type {readonly string[]}
  */
+export const VEVE_DB_RAW_FIELD_KEYS = [
+  "gapSummary"
+, "gap"
+, "updatedAt"
+, "matrixFindingId"
+, "matrixKind"
+, "parentVeveKey"
+, "orderN"
+, "orderM"
+];
+
 export const WORKFLOW_RAW_FIELD_KEYS = [
   "veveDescription"
 , "awaitingPush"
@@ -179,6 +190,49 @@ export function resolveWipClosedAtFromRaw(raw) {
  * @param {WorkflowRawFields} [rawMerge]
  * @returns {WorkflowRawFields}
  */
+/**
+ * Estrae da raw_fields le chiavi workflow/veve da non perdere al wipe sync_run.
+ *
+ * @param {string | null | undefined} rawFields
+ * @returns {WorkflowRawFields}
+ */
+export function pickPreservedRawFields(rawFields) {
+  const source = parseWorkflowRawFields(rawFields);
+  /** @type {WorkflowRawFields} */
+  const out = {};
+
+  for (const key of [...WORKFLOW_RAW_FIELD_KEYS, ...VEVE_DB_RAW_FIELD_KEYS]) {
+    if (source[key] !== undefined && source[key] !== null) {
+      out[key] = source[key];
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Merge description Jira sync + campi workflow/veve preservati.
+ *
+ * @param {{ jiraDescription?: string | null }} row
+ * @param {string} syncedAt ISO-8601
+ * @param {WorkflowRawFields} [preserved]
+ * @returns {string | null}
+ */
+export function mergeBacklogIssueRawFields(row, syncedAt, preserved = {}) {
+  const jiraDescription = typeof row.jiraDescription === "string"
+    ? row.jiraDescription.trim()
+    : "";
+  /** @type {WorkflowRawFields} */
+  const merged = { ...preserved };
+
+  if (jiraDescription) {
+    merged.jiraDescription          = jiraDescription;
+    merged.jiraDescriptionSyncedAt  = syncedAt;
+  }
+
+  return Object.keys(merged).length ? JSON.stringify(merged) : null;
+}
+
 export function mergeWorkflowRawFields(prev, rawMerge = {}) {
   const merged = { ...prev, ...rawMerge };
 

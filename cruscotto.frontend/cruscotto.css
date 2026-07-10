@@ -1070,6 +1070,81 @@ main table.wp-table--dev-queue tbody tr:hover {
   min-width: 0;
 }
 
+.working-plan-report .wp-epic-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.working-plan-report .wp-epic-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  padding: 0.18rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border, #30363d);
+  background: var(--surface, #161b22);
+  color: var(--text, #c9d1d9);
+  box-sizing: border-box;
+}
+
+.working-plan-report .wp-epic-select:focus {
+  outline: none;
+  border-color: var(--accent, #58a6ff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #58a6ff) 35%, transparent);
+}
+
+.working-plan-report .wp-epic-select option {
+  background: var(--surface, #161b22);
+  color: var(--text, #c9d1d9);
+}
+
+.working-plan-report .wp-btn-set-epic {
+  flex: 0 0 auto;
+  min-width: 1.65rem;
+  padding: 0.18rem 0.38rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.working-plan-report .wp-btn-set-epic .wp-epic-ref-badge {
+  margin-left: 0;
+  padding: 0;
+  border: none;
+  font-size: 0.62rem;
+}
+
+.working-plan-report .wp-epic-ref-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.25rem;
+  border-radius: 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--accent, #58a6ff);
+  border: 1px solid color-mix(in srgb, var(--accent, #58a6ff) 45%, transparent);
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-cell-wrap,
+.working-plan-report .wp-table.wp-table--backlog-pool .wp-epic-cell-wrap,
+.working-plan-report .wp-table.wp-table--active-sprint .wp-epic-cell-wrap {
+  overflow: hidden;
+}
+
+.working-plan-report .wp-table.wp-table--dev-queue .wp-epic-picker,
+.working-plan-report .wp-table.wp-table--backlog-pool .wp-epic-picker,
+.working-plan-report .wp-table.wp-table--active-sprint .wp-epic-picker {
+  width: 100%;
+}
+
 .working-plan-report .wp-sprint-card h5 {
   margin: 0.75rem 0 0.35rem;
   font-size: 0.85rem;

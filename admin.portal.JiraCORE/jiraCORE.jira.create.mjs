@@ -1,5 +1,5 @@
 /**
- * Jira Cloud — creazione issue (Bug, Story, Task, Sub-task, Epic, Todo).
+ * Jira Cloud — creazione issue (Bug, Story, Task, Subtask, Epic, Todo).
  */
 
 import { jiraLiveFetch, markdownToAdfDoc } from "./jiraCORE.jira.live.mjs";
@@ -13,7 +13,7 @@ export const JIRA_CREATE_ISSUE_TYPES = {
   BUG    : { jiraName: "Bug", label: "bug" }
 , STORY  : { jiraName: "Story", label: "story" }
 , TASK   : { jiraName: "Task", label: "task" }
-, SUBTASK: { jiraName: "Sub-task", label: "sub", requiresParent: true }
+, SUBTASK: { jiraName: "Subtask", label: "sub", requiresParent: true }
 , EPIC   : { jiraName: "Epic", label: "epic" }
 , TODO   : { jiraName: "Todo", label: "todo" }
 };

@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db-LeggiJira — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -16,10 +34,27 @@
         <code>.cursor/rules/ADMIN-Veve.db-LeggiJira.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 17:15
       </p>
       <p class="lead">Veve db step 1 — leggi parent e subtask da jira_issue (cache cruscotto)</p>
     </header>
+
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Step 1 — Leggi cache</h2>
+      <p class="flow-sub">Nessuna chiamata MCP — solo SQLite <code>jira_issue</code> dell'ultimo sync success (o <code>ensureJiraIssuesInCache</code> post-CREA).</p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart LR
+  A{"Key in\njira_issue?"} -->|no| B["ensureJiraIssuesInCache\no db:sync"]
+  A -->|sì| C["loadJiraBacklogFromDb"]
+  B --> C
+  C --> D["Parent {KEY}"]
+  C --> E["Subtask\nparent_jira_key = KEY"]
+  D --> F["Output sessione\nsyncRunId + tabelle"]
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  class A,B,C,D,E,F step</pre>
+      </div>
+    </section>
 
     <article class="mdc-body">
 <h2>Veve DB — Leggi Jira (cache)</h2>
@@ -28,13 +63,13 @@
 <h3>Fonte dati</h3>
 <table><thead><tr><th>Elemento</th><th>Dettaglio</th></tr></thead><tbody><tr><td>DB</td><td>SQLite cruscotto — <code>openCruscottoDb()</code> / <code>loadJiraBacklogFromDb()</code></td></tr>
 <tr><td>Tabella</td><td><code>jira_issue</code> dell'ultimo <code>sync_run</code> con <code>status=success</code></td></tr>
-<tr><td>Modulo</td><td><code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code></td></tr></tbody></table>
+<tr><td>Modulo</td><td><code>admin.portal.JiraCORE/jiraCORE.backlog.load.mjs</code> · <code>ensureJiraIssuesInCache</code></td></tr></tbody></table>
 <h3>Applicazione</h3>
-<ol><li>Verifica <code>cruscottoDbFileExists()</code> — stop se DB assente.</li><li>Carica backlog da DB (<code>loadJiraBacklogFromDb()</code>).</li><li>Trova riga parent <code>{KEY}</code> in <code>issues</code>.</li><li>Elenca subtask: <code>parentJiraKey === {KEY}</code> (o gerarchia <code>relatedKeys</code> se presente).</li><li>Segnala orphan / key invalide rispetto al parent.</li></ol>
+<ol><li>Verifica <code>cruscottoDbFileExists()</code> — stop se DB assente.</li><li>Carica backlog da DB (<code>loadJiraBacklogFromDb()</code>).</li><li>Trova riga parent <code>{KEY}</code> in <code>issues</code>.</li><li>Elenca subtask: <code>parentJiraKey === {KEY}</code>.</li><li>Segnala orphan / key invalide rispetto al parent.</li></ol>
 <h3>Output</h3>
-<p>Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide · <code>syncRunId</code> per step 3–4.</p>
+<p>Parent (key, tipo, stato, summary) · tabella subtask · orphan · key invalide · <code>syncRunId</code> per step 2–4.</p>
 <h3>Fallback</h3>
-<p>Key assente in <code>jira_issue</code> → <strong>stop</strong> — suggerire <code>npm run db:sync</code> o veve MCP (<code>ADMIN-Veve-LeggiJira.mdc</code>).</p>
+<p>Key assente → <code>ensureJiraIssuesInCache([KEY])</code> (runtime CREA) o <strong>stop</strong> con <code>npm run db:sync</code>.</p>
 <p><strong>Vietato:</strong> MCP Jira, <code>editJiraIssue</code>, branch, commit.</p>
     </article>
 

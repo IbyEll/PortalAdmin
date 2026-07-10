@@ -90,6 +90,12 @@ import {
  *   footerHtml?: string
  *   appendHtml?: string
  *   defaultColumns?: string[]
+ *   stylesheetHref?: string
+ *   scriptSrc?: string
+ *   bodyClass?: string
+ *   bodyAttrs?: Record<string, string>
+ *   chromeHtml?: string
+ *   headExtraHtml?: string
  * }} MatrixPageConfig
  */
 
@@ -377,9 +383,19 @@ export function renderMatrixChecksSection(title, checks, badge = "") {
  * @returns {string}
  */
 export function renderMatrixPage(config) {
-  const pageTitle   = config.pageTitle ?? config.title;
-  const generatedAt = config.generatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
-  const metricsHtml = config.metrics?.length
+  const pageTitle      = config.pageTitle ?? config.title;
+  const generatedAt    = config.generatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+  const stylesheetHref = config.stylesheetHref ?? "/docs/docs.style.css";
+  const scriptSrc      = config.scriptSrc ?? "/docs/utility.toolbar.document.js";
+  const bodyClass      = config.bodyClass ? ` class="${escAttr(config.bodyClass)}"` : "";
+  const bodyAttrs      = config.bodyAttrs
+    ? Object.entries(config.bodyAttrs)
+      .map(([key, value]) => ` ${escAttr(key)}="${escAttr(value)}"`)
+      .join("")
+    : "";
+  const chromeHtml     = config.chromeHtml ?? "<!-- DOCS-CHROME -->";
+  const headExtraHtml  = config.headExtraHtml ?? "";
+  const metricsHtml    = config.metrics?.length
     ? renderMatrixMetricsCard(config.metrics, config.metricsBadge, config.metricsCardTitle)
     : "";
   const sectionsHtml = config.sections
@@ -392,10 +408,11 @@ export function renderMatrixPage(config) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escHtml(pageTitle)}</title>
-  <link rel="stylesheet" href="/docs/docs.style.css" />
+  <link rel="stylesheet" href="${escAttr(stylesheetHref)}" />
+  ${headExtraHtml}
 </head>
-<body>
-  <!-- DOCS-CHROME -->
+<body${bodyClass}${bodyAttrs}>
+  ${chromeHtml}
   <div class="page page--wide">
     <header>
       <h1>${escHtml(config.title)}</h1>
@@ -409,7 +426,7 @@ export function renderMatrixPage(config) {
 
     ${config.footerHtml ? `<p class="meta">${config.footerHtml}</p>` : ""}
   </div>
-  <script src="/docs/utility.toolbar.document.js" defer></script>
+  <script src="${escAttr(scriptSrc)}" defer></script>
 </body>
 </html>`;
 }

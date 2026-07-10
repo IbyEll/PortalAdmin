@@ -16,7 +16,9 @@ import {
 import {
   loadFindingIssueLinks as loadFindingIssueLinksDb
 , upsertFindingIssueLink
+, deleteFindingIssueLink as deleteFindingIssueLinkDb
 , MATRIX_KIND_PORTAL_GAP
+, MATRIX_KIND_TEST_COVERAGE
 } from "../cruscotto.database/matrix.db.mjs";
 import { shouldWriteMatrixDb, shouldWriteMatrixJson } from "./matrix.persist.config.mjs";
 
@@ -88,37 +90,113 @@ function loadFindingIssueLinksJson() {
 }
 
 /**
+ * @param {string} findingId
+ */
+function removeFindingIssueLinkJson(findingId) {
+  const id = String(findingId ?? "").trim();
+
+  if (!id || !existsSync(resolveStoreFile())) {
+    return;
+  }
+
+  const map = loadFindingIssueLinksJson();
+
+  if (!map.has(id)) {
+    return;
+  }
+
+  map.delete(id);
+  writeFileSync(STORE_FILE, `${JSON.stringify(Object.fromEntries(map), null, 2)}\n`, "utf8");
+}
+
+/**
+ * @param {string} [matrixKind]
  * @returns {Promise<Map<string, FindingIssueLink>>}
  */
-export async function loadFindingIssueLinks() {
+export async function loadFindingIssueLinks(matrixKind = MATRIX_KIND_PORTAL_GAP) {
+  const kind = String(matrixKind ?? MATRIX_KIND_PORTAL_GAP).trim();
+
   if (canUseMatrixDb()) {
     try {
       await openCruscottoDb();
 
-      return loadFindingIssueLinksDb(MATRIX_KIND_PORTAL_GAP);
+      return loadFindingIssueLinksDb(kind);
     } catch {
-      // fallback JSON
+      // fallback JSON solo per portal_gap legacy
     }
   }
 
-  return loadFindingIssueLinksJson();
+  if (kind === MATRIX_KIND_PORTAL_GAP) {
+    return loadFindingIssueLinksJson();
+  }
+
+  return new Map();
 }
 
 /**
+ * Rimuove link finding ↔ Jira obsoleti (issue cancellata o assente da Jira/cache).
+ *
+ * @param {{ matrixKinds?: string[] }} [opts]
+ * @returns {Promise<{ removed: Array<{ findingId: string, matrixKind: string, jiraKey: string }>, count: number }>}
+ */
+export async function pruneStaleMatrixFindingIssueLinks(opts = {}) {
+  const matrixKinds = opts.matrixKinds ?? [MATRIX_KIND_PORTAL_GAP, MATRIX_KIND_TEST_COVERAGE];
+  const { isJiraIssueKeyAlive } = await import("./matrix.finding.issues.mjs");
+  /** @type {Array<{ findingId: string, matrixKind: string, jiraKey: string }>} */
+  const removed = [];
+
+  for (const matrixKind of matrixKinds) {
+    const links = await loadFindingIssueLinks(matrixKind);
+
+    for (const [findingId, link] of links) {
+      const alive = await isJiraIssueKeyAlive(link.key);
+
+      if (alive) {
+        continue;
+      }
+
+      if (canUseMatrixDb()) {
+        try {
+          await openCruscottoDb();
+          await deleteFindingIssueLinkDb(findingId, matrixKind);
+        } catch {
+          // continua con JSON
+        }
+      }
+
+      if (shouldWriteMatrixJson() && matrixKind === MATRIX_KIND_PORTAL_GAP) {
+        removeFindingIssueLinkJson(findingId);
+      }
+
+      removed.push({ findingId, matrixKind, jiraKey: link.key });
+    }
+  }
+
+  return { removed, count: removed.length };
+}
+
+/**
+ * @param {string} [matrixKind]
  * @returns {Record<string, FindingIssueLink>}
  */
-export async function loadFindingIssueLinksObject() {
+export async function loadFindingIssueLinksObject(matrixKind) {
+  if (matrixKind) {
+    return Object.fromEntries(await loadFindingIssueLinks(matrixKind));
+  }
+
   return Object.fromEntries(await loadFindingIssueLinks());
 }
 
 /**
  * @param {string} findingId
  * @param {{ key: string, issueType: string }} link
+ * @param {string} [matrixKind]
  * @returns {Promise<FindingIssueLink>}
  */
-export async function persistFindingIssueLink(findingId, link) {
+export async function persistFindingIssueLink(findingId, link, matrixKind = MATRIX_KIND_PORTAL_GAP) {
   const id  = String(findingId ?? "").trim();
   const key = String(link.key ?? "").trim().toUpperCase();
+  const kind = String(matrixKind ?? MATRIX_KIND_PORTAL_GAP).trim();
 
   if (!id || !key) {
     throw new Error("findingId e key obbligatori per persistenza link matrice");
@@ -133,7 +211,7 @@ export async function persistFindingIssueLink(findingId, link) {
   if (canUseMatrixDb()) {
     try {
       await openCruscottoDb();
-      await upsertFindingIssueLink(id, MATRIX_KIND_PORTAL_GAP, {
+      await upsertFindingIssueLink(id, kind, {
         ...entry
       , linkedSource: "create_button"
       });

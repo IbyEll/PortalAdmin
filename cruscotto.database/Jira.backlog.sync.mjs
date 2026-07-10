@@ -35,7 +35,12 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
-import { fetchJiraBacklog, isJiraStatusDone } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import { fetchJiraBacklog, isJiraStatusDone, buildBacklogTree } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
+import {
+  resolveRelatedTicketKeys
+, adfToPlainText
+} from "../admin.portal.JiraCORE/jiraCORE.backlog.related.tickets.mjs";
+import { jiraLiveFetch } from "../admin.portal.JiraCORE/jiraCORE.jira.live.mjs";
 import { syncMatrixRowsFromJiraDone } from "../docs.portal.lib/matrix.db.adapter.mjs";
 import {
   ensureWorkingPlanLoaded
@@ -44,27 +49,60 @@ import {
 } from "../cruscotto.lib/backlog.working.plan.loader.mjs";
 
 import { openCruscottoDb, resolveCruscottoDbPath } from "./cruscotto.db.config.mjs";
+import {
+  mergeBacklogIssueRawFields
+, pickPreservedRawFields
+} from "../admin.portal.JiraCORE/jira.issue.workflow.raw.mjs";
 
 /**
  * JSON raw_fields cache — description Jira plain text da sync API.
  *
  * @param {{ jiraDescription?: string | null }} row
  * @param {string} syncedAt ISO-8601
+ * @param {Record<string, unknown>} [preserved]
  * @returns {string | null}
  */
-function rawFieldsFromBacklogRow(row, syncedAt) {
-  const jiraDescription = typeof row.jiraDescription === "string"
-    ? row.jiraDescription.trim()
-    : "";
+function rawFieldsFromBacklogRow(row, syncedAt, preserved = {}) {
+  return mergeBacklogIssueRawFields(row, syncedAt, preserved);
+}
 
-  if (!jiraDescription) {
-    return null;
+/**
+ * Snapshot raw_fields workflow/veve prima del wipe sync_run — WIP ha priorità su veveDescription.
+ *
+ * @param {import("@prisma/client").PrismaClient} db
+ * @param {string} nextSyncRunId
+ * @returns {Promise<Map<string, Record<string, unknown>>>}
+ */
+async function snapshotPreservedRawFieldsByKey(db, nextSyncRunId) {
+  /** @type {Map<string, Record<string, unknown>>} */
+  const preservedByKey = new Map();
+
+  const oldIssues = await db.jiraIssue.findMany({
+    where: { syncRunId: { not: nextSyncRunId } }
+  });
+
+  for (const row of oldIssues) {
+    const picked = pickPreservedRawFields(row.rawFields);
+
+    if (Object.keys(picked).length) {
+      preservedByKey.set(row.jiraKey, picked);
+    }
   }
 
-  return JSON.stringify({
-    jiraDescription
-  , jiraDescriptionSyncedAt: syncedAt
-  });
+  const wipRows = await db.jiraIssueWip.findMany();
+
+  for (const row of wipRows) {
+    const picked = pickPreservedRawFields(row.rawFields);
+
+    if (!Object.keys(picked).length) {
+      continue;
+    }
+
+    const prev = preservedByKey.get(row.jiraKey) ?? {};
+    preservedByKey.set(row.jiraKey, { ...prev, ...picked });
+  }
+
+  return preservedByKey;
 }
 
 /**
@@ -139,6 +177,9 @@ export async function syncJiraBacklogSnapshot(backlog) {
     data: { syncRunId: syncRun.id }
   });
 
+  // 2b. Snapshot veve/workflow raw_fields prima del wipe (Matrix CREA, push WIP, …)
+  const preservedByKey = await snapshotPreservedRawFieldsByKey(db, syncRun.id);
+
   // 3. Reset cache issue — elimina solo i sync run precedenti (non il corrente)
   await db.syncRun.deleteMany({
     where: { id: { not: syncRun.id } }
@@ -172,6 +213,7 @@ export async function syncJiraBacklogSnapshot(backlog) {
     const syncedAt = backlog.fetchedAt ?? new Date().toISOString();
 
     for (const row of backlog.issues) {
+      const preserved = preservedByKey.get(row.key) ?? {};
       const created = await db.jiraIssue.create({
         data: {
           jiraKey          : row.key
@@ -191,7 +233,7 @@ export async function syncJiraBacklogSnapshot(backlog) {
         , devSort          : row.devSort ?? null
         , isObsolete: row.isObsolete ?? false
         , relatedKeys      : JSON.stringify(row.relatedKeys ?? [])
-        , rawFields        : rawFieldsFromBacklogRow(row, syncedAt)
+        , rawFields        : rawFieldsFromBacklogRow(row, syncedAt, preserved)
         , syncRunId        : syncRun.id
         },
       });
@@ -611,5 +653,191 @@ export async function syncReportDevOrderToDb(report) {
   return {
     patchedCount
   , patchedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Aggiorna parent_jira_key su jira_issue nell'ultimo sync run (post push epic Working Plan).
+ *
+ * @param {string} issueKey
+ * @param {string | null} parentJiraKey
+ * @returns {Promise<{ patchedCount: number, patchedAt: string }>}
+ */
+export async function patchIssueParentInDb(issueKey, parentJiraKey) {
+  const db      = await openCruscottoDb();
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    return { patchedCount: 0, patchedAt: new Date().toISOString() };
+  }
+
+  const normalizedKey    = String(issueKey).trim().toUpperCase();
+  const normalizedParent = parentJiraKey == null || String(parentJiraKey).trim() === ""
+    ? null
+    : String(parentJiraKey).trim().toUpperCase();
+
+  const result = await db.jiraIssue.updateMany({
+    where: { jiraKey: normalizedKey, syncRunId: syncRun.id }
+  , data : { parentJiraKey: normalizedParent }
+  });
+
+  return {
+    patchedCount: result.count
+  , patchedAt   : new Date().toISOString()
+  };
+}
+
+const ENSURE_ISSUE_FIELDS = ["summary", "issuetype", "status", "parent", "description", "issuelinks", "customfield_10020"];
+
+/**
+ * Inserisce in jira_issue (ultimo sync) le key assenti — fetch live singola issue.
+ *
+ * @param {string[]} issueKeys
+ * @returns {Promise<{ inserted: string[], syncRunId: string }>}
+ */
+export async function ensureJiraIssuesInCache(issueKeys) {
+  const keys = [...new Set(
+    (issueKeys ?? []).map((key) => String(key).trim().toUpperCase()).filter(Boolean)
+  )];
+
+  if (!keys.length) {
+    throw new Error("Nessuna issue key da allineare in cache");
+  }
+
+  const db      = await openCruscottoDb();
+  const syncRun = await db.syncRun.findFirst({
+    where  : { status: "success", issueCount: { gt: 0 } }
+  , orderBy: { finishedAt: "desc" }
+  });
+
+  if (!syncRun) {
+    throw new Error("Cache jira_issue assente — esegui npm run db:sync");
+  }
+
+  /** @type {string[]} */
+  const inserted  = [];
+  const syncedAt  = new Date().toISOString();
+
+  for (const jiraKey of keys) {
+    const existing = await db.jiraIssue.findFirst({
+      where: { jiraKey, syncRunId: syncRun.id }
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    const issue = /** @type {{ key: string, fields?: Record<string, unknown> }} */ (
+      await jiraLiveFetch(
+        `/rest/api/3/issue/${encodeURIComponent(jiraKey)}?fields=${encodeURIComponent(ENSURE_ISSUE_FIELDS.join(","))}`
+      )
+    );
+    const fields          = issue.fields ?? {};
+    const jiraDescription = adfToPlainText(fields.description).trim() || null;
+    const raw             = [{
+      key        : issue.key
+    , type       : /** @type {{ name?: string }} */ (fields.issuetype ?? {}).name ?? "—"
+    , summary    : String(fields.summary ?? issue.key)
+    , status     : /** @type {{ name?: string }} */ (fields.status ?? {}).name ?? "—"
+    , parentKey  : /** @type {{ key?: string }} */ (fields.parent ?? {}).key ?? null
+    , jiraDescription
+    , relatedKeys: resolveRelatedTicketKeys(
+        issue.key
+      , fields.description
+      , /** @type {unknown[]} */ (fields.issuelinks ?? [])
+      )
+    , jiraSprints: (/** @type {Array<{ id: number, name: string, state: string }>} */ (
+        fields.customfield_10020 ?? []
+      )).map((sprint) => ({
+        id   : Number(sprint.id)
+      , name : String(sprint.name ?? "")
+      , state: String(sprint.state ?? "")
+      }))
+    }];
+    const [treeRow]       = buildBacklogTree(raw);
+
+    if (!treeRow) {
+      throw new Error(`Impossibile normalizzare issue ${jiraKey} per cache`);
+    }
+
+    const created = await db.jiraIssue.create({
+      data: {
+        jiraKey        : treeRow.key
+      , issueType      : treeRow.type
+      , summary        : treeRow.summary
+      , status         : treeRow.status
+      , statusCategory : null
+      , parentJiraKey  : treeRow.parentKey
+      , tier           : treeRow.tier
+      , isStoryLike    : treeRow.isStoryLike ?? false
+      , isDone         : isJiraStatusDone(treeRow.status)
+      , depth          : treeRow.depth ?? 0
+      , hasChildren    : treeRow.hasChildren ?? false
+      , devOrder       : treeRow.devOrder ?? null
+      , devSprint      : treeRow.devSprint ?? null
+      , devSprintName  : treeRow.devSprintName ?? null
+      , devSort        : treeRow.devSort ?? null
+      , isObsolete     : treeRow.isObsolete ?? false
+      , relatedKeys    : JSON.stringify(treeRow.relatedKeys ?? [])
+      , rawFields      : rawFieldsFromBacklogRow(treeRow, syncedAt)
+      , syncRunId      : syncRun.id
+      }
+    });
+
+    for (const sprint of treeRow.jiraSprints ?? []) {
+      const sprintId = Number(sprint.id);
+
+      if (!Number.isFinite(sprintId) || sprintId <= 0) {
+        continue;
+      }
+
+      await db.jiraSprint.upsert({
+        where : { id: sprintId }
+      , create: {
+          id       : sprintId
+        , name     : String(sprint.name ?? `Sprint ${sprintId}`)
+        , state    : String(sprint.state ?? "future")
+        , startDate: null
+        , endDate  : null
+        }
+      , update: {
+          name : String(sprint.name ?? `Sprint ${sprintId}`)
+        , state: String(sprint.state ?? "future")
+        }
+      });
+
+      await db.jiraIssueSprint.upsert({
+        where: {
+          issueId_sprintId: {
+            issueId  : created.id
+          , sprintId
+          }
+        }
+      , create: {
+          issueId  : created.id
+        , sprintId
+        }
+      , update: {}
+      });
+    }
+
+    inserted.push(jiraKey);
+  }
+
+  if (inserted.length > 0) {
+    await db.syncRun.update({
+      where: { id: syncRun.id }
+    , data : {
+        issueCount: { increment: inserted.length }
+      }
+    });
+  }
+
+  return {
+    inserted
+  , syncRunId: syncRun.id
   };
 }

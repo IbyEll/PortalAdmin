@@ -12,7 +12,7 @@
     <header>
       <h1>Cursor Rules — Documentazione</h1>
       <p class="meta">
-        Regole in <code>.cursor/rules/</code> · Aggiornato 2026-07-08 22:25 ·
+        Regole in <code>.cursor/rules/</code> · Aggiornato 2026-07-10 17:15 ·
         Pagine HTML generate dal sorgente <code>.mdc</code>
       </p>
       <p class="lead">
@@ -80,43 +80,43 @@
         <a class="card" href="ADMIN-Veve.html">
           <h3>ADMIN-Veve</h3>
           <p><span class="tag tag--veve">veve</span></p>
-          <p>Veve MCP standalone <code>veve {KEY}</code> — non usare su gogo/procedi (vedi ADMIN-Veve.db.mdc)</p>
+          <p>Veve MCP standalone — flowchart 4 step · runtime programmatico → <a href="ADMIN-Veve.db.html">veve DB</a></p>
         </a>
       </div>
     </section>
 
     <section>
-      <h2>Veve DB — grooming → jira_issue_wip</h2>
+      <h2>Veve DB — grooming programmatico</h2>
       <div class="card-grid">
+        <a class="card" href="ADMIN-Veve.db.html">
+          <h3>ADMIN-Veve.db</h3>
+          <p><span class="tag tag--always">alwaysApply</span>
+        <span class="tag tag--db">database</span></p>
+          <p>Flusso completo — gap, crea subtask [Test], groom WIP o jira_issue (Matrix CREA + workflow step 3)</p>
+        </a>
         <a class="card" href="ADMIN-Veve.db-AggiornaStory.html">
           <h3>ADMIN-Veve.db-AggiornaStory</h3>
           <p><span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span></p>
-          <p>Veve db step 3 — upsert parent {KEY} in jira_issue_wip</p>
+          <p>Step 3 — groom parent (WIP o cache)</p>
         </a>
         <a class="card" href="ADMIN-Veve.db-AggiornaSubtask.html">
           <h3>ADMIN-Veve.db-AggiornaSubtask</h3>
           <p><span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span></p>
-          <p>Veve db step 4 — upsert subtask in jira_issue_wip</p>
+          <p>Step 4 — crea subtask test mancanti + groom figlie</p>
         </a>
         <a class="card" href="ADMIN-Veve.db-AnalizzaRepo.html">
           <h3>ADMIN-Veve.db-AnalizzaRepo</h3>
           <p><span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span></p>
-          <p>Veve db step 2 — analizza repo per {KEY} (adattatore ADMIN-AnalizzaRepo)</p>
+          <p>Step 2 — gap analysis repo</p>
         </a>
         <a class="card" href="ADMIN-Veve.db-LeggiJira.html">
           <h3>ADMIN-Veve.db-LeggiJira</h3>
           <p><span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span></p>
-          <p>Veve db step 1 — leggi parent e subtask da jira_issue (cache cruscotto)</p>
-        </a>
-        <a class="card" href="ADMIN-Veve.db.html">
-          <h3>ADMIN-Veve.db</h3>
-          <p><span class="tag tag--always">alwaysApply</span>
-        <span class="tag tag--db">database</span></p>
-          <p>Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database (MyBacklog)</p>
+          <p>Step 1 — leggi jira_issue cache</p>
         </a>
       </div>
     </section>

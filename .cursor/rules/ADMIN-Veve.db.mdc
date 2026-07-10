@@ -1,50 +1,94 @@
 ---
-description: Veve DB {KEY} — leggi jira_issue, gap repo, scrivi jira_issue_wip; step 3 ADMIN-Workflow database (MyBacklog)
+description: Veve DB {KEY} — leggi jira_issue, gap repo, groom jira_issue_wip; step 3 ADMIN-Workflow database (MyBacklog)
 alwaysApply: true
 ---
 
 # Veve DB — `veve db {KEY}` e workflow database step 3
 
-Variante **cruscotto SQLite**: legge cache `jira_issue`, analizza repo, persiste coda WIP in `jira_issue_wip` — **senza** MCP Jira.
+Variante **cruscotto SQLite**: stessa sequenza e **stessi template** di `ADMIN-Veve.mdc`, ma **lettura** da `jira_issue` (cache) e **scrittura groom** su `jira_issue_wip` (o `jira_issue` post-CREA) — **non** `editJiraIssue` / MCP Jira per description.
 
-Sequenza: **Leggi DB** → **Analizza repo** → **Aggiorna story WIP** → **Aggiorna subtask WIP**.
+Sequenza agente: **Leggi DB** → **Analizza repo** → **Aggiorna story WIP** → **Aggiorna subtask WIP** (groom + crea mancanti se gap chiaro).
 
-| Step veve db | Regola |
-| --- | --- |
-| 1 | `ADMIN-Veve.db-LeggiJira.mdc` |
-| 2 | `ADMIN-AnalizzaRepo.mdc` (stessa di veve MCP) |
-| 3 | `ADMIN-Veve.db-AggiornaStory.mdc` · `.cursor/templates/veve/veve-story-parent.md` |
-| 4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` · `.cursor/templates/veve/veve-subtask.md` |
+| Step veve db | Regola | Equivalente veve MCP |
+| --- | --- | --- |
+| 1 | `ADMIN-Veve.db-LeggiJira.mdc` | `ADMIN-Veve-LeggiJira.mdc` |
+| 2 | `ADMIN-AnalizzaRepo.mdc` | `ADMIN-AnalizzaRepo.mdc` (identica) |
+| 3 | `ADMIN-Veve.db-AggiornaStory.mdc` · `veve-story-parent.md` | `ADMIN-Veve-AggiornaStory.mdc` |
+| 4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` · `veve-subtask.md` | `ADMIN-Veve-AggiornaSubtask.mdc` |
 
 ## Trigger
 
 | Contesto | Comportamento |
 | --- | --- |
-| `veve db {KEY}` | Standalone — chat libera, sequenza completa |
-| `procedi` / `gogo {KEY}` con `ADMIN-Workflow database.mdc` | **Step 3** — silenzioso (`ADMIN-Silence.mdc`) |
+| `veve db {KEY}` | Standalone — chat libera, sequenza completa 1→4 |
+| `procedi` / `gogo {KEY}` con `ADMIN-Workflow database.mdc` | **Step 3** workflow — silenzioso (`ADMIN-Silence.mdc`) |
+| Matrix **CREA** | Post `createMatrixFindingIssue` → `runVeveDbForIssueKey` (`writeTarget: jira_issue`) |
 | `chiudi` | **Non** esegue veve db |
 
 `{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).
+
+## Parità con veve MCP
+
+| Aspetto | Veve MCP | Veve DB |
+| --- | --- | --- |
+| Template parent | `veve-story-parent.md` | **Stesso** |
+| Template subtask | `veve-subtask.md` | **Stesso** |
+| Stato repo in description | Tabella solo ✅/⚠️/❌ | **Stesso** |
+| AC/DoD checkbox | Regola B poi A | **Stesso** (`ADMIN-Veve-AggiornaStory/Subtask.mdc`) |
+| Crea subtask mancanti | Step 4 — implementazione + `[Test]` | Step 4 — `suggestVeveMissingSubtasks` |
+| Dove scrive description | Jira Cloud (`editJiraIssue`) | **`raw_fields.veveDescription`** su DB |
+| Lettura ticket | MCP `getJiraIssue` | **`jira_issue`** ultimo sync |
+
+**Unica eccezione Jira live in veve DB:** creazione subtask mancanti via REST (`createJiraIssue` in `jiraCORE.jira.create.mjs`) — poi `ensureJiraIssuesInCache` e groom solo su DB.
 
 ## Prerequisito DB
 
 | Controllo | Stop se |
 | --- | --- |
 | `cruscotto.db` | Assente o non migrato (`node cruscotto.database/migrate.mjs`) |
-| Sync cache | Nessun `sync_run` success con `jira_issue` per `{KEY}` |
+| Sync cache | Nessun `jira_issue` per `{KEY}` dopo `ensureJiraIssuesInCache` |
 | Overlay | `CRUSCOTTO_DB_PATH` / `PRJ_NAME` non allineati |
 
 Sync backlog: `npm run db:sync` (host PortalAdmin) prima del primo `veve db` su key assente in cache.
 
-## Persistenza WIP
+## Persistenza groomed
 
-Tabella `jira_issue_wip` (modello Prisma `JiraIssueWip`) — stessa struttura di `jira_issue`.
+| Operazione | Tabella sorgente | Tabella destinazione groom |
+| --- | --- | --- |
+| Lettura parent/subtask | `jira_issue` (ultimo `sync_run` success) | — |
+| Workflow `veve db` / gogo step 3 | `jira_issue` | **`jira_issue_wip`** upsert per `jira_key` |
+| Matrix CREA | `jira_issue` | **`jira_issue.raw_fields`** merge |
 
-| Operazione | Tabella |
+Campo JSON `raw_fields`: `{ "veveDescription": "…", "gapSummary": "…", "gap": {…}, "workflowSource": "veve-db", "updatedAt": "ISO" }`.
+
+Colonne mirror (`issueType`, `summary`, `status`, `parent_jira_key`, `tier`, …): copia da `jira_issue` alla upsert WIP.
+
+## Runtime programmatico (server / CI / Matrix)
+
+Stessa sequenza funzionale 1→4, **senza** agente Cursor né MCP — entrypoint unico:
+
+| Modulo | `admin.portal.JiraCORE/jiraCORE.veve.db.mjs` |
 | --- | --- |
-| Lettura parent/subtask | `jira_issue` (ultimo sync success) |
-| Scrittura groomed | `jira_issue_wip` — upsert per `jira_key` |
+| Export | `runVeveDbForIssueKey(key, opts)` |
 
-Testo veve (Obiettivo, AC/DoD, …) da template → campo `raw_fields` JSON: `{ "veveDescription": "…", "gap": {…} }`.
+Ordine interno runtime (dopo gap): **crea subtask mancanti** → **groom parent** → **groom ogni subtask** — così la tabella ordine subtask nel parent include le key appena create.
 
-**Vietato:** `CallMcpTool` Jira, `editJiraIssue`, branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).
+Opzioni: `writeTarget` (`jira_issue_wip` | `jira_issue`) · `createSubtasks: false` · `dryRun: true` · `matrixPaths` · `matrixKind`.
+
+## Ripresa
+
+Se veve db già eseguito nella stessa sessione su `{KEY}` → salta step 3 workflow (`ADMIN-Workflow database.mdc`).
+
+Se step 4 crea nuove subtask → **ripeti step 3** (parent WIP: tabella ordine subtask).
+
+## Fallback
+
+| Situazione | Azione |
+| --- | --- |
+| DB assente | `npm run db:migrate` |
+| Key assente in cache | `npm run db:sync` o `veve {KEY}` MCP per ticket nuovo |
+| Groom senza REST | Solo upsert WIP — **non** `editJiraIssue` |
+
+Variante **MCP** (Jira live diretto): `ADMIN-Veve.mdc` · `veve {KEY}` — percorso alternativo standalone, **non** step 3 workflow database.
+
+**Vietato:** `CallMcpTool` Jira per groom description · `editJiraIssue` per description · branch · commit · codice · transizioni Fatto (salvo richiesta esplicita).

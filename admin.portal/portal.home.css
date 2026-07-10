@@ -53,7 +53,7 @@
   --suite-purple: #b794f6;
   --radius: 10px;
   --radius-lg: 14px;
-  --shell: min(1120px, 92vw);
+  --shell: 90vw;
 
   /* JLO — bordo/glow popup e card illuminate */
   --jlo-border-subtle: rgb(200 196 214 / 0.14);

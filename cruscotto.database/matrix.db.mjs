@@ -414,6 +414,29 @@ export async function upsertFindingIssueLink(findingId, matrixKind, link) {
 }
 
 /**
+ * Rimuove link finding ↔ Jira obsoleto (issue cancellata su Jira).
+ *
+ * @param {string} findingId
+ * @param {string} [matrixKind]
+ * @returns {Promise<boolean>}
+ */
+export async function deleteFindingIssueLink(findingId, matrixKind = MATRIX_KIND_PORTAL_GAP) {
+  const id   = String(findingId ?? "").trim();
+  const kind = String(matrixKind ?? MATRIX_KIND_PORTAL_GAP).trim();
+
+  if (!id) {
+    return false;
+  }
+
+  const db     = await openCruscottoDb();
+  const result = await db.matrixFindingIssue.deleteMany({
+    where: { findingId: id, matrixKind: kind }
+  });
+
+  return result.count > 0;
+}
+
+/**
  * @param {string} [matrixKind]
  * @returns {Promise<Map<string, FindingIssueLink>>}
  */

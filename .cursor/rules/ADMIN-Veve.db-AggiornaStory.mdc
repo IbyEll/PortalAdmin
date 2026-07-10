@@ -1,9 +1,11 @@
 ---
-description: Veve db step 3 — upsert parent {KEY} in jira_issue_wip
+description: Veve db step 3 — upsert parent {KEY} in jira_issue_wip (template veve-story-parent)
 alwaysApply: true
 ---
 
 # Veve DB — Aggiorna Story (WIP)
+
+Equivalente veve MCP step 3 (`ADMIN-Veve-AggiornaStory.mdc`): stesso template e regole AC/DoD — destinazione **`jira_issue_wip`** (o `jira_issue` post-CREA), **non** `editJiraIssue`.
 
 ## Trigger
 
@@ -11,27 +13,43 @@ alwaysApply: true
 
 ## Obiettivo
 
-Upsert riga parent `{KEY}` in **`jira_issue_wip`** — non `editJiraIssue`.
+Upsert riga parent `{KEY}` con description veve compilata — campo `raw_fields.veveDescription`.
 
 ## Template
 
-`.cursor/templates/veve/veve-story-parent.md` — compila da Leggi DB + gap analysis.
+`.cursor/templates/veve/veve-story-parent.md` — compila placeholder da:
 
-Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaStory.mdc`.
+- Leggi DB step 1 (summary, tipo, stato, elenco subtask)
+- Gap analysis step 2
+- Epic / sprint da `jira_issue` se presenti in cache
+
+**Stato repo:** una sola tabella markdown; includere **solo** righe con esito ✅/⚠️/❌ — **non** inserire aree non contemplate (⬜, N/A, trattino).
+
+Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaStory.mdc` (canonico JLO).
 
 ## Scrittura DB
 
-1. Leggi riga sorgente parent da `jira_issue` (stesso `syncRunId` della sessione).
-2. Compila `veveDescription` dal template.
-3. **Upsert** `jira_issue_wip` per `jira_key = {KEY}`:
+1. Leggi riga sorgente parent da `jira_issue` (`syncRunId` sessione).
+2. Compila markdown dal template → `veveDescription`.
+3. **Upsert** destinazione per `jira_key = {KEY}`:
 
 | Campo | Valore |
 | --- | --- |
-| Colonne mirror | Copia da `jira_issue` (issueType, summary, status, tier, …) |
+| Colonne mirror | Copia da `jira_issue` (`issueType`, `summary`, `status`, `tier`, `isDone`, …) |
 | `sync_run_id` | `syncRunId` del sync corrente |
-| `raw_fields` | JSON `{ "veveDescription": "…", "gapSummary": "…", "updatedAt": "ISO" }` |
+| `parent_jira_key` | null (parent) |
+| `raw_fields` | JSON: `veveDescription`, `gapSummary`, `gap`, `workflowSource: "veve-db"`, `updatedAt` |
 | `synced_at` | now |
+
+| `writeTarget` | Tabella |
+| --- | --- |
+| Workflow / `veve db` default | `jira_issue_wip` — `upsertJiraIssueWipRow` |
+| Matrix CREA | `jira_issue` — merge `raw_fields` |
 
 Prisma: `db.jiraIssueWip.upsert({ where: { jiraKey }, create, update })`.
 
-**Vietato:** edit subtask WIP, MCP Jira, branch, commit, Fatto parent.
+## Dopo step 4
+
+Se step 4 **crea** nuove subtask → **ripeti** questo step per aggiornare tabella **Ordine subtask** nel parent WIP.
+
+**Vietato:** edit subtask WIP in questo step · MCP Jira · `editJiraIssue` · branch · commit · Fatto parent.

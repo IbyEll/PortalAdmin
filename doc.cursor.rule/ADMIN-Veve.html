@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -15,28 +33,54 @@
       <p class="meta">
         <code>.cursor/rules/ADMIN-Veve.mdc</code> ·
         <span class="tag tag--veve">veve</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 17:15
       </p>
-      <p class="lead">Veve MCP standalone <code>veve {KEY}</code> — non usare su gogo/procedi (vedi ADMIN-Veve.db.mdc)</p>
+      <p class="lead">Veve MCP standalone <code>veve {KEY}</code> — Jira live via MCP (non gogo/procedi)</p>
     </header>
 
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Flusso veve MCP</h2>
+      <p class="flow-sub">
+        Agente Cursor · <code>CallMcpTool user-atlassian</code>.
+        Variante programmatica: <a href="ADMIN-Veve.db.html">ADMIN-Veve.db</a> (cache + REST, no MCP).
+      </p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart TB
+  S1["1 Leggi Jira\ngetJiraIssue + figli"]
+  S2["2 Analizza repo\ngap CLI"]
+  S3["3 Aggiorna story\neditJiraIssue parent"]
+  S4["4 Aggiorna subtask\nedit + crea se gap chiaro"]
+  ATL["Jira Cloud"]
+  REPO["PRODUCT_REPO_PATH"]
+
+  S1 --> S2 --> S3 --> S4
+  S1 & S3 & S4 --> ATL
+  REPO --> S2
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  classDef ext fill:#3d3422,stroke:#fbbf24,color:#e7ecf3
+  class S1,S2,S3,S4 step
+  class ATL,REPO ext</pre>
+      </div>
+      <div class="flow-legend">
+        <span><span class="dot dot--agent"></span>Step agente MCP</span>
+        <span><span class="dot dot--ext"></span>Jira / repo</span>
+      </div>
+    </section>
+
     <article class="mdc-body">
-<h2>Veve — <code>veve {KEY}</code> e workflow step 3</h2>
-<p>Sequenza: <strong>Leggi Jira</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna Story</strong> → <strong>Aggiorna Subtask</strong>.</p>
+<h2>Veve — <code>veve {KEY}</code> (MCP)</h2>
+<p>Sequenza: <strong>Leggi Jira</strong> → <strong>Analizza repo</strong> → <strong>Aggiorna Story</strong> → <strong>Aggiorna Subtask</strong> (aggiorna + crea impl/test se gap chiaro).</p>
 <table><thead><tr><th>Step veve</th><th>Regola</th></tr></thead><tbody><tr><td>1</td><td><code>ADMIN-Veve-LeggiJira.mdc</code></td></tr>
 <tr><td>2</td><td><code>ADMIN-AnalizzaRepo.mdc</code></td></tr>
-<tr><td>3</td><td><code>ADMIN-Veve-AggiornaStory.mdc</code> · <code>.cursor/templates/veve/veve-story-parent.md</code></td></tr>
-<tr><td>4</td><td><code>ADMIN-Veve-AggiornaSubtask.mdc</code> · <code>.cursor/templates/veve/veve-subtask.md</code></td></tr></tbody></table>
+<tr><td>3</td><td><code>ADMIN-Veve-AggiornaStory.mdc</code> · <code>veve-story-parent.md</code></td></tr>
+<tr><td>4</td><td><code>ADMIN-Veve-AggiornaSubtask.mdc</code> · <code>veve-subtask.md</code></td></tr></tbody></table>
 <h3>Trigger</h3>
-<table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve {KEY}</code></td><td>Standalone — chat libera, sequenza completa</td></tr>
-<tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Non</strong> applicare — usare <code>ADMIN-Veve.db.mdc</code> (step 3 workflow database)</td></tr>
+<table><thead><tr><th>Contesto</th><th>Comportamento</th></tr></thead><tbody><tr><td><code>veve {KEY}</code></td><td>Standalone — chat libera</td></tr>
+<tr><td><code>procedi</code> / <code>gogo {KEY}</code></td><td><strong>Non</strong> MCP veve — usare <a href="ADMIN-Veve.db.html">veve DB</a> (workflow database)</td></tr>
+<tr><td>Matrix <strong>CREA</strong></td><td><a href="ADMIN-Veve.db.html">veve DB</a> programmatico (<code>jiraCORE.veve.db.mjs</code>)</td></tr>
 <tr><td><code>chiudi</code></td><td><strong>Non</strong> esegue veve</td></tr></tbody></table>
-<p><code>{KEY}</code> = <code>{JIRA_KEY}-{num}</code> del progetto istanziato (<code>ADMIN-96</code>, <code>JLO-507</code>, …).</p>
-<p>Variante <strong>DB</strong> (cache + WIP): <code>ADMIN-Veve.db.mdc</code> · <code>veve db {KEY}</code> · step 3 di <code>ADMIN-Workflow database.mdc</code>.</p>
 <p><strong>MCP veve:</strong> <code>CallMcpTool</code> <code>user-atlassian</code> — <strong>non</strong> Task Jira Auto.</p>
-<h3>Runtime programmatico (server / CI)</h3>
-<p>Stessa sequenza 1→4 di questa regola, <strong>senza</strong> agente Cursor né MCP — per script, CI e pagina Avanzamento.</p>
-<table><thead><tr><th>Contesto</th><th>Entrypoint</th></tr></thead><tbody><tr><td>Jira REST</td><td><code>admin.portal.JiraCORE/jiraCORE.jira.live.mjs</code> (non <code>CallMcpTool</code>)</td></tr></tbody></table>
 <p><strong>Vietato:</strong> branch, commit, codice, transizioni Fatto (salvo richiesta esplicita).</p>
     </article>
 

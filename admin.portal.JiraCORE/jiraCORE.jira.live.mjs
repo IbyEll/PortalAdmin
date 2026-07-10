@@ -410,6 +410,35 @@ export async function transitionIssueToDone(issueKey, opts = {}) {
 }
 
 /**
+ * Imposta parent Jira (es. Story → Epic) via REST API v3.
+ *
+ * @param {string} issueKey
+ * @param {string | null | undefined} parentKey — null rimuove parent
+ * @param {{ dryRun?: boolean }} [opts]
+ */
+export async function updateIssueParent(issueKey, parentKey, opts = {}) {
+  const key    = String(issueKey).trim().toUpperCase();
+  const parent = parentKey == null || String(parentKey).trim() === ""
+    ? null
+    : String(parentKey).trim().toUpperCase();
+
+  if (opts.dryRun) {
+    return { key, parent, dryRun: true };
+  }
+
+  await jiraLiveFetch(`/rest/api/3/issue/${key}`, {
+    method: "PUT"
+  , body  : JSON.stringify({
+      fields: {
+        parent: parent ? { key: parent } : null
+      }
+    })
+  });
+
+  return { key, parent, updated: true };
+}
+
+/**
  * @param {string} issueKey
  * @param {string} markdown
  * @param {{ dryRun?: boolean }} [opts]

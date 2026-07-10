@@ -53,6 +53,7 @@ import {
 , resolveMatrixFindingCreateIssueType
 } from "./matrix.finding.create.mjs";
 import { loadFindingIssueLinks } from "./matrix.finding-issues.store.mjs";
+import { MATRIX_KIND_PORTAL_GAP } from "../cruscotto.database/matrix.db.mjs";
 import { formatMatrixSectionLabel } from "./matrix.finding.sections.mjs";
 
 const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
@@ -189,8 +190,8 @@ export function matrixRowToIssueRefinementCtx(row) {
  * @param {string} portalRoot
  * @returns {Promise<void>}
  */
-export async function enrichMatrixRowsWithIssueRefinement(rows, portalRoot) {
-  await enrichFindingsWithIssueRefinement(rows, portalRoot);
+export async function enrichMatrixRowsWithIssueRefinement(rows, portalRoot, opts = {}) {
+  await enrichFindingsWithIssueRefinement(rows, portalRoot, opts);
 
   for (const row of rows) {
     if (row.status === "done") {
@@ -562,12 +563,48 @@ export function applyJiraClosedFindings(findings, refinementMap) {
 }
 
 /**
+ * Verifica se una issue Jira è ancora raggiungibile (live REST o cache sync più recente).
+ *
+ * @param {string | null | undefined} jiraKey
+ * @returns {Promise<boolean>}
+ */
+export async function isJiraIssueKeyAlive(jiraKey) {
+  const key = normalizeJiraIssueKey(jiraKey);
+
+  if (!key) {
+    return false;
+  }
+
+  if (process.env.JIRA_EMAIL?.trim() && process.env.JIRA_API_TOKEN?.trim()) {
+    try {
+      const { jiraLiveFetch } = await import("../admin.portal.JiraCORE/jiraCORE.jira.live.mjs");
+
+      await jiraLiveFetch(`/rest/api/3/issue/${encodeURIComponent(key)}?fields=key`);
+
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+
+      if (/\→ 404:/.test(msg)) {
+        return false;
+      }
+    }
+  }
+
+  const map = await loadIssueRefinementMap([key]);
+
+  return map.has(key);
+}
+
+/**
  * @param {Array<{ id: string, paths: string[], issueKey?: string | null, issueSummary?: string | null, issueType?: string | null, status?: string, detail?: string, resolvedNote?: string }>} findings
  * @param {string} portalRoot
+ * @param {{ matrixKind?: string }} [opts]
  * @returns {Promise<Map<string, IssueRefinementMeta>>}
  */
-export async function enrichFindingsWithIssueRefinement(findings, portalRoot) {
-  const persistedLinks = await loadFindingIssueLinks();
+export async function enrichFindingsWithIssueRefinement(findings, portalRoot, opts = {}) {
+  const matrixKind     = String(opts.matrixKind ?? MATRIX_KIND_PORTAL_GAP).trim();
+  const persistedLinks = await loadFindingIssueLinks(matrixKind);
   /** @type {string[]} */
   const allCandidates = [];
 
@@ -587,12 +624,31 @@ export async function enrichFindingsWithIssueRefinement(findings, portalRoot) {
     const persisted = persistedLinks.get(finding.id);
 
     if (persisted?.key) {
+      const alive = await isJiraIssueKeyAlive(persisted.key);
+
+      if (!alive) {
+        finding.issueKey     = null;
+        finding.issueSummary = null;
+        finding.issueType    = null;
+        continue;
+      }
+
       const meta = refinementMap.get(persisted.key);
 
       finding.issueKey     = persisted.key;
       finding.issueSummary = meta?.summary ?? null;
       finding.issueType    = persisted.issueType ?? meta?.issueType ?? null;
       continue;
+    }
+
+    if (finding.issueKey) {
+      const alive = await isJiraIssueKeyAlive(finding.issueKey);
+
+      if (!alive) {
+        finding.issueKey     = null;
+        finding.issueSummary = null;
+        finding.issueType    = null;
+      }
     }
 
     const candidates = collectFindingBugKeyCandidates(finding, portalRoot);

@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADMIN-Veve.db-AggiornaStory — Regola Cursor</title>
   <link rel="stylesheet" href="common.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        flowchart: { curve: "basis", padding: 12, htmlLabels: true },
+        themeVariables: {
+          primaryColor: "#1a2332",
+          primaryTextColor: "#e7ecf3",
+          primaryBorderColor: "#3d9cf5",
+          lineColor: "#8b9cb3",
+          secondaryColor: "#152030",
+          tertiaryColor: "#0f1419"
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- CURSOR-RULES-CHROME -->
@@ -16,28 +34,46 @@
         <code>.cursor/rules/ADMIN-Veve.db-AggiornaStory.mdc</code> ·
         <span class="tag tag--always">alwaysApply</span>
         <span class="tag tag--db">database</span> ·
-        Aggiornato 2026-07-08 22:25
+        Aggiornato 2026-07-10 17:15
       </p>
-      <p class="lead">Veve db step 3 — upsert parent {KEY} in jira_issue_wip</p>
+      <p class="lead">Veve db step 3 — groom parent {KEY} in WIP (template veve-story-parent.md)</p>
     </header>
 
+    <section class="card flow-card" aria-labelledby="flow-title">
+      <h2 id="flow-title">Step 3 — Story parent</h2>
+      <p class="flow-sub">Dopo gap analysis e (eventuale) creazione subtask test — upsert description veve sul parent.</p>
+      <div class="diagram">
+        <pre class="mermaid">flowchart LR
+  A["jira_issue parent"] --> B["buildVeveStoryParentMarkdown\nordine subtask"]
+  B --> C{"writeTarget"}
+  C -->|workflow DB| D[("jira_issue_wip")]
+  C -->|CREA Matrix| E[("jira_issue.raw_fields")]
+
+  classDef step fill:#1e3a5f,stroke:#3d9cf5,color:#e7ecf3
+  classDef store fill:#2d2463,stroke:#b794f6,color:#e7ecf3
+  class A,B step
+  class D,E store</pre>
+      </div>
+    </section>
+
     <article class="mdc-body">
-<h2>Veve DB — Aggiorna Story (WIP)</h2>
+<h2>Veve DB — Aggiorna Story</h2>
 <h3>Trigger</h3>
 <p><code>aggiorna story db {KEY}</code> · dopo Leggi DB + Analizza repo · <code>veve db {KEY}</code> step 3</p>
 <h3>Obiettivo</h3>
-<p>Upsert riga parent <code>{KEY}</code> in <strong><code>jira_issue_wip</code></strong> — non <code>editJiraIssue</code>.</p>
+<p>Merge description veve sul parent <code>{KEY}</code> — <strong>non</strong> <code>editJiraIssue</code> MCP.</p>
 <h3>Template</h3>
-<p><code>.cursor/templates/veve/veve-story-parent.md</code> — compila da Leggi DB + gap analysis.</p>
+<p><code>.cursor/templates/veve/veve-story-parent.md</code> — compila da cache + gap analysis + elenco subtask (anche appena create).</p>
 <p>Sezioni e <strong>checkbox AC/DoD (B poi A)</strong>: come <code>ADMIN-Veve-AggiornaStory.mdc</code>.</p>
 <h3>Scrittura DB</h3>
-<ol><li>Leggi riga sorgente parent da <code>jira_issue</code> (stesso <code>syncRunId</code> della sessione).</li><li>Compila <code>veveDescription</code> dal template.</li><li><strong>Upsert</strong> <code>jira_issue_wip</code> per <code>jira_key = {KEY}</code>:</li></ol>
-<table><thead><tr><th>Campo</th><th>Valore</th></tr></thead><tbody><tr><td>Colonne mirror</td><td>Copia da <code>jira_issue</code> (issueType, summary, status, tier, …)</td></tr>
-<tr><td><code>sync_run_id</code></td><td><code>syncRunId</code> del sync corrente</td></tr>
-<tr><td><code>raw_fields</code></td><td>JSON <code>{ &quot;veveDescription&quot;: &quot;…&quot;, &quot;gapSummary&quot;: &quot;…&quot;, &quot;updatedAt&quot;: &quot;ISO&quot; }</code></td></tr>
-<tr><td><code>synced_at</code></td><td>now</td></tr></tbody></table>
-<p>Prisma: <code>db.jiraIssueWip.upsert({ where: { jiraKey }, create, update })</code>.</p>
-<p><strong>Vietato:</strong> edit subtask WIP, MCP Jira, branch, commit, Fatto parent.</p>
+<ol><li>Leggi riga parent da <code>jira_issue</code> (ultimo <code>sync_run</code> success).</li><li>Compila <code>veveDescription</code> dal template (tabella Stato repo solo ✅/⚠️/❌).</li><li>Scrivi <code>raw_fields</code> su <code>jira_issue_wip</code> (workflow) o <code>jira_issue</code> (CREA Matrix).</li></ol>
+<table><thead><tr><th>Campo JSON</th><th>Contenuto</th></tr></thead><tbody>
+<tr><td><code>veveDescription</code></td><td>Markdown veve completo</td></tr>
+<tr><td><code>gapSummary</code></td><td>Esito gap parent</td></tr>
+<tr><td><code>workflowSource</code></td><td><code>veve-db</code></td></tr>
+</tbody></table>
+<p>Se step 4 crea subtask → <strong>ripeti</strong> step 3 per tabella ordine subtask.</p>
+<p><strong>Vietato:</strong> edit subtask in questo step, MCP groom, <code>editJiraIssue</code>, branch, commit, Fatto parent.</p>
     </article>
 
     <footer>

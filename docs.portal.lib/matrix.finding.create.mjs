@@ -69,6 +69,7 @@ export const resolveAdvancementCreateIssueType = resolveMatrixFindingCreateIssue
  *   sectionTitle?: string
  *   sectionLabel?: string
  *   category?: string
+ *   matrixKind?: string
  * }} input
  * @returns {Promise<{ key: string, id: string, issueType: string, projectKey: string, browseUrl: string, sectionLabel: string }>}
  */
@@ -94,7 +95,7 @@ export async function createMatrixFindingIssue(input) {
   persistFindingIssueLink(input.findingId, {
     key      : created.key
   , issueType: created.issueType
-  });
+  }, input.matrixKind);
 
   return {
     ...created
