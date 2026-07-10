@@ -266,4 +266,18 @@ export const PRODUCT_REPO_SIGNALS = [
     ]
   }
 
+, {
+    key   : "ADMIN-197"
+  , label : "Add technical test for portal API read-only suite endpoint."
+  , paths : [
+      "admin.portal.JiraCORE"
+      , "admin.portal.lib"
+      , "test.smoke"
+      , "cruscotto.database"
+      , "admin.script.standalone"
+      , "admin.portal.testscript"
+    ]
+  , tests : ["technical/test.portal.api.suite.mjs"]
+  }
+
 ];
