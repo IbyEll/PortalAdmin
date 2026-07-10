@@ -41,35 +41,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  PORTAL_API_CRUSCOTTO_SCRIPTS
+, PORTAL_API_HOME_SCRIPTS
+} from "../admin.portal.lib/portal.api.suite.mjs";
+import {
   parseOverlayCli
 , printOverlayCliHelp
 } from "./lib/portal-context.mjs";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-
-const CRUSCOTTO_SCRIPTS = [
-  "health/test.api.health.mjs"
-, "health/test.api.status.mjs"
-, "portal/test.portal.projects.mjs"
-, "portal/test.portal.instance.mjs"
-, "cruscotto/test.cruscotto.project.mjs"
-, "scripts/test.scripts.catalog.mjs"
-, "meta/test.tecnici.meta.mjs"
-, "meta/test.funzionali.meta.mjs"
-, "dev/test.dev.requirements.mjs"
-, "dev/test.dev.services.mjs"
-, "repo/test.repo.services.discover.mjs"
-, "repo/test.repo.services.status.mjs"
-, "repo/test.repo.services.processes.mjs"
-, "jira/test.jira.backlog.mjs"
-, "cursor/test.api.cursor.agent.mjs"
-, "cursor/test.cruscotto.backlog.push.mjs"
-];
-
-const HOME_SCRIPTS = [
-  "home/test.portal.home.health.mjs"
-, "home/test.portal.home.projects.mjs"
-];
 
 /**
  * @param {string} rel
@@ -118,13 +98,13 @@ async function main() {
     extra.push("--port", String(cli.port));
   }
 
-  for (const rel of CRUSCOTTO_SCRIPTS) {
+  for (const rel of PORTAL_API_CRUSCOTTO_SCRIPTS) {
     await runScript(rel, extra);
   }
 
   if (!process.argv.includes("--skip-home")) {
     try {
-      for (const rel of HOME_SCRIPTS) {
+      for (const rel of PORTAL_API_HOME_SCRIPTS) {
         await runScript(rel, []);
       }
     } catch (err) {

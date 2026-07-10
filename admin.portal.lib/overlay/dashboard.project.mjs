@@ -46,6 +46,7 @@ import { resolveProjectOverlayFilePath } from "./project.overlay.paths.mjs";
 import { getFunzionaliMetaPayload as getDefaultFunzionaliMetaPayload } from "../../cruscotto.lib/test.functional.meta.mjs";
 import { loadAndAnalyzeTestTecnici as loadDefaultTecniciAnalysis } from "../../cruscotto.lib/test.technical.analysis.mjs";
 import { getTecniciMetaPayload as getDefaultTecniciMetaPayload } from "../../cruscotto.lib/test.technical.meta.mjs";
+import { getPortalApiSuitePayload as buildPortalApiSuitePayload } from "../portal.api.suite.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const overlayName = resolveProjectOverlayName();
@@ -220,4 +221,13 @@ export async function getTecniciMetaPayload() {
   }
 
   return getDefaultTecniciMetaPayload();
+}
+
+/**
+ * Payload read-only suite API PortalAdmin — GET /api/tecnici/suite.
+ *
+ * @returns {Record<string, unknown>}
+ */
+export function getPortalApiSuitePayload() {
+  return buildPortalApiSuitePayload();
 }
