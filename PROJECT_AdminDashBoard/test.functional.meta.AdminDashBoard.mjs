@@ -39,7 +39,7 @@ import { buildFunzionaliMetaPayload } from "../admin.portal.lib/test.functional.
 
 export const FUNZIONALI_IMPLEMENTATION = {
   title         : "Test funzionali PortalAdmin"
-, summary       : "Suite in admin.portal.testscript/funzionali/ — cruscotto, backlog gogo, Cursor agent UI."
+, summary       : "Suite in admin.portal.testscript/funzionali/ — cruscotto, issue UI, backlog gogo, Cursor agent UI."
 , prerequisites : [
     "Cruscotto su PRJ_DASHBOARD_PORT (default :3998)"
   , "Per test Jira: credenziali Atlassian in .env"
@@ -51,6 +51,7 @@ export const FUNZIONALI_IMPLEMENTATION = {
   ]
 , runOrder      : [
     "funzionali/test.cruscotto.startup.mjs"
+  , "funzionali/test.cruscotto.issue.ui.mjs"
   , "funzionali/test.cruscotto.backlog.gogo.mjs"
   , "funzionali/test.cursor.agent.ui.mjs"
   ]
