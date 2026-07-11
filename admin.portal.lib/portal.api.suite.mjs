@@ -53,6 +53,7 @@ export const PORTAL_API_CRUSCOTTO_SCRIPTS = [
 , "repo/test.repo.services.status.mjs"
 , "repo/test.repo.services.processes.mjs"
 , "jira/test.jira.backlog.mjs"
+, "jira/test.jira.issue.mjs"
 , "cursor/test.api.cursor.agent.mjs"
 , "cursor/test.cruscotto.backlog.push.mjs"
 , "technical/test.portal.api.suite.mjs"
