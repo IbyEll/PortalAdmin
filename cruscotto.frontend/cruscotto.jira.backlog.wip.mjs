@@ -580,22 +580,16 @@ export async function fetchWipStatusByKeys(keys) {
     }
   });
 
-  const parentKeys = rows
-    .filter((row) => !row.parentJiraKey)
-    .map((row) => row.jiraKey);
-
-  const childRows = parentKeys.length > 0
-    ? await db.jiraIssueWip.findMany({
-        where: { parentJiraKey: { in: parentKeys } }
-      , select: {
-          jiraKey       : true
-        , parentJiraKey : true
-        , rawFields     : true
-        , isDone        : true
-        , status        : true
-        }
-      })
-    : [];
+  const childRows = await db.jiraIssueWip.findMany({
+    where: { parentJiraKey: { in: normalized } }
+  , select: {
+      jiraKey       : true
+    , parentJiraKey : true
+    , rawFields     : true
+    , isDone        : true
+    , status        : true
+    }
+  });
 
   const mergedRows = [...rows];
 

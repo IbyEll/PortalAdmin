@@ -7414,16 +7414,44 @@ function updateCursorAgentWorkflowUi(status) {
       ? "Workflow in corso…"
       : uiPhase === "running" || uiPhase === "finalizing"
         ? "Agent in esecuzione"
-        : "—";
+        : uiPhase === "error"
+          ? "Run interrotto o fallito"
+          : uiPhase === "stopped"
+            ? "Ultimo run completato"
+            : "In attesa di un comando";
 
-  /** @type {Record<string, { text: string, className: string }>} */
+  /** @type {Record<string, { text: string, className: string, title: string }>} */
   const phaseUi = {
-    running    : { text: "running", className: "is-running" }
-  , finalizing : { text: "finalizzazione", className: "is-finalizing" }
-  , stopped    : { text: "fermo", className: "is-stopped" }
-  , error      : { text: "errore", className: "is-error" }
-  , idle       : { text: "idle", className: "is-idle" }
-  , finished   : { text: "fermo", className: "is-stopped" }
+    running    : {
+      text      : "In esecuzione"
+    , className : "is-running"
+    , title     : "Cursor Agent sta lavorando sul ticket"
+    }
+  , finalizing : {
+      text      : "Finalizzazione"
+    , className : "is-finalizing"
+    , title     : "Chiusura subtask e aggiornamento WIP post-gogo"
+    }
+  , stopped    : {
+      text      : "Terminato"
+    , className : "is-stopped"
+    , title     : "Ultimo run completato — controlla log e backlog"
+    }
+  , error      : {
+      text      : "Errore"
+    , className : "is-error"
+    , title     : "Run interrotto o fallito — riprova gogo o Invia"
+    }
+  , idle       : {
+      text      : "Pronto"
+    , className : "is-idle"
+    , title     : "Nessun agent in esecuzione — premi gogo nel backlog o Invia"
+    }
+  , finished   : {
+      text      : "Terminato"
+    , className : "is-stopped"
+    , title     : "Ultimo run completato"
+    }
   };
 
   const phase = phaseUi[uiPhase] ?? phaseUi.idle;
@@ -7431,14 +7459,17 @@ function updateCursorAgentWorkflowUi(status) {
   if (badgeEl) {
     badgeEl.textContent = phase.text;
     badgeEl.className = `process-console-badge ${phase.className}`;
+    badgeEl.title = typeof status.error === "string" && status.error.trim() && uiPhase === "error"
+      ? status.error.trim()
+      : phase.title;
   }
 
   if (stateEl) {
     stateEl.textContent = phase.text;
     stateEl.className = `process-console-badge cursor-agent-wf-state ${phase.className}`;
-    stateEl.title = typeof status.error === "string" && status.error.trim()
+    stateEl.title = typeof status.error === "string" && status.error.trim() && uiPhase === "error"
       ? status.error.trim()
-      : `Stato agent: ${phase.text}`;
+      : phase.title;
   }
 
   if (stepEl) {
@@ -7450,18 +7481,18 @@ function updateCursorAgentWorkflowUi(status) {
   }
 
   if (barEl) {
-    barEl.hidden = uiPhase === "idle" && stepLabel === "—";
+    barEl.hidden = uiPhase === "idle" && !workflowKey && stepLabel === "In attesa di un comando";
   }
 
   if (statusEl) {
     const parts = [
       workflowKey ? `${workflowKind || "wf"} ${workflowKey}` : null
-    , stepLabel !== "—" ? stepLabel : null
-    , phase.text !== "idle" ? phase.text : null
+    , stepLabel !== "In attesa di un comando" ? stepLabel : null
+    , uiPhase !== "idle" ? phase.text : null
     , status.runtime ? `runtime ${String(status.runtime)}` : null
     , status.agentId ? `agent ${String(status.agentId)}` : null
     ].filter(Boolean);
-    statusEl.textContent = parts.join(" · ") || "Pronto";
+    statusEl.textContent = parts.join(" · ") || "Pronto — nessun agent in esecuzione";
   }
 }
 
@@ -8535,7 +8566,7 @@ async function renderCursorAgent() {
               <option value="error">error</option>
             </select>
           </label>
-          <span class="process-console-badge" id="cursor-agent-badge">idle</span>
+          <span class="process-console-badge is-idle" id="cursor-agent-badge" title="Nessun agent in esecuzione">Pronto</span>
         </div>
       </div>
       <p class="muted">
@@ -8559,8 +8590,8 @@ async function renderCursorAgent() {
           <button type="button" class="action" id="cursor-agent-template-gogo">Template gogo</button>
         </div>
         <div class="cursor-agent-wf-bar" id="cursor-agent-wf-bar" hidden>
-          <span class="cursor-agent-wf-step muted" id="cursor-agent-wf-step" title="Step workflow">—</span>
-          <span class="process-console-badge cursor-agent-wf-state is-idle" id="cursor-agent-wf-state" title="Stato agent">idle</span>
+          <span class="cursor-agent-wf-step muted" id="cursor-agent-wf-step" title="Step workflow">In attesa di un comando</span>
+          <span class="process-console-badge cursor-agent-wf-state is-idle" id="cursor-agent-wf-state" title="Nessun agent in esecuzione">Pronto</span>
         </div>
       </div>
       <div id="cursor-agent-output" class="process-console-output" aria-live="polite"></div>

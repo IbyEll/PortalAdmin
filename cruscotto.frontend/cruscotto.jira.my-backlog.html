@@ -1999,7 +1999,10 @@
       }
 
       const keys = (issues ?? [])
-        .filter((row) => row.tier === "task" && isStoryLikeRow(row) && row.key)
+        .filter((row) => row.key && (
+          (row.tier === "task" && isStoryLikeRow(row))
+          || row.tier === "subtask"
+        ))
         .map((row) => row.key);
 
       if (keys.length > 0) {
@@ -3585,11 +3588,11 @@
     function isSubtaskDone(key, status) {
       const wip = getWipStatus(key);
 
-      if (wip?.inWip || rowInActiveWipBundle({ key, parentKey: backlogIssueByKey().get(key)?.parentKey })) {
-        if (wip?.isDone === true) {
-          return true;
-        }
+      if (wip?.isDone === true) {
+        return true;
+      }
 
+      if (wip?.inWip || rowInActiveWipBundle({ key, parentKey: backlogIssueByKey().get(key)?.parentKey })) {
         if (/^(fatto|completato|done|closed|resolved)$/i.test(String(wip?.status ?? "").trim())) {
           return true;
         }
@@ -4802,11 +4805,11 @@
 
       const wip = getWipStatus(row.key, row);
 
-      if (rowInActiveWipBundle(row) || wip?.inWip) {
-        if (wip?.isDone === true) {
-          return "Fatto";
-        }
+      if (wip?.isDone === true) {
+        return "Fatto";
+      }
 
+      if (rowInActiveWipBundle(row) || wip?.inWip) {
         if (typeof wip?.status === "string" && wip.status.trim()) {
           return wip.status;
         }

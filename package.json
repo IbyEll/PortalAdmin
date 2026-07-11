@@ -38,6 +38,7 @@
     "test:backlog-push": "node admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs",
     "test:cursor-api": "node admin.portal.testscript/cursor/test.api.cursor.agent.mjs",
     "test:cursor-funzionale": "node admin.portal.testscript/funzionali/test.cursor.agent.ui.mjs",
+    "test:issue-funzionale": "node admin.portal.testscript/funzionali/test.cruscotto.issue.ui.mjs",
     "test:ci": "node test.smoke/smoke-ci.mjs",
     "start:all": "node cruscotto.frontend/cruscotto.process.start.all.services.mjs",
     "stop:all": "node cruscotto.frontend/cruscotto.process.stop.all.services.mjs"
