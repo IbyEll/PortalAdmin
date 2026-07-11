@@ -6166,6 +6166,30 @@ tr:has(.push-wrap:focus-within) td.col-svil {
   cursor: not-allowed;
 }
 
+.svil-cell .btn-gogo-row.is-wip-enrolled {
+  border-color: var(--warn, #c9a227);
+  color: var(--warn, #d4a017);
+  background: rgba(201, 162, 39, 0.14);
+}
+
+.svil-cell .btn-gogo-row.is-wip-enrolled:hover:not(:disabled) {
+  background: rgba(201, 162, 39, 0.22);
+  border-color: var(--warn, #c9a227);
+  color: var(--warn, #d4a017);
+}
+
+.svil-cell .btn-gogo-row.is-error {
+  border-color: var(--fail);
+  color: var(--fail);
+  background: rgba(220, 80, 80, 0.12);
+}
+
+.svil-cell .btn-gogo-row.is-error:hover:not(:disabled) {
+  background: rgba(220, 80, 80, 0.2);
+  border-color: var(--fail);
+  color: var(--fail);
+}
+
 .svil-cell .btn-gogo-row.is-running,
 .svil-cell .btn-push-row.is-running {
   min-width: 3.25rem;

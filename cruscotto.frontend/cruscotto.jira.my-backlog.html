@@ -1000,6 +1000,14 @@
     }
 
     /**
+     * @param {string | null | undefined} status
+     * @returns {boolean}
+     */
+    function isJiraStatusDone(status) {
+      return /^(fatto|completato|done|closed|resolved)$/i.test(String(status ?? "").trim());
+    }
+
+    /**
      * Workflow gogo/PUSH/PR concluso — niente gogo né PR in colonna Svil.
      *
      * @param {{ status?: string, isDone?: boolean }} row
@@ -1008,6 +1016,15 @@
      */
     function isRowWorkflowClosed(row, wip) {
       if (wip?.awaitingPush === true) {
+        return false;
+      }
+
+      if (
+        wip?.inWip === true
+        && wip.isDone !== true
+        && !isPrWorkflowComplete(wip)
+        && !isJiraStatusDone(wip.status)
+      ) {
         return false;
       }
 
@@ -1226,7 +1243,7 @@
     }
 
     /**
-     * Evidenzia riga parent WIP — resta finché il bundle non esce da jira_issue_wip.
+     * Evidenzia riga solo durante run agent (running / finalizing / errore).
      *
      * @param {string} issueKey
      */
@@ -1646,7 +1663,8 @@
           return;
         }
 
-        const wip = getWipStatus(key);
+        const issueRow = (backlog?.issues ?? []).find((hit) => hit.key === key);
+        const wip = getWipStatus(key, issueRow);
         const phase = resolveGogoButtonPhase(key, agentStatus, wip);
 
         if (phase === "idle") {
@@ -1659,6 +1677,54 @@
 
         applyGogoButtonPhase(node, key, phase, wip);
       });
+    }
+
+    /**
+     * @param {{ running?: boolean, status?: string, workflowFinalizing?: boolean }} agentStatus
+     * @returns {boolean}
+     */
+    function isAgentSessionActive(agentStatus) {
+      return Boolean(agentStatus?.running)
+        || agentStatus?.status === "running"
+        || Boolean(agentStatus?.workflowFinalizing);
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {{ running?: boolean, status?: string, workflowFinalizing?: boolean, workflowKey?: string | null, prompt?: string | null }} [agentStatus]
+     * @returns {boolean}
+     */
+    function shouldHighlightAgentRow(issueKey, agentStatus) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      if (!key) {
+        return false;
+      }
+
+      const row = (backlog?.issues ?? []).find((hit) => hit.key === key);
+
+      if (isWipActiveRow({ key, parentKey: row?.parentKey })) {
+        return true;
+      }
+
+      if (!agentStatus) {
+        return false;
+      }
+
+      const target = resolveAgentTargetKey(agentStatus);
+
+      if (!target || key !== target) {
+        return false;
+      }
+
+      if (isAgentSessionActive(agentStatus)) {
+        return true;
+      }
+
+      const phase = gogoControlPhase.get(key);
+
+      return phase === "running" || phase === "finalizing" || phase === "error"
+        || agentStatus.status === "error";
     }
 
     /**
@@ -1755,29 +1821,6 @@
       /** @type {string} */
       const agentTargetKey = resolveAgentTargetKey(status);
 
-      /** @type {string | null} */
-      let activeKey = agentTargetKey || resolveWipActiveParentKey() || null;
-
-      if (!activeKey) {
-        try {
-          const activeRes = await fetch("/api/jira/wip/active");
-
-          if (activeRes.ok) {
-            const active = await activeRes.json();
-
-            if (active.byKey && typeof active.byKey === "object") {
-              wipStatusMap = { ...wipStatusMap, ...active.byKey };
-            }
-
-            if (typeof active.activeParentKey === "string" && active.activeParentKey.trim()) {
-              activeKey = active.activeParentKey.trim().toUpperCase();
-            }
-          }
-        } catch {
-          /* mantieni mappa corrente */
-        }
-      }
-
       document.querySelectorAll("tr[data-gogo-key]").forEach((tr) => {
         if (!(tr instanceof HTMLElement)) {
           return;
@@ -1818,10 +1861,18 @@
 
         if (wip?.awaitingPush && !svilCell.querySelector(".btn-push-row")) {
           svilCell.replaceChildren(createPushRowButton(key, wip));
+          return;
+        }
+
+        if (
+          wip?.inWip
+          && !svilCell.querySelector(".btn-gogo-row, .btn-push-row, .link-gogo-pr")
+        ) {
+          svilCell.appendChild(createGogoRowButton(key, wip));
         }
       });
 
-      if (agentTargetKey) {
+      if (agentTargetKey && shouldHighlightAgentRow(agentTargetKey, status)) {
         setWipActiveParentKey(agentTargetKey);
         highlightGogoRow(agentTargetKey);
 
@@ -1855,6 +1906,9 @@
             }
           }
         }
+      } else {
+        setWipActiveParentKey(null);
+        clearGogoRowHighlight();
       }
 
       applyIdleGogoButtonVisuals(status);
@@ -1934,11 +1988,7 @@
 
         if (activeRes.ok) {
           const active = await activeRes.json();
-          const nextKey = typeof active.activeParentKey === "string" && active.activeParentKey.trim()
-            ? active.activeParentKey.trim().toUpperCase()
-            : null;
 
-          setWipActiveParentKey(nextKey);
           wipStatusMap = {
             ...wipStatusMap
           , ...(active.byKey && typeof active.byKey === "object" ? active.byKey : {})
@@ -1971,25 +2021,7 @@
         }
       }
 
-      if (!resolveWipActiveParentKey()) {
-        clearGogoRowHighlight();
-      }
-
       registerPrPollingFromWipMap();
-
-      const active = resolveWipActiveParentKey();
-
-      if (active) {
-        const issueRow = (issues ?? []).find((hit) => hit.key === active);
-        const activeWip = wipStatusMap[active];
-
-        if (isRowWorkflowClosed(issueRow ?? { status: activeWip?.status }, activeWip)) {
-          setWipActiveParentKey(null);
-          clearGogoRowHighlight();
-        } else {
-          highlightGogoRow(active);
-        }
-      }
     }
 
     /**
@@ -2354,7 +2386,7 @@
         }, 2200);
       });
 
-      if (isWipActiveRow({ key: issueKey })) {
+      if (shouldHighlightAgentRow(issueKey)) {
         btn.classList.add("is-active");
       }
 
@@ -2480,9 +2512,10 @@
      * Bottone gogo — solo vista sprint, righe story-like.
      *
      * @param {string} issueKey
+     * @param {ReturnType<typeof getWipStatus>} [wipHint]
      * @returns {HTMLButtonElement}
      */
-    function createGogoRowButton(issueKey) {
+    function createGogoRowButton(issueKey, wipHint) {
       const cmd = buildGogoCommand(issueKey);
       const btn = document.createElement("button");
 
@@ -2491,6 +2524,12 @@
       btn.textContent = "gogo";
       btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
       btn.setAttribute("aria-label", cmd);
+
+      const idlePhase = resolveGogoButtonPhase(issueKey, {}, wipHint);
+
+      if (idlePhase === "wip-enrolled" || idlePhase === "error") {
+        applyGogoButtonPhase(btn, issueKey, idlePhase, wipHint);
+      }
 
       btn.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -2545,7 +2584,7 @@
         }
       }
 
-      if (isWipActiveRow({ key: issueKey })) {
+      if (shouldHighlightAgentRow(issueKey)) {
         btn.classList.add("is-active");
       }
 
@@ -2570,7 +2609,7 @@
       link.title = `Pull request · ${issueKey}`;
       link.setAttribute("aria-label", `PR ${issueKey}`);
 
-      if (isWipActiveRow({ key: issueKey })) {
+      if (shouldHighlightAgentRow(issueKey)) {
         link.classList.add("is-active");
       }
 
@@ -2634,11 +2673,11 @@
       }
 
       if (wip?.inWip) {
-        svilCell.appendChild(createGogoRowButton(issueKey));
+        svilCell.appendChild(createGogoRowButton(issueKey, wip));
         return true;
       }
 
-      svilCell.appendChild(createGogoRowButton(issueKey));
+      svilCell.appendChild(createGogoRowButton(issueKey, wip));
       return true;
     }
 
@@ -5568,6 +5607,7 @@
         tbody.appendChild(tr);
       }
 
+      applyIdleGogoButtonVisuals({});
       void syncGogoButtonWithAgentStatus();
     }
 
