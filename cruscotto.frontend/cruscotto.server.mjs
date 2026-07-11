@@ -112,6 +112,7 @@ import {
 , analyzeProjectOverview
 , getFunzionaliMetaPayload
 , getPortalApiSuitePayload
+, getRunAllDiscoveryPayload
 , getTecniciMetaPayload
 , loadAndAnalyzeTestTecnici
 , TECNICI_ANALYSIS_HTML
@@ -847,6 +848,11 @@ async function handleApi(req, res, urlPath) {
 
   if (urlPath === "/api/tecnici/suite" && req.method === "GET") {
     sendJson(res, 200, getPortalApiSuitePayload(), req);
+    return;
+  }
+
+  if (urlPath === "/api/tecnici/run-all" && req.method === "GET") {
+    sendJson(res, 200, await getRunAllDiscoveryPayload(), req);
     return;
   }
 

@@ -47,6 +47,7 @@ import { getFunzionaliMetaPayload as getDefaultFunzionaliMetaPayload } from "../
 import { loadAndAnalyzeTestTecnici as loadDefaultTecniciAnalysis } from "../../cruscotto.lib/test.technical.analysis.mjs";
 import { getTecniciMetaPayload as getDefaultTecniciMetaPayload } from "../../cruscotto.lib/test.technical.meta.mjs";
 import { getPortalApiSuitePayload as buildPortalApiSuitePayload } from "../portal.api.suite.mjs";
+import { getRunAllDiscoveryPayload as buildRunAllDiscoveryPayload } from "../portal.run.all.discovery.mjs";
 
 const PORTAL_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const overlayName = resolveProjectOverlayName();
@@ -230,4 +231,13 @@ export async function getTecniciMetaPayload() {
  */
 export function getPortalApiSuitePayload() {
   return buildPortalApiSuitePayload();
+}
+
+/**
+ * Payload read-only discovery run-all — GET /api/tecnici/run-all.
+ *
+ * @returns {Promise<Record<string, unknown>>}
+ */
+export async function getRunAllDiscoveryPayload() {
+  return buildRunAllDiscoveryPayload();
 }
