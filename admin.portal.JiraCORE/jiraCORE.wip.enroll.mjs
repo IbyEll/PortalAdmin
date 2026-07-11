@@ -20,6 +20,7 @@ import {
   areAllWipSubtasksDone
 , closeParentWipForPush
 , closeRemainingWipSubtasksAfterGogo
+, refreshWipVeveDescriptionsForBundle
 , syncWipSubtasksFromGitCommits
 } from "./jiraCORE.wip.close-subtask.mjs";
 
@@ -379,6 +380,12 @@ export async function finalizeWipAfterGogo(issueKey, opts = {}) {
 
     if (closed) {
       return closed;
+    }
+
+    const refreshed = await refreshWipVeveDescriptionsForBundle(key);
+
+    if (refreshed) {
+      return refreshed;
     }
   }
 
