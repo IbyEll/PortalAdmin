@@ -217,4 +217,21 @@ export const PRODUCT_REPO_SIGNALS = [
   , tests : ["technical/test.portal.run.all.discovery.mjs"]
   }
 
+, {
+    key   : "ADMIN-200"
+  , label : "Add functional UI test for issue.html page."
+  , paths : [
+      "admin.portal.JiraCORE"
+      , "admin.portal.lib"
+      , "test.smoke"
+      , "cruscotto.database"
+      , "admin.portal.testscript"
+      , "admin.script.standalone"
+    ]
+  , tests : [
+      "funzionali/test.cruscotto.issue.ui.mjs"
+      , "jira/test.jira.issue.mjs"
+    ]
+  }
+
 ];
