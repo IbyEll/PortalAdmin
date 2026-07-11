@@ -46,7 +46,7 @@ const DATA = {
     { id: "cov-orch-smoke-ci", sev: "info", status: "coperto", project: PA, voce: "Smoke CI aggregate", dettaglio: "Test: npm run test:ci · Gap: —", paths: ["test.smoke/smoke-ci.mjs"] },
     { id: "cov-orch-portal-api", sev: "info", status: "coperto", project: PA, voce: "API read-only suite", dettaglio: "Test: npm run test:portal-api · smoke-portal-api in test:ci · GET /api/tecnici/suite", paths: ["admin.portal.testscript/run-portal-api.mjs", "admin.portal.lib/portal.api.suite.mjs"] },
     { id: "cov-p1-portal-api-ci", sev: "P1", status: "fatto", project: PA, voce: "Portal API in CI", dettaglio: "Test: smoke-portal-api in test:ci · Gap: —", paths: ["test.smoke/smoke-portal-api.mjs"] },
-    { id: "cov-orch-run-all", sev: "warn", status: "parziale", project: PA, voce: "Discovery run-all", dettaglio: "Test: smoke-run-all.mjs · Gap: solo --list, non esecuzione run", paths: ["admin.portal.lib/test.run.all.mjs"] },
+    { id: "cov-orch-run-all", sev: "warn", status: "coperto", project: PA, voce: "Discovery run-all", dettaglio: "Test: smoke-run-all.mjs · GET /api/tecnici/run-all · technical/test.portal.run.all.discovery.mjs", paths: ["admin.portal.lib/test.run.all.mjs", "admin.portal.lib/portal.run.all.discovery.mjs"] },
   ],
   config: [
     { id: "cov-cfg-paths", sev: "info", status: "coperto", project: PA, voce: "Path resolver / product repo", dettaglio: "Test: smoke-paths-resolver.mjs", paths: ["admin.portal.lib/portal.paths.resolver.mjs"] },
