@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>11. INFO - PortalAdmin — Modello tabelle matrix</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="/docs/docs.style.css" />
+</head>
+<body>
+  <!--
+------------------------------------------------------------------------------------------------------------------------
+ ** PAGE HTML ** -- commentato il: 2026-07-11 05:55
+------------------------------------------------------------------------------------------------------------------------
+ creato     il: 2026-07-11 05:55   by: Cursor Agent
+ modificato il: 2026-07-11 05:55   by: Cursor Agent
+------------------------------------------------------------------------------------------------------------------------
+
+************************************************************************************************************************
+*     Modello tabelle matrix — persistenza DB, flusso scan→HTML e visualizzazione matrici PortalAdmin.
+************************************************************************************************************************
+
+  Descrizione funzionale:
+
+    Perché esiste:
+    - Documentare lo stato implementato delle tabelle matrix_* nel DB cruscotto e il rendering HTML.
+
+    A cosa serve:
+    - Riferimento tecnico/funzionale per sviluppatori su schema, API, scan, CREA issue e UI matrice.
+
+  Generalizzazione:
+    No — documentazione dedicata al checkout host PortalAdmin e overlay AdminDashBoard.
+
+  Input: —
+
+  Servita da:
+    - admin.portal/portal.home.server.mjs — URL /docs/11.info.matrix.tables.html
+
+  Documenti correlati:
+    - 9.feature.matrix.database.html — proposta architetturale originale (ADMIN-172)
+    - matrix.portal.gap.html · matrix.test.coverage.html — output HTML
+    - 3.info.cruscotto.db.schema.html — schema DB cruscotto completo
+
+  -->
+  <!-- DOCS-CHROME -->
+  <div class="page doc-page">
+    <header>
+      <h1>Modello tabelle matrix — DB, flusso e HTML</h1>
+      <p class="meta">
+        Documentazione implementata · luglio 2026 ·
+        story di riferimento <code>ADMIN-172</code> / <code>ADMIN-173</code> / <code>ADMIN-174</code>
+      </p>
+      <nav class="doc-links">
+        Vedi anche:
+        <a href="9.feature.matrix.database.html">Proposta originale matrix DB</a> ·
+        <a href="matrix.portal.gap.html">Matrice gap (HTML)</a> ·
+        <a href="matrix.test.coverage.html">Matrice test (HTML)</a> ·
+        <a href="10.help.sanity.check.codice.html">Sanity check codice</a> ·
+        <a href="3.info.cruscotto.db.schema.html">Schema DB cruscotto</a>
+      </nav>
+      <p class="lead">
+        Le matrici PortalAdmin (<strong>avanzamento / gap / audit</strong> e <strong>copertura test</strong>)
+        persistono su SQLite cruscotto nelle tabelle <code>matrix_*</code>.
+        Lo <strong>scan repo</strong> propone delta; il DB è la <strong>sorgente di verità</strong> delle righe;
+        l’<strong>HTML</strong> è un artefatto di visualizzazione rigenerabile da query DB.
+      </p>
+    </header>
+
+    <nav class="doc-toc" aria-label="Indice">
+      <strong>Indice</strong>
+      <ul>
+        <li><a href="#funzionale">1. Visione funzionale</a></li>
+        <li><a href="#kind">2. Tipi matrice (<code>matrix_kind</code>)</a></li>
+        <li><a href="#modello">3. Modello dati — 5 tabelle</a></li>
+        <li><a href="#stati">4. Stati riga ed eventi</a></li>
+        <li><a href="#flusso">5. Flusso scan → DB → HTML</a></li>
+        <li><a href="#persist">6. Modalità persistenza (<code>MATRIX_PERSIST</code>)</a></li>
+        <li><a href="#html">7. Cosa viene visualizzato in HTML</a></li>
+        <li><a href="#crea">8. Pulsante CREA e link Jira</a></li>
+        <li><a href="#api">9. API e punti di accesso UI</a></li>
+        <li><a href="#moduli">10. Moduli e script</a></li>
+        <li><a href="#overlay">11. Overlay e percorso DB</a></li>
+      </ul>
+    </nav>
+
+    <div class="oneliner" id="funzionale">
+      <strong>In una riga:</strong>
+      ogni <code>finding_id</code> stabile (es. <code>bug-tree-regenerate</code>) è una riga in
+      <code>matrix_row</code> per <code>matrix_kind</code>; ad ogni scan si crea un
+      <code>matrix_run</code>, si upsertano le righe, si appendono eventi, si genera HTML da
+      <code>matrix.render.mjs</code>.
+    </div>
+
+    <h2 id="funzionale-h2">1. Visione funzionale</h2>
+    <p>Le matrici rispondono a domande diverse sul repo PortalAdmin:</p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Domanda</th><th>Matrice</th><th>Esempi di righe</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Dove siamo con la migrazione? Cosa manca? C’è drift o ridondanza?</td>
+          <td><code>portal_gap</code></td>
+          <td>Architettura OK, gap PARKING live, audit R1–R7, bug import mancanti</td>
+        </tr>
+        <tr>
+          <td>Quali feature/API hanno test? Dove servono smoke o testscript?</td>
+          <td><code>test_coverage</code></td>
+          <td>Smoke CI coperto, portal-api parziale, gap su <code>/issue.html</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Per ogni riga l’operatore può:</p>
+    <ul>
+      <li>consultare severità, stato repo, path coinvolti;</li>
+      <li>collegare un ticket Jira con il pulsante <strong>[Matrix GAP]</strong> o <strong>[Matrix TEST]</strong>;</li>
+      <li>rigenerare la matrice dopo fix nel codice (scan aggiorna status / obsoleto).</li>
+    </ul>
+
+    <h2 id="kind">2. Tipi matrice (<code>matrix_kind</code>)</h2>
+    <p>Registry canonico: <code>docs.portal.lib/matrix.registry.mjs</code></p>
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th><code>matrix_kind</code></th>
+          <th>Label UI</th>
+          <th>HTML docs</th>
+          <th>Script rigenera</th>
+          <th>Tab cruscotto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>portal_gap</code></td>
+          <td>Avanzamento / gap / audit</td>
+          <td><a href="matrix.portal.gap.html">matrix.portal.gap.html</a></td>
+          <td><code>docs.portal/matrix.portal.gap.analysis.mjs</code></td>
+          <td><code>matrix</code></td>
+        </tr>
+        <tr>
+          <td><code>test_coverage</code></td>
+          <td>Matrice copertura test</td>
+          <td><a href="matrix.test.coverage.html">matrix.test.coverage.html</a></td>
+          <td><code>docs.portal/matrix.test.coverage.mjs</code></td>
+          <td><code>matrixcoverage</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Sul cruscotto: <code>/matrix.html?kind=portal_gap</code> o
+      <code>?kind=test_coverage</code>.
+      Sul body HTML: attributo <code>data-matrix-kind</code> per toolbar e pulsante CREA.
+    </p>
+
+    <h2 id="modello">3. Modello dati — 5 tabelle</h2>
+    <p>Schema Prisma: <code>cruscotto.database/prisma/schema.prisma</code> · migrazione
+      <code>20260709030000_matrix_tables</code>.</p>
+
+    <div class="mermaid">
+erDiagram
+  sync_run ||--o| matrix_run : "sync opzionale"
+  matrix_run ||--o{ matrix_row : "snapshot run"
+  matrix_row ||--o{ matrix_row_event : "storico"
+  matrix_row ||--o| matrix_finding_issue : "link Crea"
+  matrix_catalog ||..o{ matrix_row : "finding_id catalogo"
+
+  matrix_run {
+    uuid id PK
+    string matrix_kind
+    datetime generated_at
+    string source
+    json metrics_json
+    uuid sync_run_id FK
+  }
+
+  matrix_catalog {
+    string finding_id PK
+    string matrix_kind
+    string section_id
+    string default_voce
+    json scan_ids_json
+    json audit_entry_json
+  }
+
+  matrix_row {
+    string finding_id PK
+    string matrix_kind PK
+    uuid matrix_run_id FK
+    string section_id
+    string status
+    string sev
+    string project
+    string voce
+    string dettaglio
+    json paths_json
+    string content_sig
+    datetime first_seen_at
+    datetime last_seen_at
+  }
+
+  matrix_row_event {
+    uuid id PK
+    string finding_id
+    string matrix_kind
+    uuid matrix_run_id FK
+    string event_type
+    string old_status
+    string new_status
+  }
+
+  matrix_finding_issue {
+    string finding_id PK
+    string matrix_kind PK
+    string jira_key UK
+    string issue_type
+    datetime linked_at
+  }
+    </div>
+
+    <h3><code>matrix_run</code> — snapshot scan</h3>
+    <p>Ogni rigenerazione (CLI, API o toolbar) crea un run con:</p>
+    <ul>
+      <li><code>matrix_kind</code> — quale matrice;</li>
+      <li><code>source</code> — es. <code>matrix.portal.gap.analysis</code>, <code>api.matrix.regenerate</code>;</li>
+      <li><code>metrics_json</code> — sintesi numerica del run (arch %, gap, bug, …);</li>
+      <li><code>sync_run_id</code> — opzionale, legame al sync Jira contemporaneo.</li>
+    </ul>
+
+    <h3><code>matrix_row</code> — stato corrente finding</h3>
+    <p>Chiave composta <code>(finding_id, matrix_kind)</code>. Campi principali:</p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Campo</th><th>Significato</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>finding_id</code></td><td>Id stabile scan/catalogo (es. <code>cov-gap-issue-html</code>, <code>audit-prio-r3</code>)</td></tr>
+        <tr><td><code>section_id</code></td><td>Sezione UI (es. <code>op-gap</code>, <code>audit-redundancy</code>, <code>orch</code>)</td></tr>
+        <tr><td><code>status</code></td><td><code>gap</code> · <code>parziale</code> · <code>fatto</code> · <code>coperto</code> · <code>obsoleto</code> · …</td></tr>
+        <tr><td><code>sev</code></td><td><code>P0</code>–<code>P5</code> · <code>info</code> · <code>warn</code></td></tr>
+        <tr><td><code>project</code></td><td><code>PortalAdmin</code> o <code>PortalAdmin.Cruscotto</code></td></tr>
+        <tr><td><code>voce</code> / <code>dettaglio</code></td><td>Titolo riga e descrizione gap/stato repo</td></tr>
+        <tr><td><code>paths_json</code></td><td>Array path file coinvolti</td></tr>
+        <tr><td><code>content_sig</code></td><td>Hash JSON status+sev+voce+dettaglio+paths — rileva delta scan</td></tr>
+        <tr><td><code>resolved_note</code></td><td>Nota chiusura (es. ticket Jira collegato)</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Regola:</strong> le righe non vengono mai DELETE; se assenti dallo scan → <code>status = obsoleto</code>.</p>
+
+    <h3><code>matrix_row_event</code> — audit trail append-only</h3>
+    <p>Tipi evento (<code>matrix.db.mjs</code>):</p>
+    <ul>
+      <li><code>scan_detected</code> — prima occorrenza finding;</li>
+      <li><code>status_change</code> — transizione stato (es. gap → fatto);</li>
+      <li><code>marked_obsolete</code> — non più rilevato dallo scan;</li>
+      <li><code>issue_linked</code> / <code>issue_resolved</code> — collegamento Jira.</li>
+    </ul>
+
+    <h3><code>matrix_finding_issue</code> — link Crea → Jira</h3>
+    <p>
+      Sostituisce il legacy <code>matrix.finding-issues.json</code>.
+      Una riga per <code>(finding_id, matrix_kind)</code> con <code>jira_key</code> univoco.
+      FK logica verso <code>jira_issue</code> (stessa key nel cache backlog).
+    </p>
+
+    <h3><code>matrix_catalog</code> — definizioni stabili</h3>
+    <p>
+      Seed da <code>matrix.catalog.seed.mjs</code> / catalogo audit (<code>AUDIT_CATALOG</code>).
+      Definisce finding noti, sezione default e mapping scan id → audit id per la matrice gap.
+    </p>
+
+    <h2 id="stati">4. Stati riga ed eventi</h2>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Status DB</th><th>Significato funzionale</th><th>HTML</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>gap</code> / <code>open</code></td><td>Gap aperto o non coperto</td><td>Riga attiva; pulsante CREA visibile</td></tr>
+        <tr><td><code>parziale</code></td><td>Implementazione o test incompleti</td><td>Tag warn; CREA se non linkato</td></tr>
+        <tr><td><code>fatto</code> / <code>coperto</code></td><td>Allineato allo stato target</td><td>Riga barrata se risolta; link Jira se presente</td></tr>
+        <tr><td><code>obsoleto</code></td><td>Non più rilevato dallo scan</td><td>Classe <code>finding-obsolete</code>; colonna Issue vuota</td></tr>
+        <tr><td><code>blocked</code></td><td>Intervento manuale richiesto</td><td>Stato «manuale» in colonna Stato</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="flusso">5. Flusso scan → DB → HTML</h2>
+    <div class="mermaid">
+flowchart TB
+  subgraph scan["1. Scan / build sezioni"]
+    S1["matrix.gap.scan.mjs — analyzePortalAdvancement"]
+    S2["matrix.unified.mjs — buildUnifiedMatrixSections"]
+    S3["matrix.test.coverage.mjs — buildTestCoverageSections"]
+  end
+
+  subgraph persist["2. Persistenza DB"]
+    A["matrix.db.adapter.mjs"]
+    R["startMatrixRun"]
+    U["upsertMatrixRows"]
+    E["appendMatrixEvent"]
+  end
+
+  subgraph store["SQLite cruscotto"]
+    MR["matrix_run"]
+    ROW["matrix_row"]
+    EV["matrix_row_event"]
+    FI["matrix_finding_issue"]
+  end
+
+  subgraph render["3. Render HTML"]
+    L["loadUnifiedMatrixSectionsFromDb"]
+    EN["enrichMatrixRowsWithIssueRefinement"]
+    H["matrix.render.mjs — renderMatrixPage"]
+  end
+
+  subgraph out["Output"]
+    HTML["matrix.portal.gap.html / matrix.test.coverage.html"]
+    CRU["/matrix.html?kind=…"]
+    JSON["matrix.portal.gap.json opzionale"]
+  end
+
+  S1 --> S2
+  S3 --> A
+  S2 --> A
+  A --> R --> MR
+  A --> U --> ROW
+  U --> E --> EV
+  ROW --> FI
+
+  ROW --> L --> EN --> H
+  H --> HTML
+  H --> CRU
+  A -.->|MATRIX_PERSIST dual/json| JSON
+    </div>
+
+    <h3>Sequenza rigenerazione (portal_gap)</h3>
+    <ol>
+      <li><code>analyzePortalAdvancement</code> — grep repo, checklist architettura, finding catalogati;</li>
+      <li><code>buildUnifiedMatrixSections</code> — sezioni <code>op-*</code> (operativo) + <code>audit-*</code> (audit);</li>
+      <li><code>persistUnifiedMatrixSections</code> — run + upsert + obsoleto automatico;</li>
+      <li><code>loadUnifiedMatrixSectionsFromDb</code> — righe arricchite con link Jira;</li>
+      <li><code>renderMatrixPage</code> o merge incrementale (<code>matrix.refresh.mjs</code>) su HTML esistente.</li>
+    </ol>
+
+    <h2 id="persist">6. Modalità persistenza (<code>MATRIX_PERSIST</code>)</h2>
+    <p>Config: <code>docs.portal.lib/matrix.persist.config.mjs</code></p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Valore env</th><th>DB</th><th>JSON/HTML file</th><th>Default</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>db</code></td><td>Sì</td><td>HTML sì (export); JSON no</td><td>Sì, se DB cruscotto esiste</td></tr>
+        <tr><td><code>dual</code></td><td>Sì</td><td>Sì</td><td>Transizione legacy</td></tr>
+        <tr><td><code>json</code></td><td>No</td><td>Sì (solo file)</td><td>Se DB assente</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="html">7. Cosa viene visualizzato in HTML</h2>
+    <p>Renderer: <code>docs.portal.lib/matrix.render.mjs</code> · stili: <code>docs.portal/docs.style.css</code>.</p>
+
+    <h3>Struttura pagina</h3>
+    <ul>
+      <li><strong>Header</strong> — titolo, meta (data run, link correlati), lead descrittivo;</li>
+      <li><strong>Card metriche</strong> (<code>data-adv-section="metrics"</code>) — conteggi gap, parziali, fatto, arch %;</li>
+      <li><strong>Sezioni collapsabili</strong> (<code>details.adv-card</code>) — una per <code>section_id</code>;</li>
+      <li><strong>Part heading</strong> — «Avanzamento operativo» / «Audit migrazione…» (solo portal_gap);</li>
+      <li><strong>Footer</strong> — <code>matrix_kind</code>, run id, conteggio righe.</li>
+    </ul>
+
+    <h3>Colonne tabella — tutte le matrici (<code>matrix.columns.mjs</code>)</h3>
+    <p>Intestazioni condivise da <code>portal_gap</code> e <code>test_coverage</code>:</p>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Colonna</th><th>Campo DB</th><th>Contenuto tipico</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sev</td><td><code>sev</code></td><td>P0–P5, info, warn</td></tr>
+        <tr><td>Issue refinement</td><td><code>matrix_finding_issue</code></td><td>Link Jira o pulsante CREA</td></tr>
+        <tr><td>Project</td><td><code>project</code></td><td>PortalAdmin / PortalAdmin.Cruscotto</td></tr>
+        <tr><td>Voce</td><td><code>voce</code></td><td>Titolo finding o feature</td></tr>
+        <tr><td>Dettaglio</td><td><code>dettaglio</code></td><td>Gap, esito scan, test · gap</td></tr>
+        <tr><td>Path</td><td><code>paths_json</code></td><td>File o moduli coinvolti</td></tr>
+        <tr><td>Stato</td><td><code>status</code></td><td>open, parziale, fatto, obsoleto, …</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Colonne tabella — test_coverage (legacy)</h3>
+    <p>Rimosse le intestazioni distinte Feature / Test · gap / Implementazione — ora allineate alla griglia sopra.</p>
+
+    <h3>Attributi riga HTML</h3>
+    <ul>
+      <li><code>data-finding-id</code> — id stabile per merge refresh e API;</li>
+      <li><code>data-finding-status</code> — stato normalizzato (gap → open);</li>
+      <li><code>data-finding-sig</code> — firma per stellina ★ su delta refresh;</li>
+      <li>classi <code>finding-resolved</code>, <code>finding-obsolete</code>, <code>docs-fresh</code>.</li>
+    </ul>
+
+    <h3>Marker merge HTML</h3>
+    <p>
+      Ogni tbody è delimitato da commenti
+      <code>&lt;!-- FINDINGS:section_id --&gt;</code> …
+      <code>&lt;!-- /FINDINGS:section_id --&gt;</code>
+      per merge incrementale senza riscrivere l’intera pagina
+      (<code>matrix.refresh.mjs</code>).
+    </p>
+
+    <h2 id="crea">8. Pulsante CREA e link Jira</h2>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Matrice</th><th>Label bottone</th><th>Label summary Jira</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>portal_gap</code></td><td><code>[Matrix GAP]</code></td><td><code>[Matrix-GAP] {titolo finding}</code></td></tr>
+        <tr><td><code>test_coverage</code></td><td><code>[Matrix TEST]</code></td><td><code>[Matrix-TEST] {titolo finding}</code></td></tr>
+      </tbody>
+    </table>
+    <p>Flusso CREA:</p>
+    <ol>
+      <li>Click bottone → menu tipo issue (Bug, Story, …);</li>
+      <li><code>POST /api/matrix/create-issue</code> (cruscotto) o <code>/api/docs/matrix/create-issue</code> (HOME);</li>
+      <li><code>createMatrixFindingIssue</code> — issue Jira + label;</li>
+      <li><code>runVeveDbForIssueKey</code> — veve DB su cache (<code>writeTarget: both</code>);</li>
+      <li>upsert <code>matrix_finding_issue</code>; sync backlog opzionale;</li>
+      <li>cella HTML aggiornata con link + badge tipo issue.</li>
+    </ol>
+
+    <h2 id="api">9. API e punti di accesso UI</h2>
+    <h3>Cruscotto (<code>cruscotto.server.mjs</code>)</h3>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Route</th><th>Metodo</th><th>Scopo</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/matrix.html?kind=…</code></td><td>GET</td><td>Pagina matrice embed/full da DB</td></tr>
+        <tr><td><code>/api/matrix/kinds</code></td><td>GET</td><td>Registry matrici disponibili</td></tr>
+        <tr><td><code>/api/matrix/portal-gap</code></td><td>GET</td><td>Payload sezioni portal_gap (JSON)</td></tr>
+        <tr><td><code>/api/matrix/runs</code></td><td>GET</td><td>Storico run per kind</td></tr>
+        <tr><td><code>/api/matrix/rows/:findingId/events</code></td><td>GET</td><td>Eventi storico riga</td></tr>
+        <tr><td><code>/api/matrix/finding-issues</code></td><td>GET</td><td>Mappa finding → jira_key</td></tr>
+        <tr><td><code>/api/matrix/create-issue</code></td><td>POST</td><td>CREA + veve DB</td></tr>
+        <tr><td><code>/api/matrix/regenerate</code></td><td>POST</td><td>Rigenera scan + DB + HTML (dev locale)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>HOME Documenti (<code>portal.home.server.mjs</code>)</h3>
+    <ul>
+      <li><code>/docs/matrix.portal.gap.html</code> · <code>/docs/matrix.test.coverage.html</code> — HTML statico;</li>
+      <li>Toolbar DOCS-CHROME — Aggiorna / Rigenera per pagina;</li>
+      <li><code>POST /api/docs/regenerate</code> — invoca script registry;</li>
+      <li><code>POST /api/docs/matrix/create-issue</code> — CREA da pagine docs.</li>
+    </ul>
+
+    <h2 id="moduli">10. Moduli e script</h2>
+    <table class="doc-table">
+      <thead>
+        <tr><th>Modulo / script</th><th>Ruolo</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>cruscotto.database/matrix.db.mjs</code></td><td>CRUD run, row, event, finding_issue</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.db.adapter.mjs</code></td><td>Bridge scan ↔ DB ↔ load HTML</td></tr>
+        <tr><td><code>cruscotto.database/matrix.api.service.mjs</code></td><td>API REST + shell pagina cruscotto</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.gap.scan.mjs</code></td><td>Scan repo portal_gap</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.unified.mjs</code></td><td>Merge operativo + audit</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.repo.audit.mjs</code></td><td>Catalogo audit ridondanze</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.render.mjs</code></td><td>HTML adv-card e righe</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.refresh.mjs</code></td><td>Merge incrementale HTML</td></tr>
+        <tr><td><code>docs.portal.lib/matrix.finding.create.mjs</code></td><td>CREA issue Jira</td></tr>
+        <tr><td><code>cruscotto.frontend/cruscotto.matrix.toolbar.mjs</code></td><td>Toolbar Rigenera + CREA client</td></tr>
+        <tr><td><code>docs.portal/utility.toolbar.document.js</code></td><td>Toolbar docs HOME</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Comandi CLI utili</h3>
+    <pre><code># Matrice gap unificata (scan + DB + HTML)
+node docs.portal/matrix.portal.gap.analysis.mjs
+
+# Matrice copertura test
+node docs.portal/matrix.test.coverage.mjs
+
+# Import legacy JSON → DB (una tantum / manutenzione)
+node cruscotto.database/matrix.db.import.mjs
+
+# Seed catalogo audit
+node cruscotto.database/matrix.catalog.seed.mjs</code></pre>
+
+    <h2 id="overlay">11. Overlay e percorso DB</h2>
+    <p>
+      Il file SQLite è per overlay istanziato:
+      <code>PROJECT_{PRJ_NAME}/cruscotto_{PRJ_NAME}.db</code>
+      (env <code>CRUSCOTTO_DB_PATH</code>).
+      Matriche e backlog Jira condividono lo stesso DB sull’host PortalAdmin;
+      il product repo (<code>PRODUCT_REPO_PATH</code>) alimenta lo scan gap via grep e gap analysis.
+    </p>
+    <p>
+      Differenza con la pagina <a href="9.feature.matrix.database.html">9. FEATURE matrix database</a>:
+      quella documenta la <strong>proposta</strong> pre-implementazione; questa pagina descrive il
+      <strong>comportamento attuale</strong> con tabelle <code>matrix_*</code> già migrate e UI
+      collegata al cruscotto.
+    </p>
+  </div>
+  <script src="/docs/utility.toolbar.document.js" defer></script>
+  <script>
+    if (typeof mermaid !== "undefined") {
+      mermaid.initialize({ startOnLoad: true, theme: "dark" });
+    }
+  </script>
+</body>
+</html>

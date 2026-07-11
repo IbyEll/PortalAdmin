@@ -31,9 +31,9 @@ import {
 , shouldWriteMatrixDb
 } from "./matrix.persist.config.mjs";
 import { buildUnifiedMatrixSections } from "./matrix.unified.mjs";
+import { MATRIX_TABLE_COLUMNS } from "./matrix.columns.mjs";
 import {
-  TEST_COVERAGE_COLUMNS
-, TEST_COVERAGE_PRIORITY_SECTION
+  TEST_COVERAGE_PRIORITY_SECTION
 , TEST_COVERAGE_SECTION_BY_ID
 , TEST_COVERAGE_SECTION_DEFS
 , TEST_COVERAGE_SECTION_ORDER
@@ -129,7 +129,7 @@ function enrichMatrixSectionsForDisplay(sections, matrixKind = MATRIX_KIND_PORTA
       , badge  : sec.id === "priority"
           ? `${gapCount} aperti · ${sec.rows.length} voci`
           : `${sec.rows.length} voci`
-      , columns: TEST_COVERAGE_COLUMNS
+      , columns: MATRIX_TABLE_COLUMNS
       };
     });
   }

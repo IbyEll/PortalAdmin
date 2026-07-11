@@ -209,6 +209,8 @@ export function buildTestCoveragePageConfig(sections, opts = {}) {
     ]
   , metricsBadge    : `${summary.gap} gap · ${summary.partial} parziali`
   , metricsCardTitle: "Sintesi copertura test"
+  , matrixKind      : MATRIX_KIND_TEST_COVERAGE
+  , bodyAttrs       : { "data-matrix-kind": MATRIX_KIND_TEST_COVERAGE }
   , sections
   , footerHtml : [
       "Persistenza:"

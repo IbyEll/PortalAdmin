@@ -60,7 +60,34 @@ export const VEVE_DB_RAW_FIELD_KEYS = [
 , "parentVeveKey"
 , "orderN"
 , "orderM"
+, "files"
 ];
+
+/** Groom veve — persistito su jira_issue; copiato in WIP solo su gogo/sync. */
+export const VEVE_GROOM_RAW_FIELD_KEYS = [
+  "veveDescription"
+, ...VEVE_DB_RAW_FIELD_KEYS
+];
+
+/**
+ * Estrae groom veve da raw_fields cache (merge in WIP senza perdere stato workflow).
+ *
+ * @param {WorkflowRawFields | string | null | undefined} rawFields
+ * @returns {WorkflowRawFields}
+ */
+export function pickVeveGroomRawFields(rawFields) {
+  const source = parseWorkflowRawFields(rawFields);
+  /** @type {WorkflowRawFields} */
+  const out = {};
+
+  for (const key of VEVE_GROOM_RAW_FIELD_KEYS) {
+    if (source[key] !== undefined && source[key] !== null) {
+      out[key] = source[key];
+    }
+  }
+
+  return out;
+}
 
 export const WORKFLOW_RAW_FIELD_KEYS = [
   "veveDescription"

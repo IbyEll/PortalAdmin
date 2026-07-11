@@ -45,9 +45,20 @@
 import { loadFindingIssueLinks } from "./matrix.finding-issues.store.mjs";
 import { normalizeJiraIssueKey } from "./matrix.finding.issues.mjs";
 import { renderMatrixRow, renderMatrixSection, escHtml } from "./matrix.render.mjs";
+import { MATRIX_KIND_PORTAL_GAP } from "../cruscotto.database/matrix.db.mjs";
 
 /** @typedef {import("./matrix.render.mjs").MatrixRow} MatrixRow */
 /** @typedef {import("./matrix.render.mjs").MatrixSection} MatrixSection */
+
+/**
+ * @param {string} html
+ * @returns {string}
+ */
+function parseMatrixKindFromHtml(html) {
+  const match = html.match(/data-matrix-kind="([^"]+)"/);
+
+  return match?.[1]?.trim() || MATRIX_KIND_PORTAL_GAP;
+}
 
 /**
  * @param {string} status
@@ -129,9 +140,10 @@ function rowsByVoce(rows) {
  * @param {string} note
  * @param {boolean} fresh
  * @param {MatrixRow | null} archived
+ * @param {string} [matrixKind]
  * @returns {string}
  */
-function renderLegacyFattoMatrixRow(parsed, legacyId, note, fresh, archived = null) {
+function renderLegacyFattoMatrixRow(parsed, legacyId, note, fresh, archived = null, matrixKind) {
   const persisted = loadFindingIssueLinks().get(legacyId);
   const issueKey  = normalizeJiraIssueKey(archived?.issueKey)
     ?? normalizeJiraIssueKey(parsed.issueKey)
@@ -151,7 +163,7 @@ function renderLegacyFattoMatrixRow(parsed, legacyId, note, fresh, archived = nu
   , issueSummary : archived?.issueSummary ?? null
   , category     : archived?.category ?? null
   , resolvedNote : note
-  }, { fresh });
+  }, { fresh, matrixKind });
 }
 
 /**
@@ -160,9 +172,10 @@ function renderLegacyFattoMatrixRow(parsed, legacyId, note, fresh, archived = nu
  * @param {string} verifiedAt
  * @param {Map<string, string>} prev
  * @param {(key: string, sig: string, prev: Map<string, string>) => boolean} isFresh
+ * @param {string} [matrixKind]
  * @returns {string}
  */
-function mergeMatrixSectionTbody(tbodyHtml, section, verifiedAt, prev, isFresh) {
+function mergeMatrixSectionTbody(tbodyHtml, section, verifiedAt, prev, isFresh, matrixKind) {
   const rows        = [...tbodyHtml.matchAll(/<tr[\s\S]*?<\/tr>/g)].map((m) => m[0]);
   const liveById    = liveActiveById(section);
   const liveByVoce  = rowsByVoce(section.rows);
@@ -199,7 +212,7 @@ function mergeMatrixSectionTbody(tbodyHtml, section, verifiedAt, prev, isFresh) 
       const sig           = `${findingStatus}|${live.dettaglio}`;
       const fresh         = isFresh(`finding:${live.id}`, sig, prev);
 
-      out.push(renderMatrixRow(live, { fresh }));
+      out.push(renderMatrixRow(live, { fresh, matrixKind }));
       continue;
     }
 
@@ -209,12 +222,12 @@ function mergeMatrixSectionTbody(tbodyHtml, section, verifiedAt, prev, isFresh) 
     const fresh     = isFresh(`finding:${resolvedId}`, `fatto|${note}`, prev);
 
     seenIds.add(resolvedId);
-    out.push(renderLegacyFattoMatrixRow(parsed, resolvedId, note, fresh, archived));
+    out.push(renderLegacyFattoMatrixRow(parsed, resolvedId, note, fresh, archived, matrixKind));
   }
 
   for (const r of liveById.values()) {
     if (!seenIds.has(r.id)) {
-      out.push(renderMatrixRow(r, { fresh: true }));
+      out.push(renderMatrixRow(r, { fresh: true, matrixKind }));
     }
   }
 
@@ -316,6 +329,7 @@ function updateGeneratedMeta(html, iso) {
  */
 export function refreshMatrixPageHtml(html, sections, prev, verifiedAtIso, isFresh, opts = {}) {
   const verifiedAt = verifiedAtIso.slice(0, 16).replace("T", " ");
+  const matrixKind = opts.matrixKind ?? parseMatrixKindFromHtml(html);
   let out          = stripAnalysisChecksBlocks(html);
 
   if (!opts.metricsOnly) {
@@ -326,7 +340,7 @@ export function refreshMatrixPageHtml(html, sections, prev, verifiedAtIso, isFre
 
       if (blockRe.test(out)) {
         out = out.replace(blockRe, (full, head, tbody, tail) => {
-          const merged = mergeMatrixSectionTbody(tbody, section, verifiedAt, prev, isFresh);
+          const merged = mergeMatrixSectionTbody(tbody, section, verifiedAt, prev, isFresh, matrixKind);
 
           if (merged === tbody) {
             return full;
@@ -343,7 +357,7 @@ export function refreshMatrixPageHtml(html, sections, prev, verifiedAtIso, isFre
       }
 
       if (!out.includes(`data-adv-section="${section.id}"`)) {
-        const sectionHtml = renderMatrixSection(section);
+        const sectionHtml = renderMatrixSection(section, undefined, { matrixKind });
         const anchor      = out.includes('<p class="meta">Artefatti:')
           ? '<p class="meta">Artefatti:'
           : "</div>\n  <script";

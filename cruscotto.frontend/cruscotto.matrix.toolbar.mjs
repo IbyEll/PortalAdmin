@@ -7,7 +7,14 @@ const reloadBtn     = document.getElementById("matrix-chrome-reload");
 const regenerateBtn = document.getElementById("matrix-chrome-regenerate");
 const statusEl      = document.getElementById("matrix-chrome-status");
 
-const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
+/**
+ * @param {string} key
+ * @param {string} [source]
+ * @returns {string}
+ */
+function matrixIssueRefinementHref(key, source = "db") {
+  return `/issue.html?key=${encodeURIComponent(String(key))}&source=${encodeURIComponent(source)}`;
+}
 
 /**
  * @returns {string}
@@ -125,11 +132,11 @@ function paintCreatedIssueCell(btn, data) {
 
   const { slug, label } = createdIssueTypeBadge(data.issueType);
   const badge           = `<span class="issue-type issue-type-${slug}">${label}</span>`;
-  const url             = `${JIRA_BROWSE_BASE}/${encodeURIComponent(data.key)}`;
+  const url             = matrixIssueRefinementHref(data.key);
 
   cell.classList.add("issue-refinement--linked");
   cell.dataset.issueKey = data.key;
-  cell.innerHTML = `${badge}<a class="issue-ref" href="${url}" target="_blank" rel="noopener noreferrer">${data.key}</a>`;
+  cell.innerHTML = `${badge}<a class="issue-ref" href="${url}">${data.key}</a>`;
 
   if (data.issueType) {
     cell.dataset.issueType = String(data.issueType);
@@ -293,9 +300,9 @@ document.addEventListener("click", (ev) => {
           , issueType    : sel.value || "BUG"
           , sectionLabel : btn.dataset.sectionLabel
           , category     : btn.dataset.category || undefined
-          , summary      : btn.dataset.summary
-          , detail       : btn.dataset.detail
-          , matrixKind   : currentMatrixKind()
+          , voce         : btn.dataset.voce || btn.dataset.summary
+          , dettaglio    : btn.dataset.dettaglio || btn.dataset.detail
+          , matrixKind   : btn.dataset.matrixKind || currentMatrixKind()
           , paths
           })
         });

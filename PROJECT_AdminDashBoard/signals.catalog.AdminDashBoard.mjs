@@ -46,118 +46,76 @@ export const PRODUCT_REPO_SIGNALS = [
     key   : "ADMIN-99"
   , label : "Cruscotto DB sync + loadJiraBacklog"
   , paths : [
-      "cruscotto.database/Jira.backlog.sync.mjs"
-    , "cruscotto.database/load-backlog.mjs"
-    , "admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs"
+      "admin.portal.JiraCORE/jiraCORE.backlog.load.mjs"
+      , "test.smoke/smoke-cruscotto-db.mjs"
+      , "cruscotto.database/Jira.backlog.sync.mjs"
+      , "admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs"
     ]
   }
 , {
     key   : "ADMIN-100"
   , label : "E2E portal smoke + go-live checklist"
-  , paths : [
-      "scripts/smoke-portal-e2e.mjs"
-    , "docs/go-live-admin-88.md"
-    , "docs/cruscotto-manual-checklist-it.md"
-    ]
+  , paths : ["test.smoke/smoke-portal-e2e.mjs"]
   , tests : ["admin/test-portal-smoke.mjs"]
   }
 , {
     key   : "ADMIN-96"
   , label : "smoke test:workflow + README workflow Cursor"
   , paths : [
-      "lib"
-    , "scripts"
-    , "server"
+      "admin.portal.JiraCORE/jiraCORE.wip.close-subtask.mjs"
+      , "admin.portal.JiraCORE/jiraCORE.wip.push.mjs"
+      , "admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs"
+      , "admin.portal.testscript/funzionali/test.cruscotto.backlog.gogo.mjs"
     ]
   }
 , {
     key   : "ADMIN-95"
   , label : "Badge README build status"
-  , paths : [
-      "lib"
-    , "scripts"
-    , "server"
-    ]
+  , paths : ["test.smoke/smoke-ci.mjs"]
   }
 , {
     key   : "ADMIN-97"
   , label : "cursor rule"
-  , paths : [
-      "lib"
-    , "scripts"
-    , "server"
-    ]
+  , paths : ["admin.portal.testscript/lib/http.mjs"]
   }
 , {
     key   : "ADMIN-82"
   , label : "fix portal.paths import in pillar-matrix-targeted"
-  , paths : [
-      "lib"
-      , "scripts"
-      , "server"
-      , "admin.portal.testscript"
-    ]
+  , paths : ["admin.portal.JiraCORE/jiraCORE.backlog.sync.mjs"]
   }
 
 , {
     key   : "ADMIN-154"
   , label : "bACKLOG + iSSUE vIEW"
-  , paths : [
-      "lib"
-      , "scripts"
-      , "server"
-      , "admin.portal.testscript"
-    ]
+  , paths : ["test.smoke/smoke-paths-resolver.mjs"]
   }
 
 , {
     key   : "ADMIN-155"
   , label : "allinea commenti al path canonico cruscotto.server.mjs"
-  , paths : [
-      "lib"
-      , "scripts"
-      , "server"
-      , "admin.portal.testscript"
-    ]
+  , paths : ["admin.portal.JiraCORE/jiraCORE.workflow.description.mjs"]
   }
 
 , {
     key   : "ADMIN-98"
   , label : "ok"
-  , paths : [
-      "lib"
-      , "admin.portal.JiraCORE"
-      , "scripts"
-      , "admin.portal.lib"
-      , "admin.script.standalone"
-      , "test.smoke"
-    ]
+  , paths : ["test.smoke/smoke-pillar-matrix-paths.mjs"]
   }
 
 , {
     key   : "ADMIN-157"
   , label : "Fix WIP resync commitHash da main..branch e parent branch tip."
-  , paths : [
-      "lib"
-      , "admin.portal.JiraCORE"
-      , "scripts"
-      , "admin.portal.lib"
-      , "admin.script.standalone"
-      , "test.smoke"
-    ]
+  , paths : ["admin.portal.JiraCORE/jiraCORE.veve.sync.log.backlog.mjs"]
   }
 
 , {
     key   : "ADMIN-156"
   , label : "elimina consumer residui portal-paths shim"
   , paths : [
-      "lib"
-      , "admin.portal.JiraCORE"
-      , "scripts"
-      , "admin.portal.lib"
-      , "test.smoke"
-      , "admin.script.standalone"
+      "admin.portal.testscript/cursor/test.cruscotto.backlog.push.mjs"
+      , "admin.portal.testscript/technical/test.matrix.db.adapter.mjs"
     ]
+  , tests : ["cursor/test.cruscotto.backlog.push.mjs"]
   }
 
 , {
@@ -174,26 +132,15 @@ export const PRODUCT_REPO_SIGNALS = [
 , {
     key   : "ADMIN-169"
   , label : "fix"
-  , paths : [
-      "lib"
-      , "admin.portal.JiraCORE"
-      , "scripts"
-      , "admin.portal.lib"
-      , "test.smoke"
-      , "admin.script.standalone"
-    ]
+  , paths : ["admin.portal.testscript/technical/test.matrix.db.mjs"]
   }
 
 , {
     key   : "ADMIN-171"
   , label : "fix mybacklog"
   , paths : [
-      "lib"
-      , "admin.portal.JiraCORE"
-      , "admin.portal.lib"
-      , "test.smoke"
-      , "admin.script.standalone"
-      , "cruscotto.database"
+      "cruscotto.database/prisma/schema.prisma"
+    , "cruscotto.database/prisma/migrations/20260709030000_matrix_tables/migration.sql"
     ]
   }
 
@@ -217,12 +164,8 @@ export const PRODUCT_REPO_SIGNALS = [
     key   : "ADMIN-173"
   , label : "Wire matrix finding-issue and regenerate routes to cruscotto.database service."
   , paths : [
-      "admin.portal.lib"
-      , "admin.portal.JiraCORE"
-      , "test.smoke"
-      , "lib"
-      , "admin.script.standalone"
-      , "cruscotto.database"
+      "admin.portal.testscript/technical/test.matrix.api.e2e.mjs"
+      , "cruscotto.database/matrix.api.service.mjs"
     ]
   , tests : ["technical/test.matrix.api.e2e.mjs"]
   }
@@ -230,39 +173,21 @@ export const PRODUCT_REPO_SIGNALS = [
 , {
     key   : "ADMIN-174"
   , label : "fix"
-  , paths : [
-      "admin.portal.lib"
-      , "admin.portal.JiraCORE"
-      , "test.smoke"
-      , "lib"
-      , "admin.script.standalone"
-      , "cruscotto.database"
-    ]
+  , paths : ["cruscotto.database/matrix.db.mjs"]
   }
 
 , {
     key   : "ADMIN-195"
   , label : "OTRERS"
-  , paths : [
-      "admin.portal.lib"
-      , "admin.portal.JiraCORE"
-      , "test.smoke"
-      , "lib"
-      , "admin.script.standalone"
-      , "cruscotto.database"
-    ]
+  , paths : ["admin.portal.JiraCORE/jira.project.config.mjs"]
   }
 
 , {
     key   : "ADMIN-196"
   , label : "Guard Jira scan config against phantom server/ and scripts/ paths"
   , paths : [
-      "admin.portal.lib"
-      , "admin.portal.JiraCORE"
-      , "test.smoke"
-      , "lib"
-      , "admin.script.standalone"
-      , "cruscotto.database"
+      "admin.portal.JiraCORE/jira.project.config.mjs"
+    , "admin.portal.JiraCORE/jira.function.repo.refs.mjs"
     ]
   }
 
@@ -270,12 +195,10 @@ export const PRODUCT_REPO_SIGNALS = [
     key   : "ADMIN-197"
   , label : "Add technical test for portal API read-only suite endpoint."
   , paths : [
-      "admin.portal.JiraCORE"
-      , "admin.portal.lib"
-      , "test.smoke"
-      , "cruscotto.database"
-      , "admin.script.standalone"
-      , "admin.portal.testscript"
+      "admin.portal.lib/portal.api.suite.mjs"
+    , "admin.portal.testscript/technical/test.portal.api.suite.mjs"
+    , "admin.portal.testscript/run-portal-api.mjs"
+    , "test.smoke/smoke-portal-api.mjs"
     ]
   , tests : ["technical/test.portal.api.suite.mjs"]
   }

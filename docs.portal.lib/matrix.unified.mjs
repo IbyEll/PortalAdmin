@@ -21,6 +21,7 @@ import {
 , summarizeRepoAuditSections
 } from "./matrix.repo.audit.mjs";
 import { renderMatrixPage, summarizeMatrixSections } from "./matrix.render.mjs";
+import { MATRIX_KIND_PORTAL_GAP } from "../cruscotto.database/matrix.db.mjs";
 
 /** @typedef {import("./matrix.render.mjs").MatrixSection} MatrixSection */
 
@@ -251,6 +252,8 @@ export function generateUnifiedMatrixHtml(report, sections) {
   , metrics
   , metricsBadge
   , metricsCardTitle
+  , matrixKind   : MATRIX_KIND_PORTAL_GAP
+  , bodyAttrs    : { "data-matrix-kind": MATRIX_KIND_PORTAL_GAP }
   , sections
   , appendHtml : renderMermaidArchitectureAppend()
   , footerHtml : [

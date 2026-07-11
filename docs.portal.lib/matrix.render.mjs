@@ -41,6 +41,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
+import { MATRIX_TABLE_COLUMNS } from "./matrix.columns.mjs";
 import {
   renderIssueRefinementCell
 , matrixRowToIssueRefinementCtx
@@ -94,20 +95,15 @@ import {
  *   scriptSrc?: string
  *   bodyClass?: string
  *   bodyAttrs?: Record<string, string>
+ *   matrixKind?: string
  *   chromeHtml?: string
  *   headExtraHtml?: string
  * }} MatrixPageConfig
  */
 
-const DEFAULT_COLUMNS = [
-  "Sev"
-, "Issue refirement"
-, "Project"
-, "Voce"
-, "Dettaglio"
-, "Path"
-, "Stato"
-];
+const DEFAULT_COLUMNS = MATRIX_TABLE_COLUMNS;
+
+export { MATRIX_TABLE_COLUMNS };
 
 /**
  * @param {string} s
@@ -132,13 +128,14 @@ export function escHtml(s) {
  * @param {MatrixRow} r
  * @param {(inner: string) => string} wrap
  * @param {string} findingStatus
+ * @param {string} [matrixKind]
  * @returns {string}
  */
-function renderMatrixIssueRefinementCell(r, wrap, findingStatus) {
+function renderMatrixIssueRefinementCell(r, wrap, findingStatus, matrixKind) {
   return renderIssueRefinementCell(matrixRowToIssueRefinementCtx({
     ...r
   , status: findingStatus
-  }), wrap);
+  }, matrixKind), wrap);
 }
 
 /**
@@ -250,7 +247,7 @@ function statoCellHtml(status, note = "") {
  * @returns {string}
  */
 export function renderMatrixRow(r, opts = {}) {
-  const { fresh = false } = opts;
+  const { fresh = false, matrixKind } = opts;
   const resolved      = r.status === "fatto" && (Boolean(r.resolvedNote) || Boolean(r.issueKey) || /^P[0-5]$/.test(r.sev));
   const obsolete      = r.status === "obsoleto";
   const trClasses     = [
@@ -277,7 +274,7 @@ export function renderMatrixRow(r, opts = {}) {
     : "";
   const irCell        = obsolete
     ? `<td class="issue-refinement issue-refinement--obsolete"></td>`
-    : renderMatrixIssueRefinementCell(r, wrap, findingStatus);
+    : renderMatrixIssueRefinementCell(r, wrap, findingStatus, matrixKind);
 
   return [
     `<tr${trClass} data-finding-id="${escAttr(r.id)}" data-finding-status="${escAttr(findingStatus)}" data-finding-sig="${escAttr(`${findingStatus}|${r.dettaglio}`)}">`
@@ -297,12 +294,12 @@ export function renderMatrixRow(r, opts = {}) {
  * @param {string[]} [defaultColumns]
  * @returns {string}
  */
-export function renderMatrixSection(section, defaultColumns = DEFAULT_COLUMNS) {
+export function renderMatrixSection(section, defaultColumns = DEFAULT_COLUMNS, renderOpts = {}) {
   const columns = section.columns ?? defaultColumns;
   const openAttr  = section.open ? " open" : "";
   const badge     = section.badge ?? `${section.rows.length} voci`;
   const head      = columns.map((c) => `<th>${escHtml(c)}</th>`).join("");
-  const rows      = section.rows.map(renderMatrixRow).join("");
+  const rows      = section.rows.map((row) => renderMatrixRow(row, { matrixKind: renderOpts.matrixKind })).join("");
   const partHtml  = section.partHeading
     ? [
         `<div class="matrix-part-heading" id="part-${escAttr(section.id)}">`
@@ -399,7 +396,7 @@ export function renderMatrixPage(config) {
     ? renderMatrixMetricsCard(config.metrics, config.metricsBadge, config.metricsCardTitle)
     : "";
   const sectionsHtml = config.sections
-    .map((s) => renderMatrixSection(s, config.defaultColumns))
+    .map((s) => renderMatrixSection(s, config.defaultColumns, { matrixKind: config.matrixKind }))
     .join("\n");
 
   return `<!DOCTYPE html>

@@ -110,7 +110,10 @@ import {
 , refreshCursorRulesFromMdc
 , resolveCursorRulesFile
 } from "../doc.cursor.rule.lib/doc.cursor.rule.mjs";
-import { createMatrixFindingIssue } from "../docs.portal.lib/matrix.finding.create.mjs";
+import {
+  createMatrixFindingIssue
+, parseMatrixFindingCreateBody
+} from "../docs.portal.lib/matrix.finding.create.mjs";
 import { loadFindingIssueLinksObject } from "../docs.portal.lib/matrix.finding-issues.store.mjs";
 import { syncJiraBacklogFromApi } from "../cruscotto.database/Jira.backlog.sync.mjs";
 import {
@@ -624,11 +627,10 @@ async function handleApi(req, res, urlPath) {
       const projectLabel = typeof body.project === "string" && body.project.trim()
         ? body.project.trim()
         : "PortalAdmin";
-      const title = typeof body.summary === "string" ? body.summary.trim() : "";
-      const detail = typeof body.detail === "string" ? body.detail.trim() : "";
+      const { voce, dettaglio } = parseMatrixFindingCreateBody(body);
 
-      if (!title) {
-        sendJson(res, 400, { error: "summary obbligatorio" }, req);
+      if (!voce) {
+        sendJson(res, 400, { error: "voce obbligatoria" }, req);
         return;
       }
 
@@ -649,14 +651,15 @@ async function handleApi(req, res, urlPath) {
       const created = await createMatrixFindingIssue({
         projectLabel
       , findingId
-      , title
-      , detail
+      , voce
+      , dettaglio
       , paths
       , issueTypeKey: typeof body.issueType === "string" ? body.issueType : undefined
       , sectionLabel
       , sectionTitle
       , category
       , parentKey    : typeof body.parentKey === "string" ? body.parentKey : null
+      , matrixKind   : typeof body.matrixKind === "string" ? body.matrixKind : undefined
       });
 
       void syncJiraBacklogFromApi().catch((err) => {

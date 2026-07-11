@@ -2,15 +2,7 @@
  * Metadata sezioni matrice copertura test — ordine, titoli e colonne (senza DATA righe).
  */
 
-export const TEST_COVERAGE_COLUMNS = [
-  "Sev"
-, "Issue refinement"
-, "Project"
-, "Feature"
-, "Test · gap"
-, "Implementazione"
-, "Stato"
-];
+export { MATRIX_TABLE_COLUMNS as TEST_COVERAGE_COLUMNS } from "./matrix.columns.mjs";
 
 export const TEST_COVERAGE_SECTION_DEFS = [
   { id: "orch", title: "Orchestrazione", open: true }

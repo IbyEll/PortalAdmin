@@ -2,6 +2,27 @@
  * Sezioni matrice docs — titoli card, categorie ed etichetta Jira per pulsante Crea.
  */
 
+import {
+  MATRIX_KIND_PORTAL_GAP
+, MATRIX_KIND_TEST_COVERAGE
+} from "../cruscotto.database/matrix.db.mjs";
+
+/** Etichetta visibile pulsante CREA per matrix_kind. */
+export const MATRIX_KIND_CREATE_LABELS = {
+  [MATRIX_KIND_PORTAL_GAP]    : "[Matrix GAP]"
+, [MATRIX_KIND_TEST_COVERAGE] : "[Matrix TEST]"
+};
+
+/**
+ * @param {string | null | undefined} matrixKind
+ * @returns {string}
+ */
+export function formatMatrixKindCreateLabel(matrixKind) {
+  const kind = String(matrixKind ?? MATRIX_KIND_PORTAL_GAP).trim();
+
+  return MATRIX_KIND_CREATE_LABELS[kind] ?? "[Matrix]";
+}
+
 /** @type {Record<string, string>} */
 export const MATRIX_SECTION_TITLES = {
   arch         : "Architettura e avanzamento"

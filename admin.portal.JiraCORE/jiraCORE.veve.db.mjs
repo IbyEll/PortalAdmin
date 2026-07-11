@@ -1,12 +1,13 @@
 /**
  * Veve DB programmatico — leggi jira_issue, gap repo, crea subtask implementazione + test, merge veve raw_fields.
  *
- * writeTarget: jira_issue (CREA Matrix) | jira_issue_wip (workflow database).
+ * writeTarget: jira_issue (default veve db + Matrix CREA) | jira_issue_wip (legacy).
  */
 
 import { isEpicType } from "../cruscotto.frontend/cruscotto.jira.backlog.mjs";
 import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { createJiraIssue } from "./jiraCORE.jira.create.mjs";
+import { syncWipGroomFromJiraIssueCache } from "./jiraCORE.wip.enroll.mjs";
 import {
   analyzeIssueKeys
 , isRepoEsitoContemplated
@@ -671,11 +672,11 @@ async function writeVeveDbRow(db, row, rawMerge, writeTarget) {
 export async function runVeveDbForIssueKey(issueKey, opts = {}) {
   const key           = normalizeIssueKey(issueKey);
   const dryRun        = Boolean(opts.dryRun);
-  const writeTarget   = opts.writeTarget === "jira_issue"
-    ? "jira_issue"
+  const writeTarget   = opts.writeTarget === "jira_issue_wip"
+    ? "jira_issue_wip"
     : opts.writeTarget === "both"
       ? "both"
-      : "jira_issue_wip";
+      : "jira_issue";
   const createSubs    = opts.createSubtasks !== false;
 
   await ensureJiraIssuesInCache([key]);
@@ -836,6 +837,13 @@ export async function runVeveDbForIssueKey(issueKey, opts = {}) {
     subtaskResults.push({ key: subRow.jiraKey, updated: !dryRun });
   }
 
+  /** @type {{ synced?: boolean, rows?: number, reason?: string }} */
+  let wipGroomSync = { synced: false, reason: "dry_run" };
+
+  if (!dryRun && writeTarget !== "jira_issue_wip") {
+    wipGroomSync = await syncWipGroomFromJiraIssueCache(key);
+  }
+
   return {
     ok       : true
   , key
@@ -846,6 +854,7 @@ export async function runVeveDbForIssueKey(issueKey, opts = {}) {
   , missingSubtaskProposals: missingProposals
   , gapSymbol: parentGap?.symbol ?? "—"
   , writeTarget
+  , wipGroomSync
   , wipTable : writeTarget === "both" ? "jira_issue+jira_issue_wip" : writeTarget
   };
 }
