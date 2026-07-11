@@ -119,12 +119,22 @@ async function runFinalizeWipAfterAgent(workflowKey, status) {
     return;
   }
 
+  state.workflowFinalizing = true;
+  setWorkflowStep("Step 7 — Chiudi parent WIP (awaitingPush)");
+
   try {
     await finalizeWipAfterGogo(workflowKey, { closeOpenSubtasks: true });
+    setWorkflowStep("Pronto PUSH — step 8 (cruscotto)");
     pushLogLine("workflow", `WIP aggiornato — ${workflowKey} pronto per PUSH`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    state.status = "error";
+    state.error  = message;
+    setWorkflowStep("Step 7 — errore finalizzazione WIP");
     pushLogLine("stderr", `finalize WIP ${workflowKey} fallito: ${message}`);
+  } finally {
+    state.workflowFinalizing = false;
+    void persistState();
   }
 }
 
@@ -134,6 +144,8 @@ async function runFinalizeWipAfterAgent(workflowKey, status) {
  * @param {{ kind: "gogo" | "procedi", parentKey: string }} workflow
  */
 async function bootstrapWorkflowRun(workflow) {
+  setWorkflowStep("Step 3 — Veve DB + Enroll WIP");
+
   try {
     await enrollIssueInWip(workflow.parentKey);
   } catch (err) {
@@ -142,10 +154,12 @@ async function bootstrapWorkflowRun(workflow) {
   }
 
   startWipGitSyncPoll(workflow.parentKey);
+  setWorkflowStep("Step 0 — Piano WIP (START)");
 
   try {
     const startBlock = await buildWorkflowStartBlock(workflow);
     pushLogLine("workflow", startBlock);
+    setWorkflowStep("Step 5 — Implementazione (agent)");
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     pushLogLine("workflow", [
@@ -183,6 +197,9 @@ async function bootstrapWorkflowRun(workflow) {
  *   pid: number | null
  *   workflowKey: string | null
  *   workflowKind: "gogo" | "procedi" | null
+ *   workflowStepLabel: string | null
+ *   workflowFinalizing: boolean
+ *   uiPhase: "idle" | "running" | "finalizing" | "stopped" | "error"
  * }} CursorAgentStatus
  */
 
@@ -200,7 +217,48 @@ const state = {
 , pid        : null
 , workflowKey: null
 , workflowKind: null
+, workflowStepLabel: null
+, workflowFinalizing: false
 };
+
+/**
+ * Aggiorna etichetta step workflow visibile in tab Cursor Agent.
+ *
+ * @param {string} label
+ */
+function setWorkflowStep(label) {
+  const next = String(label ?? "").trim();
+
+  if (!next) {
+    return;
+  }
+
+  state.workflowStepLabel = next;
+  void persistState();
+}
+
+/**
+ * @returns {CursorAgentStatus["uiPhase"]}
+ */
+function resolveCursorAgentUiPhase() {
+  if (state.running) {
+    return "running";
+  }
+
+  if (state.workflowFinalizing) {
+    return "finalizing";
+  }
+
+  if (state.status === "error") {
+    return "error";
+  }
+
+  if (state.status === "finished") {
+    return "stopped";
+  }
+
+  return "idle";
+}
 
 /** @type {import("node:child_process").ChildProcess | null} */
 let child = null;
@@ -228,6 +286,7 @@ async function runWipGitSync(parentKey) {
         wipGitSyncLoggedClosed.add(key);
       }
 
+      setWorkflowStep("Step 6 — ok chiudi subtask (WIP)");
       pushLogLine("workflow", `WIP — ${newlyClosed.length} subtask: ${newlyClosed.join(", ")}`);
     }
   } catch (err) {
@@ -350,7 +409,10 @@ await loadPersistedState();
  */
 export function getCursorAgentStatus() {
   reconcileAgentRunningState();
-  return { ...state };
+  return {
+    ...state
+  , uiPhase: resolveCursorAgentUiPhase()
+  };
 }
 
 /**
@@ -468,6 +530,7 @@ function handleWorkerLine(line) {
     const workflowKey = state.workflowKey;
 
     if (line.status === "finished" && workflowKey) {
+      setWorkflowStep("Step 6–7 — Chiusura WIP");
       void runFinalizeWipAfterAgent(workflowKey, "finished");
     }
 
@@ -637,11 +700,14 @@ export async function startCursorAgent(options) {
   state.runId      = null;
   state.workflowKey  = null;
   state.workflowKind = null;
+  state.workflowStepLabel = null;
+  state.workflowFinalizing = false;
   state.pid        = child.pid;
 
   if (workflow) {
     state.workflowKey  = workflow.parentKey;
     state.workflowKind = workflow.kind;
+    setWorkflowStep("Step 1–2 — Pre-flight git + branch");
     void bootstrapWorkflowRun(workflow);
   }
 
@@ -700,6 +766,7 @@ export async function startCursorAgent(options) {
       const workflowKey = state.workflowKey;
 
       if (code === 0 && workflowKey) {
+        setWorkflowStep("Step 6–7 — Chiusura WIP");
         void runFinalizeWipAfterAgent(workflowKey, "finished");
       }
 

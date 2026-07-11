@@ -9,6 +9,14 @@ import { openCruscottoDb } from "../cruscotto.database/cruscotto.db.config.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { readGitWorkflowInfo, resolvePrUrlForIssueKey, isTicketWorkflowBranch } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import {
+  rebuildWipParentVeveMarkdown
+, rebuildWipSubtaskVeveMarkdown
+, repoAreasFromGapRow
+, resolveRepoAreasForWipClose
+} from "./jiraCORE.workflow.description.mjs";
+import { analyzeIssueKeys } from "./JiraCORE.repo.issuekey.signal.analysis.mjs";
+import { scanRepoJiraReferences } from "./jira.function.repo.refs.mjs";
+import {
   loadWipPushBundle
 , normalizeIssueKey
 , parseWipRawFields
@@ -330,6 +338,31 @@ export async function closeWipSubtask(subKey, opts = {}) {
 
   if (typeof opts.veveDescription === "string" && opts.veveDescription.trim()) {
     nextRaw.veveDescription = opts.veveDescription.trim();
+  } else {
+    try {
+      const repoRefs = scanRepoJiraReferences();
+      const gap = analyzeIssueKeys([key], {
+        repoRefs
+      , jiraStatusByKey: { [key]: DONE_STATUS }
+      }).issues[0];
+      const repoAreas = repoAreasFromGapRow(gap) ?? [];
+      const siblings = await loadWipChildren(db, parentKey);
+      const orderIndex = siblings.findIndex((row) => row.jiraKey === key);
+
+      nextRaw.veveDescription = rebuildWipSubtaskVeveMarkdown(
+        typeof raw.veveDescription === "string" ? raw.veveDescription : ""
+      , {
+          objective : row.summary ?? key
+        , parentKey
+        , repoAreas
+        , order     : siblings.length > 0 && orderIndex >= 0
+          ? { n: orderIndex + 1, total: siblings.length }
+          : undefined
+        }
+      );
+    } catch {
+      /* mantieni veve esistente */
+    }
   }
 
   const updated = await db.jiraIssueWip.update({
@@ -626,6 +659,104 @@ export async function closeRemainingWipSubtasksAfterGogo(parentKey, opts = {}) {
 }
 
 /**
+ * Aggiorna veveDescription parent + subtask Fatto (AC/DoD checked, stato repo).
+ *
+ * @param {string} parentKey
+ * @returns {Promise<import("../cruscotto.frontend/cruscotto.jira.backlog.wip.mjs").WipAdvancementEntry | null>}
+ */
+export async function refreshWipVeveDescriptionsForBundle(parentKey) {
+  const key = normalizeIssueKey(parentKey);
+  const db  = await openCruscottoDb();
+  const parent = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
+
+  if (!parent) {
+    return null;
+  }
+
+  let children = await loadWipChildren(db, key);
+
+  for (const child of children) {
+    if (child.isDone !== true) {
+      continue;
+    }
+
+    const childRaw = parseWipRawFields(child.rawFields);
+
+    try {
+      const repoRefs = scanRepoJiraReferences();
+      const gap = analyzeIssueKeys([child.jiraKey], {
+        repoRefs
+      , jiraStatusByKey: { [child.jiraKey]: DONE_STATUS }
+      }).issues[0];
+      const orderIndex = children.findIndex((row) => row.jiraKey === child.jiraKey);
+      const veveDescription = rebuildWipSubtaskVeveMarkdown(
+        typeof childRaw.veveDescription === "string" ? childRaw.veveDescription : ""
+      , {
+          objective : child.summary ?? child.jiraKey
+        , parentKey : key
+        , repoAreas : repoAreasFromGapRow(gap) ?? []
+        , order     : children.length > 0 && orderIndex >= 0
+          ? { n: orderIndex + 1, total: children.length }
+          : undefined
+        }
+      );
+
+      await db.jiraIssueWip.update({
+        where: { jiraKey: child.jiraKey }
+      , data : {
+          rawFields: JSON.stringify({ ...childRaw, veveDescription })
+        , syncedAt : new Date()
+        }
+      });
+    } catch {
+      /* continua bundle */
+    }
+  }
+
+  children = await loadWipChildren(db, key);
+
+  if (!areAllWipSubtasksDone(children)) {
+    return touchParentWipProgress(key);
+  }
+
+  const raw = parseWipRawFields(parent.rawFields);
+  const existingVeve = typeof raw.veveDescription === "string" ? raw.veveDescription : "";
+  let veveDescription = existingVeve;
+
+  try {
+    const repoAreas = await resolveRepoAreasForWipClose(
+      key
+    , children.map((sub) => sub.jiraKey)
+    );
+
+    veveDescription = rebuildWipParentVeveMarkdown(existingVeve, {
+      objective : parent.summary ?? key
+    , repoAreas : repoAreas ?? undefined
+    , subtasks  : children.map((sub) => ({
+        key     : sub.jiraKey
+      , summary : sub.summary ?? sub.jiraKey
+      }))
+    });
+  } catch {
+    return buildWipAdvancementEntry(parent, children, { inWip: true });
+  }
+
+  const updated = await db.jiraIssueWip.update({
+    where: { jiraKey: key }
+  , data : {
+      rawFields: JSON.stringify({
+        ...raw
+      , veveDescription
+      , veveRefreshedAt: new Date().toISOString()
+      })
+    , syncedAt : new Date()
+    }
+  });
+
+  return buildWipAdvancementEntry(updated, children, { inWip: true });
+}
+
+/**
  * Step 7 locale — tutte le subtask Fatto: parent in attesa PUSH (chiudi story allo step 8).
  *
  * @param {string} parentKey
@@ -664,10 +795,32 @@ export async function closeParentWipForPush(parentKey, opts = {}) {
     : (pr.branch ?? resolveTicketBranchName(key, git) ?? (git.branch !== "—" ? git.branch : null));
 
   const branchTip = shortBranchTipHash(key, git);
+  const existingVeve = typeof raw.veveDescription === "string" ? raw.veveDescription : "";
+
+  let veveDescription = existingVeve;
+
+  try {
+    const repoAreas = await resolveRepoAreasForWipClose(
+      key
+    , subtasks.map((sub) => sub.jiraKey)
+    );
+
+    veveDescription = rebuildWipParentVeveMarkdown(existingVeve, {
+      objective : parent.summary ?? key
+    , repoAreas : repoAreas ?? undefined
+    , subtasks  : subtasks.map((sub) => ({
+        key     : sub.jiraKey
+      , summary : sub.summary ?? sub.jiraKey
+      }))
+    });
+  } catch {
+    /* mantieni veve precedente se rebuild fallisce */
+  }
 
   /** @type {Record<string, unknown>} */
   const nextRaw = {
     ...raw
+  , veveDescription
   , gogoCompletedAt: raw.gogoCompletedAt ?? now
   , branch
   , commitHash     : branchTip ?? raw.commitHash ?? null

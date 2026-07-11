@@ -10,6 +10,9 @@ import {
 
 import { pathToFileURL } from "node:url";
 
+import { analyzeIssueKeys } from "./JiraCORE.repo.issuekey.signal.analysis.mjs";
+import { scanRepoJiraReferences } from "./jira.function.repo.refs.mjs";
+
 const JIRA_BROWSE = "https://myfuturejobsearch.atlassian.net/browse";
 
 /**
@@ -64,6 +67,212 @@ const JIRA_BROWSE = "https://myfuturejobsearch.atlassian.net/browse";
  */
 function renderCheckboxLines(items) {
   return (items ?? []).map((item) => `- [${item.checked === false ? " " : "x"}] ${item.text}`);
+}
+
+/** @type {Array<{ text: string, checked: boolean }>} */
+const DEFAULT_WIP_PARENT_AC = [
+  { text: "Gap repo analizzato e allineato al finding matrice", checked: true }
+, { text: "Implementazione verificata in codebase overlay attivo", checked: true }
+];
+
+/** @type {Array<{ text: string, checked: boolean }>} */
+const DEFAULT_WIP_PARENT_DOD = [
+  { text: "Codice e test coerenti con AC", checked: true }
+, { text: "Ticket pronto per PUSH (step 8 cruscotto)", checked: true }
+];
+
+/**
+ * @param {Array<{ text: string, checked?: boolean }>} items
+ * @param {{ pushReadyDoD?: boolean, defaults?: Array<{ text: string, checked: boolean }> }} [opts]
+ * @returns {Array<{ text: string, checked: boolean }>}
+ */
+export function markVeveCheckboxItemsDone(items, opts = {}) {
+  const list = items?.length ? items : (opts.defaults ?? []);
+
+  return list.map((item) => {
+    let text = item.text;
+
+    if (opts.pushReadyDoD && /gogo workflow|pronto per gogo/i.test(text)) {
+      text = "Ticket pronto per PUSH (step 8 cruscotto)";
+    }
+
+    return { text, checked: true };
+  });
+}
+
+/**
+ * @param {string} markdown
+ * @returns {string | null}
+ */
+export function parseEpicKeyFromVeve(markdown) {
+  const m = String(markdown ?? "").match(/\*\*Epic:\*\*\s*\[((?:ADMIN|JLO)-\d+)\]/i);
+
+  return m?.[1]?.toUpperCase() ?? null;
+}
+
+/**
+ * @param {string} markdown
+ * @returns {Array<{ key: string, summary: string }>}
+ */
+export function parseSubtaskTableFromVeve(markdown) {
+  const section = extractMarkdownSection(markdown, "Ordine subtask");
+  /** @type {Array<{ key: string, summary: string }>} */
+  const subs = [];
+
+  for (const line of section.split(/\r?\n/)) {
+    const match = line.match(/^\|\s*\d+\s*\|\s*((?:ADMIN|JLO)-\d+)\s*\|\s*([^|]+?)\s*\|/i);
+
+    if (match) {
+      subs.push({ key: match[1].toUpperCase(), summary: match[2].trim() });
+    }
+  }
+
+  return subs;
+}
+
+/**
+ * @param {{ symbol?: string, signalLabel?: string, gap?: string, paths?: string[] } | null | undefined} gapRow
+ * @returns {Array<{ area: string, esito: string, note: string }>}
+ */
+export function repoAreasFromGapRow(gapRow) {
+  if (!gapRow || !/^[✅⚠️❌]$/.test(String(gapRow.symbol ?? "").trim())) {
+    return [];
+  }
+
+  const note = gapRow.gap
+    ?? (gapRow.paths?.length ? gapRow.paths.slice(0, 3).join(", ") : "—");
+
+  return [{
+    area : gapRow.signalLabel ?? "Repo"
+  , esito: String(gapRow.symbol)
+  , note
+  }];
+}
+
+/**
+ * Gap analysis fresco per tabella Stato repo a chiusura WIP.
+ *
+ * @param {string} parentKey
+ * @param {string[]} [subtaskKeys]
+ * @returns {Promise<Array<{ area: string, esito: string, note: string }> | null>}
+ */
+export async function resolveRepoAreasForWipClose(parentKey, subtaskKeys = []) {
+  const key = String(parentKey ?? "").trim().toUpperCase();
+  const keys = [key, ...subtaskKeys.map((sub) => String(sub).trim().toUpperCase())];
+  const repoRefs = scanRepoJiraReferences();
+  const report = analyzeIssueKeys(keys, {
+    repoRefs
+  , jiraStatusByKey: Object.fromEntries(keys.map((issueKey) => [issueKey, "Fatto"]))
+  });
+  const parentGap = report.issues.find((row) => row.key === key);
+  const fromGap   = repoAreasFromGapRow(parentGap);
+
+  return fromGap.length > 0 ? fromGap : null;
+}
+
+/**
+ * Ricompila veve parent WIP — AC/DoD checked, stato repo aggiornato.
+ *
+ * @param {string} existingMarkdown
+ * @param {{
+ *   objective?: string
+ *   epicKey?: string | null
+ *   repoAreas?: Array<{ area: string, esito: string, note: string }>
+ *   subtasks?: Array<{ key: string, summary: string }>
+ * }} ctx
+ * @returns {string}
+ */
+export function rebuildWipParentVeveMarkdown(existingMarkdown, ctx = {}) {
+  const existing = String(existingMarkdown ?? "");
+  const objective = ctx.objective
+    ?? extractMarkdownSection(existing, "Obiettivo").split("\n").find((line) => line.trim())?.trim()
+    ?? "—";
+  const sprintNote = extractMarkdownSection(existing, "Sprint / fase")
+    .split("\n")
+    .find((line) => line.trim() && line.trim() !== "—")
+    ?.trim()
+    ?? "—";
+  const responsibility = extractMarkdownSection(existing, "Divisione responsabilità")
+    .split("\n")
+    .find((line) => line.trim())
+    ?? undefined;
+  const outOfScopeRaw = extractMarkdownSection(existing, "Fuori scope");
+  const successor = extractMarkdownSection(existing, "Successore")
+    .split("\n")
+    .find((line) => line.trim())
+    ?? "—";
+  const acParsed = parseCheckboxSection(extractMarkdownSection(existing, "Acceptance Criteria"));
+  const dodParsed = parseCheckboxSection(extractMarkdownSection(existing, "Definition of Done"));
+  const repoAreas = ctx.repoAreas?.length
+    ? ctx.repoAreas
+    : parseRepoAreasTable(extractMarkdownSection(existing, "Stato repo"));
+  const subtasks = ctx.subtasks?.length
+    ? ctx.subtasks
+    : parseSubtaskTableFromVeve(existing);
+
+  return buildVeveStoryParentMarkdown({
+    objective
+  , epicKey: ctx.epicKey ?? parseEpicKeyFromVeve(existing) ?? undefined
+  , sprintNote
+  , analysisDate: new Date().toISOString().slice(0, 10)
+  , repoAreas
+  , responsibility
+  , acceptanceCriteria: markVeveCheckboxItemsDone(acParsed, { defaults: DEFAULT_WIP_PARENT_AC })
+  , definitionOfDone  : markVeveCheckboxItemsDone(dodParsed, {
+      pushReadyDoD: true
+    , defaults     : DEFAULT_WIP_PARENT_DOD
+    })
+  , subtasks
+  , outOfScope: outOfScopeRaw
+    ? outOfScopeRaw.split("\n").map((line) => line.trim()).filter(Boolean)
+    : ["—"]
+  , successor
+  });
+}
+
+/**
+ * Ricompila veve subtask WIP — AC/DoD checked a ok chiudi.
+ *
+ * @param {string} existingMarkdown
+ * @param {{
+ *   objective?: string
+ *   parentKey: string
+ *   repoAreas?: Array<{ area: string, esito: string, note: string }>
+ *   files?: string[]
+ *   order?: { n: number, total: number }
+ * }} ctx
+ * @returns {string}
+ */
+export function rebuildWipSubtaskVeveMarkdown(existingMarkdown, ctx) {
+  const existing = String(existingMarkdown ?? "");
+  const objective = ctx.objective
+    ?? extractMarkdownSection(existing, "Obiettivo").split("\n").find((line) => line.trim())?.trim()
+    ?? "—";
+  const acParsed = parseCheckboxSection(extractMarkdownSection(existing, "Acceptance Criteria"));
+  const dodParsed = parseCheckboxSection(extractMarkdownSection(existing, "Definition of Done"));
+  const repoAreas = ctx.repoAreas?.length
+    ? ctx.repoAreas
+    : parseRepoAreasTable(extractMarkdownSection(existing, "Stato repo"));
+  const filesSection = extractMarkdownSection(existing, "File coinvolti");
+  const files = ctx.files?.length
+    ? ctx.files
+    : filesSection.split("\n").map((line) => line.replace(/^-\s*/, "").trim()).filter(Boolean);
+  const deps = extractMarkdownSection(existing, "Dipendenze").split("\n").find((line) => line.trim()) ?? "—";
+
+  return buildVeveSubtaskMarkdown({
+    objective
+  , parentKey: ctx.parentKey
+  , repoAreas
+  , acceptanceCriteria: markVeveCheckboxItemsDone(acParsed, {
+      defaults: [{ text: "Implementazione subtask completata nel repo", checked: true }]
+    })
+  , definitionOfDone: markVeveCheckboxItemsDone(dodParsed, {
+      defaults: [{ text: "Commit su branch ticket con key subtask", checked: true }]
+    })
+  , files
+  , dependencies: deps
+  , order: ctx.order
+  });
 }
 
 /**

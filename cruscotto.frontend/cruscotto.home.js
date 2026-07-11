@@ -7394,12 +7394,82 @@ function startCursorAgentPolling() {
 }
 
 /**
+ * Aggiorna badge header e barra WF a destra dei bottoni (step + running/fermo/errore).
+ *
+ * @param {Record<string, unknown>} status
+ */
+function updateCursorAgentWorkflowUi(status) {
+  const badgeEl   = document.getElementById("cursor-agent-badge");
+  const stepEl    = document.getElementById("cursor-agent-wf-step");
+  const stateEl   = document.getElementById("cursor-agent-wf-state");
+  const barEl     = document.getElementById("cursor-agent-wf-bar");
+  const statusEl  = document.getElementById("cursor-agent-status-line");
+
+  const uiPhase = String(status.uiPhase ?? status.status ?? "idle");
+  const workflowKey = typeof status.workflowKey === "string" ? status.workflowKey.trim().toUpperCase() : "";
+  const workflowKind = typeof status.workflowKind === "string" ? status.workflowKind.trim() : "";
+  const stepLabel = typeof status.workflowStepLabel === "string" && status.workflowStepLabel.trim()
+    ? status.workflowStepLabel.trim()
+    : workflowKey
+      ? "Workflow in corso…"
+      : uiPhase === "running" || uiPhase === "finalizing"
+        ? "Agent in esecuzione"
+        : "—";
+
+  /** @type {Record<string, { text: string, className: string }>} */
+  const phaseUi = {
+    running    : { text: "running", className: "is-running" }
+  , finalizing : { text: "finalizzazione", className: "is-finalizing" }
+  , stopped    : { text: "fermo", className: "is-stopped" }
+  , error      : { text: "errore", className: "is-error" }
+  , idle       : { text: "idle", className: "is-idle" }
+  , finished   : { text: "fermo", className: "is-stopped" }
+  };
+
+  const phase = phaseUi[uiPhase] ?? phaseUi.idle;
+
+  if (badgeEl) {
+    badgeEl.textContent = phase.text;
+    badgeEl.className = `process-console-badge ${phase.className}`;
+  }
+
+  if (stateEl) {
+    stateEl.textContent = phase.text;
+    stateEl.className = `process-console-badge cursor-agent-wf-state ${phase.className}`;
+    stateEl.title = typeof status.error === "string" && status.error.trim()
+      ? status.error.trim()
+      : `Stato agent: ${phase.text}`;
+  }
+
+  if (stepEl) {
+    const ticketPrefix = workflowKey
+      ? `${workflowKind ? `${workflowKind} ` : ""}${workflowKey} · `
+      : "";
+    stepEl.textContent = `${ticketPrefix}${stepLabel}`;
+    stepEl.title = stepLabel;
+  }
+
+  if (barEl) {
+    barEl.hidden = uiPhase === "idle" && stepLabel === "—";
+  }
+
+  if (statusEl) {
+    const parts = [
+      workflowKey ? `${workflowKind || "wf"} ${workflowKey}` : null
+    , stepLabel !== "—" ? stepLabel : null
+    , phase.text !== "idle" ? phase.text : null
+    , status.runtime ? `runtime ${String(status.runtime)}` : null
+    , status.agentId ? `agent ${String(status.agentId)}` : null
+    ].filter(Boolean);
+    statusEl.textContent = parts.join(" · ") || "Pronto";
+  }
+}
+
+/**
  * @returns {Promise<void>}
  */
 async function pollCursorAgentLogs() {
   const outputEl = document.getElementById("cursor-agent-output");
-  const statusEl = document.getElementById("cursor-agent-status-line");
-  const badgeEl  = document.getElementById("cursor-agent-badge");
 
   if (!outputEl || cursorAgentLogPollInFlight) {
     return;
@@ -7439,21 +7509,7 @@ async function pollCursorAgentLogs() {
       ? /** @type {Record<string, unknown>} */ (data.status)
       : {};
 
-    if (statusEl) {
-      const parts = [
-        status.runtime ? `runtime ${String(status.runtime)}` : null
-      , status.agentId ? `agent ${String(status.agentId)}` : null
-      , status.runId ? `run ${String(status.runId)}` : null
-      , status.startedAt ? `avviato ${String(status.startedAt)}` : null
-      ].filter(Boolean);
-      statusEl.textContent = parts.join(" · ") || "Pronto";
-    }
-
-    if (badgeEl) {
-      const running = Boolean(status.running);
-      badgeEl.textContent = running ? "running" : String(status.status ?? "idle");
-      badgeEl.classList.toggle("is-running", running);
-    }
+    updateCursorAgentWorkflowUi(status);
   } catch {
     // poll silenzioso
   } finally {
@@ -8495,11 +8551,17 @@ async function renderCursorAgent() {
         <label style="margin-left:1rem"><input type="checkbox" id="cursor-agent-resume" /> Resume ultimo agent</label>
       </div>
       <textarea id="cursor-agent-prompt" class="cursor-agent-prompt" rows="5" placeholder="Es. procedi Story ADMIN-96 — segui ADMIN-Workflow.mdc" ${configured ? "" : "disabled"}></textarea>
-      <div class="btn-row" style="margin-top:0.75rem">
-        <button type="button" class="action primary" id="cursor-agent-send" ${configured ? "" : "disabled"}>Invia</button>
-        <button type="button" class="action" id="cursor-agent-cancel">Cancel</button>
-        <button type="button" class="action" id="cursor-agent-clear">Svuota log</button>
-        <button type="button" class="action" id="cursor-agent-template-gogo">Template gogo</button>
+      <div class="btn-row cursor-agent-btn-row" style="margin-top:0.75rem">
+        <div class="cursor-agent-btn-group">
+          <button type="button" class="action primary" id="cursor-agent-send" ${configured ? "" : "disabled"}>Invia</button>
+          <button type="button" class="action" id="cursor-agent-cancel">Cancel</button>
+          <button type="button" class="action" id="cursor-agent-clear">Svuota log</button>
+          <button type="button" class="action" id="cursor-agent-template-gogo">Template gogo</button>
+        </div>
+        <div class="cursor-agent-wf-bar" id="cursor-agent-wf-bar" hidden>
+          <span class="cursor-agent-wf-step muted" id="cursor-agent-wf-step" title="Step workflow">—</span>
+          <span class="process-console-badge cursor-agent-wf-state is-idle" id="cursor-agent-wf-state" title="Stato agent">idle</span>
+        </div>
       </div>
       <div id="cursor-agent-output" class="process-console-output" aria-live="polite"></div>
     </section>`;

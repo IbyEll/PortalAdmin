@@ -1265,8 +1265,18 @@
     /** @type {number | null} */
     let gogoAgentPollTimer = null;
 
+    /** @type {number | null} */
+    let gogoFinalizePollTimer = null;
+
+    /** @typedef {"idle" | "wip-enrolled" | "running" | "finalizing" | "error"} GogoButtonPhase */
+
+    /** @type {Map<string, GogoButtonPhase>} */
+    const gogoControlPhase = new Map();
+
+    const GOGO_FINALIZE_MAX_TICKS = 120;
+
     /**
-     * @returns {Promise<{ running?: boolean, status?: string, prompt?: string | null, error?: string | null }>}
+     * @returns {Promise<{ running?: boolean, status?: string, prompt?: string | null, error?: string | null, workflowKey?: string | null }>}
      */
     async function fetchCursorAgentStatus() {
       try {
@@ -1285,27 +1295,94 @@
       }
     }
 
+    function stopGogoFinalizePoll() {
+      if (gogoFinalizePollTimer != null) {
+        window.clearInterval(gogoFinalizePollTimer);
+        gogoFinalizePollTimer = null;
+      }
+    }
+
+    function stopAllGogoPolls() {
+      stopGogoAgentPoll();
+      stopGogoFinalizePoll();
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {GogoButtonPhase} phase
+     */
+    function setGogoControlPhase(issueKey, phase) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      if (!key || phase === "idle") {
+        gogoControlPhase.delete(key);
+        return;
+      }
+
+      gogoControlPhase.set(key, phase);
+    }
+
     /**
      * @param {HTMLButtonElement} btn
-     * @param {boolean} running
      */
-    function setGogoButtonRunningState(btn, running, wipHint) {
-      const cmd = btn.getAttribute("aria-label") ?? "gogo";
+    function clearGogoButtonVisualState(btn) {
+      btn.classList.remove("is-running", "is-wip-enrolled", "is-error");
+    }
 
-      if (running) {
+    /**
+     * @param {Record<string, unknown> | null | undefined} wipHint
+     * @returns {string}
+     */
+    function gogoWipProgressSuffix(wipHint) {
+      if (
+        wipHint
+        && typeof wipHint.subtasksDone === "number"
+        && typeof wipHint.subtasksTotal === "number"
+        && wipHint.subtasksTotal > 0
+      ) {
+        return ` (${wipHint.subtasksDone}/${wipHint.subtasksTotal})`;
+      }
+
+      return "";
+    }
+
+    /**
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     * @param {GogoButtonPhase} phase
+     * @param {Record<string, unknown> | null | undefined} [wipHint]
+     */
+    function applyGogoButtonPhase(btn, issueKey, phase, wipHint) {
+      const cmd = btn.getAttribute("aria-label") ?? buildGogoCommand(issueKey);
+      const progress = gogoWipProgressSuffix(wipHint);
+
+      clearGogoButtonVisualState(btn);
+
+      if (phase === "running" || phase === "finalizing") {
         btn.disabled = true;
         btn.classList.add("is-running");
         btn.textContent = "running";
-        const progress = wipHint && typeof wipHint.subtasksDone === "number" && typeof wipHint.subtasksTotal === "number" && wipHint.subtasksTotal > 0
-          ? ` (${wipHint.subtasksDone}/${wipHint.subtasksTotal})`
-          : "";
-        btn.title = `${cmd} — agent in esecuzione${progress}…`;
+        btn.title = phase === "finalizing"
+          ? `${cmd} — finalizzazione WIP${progress}…`
+          : `${cmd} — agent in esecuzione${progress}…`;
         return;
       }
 
       btn.disabled = false;
-      btn.classList.remove("is-running");
       btn.textContent = "gogo";
+
+      if (phase === "error") {
+        btn.classList.add("is-error");
+        btn.title = btn.dataset.gogoError ?? `${cmd} — agent interrotto o errore`;
+        return;
+      }
+
+      if (phase === "wip-enrolled") {
+        btn.classList.add("is-wip-enrolled");
+        btn.title = `${cmd} — in coda WIP · avvia Cursor Agent`;
+        return;
+      }
+
       btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
     }
 
@@ -1315,16 +1392,277 @@
      * @param {Record<string, unknown>} wip
      */
     function applyGogoRunningWipHint(btn, issueKey, wip) {
-      if (!btn.classList.contains("is-running")) {
+      const phase = gogoControlPhase.get(String(issueKey).trim().toUpperCase()) ?? "running";
+
+      if (phase !== "running" && phase !== "finalizing") {
         return;
       }
 
-      setGogoButtonRunningState(btn, true, wip);
+      applyGogoButtonPhase(btn, issueKey, phase, wip);
       highlightGogoRow(issueKey);
     }
 
     /**
-     * Poll status agent fino a fine run — bottone resta «running».
+     * @param {string} issueKey
+     * @returns {Promise<ReturnType<typeof getWipStatus>>}
+     */
+    async function ensureWipReadyForPush(issueKey) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+
+      try {
+        const res = await fetch("/api/jira/wip/finalize-gogo", {
+          method  : "POST"
+        , headers : { "Content-Type": "application/json" }
+        , body    : JSON.stringify({ key })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+
+          if (data.wip && typeof data.wip === "object") {
+            mergeWipStatusEntry(key, data.wip);
+            return getWipStatus(key);
+          }
+        }
+      } catch {
+        /* fallback lettura stato */
+      }
+
+      try {
+        const statusRes = await fetch(
+          `/api/jira/wip/status?keys=${encodeURIComponent(key)}`
+        );
+
+        if (statusRes.ok) {
+          const data = await statusRes.json();
+          const entry = data.byKey && typeof data.byKey === "object" ? data.byKey[key] : null;
+
+          if (entry && typeof entry === "object") {
+            mergeWipStatusEntry(key, entry);
+          }
+        }
+      } catch {
+        /* mantieni mappa corrente */
+      }
+
+      return getWipStatus(key);
+    }
+
+    /**
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     * @param {ReturnType<typeof getWipStatus>} wip
+     */
+    async function completeGogoRowTransition(btn, issueKey, wip) {
+      if (isPrWorkflowComplete(wip)) {
+        clearGogoPrUrl(issueKey);
+        setGogoControlPhase(issueKey, "idle");
+        btn.remove();
+        return;
+      }
+
+      const prUrl = resolveRowPrUrl(issueKey, wip) ?? await fetchPrUrlForIssue(issueKey);
+
+      if (prUrl) {
+        saveGogoPrUrl(issueKey, prUrl);
+        setGogoControlPhase(issueKey, "idle");
+        replaceGogoControlWithPr(btn, issueKey, prUrl);
+        startPrPolling(issueKey);
+        return;
+      }
+
+      if (wip?.awaitingPush) {
+        setGogoControlPhase(issueKey, "idle");
+        btn.replaceWith(createPushRowButton(issueKey, wip));
+      }
+    }
+
+    /**
+     * Poll WIP fino ad awaitingPush — UI resta «running».
+     *
+     * @param {HTMLButtonElement} btn
+     * @param {string} issueKey
+     */
+    function watchGogoFinalizeUntilPush(btn, issueKey) {
+      stopGogoFinalizePoll();
+      setGogoControlPhase(issueKey, "finalizing");
+      applyGogoButtonPhase(btn, issueKey, "finalizing", getWipStatus(issueKey));
+      highlightGogoRow(issueKey);
+
+      let ticks = 0;
+
+      const tick = async () => {
+        if (!btn.isConnected) {
+          stopGogoFinalizePoll();
+          return;
+        }
+
+        ticks += 1;
+        let wip = getWipStatus(issueKey);
+
+        if (!wip?.awaitingPush) {
+          wip = await ensureWipReadyForPush(issueKey);
+        }
+
+        applyGogoButtonPhase(btn, issueKey, "finalizing", wip);
+
+        if (wip?.awaitingPush) {
+          stopGogoFinalizePoll();
+          await completeGogoRowTransition(btn, issueKey, wip);
+          return;
+        }
+
+        if (ticks >= GOGO_FINALIZE_MAX_TICKS) {
+          stopGogoFinalizePoll();
+          setGogoControlPhase(issueKey, "error");
+          btn.dataset.gogoError = "Finalizzazione WIP non completata — riprova gogo";
+          applyGogoButtonPhase(btn, issueKey, "error");
+        }
+      };
+
+      void tick();
+      gogoFinalizePollTimer = window.setInterval(() => {
+        void tick();
+      }, 1500);
+    }
+
+    /**
+     * Ticket target del run agent corrente (solo match esplicito — mai prompt vuoto).
+     *
+     * @param {{ workflowKey?: string | null, prompt?: string | null }} [agentStatus]
+     * @returns {string}
+     */
+    function resolveAgentTargetKey(agentStatus) {
+      if (typeof agentStatus?.workflowKey === "string" && agentStatus.workflowKey.trim()) {
+        return agentStatus.workflowKey.trim().toUpperCase();
+      }
+
+      const prompt = String(agentStatus?.prompt ?? "").trim();
+
+      if (!prompt) {
+        return "";
+      }
+
+      const match = prompt.match(/\b((?:ADMIN|JLO)-\d+)\b/i);
+
+      return match ? match[1].toUpperCase() : "";
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {{ workflowKey?: string | null, prompt?: string | null }} [agentStatus]
+     * @returns {boolean}
+     */
+    function isAgentTargetIssue(issueKey, agentStatus) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const target = resolveAgentTargetKey(agentStatus);
+
+      return Boolean(key && target && key === target);
+    }
+
+    /**
+     * Rimuove fasi running/finalizing stale su righe diverse dal target agent.
+     *
+     * @param {{ workflowKey?: string | null, prompt?: string | null, running?: boolean, workflowFinalizing?: boolean, status?: string }} [agentStatus]
+     */
+    function reconcileGogoControlPhases(agentStatus) {
+      const target = resolveAgentTargetKey(agentStatus);
+      const agentBusy = Boolean(agentStatus?.running)
+        || agentStatus?.status === "running"
+        || Boolean(agentStatus?.workflowFinalizing);
+
+      for (const [key, phase] of [...gogoControlPhase.entries()]) {
+        if (phase !== "running" && phase !== "finalizing") {
+          continue;
+        }
+
+        if (!target || key !== target || !agentBusy) {
+          gogoControlPhase.delete(key);
+        }
+      }
+    }
+
+    /**
+     * @param {string} issueKey
+     * @param {{ running?: boolean, status?: string, prompt?: string | null, workflowKey?: string | null, workflowFinalizing?: boolean }} agentStatus
+     * @param {ReturnType<typeof getWipStatus>} wip
+     * @returns {GogoButtonPhase}
+     */
+    function resolveGogoButtonPhase(issueKey, agentStatus, wip) {
+      const key = String(issueKey ?? "").trim().toUpperCase();
+      const stored = gogoControlPhase.get(key);
+      const isTarget = isAgentTargetIssue(key, agentStatus);
+      const agentRunning = Boolean(agentStatus?.running) || agentStatus?.status === "running";
+      const agentFinalizing = Boolean(agentStatus?.workflowFinalizing);
+
+      if (stored === "error") {
+        return "error";
+      }
+
+      if (wip?.awaitingPush) {
+        return "idle";
+      }
+
+      if (isTarget) {
+        if (agentRunning) {
+          return "running";
+        }
+
+        if (agentStatus?.status === "error") {
+          return "error";
+        }
+
+        if (agentFinalizing || stored === "finalizing" || stored === "running") {
+          return "finalizing";
+        }
+      } else if (stored === "running" || stored === "finalizing") {
+        gogoControlPhase.delete(key);
+      }
+
+      if (wip?.inWip) {
+        return "wip-enrolled";
+      }
+
+      return "idle";
+    }
+
+    /**
+     * Applica stile ocra/errore su tutti i bottoni gogo dopo render tabella.
+     *
+     * @param {{ running?: boolean, status?: string, prompt?: string | null, workflowKey?: string | null, workflowFinalizing?: boolean }} agentStatus
+     */
+    function applyIdleGogoButtonVisuals(agentStatus) {
+      reconcileGogoControlPhases(agentStatus);
+
+      document.querySelectorAll(".btn-gogo-row").forEach((node) => {
+        if (!(node instanceof HTMLButtonElement)) {
+          return;
+        }
+
+        const tr = node.closest("tr");
+        const key = typeof tr?.dataset.gogoKey === "string" ? tr.dataset.gogoKey.trim().toUpperCase() : "";
+
+        if (!key) {
+          return;
+        }
+
+        const wip = getWipStatus(key);
+        const phase = resolveGogoButtonPhase(key, agentStatus, wip);
+
+        if (phase === "idle") {
+          clearGogoButtonVisualState(node);
+          node.disabled = false;
+          node.textContent = "gogo";
+          node.title = `${buildGogoCommand(key)} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
+          return;
+        }
+
+        applyGogoButtonPhase(node, key, phase, wip);
+      });
+    }
+
+    /**
+     * Poll status agent fino a fine run — poi finalizzazione WIP fino a PUSH.
      *
      * @param {HTMLButtonElement} btn
      * @param {string} issueKey
@@ -1332,7 +1670,8 @@
      */
     function watchGogoAgentUntilDone(btn, issueKey, commandOverride) {
       stopGogoAgentPoll();
-      setGogoButtonRunningState(btn, true);
+      setGogoControlPhase(issueKey, "running");
+      applyGogoButtonPhase(btn, issueKey, "running");
 
       const cmd = commandOverride ?? buildGogoCommand(issueKey);
       let lastWipSyncAt = 0;
@@ -1340,9 +1679,16 @@
 
       const tick = async () => {
         const status = await fetchCursorAgentStatus();
-        const prompt = String(status.prompt ?? "");
-        const forThisRun = !prompt || prompt.includes(issueKey) || prompt === cmd;
+        const forThisRun = isAgentTargetIssue(issueKey, status);
         const stillRunning = Boolean(status.running) || status.status === "running";
+
+        if (status.status === "error" && forThisRun) {
+          stopGogoAgentPoll();
+          setGogoControlPhase(issueKey, "error");
+          btn.dataset.gogoError = status.error ?? "Agent terminato con errore";
+          applyGogoButtonPhase(btn, issueKey, "error");
+          return;
+        }
 
         if (stillRunning && forThisRun) {
           const now = Date.now();
@@ -1373,19 +1719,12 @@
           return;
         }
 
-        stopGogoAgentPoll();
-        setGogoButtonRunningState(btn, false);
-
-        if (status.status === "error") {
-          btn.classList.add("is-error");
-          btn.title = status.error ?? "Agent terminato con errore";
-
-          window.setTimeout(() => {
-            btn.classList.remove("is-error");
-          }, 2200);
-        } else {
-          void refreshRowControlAfterGogo(btn, issueKey);
+        if (stillRunning && !forThisRun) {
+          return;
         }
+
+        stopGogoAgentPoll();
+        watchGogoFinalizeUntilPush(btn, issueKey);
       };
 
       void tick();
@@ -1408,11 +1747,16 @@
       wipStatusMap[key] = { ...wipStatusMap[key], ...entry };
     }
 
-    /** Ripristina «running» o PUSH su riga gogo attiva dopo refresh tabella. */
+    /** Ripristina running/finalizing/PUSH e stile WIP dopo refresh tabella. */
     async function syncGogoButtonWithAgentStatus() {
       const status = await fetchCursorAgentStatus();
+      reconcileGogoControlPhases(status);
+
+      /** @type {string} */
+      const agentTargetKey = resolveAgentTargetKey(status);
+
       /** @type {string | null} */
-      let activeKey = resolveWipActiveParentKey();
+      let activeKey = agentTargetKey || resolveWipActiveParentKey() || null;
 
       if (!activeKey) {
         try {
@@ -1421,103 +1765,99 @@
           if (activeRes.ok) {
             const active = await activeRes.json();
 
+            if (active.byKey && typeof active.byKey === "object") {
+              wipStatusMap = { ...wipStatusMap, ...active.byKey };
+            }
+
             if (typeof active.activeParentKey === "string" && active.activeParentKey.trim()) {
               activeKey = active.activeParentKey.trim().toUpperCase();
-              setWipActiveParentKey(activeKey);
-
-              if (active.byKey && typeof active.byKey === "object") {
-                wipStatusMap = { ...wipStatusMap, ...active.byKey };
-              }
             }
           }
         } catch {
-          /* fallback prompt agent */
+          /* mantieni mappa corrente */
         }
       }
 
-      if (!activeKey && !status.running && status.status === "finished") {
-        const finishedPrompt = String(status.prompt ?? "");
-        const match          = finishedPrompt.match(/\b((?:ADMIN|JLO)-\d+)\b/i);
-
-        if (match) {
-          activeKey = match[1].toUpperCase();
+      document.querySelectorAll("tr[data-gogo-key]").forEach((tr) => {
+        if (!(tr instanceof HTMLElement)) {
+          return;
         }
-      }
 
-      if (!activeKey) {
-        return;
-      }
+        const key = typeof tr.dataset.gogoKey === "string" ? tr.dataset.gogoKey.trim().toUpperCase() : "";
 
-      const prompt = String(status.prompt ?? "");
-      const cmd = buildGogoCommand(activeKey);
-      const stillRunning = Boolean(status.running) || status.status === "running";
-      const forThis = !prompt
-        || prompt.includes(activeKey)
-        || prompt === cmd
-        || status.workflowKey === activeKey;
+        if (!key) {
+          return;
+        }
 
-      const btn = document.querySelector(
-        `tr[data-gogo-key="${CSS.escape(activeKey)}"] .btn-gogo-row`
-      );
+        const wip = getWipStatus(key);
+        const svilCell = tr.querySelector(".svil-cell");
 
-      if (stillRunning && forThis && btn instanceof HTMLButtonElement) {
-        watchGogoAgentUntilDone(btn, activeKey);
-        return;
-      }
+        if (!(svilCell instanceof HTMLElement)) {
+          return;
+        }
 
-      if (stillRunning) {
-        return;
-      }
+        const issueRow = (backlog?.issues ?? []).find((hit) => hit.key === key);
 
-      if (!forThis && status.status !== "finished" && status.workflowKey !== activeKey) {
-        return;
-      }
+        if (isRowWorkflowClosed(issueRow ?? { status: wip?.status }, wip)) {
+          const prUrlClosed = resolveRowPrUrl(key, wip);
 
-      if (btn instanceof HTMLButtonElement) {
-        await refreshRowControlAfterGogo(btn, activeKey);
-        return;
-      }
+          if (!prUrlClosed && !wip?.awaitingPush) {
+            svilCell.replaceChildren();
+          }
 
-      if (!stillRunning && status.status === "finished") {
-        try {
-          const res = await fetch("/api/jira/wip/finalize-gogo", {
-            method  : "POST"
-          , headers : { "Content-Type": "application/json" }
-          , body    : JSON.stringify({ key: activeKey })
-          });
+          return;
+        }
 
-          if (res.ok) {
-            const data = await res.json();
+        const prUrl = resolveRowPrUrl(key, wip);
 
-            if (data.wip && typeof data.wip === "object") {
-              mergeWipStatusEntry(activeKey, data.wip);
+        if (prUrl && !svilCell.querySelector(".link-gogo-pr")) {
+          svilCell.replaceChildren(createGogoPrLink(key, prUrl));
+          startPrPolling(key);
+          return;
+        }
+
+        if (wip?.awaitingPush && !svilCell.querySelector(".btn-push-row")) {
+          svilCell.replaceChildren(createPushRowButton(key, wip));
+        }
+      });
+
+      if (agentTargetKey) {
+        setWipActiveParentKey(agentTargetKey);
+        highlightGogoRow(agentTargetKey);
+
+        const wip   = getWipStatus(agentTargetKey);
+        const phase = resolveGogoButtonPhase(agentTargetKey, status, wip);
+        const btn   = document.querySelector(
+          `tr[data-gogo-key="${CSS.escape(agentTargetKey)}"] .btn-gogo-row`
+        );
+
+        if (btn instanceof HTMLButtonElement) {
+          if (phase === "running") {
+            watchGogoAgentUntilDone(btn, agentTargetKey);
+          } else if (phase === "finalizing") {
+            watchGogoFinalizeUntilPush(btn, agentTargetKey);
+          } else if (phase === "error") {
+            btn.dataset.gogoError = status.error ?? btn.dataset.gogoError ?? "Agent interrotto o errore";
+            setGogoControlPhase(agentTargetKey, "error");
+            applyGogoButtonPhase(btn, agentTargetKey, "error");
+          } else if (wip?.awaitingPush) {
+            await completeGogoRowTransition(btn, agentTargetKey, wip);
+          }
+        } else if (phase === "finalizing" || wip?.awaitingPush) {
+          const nextWip = wip?.awaitingPush ? wip : await ensureWipReadyForPush(agentTargetKey);
+
+          if (nextWip?.awaitingPush) {
+            const tr = document.querySelector(`tr[data-gogo-key="${CSS.escape(agentTargetKey)}"]`);
+            const svilCell = tr?.querySelector(".svil-cell");
+
+            if (svilCell instanceof HTMLElement && !svilCell.querySelector(".btn-push-row")) {
+              svilCell.replaceChildren(createPushRowButton(agentTargetKey, nextWip));
             }
           }
-        } catch {
-          /* fallback refresh */
         }
       }
 
-      await refreshWipStatusMap(backlog?.issues ?? []);
-
-      const active = resolveWipActiveParentKey();
-
-      if (active) {
-        highlightGogoRow(active);
-      }
-
-      if (!getWipStatus(activeKey)?.awaitingPush) {
-        return;
-      }
-
-      const tr = document.querySelector(`tr[data-gogo-key="${CSS.escape(activeKey)}"]`);
-      const svilCell = tr?.querySelector(".svil-cell");
-
-      if (!(svilCell instanceof HTMLElement) || svilCell.querySelector(".btn-push-row")) {
-        return;
-      }
-
-      svilCell.replaceChildren(createPushRowButton(activeKey, getWipStatus(activeKey)));
+      applyIdleGogoButtonVisuals(status);
     }
 
     /**
@@ -2160,8 +2500,10 @@
           return;
         }
 
-        const prev = btn.textContent;
+        delete btn.dataset.gogoError;
+        setGogoControlPhase(issueKey, "running");
         btn.disabled = true;
+        clearGogoButtonVisualState(btn);
         btn.classList.add("is-running");
         btn.textContent = "…";
 
@@ -2182,21 +2524,26 @@
         if (result.ok && result.mode === "clipboard") {
           highlightGogoRow(issueKey);
           btn.classList.add("is-active");
-          btn.textContent = prev;
+          setGogoControlPhase(issueKey, "wip-enrolled");
+          applyGogoButtonPhase(btn, issueKey, "wip-enrolled", getWipStatus(issueKey));
           btn.title = `${cmd} — copiato · incolla in Cursor (o configura CURSOR_API_KEY)`;
           return;
         }
 
-        btn.textContent = "!";
-        btn.classList.add("is-error");
-        btn.title = result.error ?? "Avvio agent fallito";
-
-        window.setTimeout(() => {
-          btn.textContent = prev;
-          btn.classList.remove("is-error");
-          btn.title = `${cmd} — avvia Cursor Agent (tab Cursor nel cruscotto)`;
-        }, 2200);
+        setGogoControlPhase(issueKey, "error");
+        btn.dataset.gogoError = result.error ?? "Avvio agent fallito";
+        applyGogoButtonPhase(btn, issueKey, "error");
       });
+
+      {
+        const wip = getWipStatus(issueKey);
+        const key = String(issueKey).trim().toUpperCase();
+        const phase = wip?.inWip ? "wip-enrolled" : "idle";
+
+        if (phase !== "idle") {
+          applyGogoButtonPhase(btn, issueKey, phase, wip);
+        }
+      }
 
       if (isWipActiveRow({ key: issueKey })) {
         btn.classList.add("is-active");
@@ -2246,50 +2593,7 @@
      * @param {string} issueKey
      */
     async function refreshRowControlAfterGogo(btn, issueKey) {
-      setGogoButtonRunningState(btn, false);
-
-      try {
-        const res = await fetch("/api/jira/wip/finalize-gogo", {
-          method  : "POST"
-        , headers : { "Content-Type": "application/json" }
-        , body    : JSON.stringify({ key: issueKey })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-
-          if (data.wip && typeof data.wip === "object") {
-            mergeWipStatusEntry(issueKey, data.wip);
-          }
-        }
-      } catch {
-        /* fallback su refresh stato */
-      }
-
-      await refreshWipStatusMap(backlog?.issues ?? []);
-      applyFilters();
-
-      const wip   = getWipStatus(issueKey);
-
-      if (isPrWorkflowComplete(wip)) {
-        clearGogoPrUrl(issueKey);
-        btn.remove();
-        return;
-      }
-
-      const prUrl = resolveRowPrUrl(issueKey, wip) ?? await fetchPrUrlForIssue(issueKey);
-
-      if (prUrl) {
-        saveGogoPrUrl(issueKey, prUrl);
-        replaceGogoControlWithPr(btn, issueKey, prUrl);
-        startPrPolling(issueKey);
-        return;
-      }
-
-      if (wip?.awaitingPush) {
-        const pushWrap = createPushRowButton(issueKey, wip);
-        btn.replaceWith(pushWrap);
-      }
+      watchGogoFinalizeUntilPush(btn, issueKey);
     }
 
     /**
@@ -2327,6 +2631,11 @@
 
       if (isRowWorkflowClosed(row, wip)) {
         return false;
+      }
+
+      if (wip?.inWip) {
+        svilCell.appendChild(createGogoRowButton(issueKey));
+        return true;
       }
 
       svilCell.appendChild(createGogoRowButton(issueKey));
