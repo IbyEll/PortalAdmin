@@ -203,4 +203,18 @@ export const PRODUCT_REPO_SIGNALS = [
   , tests : ["technical/test.portal.api.suite.mjs"]
   }
 
+, {
+    key   : "ADMIN-198"
+  , label : "Add technical test for run-all discovery API and update matrix coverage."
+  , paths : [
+      "admin.portal.JiraCORE"
+      , "admin.portal.lib"
+      , "cruscotto.database"
+      , "test.smoke"
+      , "admin.portal.testscript"
+      , "admin.script.standalone"
+    ]
+  , tests : ["technical/test.portal.run.all.discovery.mjs"]
+  }
+
 ];
