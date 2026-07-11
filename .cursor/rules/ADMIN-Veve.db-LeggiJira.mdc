@@ -46,4 +46,4 @@ Identico a veve MCP step 1, più metadati DB:
 | DB non migrato | `node cruscotto.database/migrate.mjs` |
 | Serve Jira live senza cache | `veve {KEY}` MCP (`ADMIN-Veve-LeggiJira.mdc`) — solo standalone |
 
-**Vietato:** MCP Jira in questo step · `editJiraIssue` · scrittura `jira_issue_wip` · branch · commit.
+**Vietato:** MCP Jira in questo step · `editJiraIssue` · scrittura groom (`jira_issue` / `jira_issue_wip`) · branch · commit.

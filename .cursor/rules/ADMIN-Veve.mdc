@@ -20,14 +20,14 @@ Sequenza: **Leggi Jira** → **Analizza repo** → **Aggiorna Story** → **Aggi
 | --- | --- |
 | `veve {KEY}` | Standalone — chat libera, sequenza completa |
 | `procedi` / `gogo {KEY}` | **Non** MCP veve — usare **`ADMIN-Veve.db.mdc`** (step 3 workflow database) |
-| Matrix **CREA** | **`ADMIN-Veve.db.mdc`** programmatico (`runVeveDbForIssueKey`, `writeTarget: jira_issue`) |
+| Matrix **CREA** | **`ADMIN-Veve.db.mdc`** programmatico (`runVeveDbForIssueKey`, default `jira_issue`) |
 | `chiudi` | **Non** esegue veve |
 
 `{KEY}` = `{JIRA_KEY}-{num}` del progetto istanziato (`ADMIN-96`, `JLO-507`, …).
 
 ## Variante DB (canonica workflow)
 
-`ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 di `ADMIN-Workflow database.mdc` — **stessi template**, persistenza su `jira_issue` / `jira_issue_wip` invece di `editJiraIssue`.
+`ADMIN-Veve.db.mdc` · `veve db {KEY}` · step 3 di `ADMIN-Workflow database.mdc` — **stessi template**, groom su **`jira_issue`**; WIP solo su **gogo** (non `editJiraIssue`).
 
 **MCP veve (questa regola):** `CallMcpTool` `user-atlassian` — **non** Task Jira Auto.
 

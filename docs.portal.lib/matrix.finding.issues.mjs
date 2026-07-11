@@ -54,11 +54,31 @@ import {
 } from "./matrix.finding.create.mjs";
 import { loadFindingIssueLinks } from "./matrix.finding-issues.store.mjs";
 import { MATRIX_KIND_PORTAL_GAP } from "../cruscotto.database/matrix.db.mjs";
-import { formatMatrixSectionLabel } from "./matrix.finding.sections.mjs";
-
-const JIRA_BROWSE_BASE = "https://myfuturejobsearch.atlassian.net/browse";
+import {
+  formatMatrixKindCreateLabel
+, formatMatrixSectionLabel
+} from "./matrix.finding.sections.mjs";
 
 const JIRA_ISSUE_KEY_RE = /^(?:ADMIN|JLO)-\d+$/i;
+
+/**
+ * URL pagina issue cruscotto (cache DB), non Jira live.
+ *
+ * @param {string | null | undefined} key
+ * @param {{ source?: string }} [opts]
+ * @returns {string}
+ */
+export function matrixIssueRefinementHref(key, opts = {}) {
+  const normalized = normalizeJiraIssueKey(key);
+
+  if (!normalized) {
+    return "#";
+  }
+
+  const source = String(opts.source ?? "db").trim() || "db";
+
+  return `/issue.html?key=${encodeURIComponent(normalized)}&source=${encodeURIComponent(source)}`;
+}
 
 /**
  * @param {string | null | undefined} key
@@ -84,6 +104,7 @@ export function normalizeJiraIssueKey(key) {
  *   paths?: string[]
  *   createIssueType?: string
  *   sectionTitle?: string
+ *   matrixKind?: string
  *   findingStatus?: string
  *   category?: string
  * }} IssueRefinementRenderCtx
@@ -163,9 +184,10 @@ export function ensureMatrixRowCreateMeta(row, sectionTitle = "") {
 
 /**
  * @param {import("./matrix.render.mjs").MatrixRow} row
+ * @param {string} [matrixKind]
  * @returns {IssueRefinementRenderCtx}
  */
-export function matrixRowToIssueRefinementCtx(row) {
+export function matrixRowToIssueRefinementCtx(row, matrixKind) {
   const findingStatus = row.status === "gap" ? "open" : row.status;
   const category      = resolveMatrixRowCreateCategory(row);
 
@@ -175,10 +197,11 @@ export function matrixRowToIssueRefinementCtx(row) {
   , issueSummary   : row.issueSummary ?? null
   , issueType      : row.issueType ?? null
   , project        : row.project ?? null
-  , title          : row.create?.summary ?? row.voce
-  , detail         : row.create?.detail ?? row.dettaglio
+  , title          : row.voce
+  , detail         : row.dettaglio
   , paths          : row.paths
   , sectionTitle   : row.create?.section ?? null
+  , matrixKind
   , category
   , createIssueType: category === "miglioramento" ? "STORY" : "BUG"
   , findingStatus
@@ -727,7 +750,9 @@ export function isFindingIssueRefClosed(status) {
  */
 function renderIssueRefinementCreateButton(ctx, wrap) {
   const project      = ctx.project?.trim() || "PortalAdmin";
-  const sectionLabel = formatMatrixSectionLabel(ctx.sectionTitle);
+  const createLabel  = ctx.matrixKind
+    ? formatMatrixKindCreateLabel(ctx.matrixKind)
+    : formatMatrixSectionLabel(ctx.sectionTitle);
   const pathsJson    = escAttr(JSON.stringify(ctx.paths ?? []));
   const defaultType  = resolveMatrixFindingCreateIssueType(ctx.findingId, ctx.createIssueType ?? MATRIX_FINDING_DEFAULT_CREATE_ISSUE_TYPE);
   const selectHtml   = renderCreatableIssueTypeSelect(defaultType);
@@ -737,12 +762,13 @@ function renderIssueRefinementCreateButton(ctx, wrap) {
   , `<button type="button" class="issue-ref-create"`
   , ` data-finding-id="${escAttr(ctx.findingId)}"`
   , ` data-project="${escAttr(project)}"`
-  , ` data-section-label="${escAttr(sectionLabel)}"`
+  , ` data-section-label="${escAttr(createLabel)}"`
   , ` data-category="${escAttr(ctx.category ?? "")}"`
-  , ` data-summary="${escAttr(ctx.title ?? "")}"`
-  , ` data-detail="${escAttr(ctx.detail ?? "")}"`
+  , ` data-voce="${escAttr(ctx.title ?? "")}"`
+  , ` data-dettaglio="${escAttr(ctx.detail ?? "")}"`
   , ` data-paths="${pathsJson}"`
-  , ` title="Crea issue su Jira (${project}) — etichetta ${escAttr(sectionLabel)}">Crea</button>`
+  , ctx.matrixKind ? ` data-matrix-kind="${escAttr(ctx.matrixKind)}"` : ""
+  , ` title="Crea issue su Jira (${project}) — ${escAttr(createLabel)}">${escHtml(createLabel)}</button>`
   , `<div class="issue-ref-create-menu" hidden>`
   , `<label class="issue-ref-create-menu-label">Tipo issue</label>`
   , `<select class="issue-ref-create-type">${selectHtml}</select>`
@@ -765,10 +791,10 @@ export function renderIssueRefinementCell(ctx, wrap) {
   const isClosed = isFindingIssueRefClosed(findingStatus);
 
   if (key && isMatrixFindingLinkedIssueType(issueType)) {
-    const url   = `${JIRA_BROWSE_BASE}/${encodeURIComponent(key)}`;
+    const url   = matrixIssueRefinementHref(key);
     const title = issueRefinementTooltip(key, issueSummary);
     const badge = issueTypeBadgeHtml(issueType);
-    const link  = `<a class="issue-ref" href="${url}" target="_blank" rel="noopener noreferrer" title="${title}">${escHtml(key)}</a>`;
+    const link  = `<a class="issue-ref" href="${escAttr(url)}" title="${title}">${escHtml(key)}</a>`;
     const inner = `${badge}${link}`;
 
     return [

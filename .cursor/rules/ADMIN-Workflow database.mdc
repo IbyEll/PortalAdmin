@@ -148,7 +148,21 @@ Runtime: `checkNoOpenPullRequests()` in `admin.portal/portal.cursor.agent.workfl
 
 ---
 
-## Step 3 — Veve DB (grooming → `jira_issue_wip`)
+## Iscrizione WIP — solo su gogo (pre step 3 agente)
+
+**Non** parte di veve db. **`jira_issue_wip` contiene solo ticket in lavorazione attiva.**
+
+| Trigger | Azione |
+| --- | --- |
+| Click **gogo** MyBacklog | `POST /api/jira/wip/enroll` → `enrollIssueInWip({KEY})` — copia parent + subtask da **`jira_issue`** (incluso groom veve in `raw_fields`) |
+| Spawn agent gogo/procedi | `bootstrapWorkflowRun` — enroll prima del blocco START |
+| Fine agent gogo | `finalizeWipAfterGogo` — ok chiudi silent, `awaitingPush` se subtask Fatto |
+
+**Uscita WIP:** step 9 — PR **MERGED** / poll complete → `purgeWipBundleIfCacheAligned` elimina parent + subtask da `jira_issue_wip` (cache `jira_issue` resta).
+
+---
+
+## Step 3 — Veve DB (grooming → `jira_issue`)
 
 **Obbligatorio** su `procedi` / `gogo` su `{KEY}` — dopo pre-flight git, **prima** di Step 0.
 
@@ -158,13 +172,14 @@ Esegui regola `ADMIN-Veve.db.mdc` (e sotto-regole `ADMIN-Veve.db-*.mdc`) su `{KE
 | --- | --- |
 | 3.1 | `ADMIN-Veve.db-LeggiJira.mdc` — leggi parent + subtask da `jira_issue` |
 | 3.2 | `ADMIN-AnalizzaRepo.mdc` — gap analysis repo workflow |
-| 3.3 | `ADMIN-Veve.db-AggiornaStory.mdc` — upsert parent in `jira_issue_wip` |
-| 3.4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` — upsert ogni subtask in `jira_issue_wip` |
+| 3.3 | `ADMIN-Veve.db-AggiornaStory.mdc` — groom parent in **`jira_issue`** |
+| 3.4 | `ADMIN-Veve.db-AggiornaSubtask.mdc` — groom ogni subtask in **`jira_issue`** |
 
 | Aspetto | Regola |
 | --- | --- |
 | Chat | **Silenzioso** — `ADMIN-Silence.mdc`; output veve solo in sessione per Step 0 |
-| Jira | **Vietato MCP** — lettura cache DB; scrittura solo `jira_issue_wip` |
+| Jira | **Vietato MCP** — lettura cache DB; scrittura groom solo **`jira_issue`** |
+| WIP già iscritto (gogo) | Fine step 3: `syncWipGroomFromJiraIssueCache` — groom cache → WIP, stato workflow invariato |
 | Git / codice | **Vietato** — no commit, no branch, no implementazione |
 | Prerequisito | `jira_issue` popolata (`npm run db:sync`) per `{KEY}` |
 | Standalone | `veve db {KEY}` — chat libera, stessa sequenza |
@@ -186,7 +201,7 @@ Dopo veve db, **prima** dell'implementazione — **legge DB**, non Jira live:
 
 **Output chat unico:** blocco START (`ADMIN-Silence.mdc`).
 
-**Stop se:** parent assente in `jira_issue_wip` → rieseguire step 3 veve db.
+**Stop se:** parent assente in `jira_issue_wip` → ticket non iscritto con **gogo** (`enrollIssueInWip`); non rieseguire veve db al posto dell'enroll.
 
 ---
 

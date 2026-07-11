@@ -1,11 +1,11 @@
 ---
-description: Veve db step 3 — upsert parent {KEY} in jira_issue_wip (template veve-story-parent)
+description: Veve db step 3 — groom parent {KEY} in jira_issue (template veve-story-parent)
 alwaysApply: true
 ---
 
-# Veve DB — Aggiorna Story (WIP)
+# Veve DB — Aggiorna Story (cache)
 
-Equivalente veve MCP step 3 (`ADMIN-Veve-AggiornaStory.mdc`): stesso template e regole AC/DoD — destinazione **`jira_issue_wip`** (o `jira_issue` post-CREA), **non** `editJiraIssue`.
+Equivalente veve MCP step 3 (`ADMIN-Veve-AggiornaStory.mdc`): stesso template e regole AC/DoD — destinazione **`jira_issue.raw_fields`**, **non** `editJiraIssue` · **non** `jira_issue_wip`.
 
 ## Trigger
 
@@ -13,7 +13,7 @@ Equivalente veve MCP step 3 (`ADMIN-Veve-AggiornaStory.mdc`): stesso template e 
 
 ## Obiettivo
 
-Upsert riga parent `{KEY}` con description veve compilata — campo `raw_fields.veveDescription`.
+Merge description veve compilata nel parent `{KEY}` — campo `raw_fields.veveDescription` su **`jira_issue`**.
 
 ## Template
 
@@ -31,25 +31,19 @@ Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaStory.mdc` (ca
 
 1. Leggi riga sorgente parent da `jira_issue` (`syncRunId` sessione).
 2. Compila markdown dal template → `veveDescription`.
-3. **Upsert** destinazione per `jira_key = {KEY}`:
+3. **Patch** riga `jira_key = {KEY}` in **`jira_issue`**:
 
 | Campo | Valore |
 | --- | --- |
-| Colonne mirror | Copia da `jira_issue` (`issueType`, `summary`, `status`, `tier`, `isDone`, …) |
-| `sync_run_id` | `syncRunId` del sync corrente |
-| `parent_jira_key` | null (parent) |
-| `raw_fields` | JSON: `veveDescription`, `gapSummary`, `gap`, `workflowSource: "veve-db"`, `updatedAt` |
+| `raw_fields` | JSON merge: `veveDescription`, `gapSummary`, `gap`, `workflowSource: "veve-db"`, `updatedAt` |
 | `synced_at` | now |
 
-| `writeTarget` | Tabella |
-| --- | --- |
-| Workflow / `veve db` default | `jira_issue_wip` — `upsertJiraIssueWipRow` |
-| Matrix CREA | `jira_issue` — merge `raw_fields` |
+Prisma: `db.jiraIssue.update({ where: { jiraKey }, data: { rawFields, syncedAt } })`.
 
-Prisma: `db.jiraIssueWip.upsert({ where: { jiraKey }, create, update })`.
+Se parent già in **`jira_issue_wip`** (gogo avviato): a fine veve db, `syncWipGroomFromJiraIssueCache` propaga groom in WIP.
 
 ## Dopo step 4
 
-Se step 4 **crea** nuove subtask → **ripeti** questo step per aggiornare tabella **Ordine subtask** nel parent WIP.
+Se step 4 **crea** nuove subtask → **ripeti** questo step per aggiornare tabella **Ordine subtask** nel parent cache.
 
-**Vietato:** edit subtask WIP in questo step · MCP Jira · `editJiraIssue` · branch · commit · Fatto parent.
+**Vietato:** upsert `jira_issue_wip` in questo step · MCP Jira · `editJiraIssue` · branch · commit · Fatto parent.

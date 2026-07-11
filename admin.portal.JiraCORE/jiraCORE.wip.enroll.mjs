@@ -10,6 +10,11 @@ import { getProjectConfig } from "../admin.portal.lib/project.config.mjs";
 import { getProductRepoPath } from "../admin.portal.lib/portal.paths.resolver.mjs";
 import { isTicketWorkflowBranch, resolvePrUrlForIssueKey } from "../admin.portal/portal.cursor.agent.workflow.mjs";
 import { fetchJiraIssueDescriptionOnly } from "../cruscotto.frontend/cruscotto.jira.issue.view.mjs";
+import {
+  mergeWorkflowRawFields
+, pickVeveGroomRawFields
+, parseWorkflowRawFields
+} from "./jira.issue.workflow.raw.mjs";
 import { normalizeIssueKey, parseWipRawFields } from "./jiraCORE.wip.db.mjs";
 import {
   areAllWipSubtasksDone
@@ -85,8 +90,22 @@ async function ensureWipVeveDescriptionFromJira(db, jiraKey) {
  * @param {import("@prisma/client").JiraIssue} row
  * @param {Record<string, unknown>} rawMerge
  */
+/**
+ * Merge groom da cache jira_issue + stato workflow già in WIP.
+ *
+ * @param {string | null | undefined} cacheRawFields
+ * @param {string | null | undefined} wipRawFields
+ * @param {Record<string, unknown>} [extra]
+ */
+function mergeWipRawFromCacheRow(cacheRawFields, wipRawFields, extra = {}) {
+  const wipPrev  = parseWorkflowRawFields(wipRawFields);
+  const groom    = pickVeveGroomRawFields(cacheRawFields);
+
+  return mergeWorkflowRawFields(wipPrev, { ...groom, ...extra });
+}
+
 function wipDataFromJiraIssue(row, rawMerge = {}) {
-  const prev = parseWipRawFields(row.rawFields);
+  const prev = parseWorkflowRawFields(row.rawFields);
 
   return {
     jiraKey          : row.jiraKey
@@ -176,13 +195,15 @@ export async function enrollIssueInWip(issueKey) {
 
     await db.jiraIssueWip.update({
       where: { jiraKey: key }
-    , data : wipDataFromJiraIssue(row, {
-        ...raw
-      , gogoStartedAt : raw.gogoStartedAt ?? now
-      , workflowSource: raw.workflowSource ?? "gogo"
-      , branch        : raw.branch ?? branch
-      , commitHash    : raw.commitHash ?? (git.hash !== "—" ? git.hash : null)
-      })
+    , data : {
+        ...wipDataFromJiraIssue(row, {})
+      , rawFields: JSON.stringify(mergeWipRawFromCacheRow(row.rawFields, existing.rawFields, {
+          gogoStartedAt : typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : now
+        , workflowSource: typeof raw.workflowSource === "string" ? raw.workflowSource : "gogo"
+        , branch        : raw.branch ?? branch
+        , commitHash    : raw.commitHash ?? (git.hash !== "—" ? git.hash : null)
+        }))
+      }
     });
   } else {
     await db.jiraIssueWip.create({
@@ -210,11 +231,13 @@ export async function enrollIssueInWip(issueKey) {
 
       await db.jiraIssueWip.update({
         where: { jiraKey: child.jiraKey }
-      , data : wipDataFromJiraIssue(child, {
-          ...raw
-        , parentGogoKey: key
-        , gogoStartedAt : raw.gogoStartedAt ?? now
-        })
+      , data : {
+          ...wipDataFromJiraIssue(child, {})
+        , rawFields: JSON.stringify(mergeWipRawFromCacheRow(child.rawFields, childExisting.rawFields, {
+            parentGogoKey : key
+          , gogoStartedAt : typeof raw.gogoStartedAt === "string" ? raw.gogoStartedAt : now
+          }))
+        }
       });
     } else {
       await db.jiraIssueWip.create({
@@ -234,6 +257,69 @@ export async function enrollIssueInWip(issueKey) {
   , enrolled : true
   , subtasks : children.length
   };
+}
+
+/**
+ * Propaga groom veve da jira_issue → jira_issue_wip se il parent è già in coda WIP.
+ * Chiamato a fine runVeveDbForIssueKey (veve scrive solo cache, non WIP diretto).
+ *
+ * @param {string} issueKey
+ * @returns {Promise<{ synced: boolean, key: string, rows?: number, reason?: string }>}
+ */
+export async function syncWipGroomFromJiraIssueCache(issueKey) {
+  const key = normalizeIssueKey(issueKey);
+  const db  = await openCruscottoDb();
+  const wipParent = await db.jiraIssueWip.findUnique({ where: { jiraKey: key } });
+
+  if (!wipParent) {
+    return { synced: false, key, reason: "not_in_wip" };
+  }
+
+  const hit = await findJiraIssueInLatestSync(db, key);
+
+  if (!hit) {
+    return { synced: false, key, reason: "cache_miss" };
+  }
+
+  /** @param {import("@prisma/client").JiraIssue} cacheRow */
+  const syncOne = async (cacheRow) => {
+    const wipRow = await db.jiraIssueWip.findUnique({ where: { jiraKey: cacheRow.jiraKey } });
+
+    if (!wipRow) {
+      return false;
+    }
+
+    await db.jiraIssueWip.update({
+      where: { jiraKey: cacheRow.jiraKey }
+    , data : {
+        ...wipDataFromJiraIssue(cacheRow, {})
+      , rawFields: JSON.stringify(
+          mergeWipRawFromCacheRow(cacheRow.rawFields, wipRow.rawFields)
+        )
+      }
+    });
+
+    return true;
+  };
+
+  let rows = 0;
+
+  if (await syncOne(hit.row)) {
+    rows += 1;
+  }
+
+  const children = await db.jiraIssue.findMany({
+    where  : { parentJiraKey: key, syncRunId: hit.syncRun.id }
+  , orderBy: { jiraKey: "asc" }
+  });
+
+  for (const child of children) {
+    if (await syncOne(child)) {
+      rows += 1;
+    }
+  }
+
+  return { synced: rows > 0, key, rows };
 }
 
 /**

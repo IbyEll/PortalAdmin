@@ -1,11 +1,11 @@
 ---
-description: Veve db step 4 — crea subtask mancanti + upsert ogni figlia in jira_issue_wip
+description: Veve db step 4 — crea subtask mancanti + groom ogni figlia in jira_issue
 alwaysApply: true
 ---
 
-# Veve DB — Aggiorna Subtask (WIP)
+# Veve DB — Aggiorna Subtask (cache)
 
-Equivalente veve MCP step 4 (`ADMIN-Veve-AggiornaSubtask.mdc`): stesso template, groom su **DB** — più creazione subtask mancanti da gap (come design JLO / veve MCP).
+Equivalente veve MCP step 4 (`ADMIN-Veve-AggiornaSubtask.mdc`): stesso template, groom su **`jira_issue`** — più creazione subtask mancanti da gap (come design JLO / veve MCP).
 
 ## Trigger
 
@@ -57,12 +57,11 @@ Sezioni e **checkbox AC/DoD (B poi A)**: come `ADMIN-Veve-AggiornaSubtask.mdc`.
 
 1. Riga sorgente da `jira_issue` (post-ensure).
 2. Compila `veveDescription` dal template.
-3. **Upsert** `jira_issue_wip` (o `jira_issue` se CREA) per `jira_key` subtask:
+3. **Patch** **`jira_issue`** per `jira_key` subtask:
 
 | Campo | Valore |
 | --- | --- |
-| `parent_jira_key` | `{KEY}` |
 | `raw_fields` | `veveDescription`, `gap`, `files`, `orderN`, `orderM`, `parentVeveKey`, `workflowSource` |
-| Altri campi | Mirror da `jira_issue` |
+| `synced_at` | now |
 
-**Vietato:** MCP Jira per edit description · `editJiraIssue` groom · branch · commit · Fatto (salvo richiesta).
+**Vietato:** upsert `jira_issue_wip` · MCP Jira per edit description · `editJiraIssue` groom · branch · commit · Fatto (salvo richiesta).

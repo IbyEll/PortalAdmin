@@ -5,7 +5,11 @@
 import { createJiraIssue, JIRA_CREATE_ISSUE_TYPES } from "../admin.portal.JiraCORE/jiraCORE.jira.create.mjs";
 
 import { persistFindingIssueLink } from "./matrix.finding-issues.store.mjs";
-import { formatMatrixSectionLabel, jiraLabelForMatrixSection } from "./matrix.finding.sections.mjs";
+import {
+  formatMatrixKindCreateLabel
+, formatMatrixSectionLabel
+, jiraLabelForMatrixSection
+} from "./matrix.finding.sections.mjs";
 import { projectLabelToJiraProjectKey } from "./matrix.finding.project.mjs";
 
 export const MATRIX_FINDING_DEFAULT_CREATE_ISSUE_TYPE = "BUG";
@@ -59,11 +63,28 @@ export function resolveMatrixFindingCreateIssueType(findingId, requestedType) {
 export const resolveAdvancementCreateIssueType = resolveMatrixFindingCreateIssueType;
 
 /**
+ * @param {Record<string, unknown>} body
+ * @returns {{ voce: string, dettaglio: string }}
+ */
+export function parseMatrixFindingCreateBody(body) {
+  const voce = typeof body.voce === "string" ? body.voce.trim()
+    : (typeof body.summary === "string" ? body.summary.trim()
+      : (typeof body.title === "string" ? body.title.trim() : ""));
+
+  const dettaglio = typeof body.dettaglio === "string" ? body.dettaglio.trim()
+    : (typeof body.detail === "string" ? body.detail.trim() : "");
+
+  return { voce, dettaglio };
+}
+
+/**
  * @param {{
  *   projectLabel: string
  *   findingId: string
- *   title: string
- *   detail: string
+ *   voce?: string
+ *   dettaglio?: string
+ *   title?: string
+ *   detail?: string
  *   paths?: string[]
  *   issueTypeKey?: string
  *   sectionTitle?: string
@@ -81,15 +102,26 @@ export async function createMatrixFindingIssue(input) {
     throw new Error("Sub-task non consentito dalle matrici docs");
   }
 
+  const voce      = String(input.voce ?? input.title ?? "").trim();
+  const dettaglio = String(input.dettaglio ?? input.detail ?? "").trim();
+
+  if (!voce) {
+    throw new Error("voce obbligatoria");
+  }
+
   const sectionLabel = input.sectionLabel
-    ?? formatMatrixSectionLabel(input.sectionTitle);
+    ?? (input.matrixKind
+      ? formatMatrixKindCreateLabel(input.matrixKind)
+      : formatMatrixSectionLabel(input.sectionTitle));
   const jiraLabel    = jiraLabelForMatrixSection(sectionLabel);
+  const summaryText  = `${jiraLabel} ${voce}`.trim().slice(0, 250);
 
   const created = await createJiraIssue({
     projectKey
   , issueTypeKey
-  , summary: `${jiraLabel} ${input.title}`
-  , labels : [jiraLabel]
+  , summary    : summaryText
+  , description: dettaglio || undefined
+  , labels     : [jiraLabel]
   });
 
   persistFindingIssueLink(input.findingId, {

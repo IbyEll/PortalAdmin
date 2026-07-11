@@ -69,7 +69,7 @@
  *     "title": "Sezione",
  *     "badge": "5 voci",
  *     "open": true,
- *     "columns": ["Sev", "Issue refirement", "Project", "Voce", "Dettaglio", "Path", "Stato"],
+ *     "columns": ["Sev", "Issue refinement", "Project", "Voce", "Dettaglio", "Path", "Stato"],
  *     "rows": [{
  *       "id": "row-1",
  *       "sev": "P2",

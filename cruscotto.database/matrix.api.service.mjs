@@ -31,7 +31,10 @@ import {
 , persistFindingIssueLink
 , pruneStaleMatrixFindingIssueLinks
 } from "../docs.portal.lib/matrix.finding-issues.store.mjs";
-import { createMatrixFindingIssue } from "../docs.portal.lib/matrix.finding.create.mjs";
+import {
+  createMatrixFindingIssue
+, parseMatrixFindingCreateBody
+} from "../docs.portal.lib/matrix.finding.create.mjs";
 import {
   renderMatrixPage
 , summarizeMatrixSections
@@ -389,6 +392,7 @@ function buildMatrixCruscottoShellConfig(matrixKind, data, registry, embed) {
       , embed
       })
     , ...baseShell
+    , matrixKind
     };
   }
 
@@ -399,6 +403,7 @@ function buildMatrixCruscottoShellConfig(matrixKind, data, registry, embed) {
     title           : "PortalAdmin — Matrice avanzamento, gap, audit e storico"
   , pageTitle       : "[ MATRIX ] - PortalAdmin — Avanzamento · Gap · Audit"
   , generatedAt     : data.generatedAt ?? undefined
+  , matrixKind
   , metaHtml        : [
       `Matrice DB · ${date}`
     , data.runId ? `· run <code>${data.runId}</code>` : ""
@@ -467,7 +472,8 @@ export async function loadMatrixRegistryApi() {
 export async function runMatrixFindingIssueVeveDb(created, body) {
   const findingId = typeof body.findingId === "string" ? body.findingId.trim() : "";
   const paths     = Array.isArray(body.paths) ? body.paths.map((p) => String(p)) : [];
-  const detail    = typeof body.detail === "string" ? body.detail.trim() : "";
+  const { dettaglio } = parseMatrixFindingCreateBody(body);
+  const detail        = dettaglio;
 
   /** @type {{ ok: boolean, key?: string, error?: string, [k: string]: unknown }} */
   let veve = { ok: false, error: "veve DB non eseguito" };
@@ -475,8 +481,7 @@ export async function runMatrixFindingIssueVeveDb(created, body) {
   try {
     const { runVeveDbForIssueKey } = await import("../admin.portal.JiraCORE/jiraCORE.veve.db.mjs");
     veve = await runVeveDbForIssueKey(created.key, {
-      writeTarget    : "both"
-    , matrixPaths    : paths
+      matrixPaths    : paths
     , matrixDetail   : detail
     , matrixFindingId: findingId
     , matrixKind     : typeof body.matrixKind === "string" ? body.matrixKind : undefined
@@ -521,11 +526,10 @@ export async function createMatrixFindingIssueOnly(body) {
   const projectLabel = typeof body.project === "string" && body.project.trim()
     ? body.project.trim()
     : "PortalAdmin";
-  const title = typeof body.summary === "string" ? body.summary.trim() : "";
-  const detail = typeof body.detail === "string" ? body.detail.trim() : "";
+  const { voce, dettaglio } = parseMatrixFindingCreateBody(body);
 
-  if (!title) {
-    throw new Error("summary obbligatorio");
+  if (!voce) {
+    throw new Error("voce obbligatoria");
   }
 
   const paths = Array.isArray(body.paths)
@@ -545,8 +549,8 @@ export async function createMatrixFindingIssueOnly(body) {
   const created = await createMatrixFindingIssue({
     projectLabel
   , findingId
-  , title
-  , detail
+  , voce
+  , dettaglio
   , paths
   , issueTypeKey: typeof body.issueType === "string" ? body.issueType : undefined
   , sectionLabel
@@ -560,7 +564,7 @@ export async function createMatrixFindingIssueOnly(body) {
     ...created
   , findingId
   , paths
-  , detail
+  , dettaglio
   , matrixKind: typeof body.matrixKind === "string" ? body.matrixKind : undefined
   , dryRun     : Boolean(body.dryRun)
   };
