@@ -5,7 +5,7 @@
  * ------------------------------------------------------------------------------------------------------------------------
  * creato     il: 2026-06-23 21:05   by: IbyEll
  * modificato il: 2026-06-23 21:05   by: IbyEll
- * ticket refirement: ADMIN-112 dashboard-server static e health
+ * ticket refirement: ADMIN-112 dashboard-server static e health · ADMIN-228 issue.html smoke
  * ------------------------------------------------------------------------------------------------------------------------
  *
  * ************************************************************************************************************************
@@ -18,7 +18,7 @@
  *   - Regressione rapida su cruscotto HTTP senza aprire browser manuale dopo refactor server.
  *
  *   A cosa serve:
- *   - Spawn opzionale cruscotto.server, fetch /api/health e HTML principali con body minimo.
+ *   - Spawn opzionale cruscotto.server, fetch /api/health e HTML principali con body minimo (incluso issue.html).
  *
  * Generalizzazione:
  *   Si — DASHBOARD_PORT env per listener; riusa server già up se health ok.
@@ -101,6 +101,12 @@ async function main() {
     await fetchOk("/backlog.html");
   } catch (err) {
     console.warn("backlog.html:", err instanceof Error ? err.message : err);
+  }
+
+  const issueHtml = await fetchOk("/issue.html");
+
+  if (!issueHtml.includes("issue-search-form") || !issueHtml.includes("btn-load-db")) {
+    throw new Error("/issue.html markup issue display incompleto");
   }
 
   console.log(`OK smoke dashboard ${BASE}/`);
